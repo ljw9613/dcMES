@@ -1,0 +1,585 @@
+[
+  {
+    "modelName": "PRD_MO",
+    "description": "生产订单",
+    "header": [
+      {
+        "name": "FID",
+        "type": "number",
+        "description": "实体主键",
+        "required": true
+      },
+      {
+        "name": "FBillNo",
+        "type": "string",
+        "description": "单据编号",
+        "required": false
+      },
+      {
+        "name": "FDocumentStatus",
+        "type": "string",
+        "description": "单据状态",
+        "required": false
+      },
+      {
+        "name": "FSaleOrderId",
+        "type": "string",
+        "description": "销售订单ID",
+        "required": false
+      },
+      {
+        "name": "FSaleOrderEntryId",
+        "type": "string",
+        "description": "销售订单分录内码",
+        "required": false
+      },
+      {
+        "name": "FSaleOrderNo",
+        "type": "string",
+        "description": "销售订单号",
+        "required": false
+      },
+      {
+        "name": "FApproverId",
+        "type": "string",
+        "description": "审核人",
+        "required": false
+      },
+      {
+        "name": "FApproveDate",
+        "type": "date",
+        "description": "审核日期",
+        "required": false
+      },
+      {
+        "name": "FDate",
+        "type": "date",
+        "description": "单据日期",
+        "required": true
+      },
+      {
+        "name": "FWorkShopID_FName",
+        "type": "string",
+        "description": "生产车间",
+        "entityNameconvert": true,
+        "required": false
+      },
+      {
+        "name": "FMaterialId",
+        "type": "string",
+        "description": "物料编码",
+        "required": true
+      },
+      {
+        "name": "FMaterialName",
+        "type": "string",
+        "description": "物料名称",
+        "required": false
+      },
+      {
+        "name": "FSpecification",
+        "type": "string",
+        "description": "规格型号",
+        "required": false
+      },
+      {
+        "name": "FProductType",
+        "type": "string",
+        "description": "产品类型",
+        "required": true
+      },
+      {
+        "name": "FUnitId",
+        "type": "string",
+        "description": "单位",
+        "required": true
+      },
+      {
+        "name": "FQty",
+        "type": "number",
+        "description": "数量",
+        "required": true
+      },
+      {
+        "name": "FPlanStartDate",
+        "type": "date",
+        "description": "计划开工时间",
+        "required": true
+      },
+      {
+        "name": "FPlanFinishDate",
+        "type": "date",
+        "description": "计划完工时间",
+        "required": true
+      }
+    ]
+  },
+  {
+    "modelName": "SAL_SaleOrder",
+    "description": "销售订单",
+    "header": [
+      {
+        "name": "FID",
+        "type": "number",
+        "description": "实体主键",
+        "required": false
+      },
+      {
+        "name": "FBillNo",
+        "type": "string",
+        "description": "单据编号",
+        "required": false
+      },
+      {
+        "name": "FDocumentStatus",
+        "type": "string",
+        "description": "单据状态",
+        "required": false
+      },
+      {
+        "name": "FSaleOrgId",
+        "type": "string",
+        "description": "销售组织",
+        "required": true
+      },
+      {
+        "name": "FDate",
+        "type": "date",
+        "description": "业务日期",
+        "required": true
+      },
+      {
+        "name": "FCustId",
+        "type": "string",
+        "description": "客户",
+        "required": true
+      },
+      {
+        "name": "FSaleDeptId",
+        "type": "string",
+        "description": "销售部门",
+        "required": false
+      },
+      {
+        "name": "FSaleGroupId",
+        "type": "string",
+        "description": "销售组",
+        "required": false
+      },
+      {
+        "name": "FSalerId",
+        "type": "string",
+        "description": "销售员",
+        "required": false
+      },
+      {
+        "name": "FReceiveId",
+        "type": "string",
+        "description": "收货方（作废）",
+        "required": false
+      },
+      {
+        "name": "FSettleId",
+        "type": "string",
+        "description": "结算方",
+        "required": false
+      },
+      {
+        "name": "FSettleAddress",
+        "type": "string",
+        "description": "结算方地址",
+        "required": false
+      },
+      {
+        "name": "FChargeId",
+        "type": "string",
+        "description": "付款方（作废）",
+        "required": false
+      },
+      {
+        "name": "FCreatorId",
+        "type": "string",
+        "description": "创建人",
+        "required": false
+      },
+      {
+        "name": "FCreateDate",
+        "type": "date",
+        "description": "创建日期",
+        "required": false
+      },
+      {
+        "name": "FModifierId",
+        "type": "string",
+        "description": "最后修改人",
+        "required": false
+      },
+      {
+        "name": "FModifyDate",
+        "type": "date",
+        "description": "最后修改日期",
+        "required": false
+      },
+      {
+        "name": "FApproverId",
+        "type": "string",
+        "description": "审核人",
+        "required": false
+      },
+      {
+        "name": "FApproveDate",
+        "type": "date",
+        "description": "审核日期",
+        "required": false
+      },
+      {
+        "name": "FCloseStatus",
+        "type": "string",
+        "description": "关闭状态",
+        "required": false
+      },
+      {
+        "name": "FCloserId",
+        "type": "string",
+        "description": "关闭人",
+        "required": false
+      },
+      {
+        "name": "FCloseDate",
+        "type": "date",
+        "description": "关闭日期",
+        "required": false
+      },
+      {
+        "name": "FCancelStatus",
+        "type": "string",
+        "description": "作废状态",
+        "required": false
+      },
+      {
+        "name": "FCancellerId",
+        "type": "string",
+        "description": "作废人",
+        "required": false
+      },
+      {
+        "name": "FCancelDate",
+        "type": "date",
+        "description": "作废日期",
+        "required": false
+      },
+      {
+        "name": "FVersionNo",
+        "type": "string",
+        "description": "版本号",
+        "required": false
+      },
+      {
+        "name": "FChangerId",
+        "type": "string",
+        "description": "变更人",
+        "required": false
+      },
+      {
+        "name": "FChangeDate",
+        "type": "date",
+        "description": "变更日期",
+        "required": false
+      },
+      {
+        "name": "FChangeReason",
+        "type": "string",
+        "description": "变更原因",
+        "required": false
+      },
+      {
+        "name": "FBillTypeID",
+        "type": "string",
+        "description": "单据类型",
+        "required": true
+      }
+    ]
+  },
+  {
+    "modelName": "BD_MATERIAL",
+    "description": "物料",
+    "header": [
+      {
+        "name": "FMATERIALID",
+        "type": "number",
+        "description": "实体主键",
+        "required": false
+      },
+      {
+        "name": "FDocumentStatus",
+        "type": "string",
+        "description": "数据状态",
+        "required": false
+      },
+      {
+        "name": "FForbidStatus",
+        "type": "string",
+        "description": "禁用状态",
+        "required": false
+      },
+      {
+        "name": "FName",
+        "type": "string",
+        "description": "名称",
+        "required": true
+      },
+      {
+        "name": "FNumber",
+        "type": "string",
+        "description": "编码",
+        "required": false
+      },
+      {
+        "name": "FDescription",
+        "type": "string",
+        "description": "描述",
+        "required": false
+      },
+      {
+        "name": "FCreateOrgId",
+        "type": "string",
+        "description": "创建组织",
+        "required": true
+      },
+      {
+        "name": "FUseOrgId",
+        "type": "string",
+        "description": "使用组织",
+        "required": true
+      },
+      {
+        "name": "FCreatorId",
+        "type": "string",
+        "description": "创建人",
+        "required": false
+      },
+      {
+        "name": "FModifierId",
+        "type": "string",
+        "description": "修改人",
+        "required": false
+      },
+      {
+        "name": "FCreateDate",
+        "type": "date",
+        "description": "创建日期",
+        "required": false
+      },
+      {
+        "name": "FModifyDate",
+        "type": "date",
+        "description": "修改日期",
+        "required": false
+      },
+      {
+        "name": "FForbidderId",
+        "type": "string",
+        "description": "禁用人",
+        "required": false
+      },
+      {
+        "name": "FApproverId",
+        "type": "string",
+        "description": "审核人",
+        "required": false
+      },
+      {
+        "name": "FForbidDate",
+        "type": "date",
+        "description": "禁用日期",
+        "required": false
+      },
+      {
+        "name": "FApproveDate",
+        "type": "date",
+        "description": "审核日期",
+        "required": false
+      },
+      {
+        "name": "FOldNumber",
+        "type": "string",
+        "description": "旧物料编码",
+        "required": false
+      },
+      {
+        "name": "FMnemonicCode",
+        "type": "string",
+        "description": "助记码",
+        "required": false
+      },
+      {
+        "name": "FSpecification",
+        "type": "string",
+        "description": "规格型号",
+        "required": false
+      },
+      {
+        "name": "FImage1",
+        "type": "string",
+        "description": "图片(数据库)",
+        "required": false
+      },
+      {
+        "name": "FMaterialGroup",
+        "type": "string",
+        "description": "物料分组",
+        "required": false
+      },
+      {
+        "name": "FBaseProperty",
+        "type": "string",
+        "description": "物料分组编码",
+        "required": false
+      },
+      {
+        "name": "FPLMMaterialId",
+        "type": "string",
+        "description": "PLM物料内码",
+        "required": false
+      },
+      {
+        "name": "FMaterialSRC",
+        "type": "string",
+        "description": "物料来源",
+        "required": false
+      },
+      {
+        "name": "FImageFileServer",
+        "type": "string",
+        "description": "图片(文件服务器)",
+        "required": false
+      },
+      {
+        "name": "FImgStorageType",
+        "type": "string",
+        "description": "图片存储类型",
+        "required": false
+      },
+      {
+        "name": "FIsSalseByNet",
+        "type": "boolean",
+        "description": "是否网销",
+        "required": false
+      },
+      {
+        "name": "FIsAutoAllocate",
+        "type": "boolean",
+        "description": "自动分配",
+        "required": false
+      },
+      {
+        "name": "FSPUID",
+        "type": "string",
+        "description": "SPU信息",
+        "required": false
+      },
+      {
+        "name": "FPinYin",
+        "type": "string",
+        "description": "拼音",
+        "required": false
+      },
+      {
+        "name": "FDSMatchByLot",
+        "type": "boolean",
+        "description": "按批号匹配供需",
+        "required": false
+      },
+      {
+        "name": "FRefStatus",
+        "type": "string",
+        "description": "已使用",
+        "required": false
+      },
+      {
+        "name": "FForbidReson",
+        "type": "string",
+        "description": "禁用原因",
+        "required": false
+      },
+      {
+        "name": "F_TFQJ_TZBM1",
+        "type": "string",
+        "description": "图纸编码",
+        "required": false
+      },
+      {
+        "name": "F_TFQJ_LLCJ",
+        "type": "string",
+        "description": "领料车间",
+        "required": false
+      },
+      {
+        "name": "F_TFQJ_SFZDKZ",
+        "type": "string",
+        "description": "是否自动扣账",
+        "required": false
+      },
+      {
+        "name": "F_TFQJ_SFZDLL",
+        "type": "string",
+        "description": "是否自动领料",
+        "required": false
+      },
+      {
+        "name": "FBaseUnitId_FName",
+        "type": "string",
+        "entityNameconvert": true,
+        "description": "基本单位",
+        "required": true
+      },
+      {
+        "name": "FBaseUnitId_FNumber",
+        "type": "string",
+        "entityNameconvert": true,
+        "description": "基本单位编码",
+        "required": true
+      },
+      {
+        "name": "FStockId_FNumber",
+        "type": "string",
+        "entityNameconvert": true,
+        "description": "仓库编码",
+        "required": true
+      },
+      {
+        "name": "FStockId_FName",
+        "type": "string",
+        "entityNameconvert": true,
+        "description": "仓库",
+        "required": true
+      },
+      {
+        "name": "FPickStockId_FNumber",
+        "type": "string",
+        "entityNameconvert": true,
+        "description": "发料仓库编码",
+        "required": true
+      },
+      {
+        "name": "FPickStockId_FName",
+        "type": "string",
+        "entityNameconvert": true,
+        "description": "发料仓库",
+        "required": true
+      },
+      {
+        "name": "F_TFQJ_CheckBox",
+        "type": "string",
+        "description": "是否长新物料",
+        "required": false
+      },
+      {
+        "name": "FNameEn",
+        "type": "string",
+        "description": "英文名称",
+        "required": false
+      }
+    ]
+  }
+]
