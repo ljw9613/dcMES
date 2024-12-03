@@ -30,10 +30,10 @@ var craftSchema = new mongoose.Schema({
     
     attachments: [{ type: String }], // 附件文档路径
     remark: { type: String }, // 备注
-    
-    status: { type: Boolean, default: true }, // 状态(启用/禁用)
+
+    status: { type: String, default: true }, // 状态(启用/禁用)
     isStandard: { type: Boolean, default: false }, // 是否标准工艺
-    
+
     createBy: { type: String }, // 创建人
     updateBy: { type: String }, // 更新人
     createAt: { type: Date, default: Date.now }, // 创建时间
