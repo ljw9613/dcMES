@@ -25,25 +25,8 @@ var craftSchema = new mongoose.Schema({
         lowerLimit: { type: Number }, // 下限值
     }],
     
-    // 工序步骤
-    processSteps: [{
-        stepNo: { type: Number }, // 步骤序号
-        stepName: { type: String }, // 步骤名称
-        stepDesc: { type: String }, // 步骤描述
-        standardTime: { type: Number }, // 标准工时(分钟)
-        equipment: { type: mongoose.Schema.ObjectId, ref: "equipment" }, // 关联设备
-        
-        // 工序物料清单
-        materials: [{
-            materialId: { type: mongoose.Schema.ObjectId, ref: "material" }, // 物料ID
-            materialCode: { type: String }, // 物料编码
-            materialName: { type: String }, // 物料名称
-            quantity: { type: Number }, // 用量
-            unit: { type: String }, // 单位
-            isKey: { type: Boolean, default: false }, // 是否关键物料
-            remark: { type: String } // 物料使用备注
-        }]
-    }],
+    // 工序步骤关联
+    processSteps: [{ type: mongoose.Schema.ObjectId, ref: "process_step" }], // 关联工序步骤
     
     attachments: [{ type: String }], // 附件文档路径
     remark: { type: String }, // 备注
