@@ -1,5 +1,5 @@
 <template>
-    <div class="scan-container">
+    <div class="scan-container" v-loading="loading">
         <div class="left-form">
             <el-form :model="formData">
                 <h3>工序初始化设置</h3>
@@ -111,7 +111,8 @@ export default {
             },
             validateStatus: {
                 mainBarcode: false
-            }
+            },
+            loading: false, // 加载状态
         }
     },
     computed: {
@@ -280,8 +281,19 @@ export default {
                 return;
             }
 
+            // 创建全屏加载
+            const loading = this.$loading({
+                lock: true,
+                text: '保存中...',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.7)'
+            });
+
             try {
-                // 先设置缓存ID
+                // 重置之前的数据
+                this.resetScanForm();
+
+                // 设置缓存ID
                 this.mainMaterialId = this.formData.productModel;
                 this.processStepId = this.formData.processStep;
 
@@ -299,58 +311,98 @@ export default {
 
                 this.$message.success('保存成功');
 
-                // 渲染右侧区域内容
-                await this.getMainMaterialInfo();
-                await this.getProcessMaterials();
+                // 模拟延迟以显示加载图标
+                setTimeout(() => {
+                    // 关闭加载动画（虽然页面会刷新，但这是一个好习惯）
+                    loading.close();
+                    // 强制刷新页面
+                    window.location.reload();
+                }, 500);
+
             } catch (error) {
                 console.error('保存失败:', error);
                 this.$message.error('保存失败');
+                loading.close(); // 确保在错误情况下关闭加载动画
             }
         },
 
         // 获取主物料信息
         async getMainMaterialInfo() {
             try {
+                console.log('正在获取主物料信息，ID:', this.mainMaterialId); // 调试日志
                 const response = await getData('k3_BD_MATERIAL', {
-                    query: { _id: this.mainMaterialId }
+                    query: { _id: this.mainMaterialId },
+                    page: 1,
+                    limit: 1
                 });
+
                 if (response.data && response.data[0]) {
+                    console.log('获取到的主物料信息:', response.data[0]); // 调试日志
                     this.mainMaterialName = response.data[0].FName;
+                } else {
+                    console.log('未找到主物料信息'); // 调试日志
+                    this.mainMaterialName = '';
                 }
             } catch (error) {
                 console.error('获取主物料信息失败:', error);
                 this.$message.error('获取主物料信息失败');
+                this.mainMaterialName = '';
             }
         },
 
         // 获取工序相关物料
         async getProcessMaterials() {
             try {
+                console.log('正在获取工序信息，ID:', this.processStepId); // 调试日志
                 // 获取工序信息
                 const stepResponse = await getData('processStep', {
-                    query: { _id: this.processStepId }
+                    query: { _id: this.processStepId },
+                    page: 1,
+                    limit: 1
                 });
 
+                console.log('获取到的工序信息:', stepResponse.data); // 调试日志
+
                 if (stepResponse.data && stepResponse.data[0] && stepResponse.data[0].materials) {
+                    // 重置物料数组
+                    this.processMaterials = [];
+
                     // 获取物料关系信息
                     const materialPromises = stepResponse.data[0].materials.map(materialId =>
-                        getData('processMaterials', { query: { _id: materialId } })
+                        getData('processMaterials', {
+                            query: { _id: materialId },
+                            page: 1,
+                            limit: 1
+                        })
                     );
 
                     const materialsResponses = await Promise.all(materialPromises);
-                    this.processMaterials = materialsResponses
-                        .map(response => response.data[0]) // 确保获取到的是数组中的第一个元素
-                        .filter(material => material); // 过滤掉未定义的值
+                    console.log('获取到的物料信息:', materialsResponses); // 调试日志
 
-                    // 初始化验证状态
+                    this.processMaterials = materialsResponses
+                        .map(response => response.data[0])
+                        .filter(material => material);
+
+                    // 重置并初始化验证状态
+                    this.validateStatus = { mainBarcode: false };
+                    this.scanForm.barcodes = {};
+
                     this.processMaterials.forEach(material => {
                         this.validateStatus[material._id] = false;
                         this.$set(this.scanForm.barcodes, material._id, '');
                     });
+                } else {
+                    console.log('未找到工序相关物料'); // 调试日志
+                    this.processMaterials = [];
+                    this.validateStatus = { mainBarcode: false };
+                    this.scanForm.barcodes = {};
                 }
             } catch (error) {
                 console.error('获取工序物料失败:', error);
                 this.$message.error('获取工序物料失败');
+                this.processMaterials = [];
+                this.validateStatus = { mainBarcode: false };
+                this.scanForm.barcodes = {};
             }
         },
 

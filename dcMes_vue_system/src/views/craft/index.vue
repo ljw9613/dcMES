@@ -284,6 +284,12 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="工序次序" prop="sort">
+                            <el-input-number v-model="processForm.sort" :min="1" placeholder="请输入工序次序"
+                                style="width: 100%"></el-input-number>
+                        </el-form-item>
+                    </el-col>
                 </el-row>
             </el-form>
 
@@ -490,7 +496,8 @@ export default {
                 businessType: '',  // 业务类型
                 status: 'CREATE',  // 状态
                 materials: [],     // 工序物料清单
-                remark: ''        // 备注
+                remark: '',        // 备注
+                sort: 1            // 工序次序
             },
 
             // 工序表单验证规则
@@ -506,6 +513,10 @@ export default {
                 ],
                 processType: [
                     { required: true, message: '请选择工序类型', trigger: 'change' }
+                ],
+                sort: [
+                    { required: true, message: '请输入工序次序', trigger: 'blur' },
+                    { type: 'number', min: 1, message: '工序次序必须大于0', trigger: 'blur' }
                 ]
             },
 
@@ -759,7 +770,8 @@ export default {
                 equipment: '',
                 materials: [],
                 status: 'CREATE',
-                remark: ''
+                remark: '',
+                sort: 1
             };
             // 重置物料列表
             this.materialTableData.tableList = [];
