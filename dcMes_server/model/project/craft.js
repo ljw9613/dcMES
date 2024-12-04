@@ -7,15 +7,15 @@
 var mongoose = require("mongoose");
 
 var craftSchema = new mongoose.Schema({
-
+    businessType: { type: String }, // 业务类型
     craftCode: { type: String, required: true }, // 工艺编号
     craftName: { type: String, required: true }, // 工艺名称
     craftVersion: { type: String }, // 工艺版本号
-    productId: { type: mongoose.Schema.ObjectId, ref: "product" }, // 关联产品ID
     craftType: { type: String }, // 工艺类型
     craftDesc: { type: String }, // 工艺描述
-    materialId: { type: mongoose.Schema.ObjectId, ref: "material" }, // 物料ID
-
+    materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID
+    componentName: { type: String }, // 组件名称
+    productName: { type: String }, // 产品型号
     // 工艺参数
     craftParams: [{
         paramName: { type: String }, // 参数名称
@@ -24,10 +24,10 @@ var craftSchema = new mongoose.Schema({
         upperLimit: { type: Number }, // 上限值
         lowerLimit: { type: Number }, // 下限值
     }],
-    
+
     // 工序步骤关联
     processSteps: [{ type: mongoose.Schema.ObjectId, ref: "process_step" }], // 关联工序步骤
-    
+    productStage: { type: String }, // 生产阶级
     attachments: [{ type: String }], // 附件文档路径
     remark: { type: String }, // 备注
 

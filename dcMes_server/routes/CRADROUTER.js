@@ -17,6 +17,10 @@ const dictType = require("../model/system/dictType");
 // 引入 k3 模型
 const k3Models = require("../model/k3/k3Model");
 const craft = require("../model/project/craft");
+const barcode = require("../model/project/barcode");
+const processStep = require("../model/project/processStep");
+const scanRecord = require("../model/project/scanRecord");
+const processMaterials = require("../model/project/processMaterials");
 
 //封装
 const ADDROUTER = require("../libs/request");
@@ -28,6 +32,10 @@ ADDROUTER(router, "role", role);
 ADDROUTER(router, "dictType", dictType);
 ADDROUTER(router, "dictData", dictData);
 ADDROUTER(router, "craft", craft);
+ADDROUTER(router, "barcode", barcode);
+ADDROUTER(router, "processStep", processStep);
+ADDROUTER(router, "scanRecord", scanRecord);
+ADDROUTER(router, "processMaterials", processMaterials);
 
 // 为每个 k3 模型添加路由
 Object.entries(k3Models).forEach(([modelName, model]) => {
