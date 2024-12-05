@@ -99,7 +99,7 @@
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" width="150">
                     <template slot-scope="scope">
-                        <!-- <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button> -->
+                        <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
                         <el-button type="text" size="small" @click="handleDelete(scope.row)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -148,7 +148,7 @@
                     <el-col :span="12">
                         <el-form-item label="选择物料" prop="selectedMaterial">
                             <el-select v-model="craftForm.selectedMaterial" placeholder="请选择物料" filterable remote
-                                :remote-method="getMaterialList" :loading="materialLoading"
+                                :remote-method="handleRemoteSearch" :loading="materialLoading"
                                 @change="handleCraftMaterialChange" style="width: 100%">
                                 <el-option v-for="item in materialOptions" :key="item._id"
                                     :label="`${item.FNumber} - ${item.FName}`" :value="item._id">
@@ -200,10 +200,11 @@
                 :tableDataloading="processTableData.listLoading" :total="processTableData.total"
                 @handleCurrentChange="handleProcessTableCurrentChange" @handleSizeChange="handleProcessTableSizeChange">
                 <template slot="law">
-                    <el-table-column label="工序编码" prop="processCode" />
-                    <el-table-column label="工序描述" prop="processDesc" />
-                    <el-table-column label="工序类型" prop="processType" />
-                    <el-table-column label="状态">
+                    <el-table-column label="工序编码" prop="processCode" width="150" align="center" />
+                    <el-table-column label="工序描述" prop="processDesc" align="center" />
+                    <el-table-column label="工序次序" prop="sort" width="150" align="center" />
+                    <el-table-column label="工序类型" prop="processType" width="150" align="center" />
+                    <el-table-column label="状态" align="center">
                         <template slot-scope="scope">
                             <el-tag :type="getStatusType(scope.row.status)">
                                 {{ getStatusText(scope.row.status) }}
@@ -212,7 +213,7 @@
                     </el-table-column>
                     <el-table-column label="操作" fixed="right" width="150">
                         <template slot-scope="scope">
-                            <!-- <el-button type="text" size="small" @click="handleEditProcess(scope.row)">编辑</el-button> -->
+                            <el-button type="text" size="small" @click="handleEditProcess(scope.row)">编辑</el-button>
                             <el-button type="text" size="small" @click="handleDeleteProcess(scope.row)">删除</el-button>
                         </template>
                     </el-table-column>
@@ -307,7 +308,6 @@
                 @handleCurrentChange="handleMaterialTableCurrentChange"
                 @handleSizeChange="handleMaterialTableSizeChange" :cell-style="{ textAlign: 'center' }">
                 <template slot="law">
-                    <el-table-column type="index" label="序号" width="50" />
                     <el-table-column label="物料编码" prop="materialCode">
                         <template slot-scope="scope">
                             <span style="color: #ff4949">*</span>
@@ -344,7 +344,7 @@
                     </el-table-column>
                     <el-table-column label="操作" fixed="right" width="150">
                         <template slot-scope="scope">
-                            <!-- <el-button type="text" size="small" @click="handleEditMaterial(scope.row)">编辑</el-button> -->
+                            <el-button type="text" size="small" @click="handleEditMaterial(scope.row)">编辑</el-button>
                             <el-button type="text" size="small" @click="handleDeleteMaterial(scope.row)">删除</el-button>
                         </template>
                     </el-table-column>
@@ -356,22 +356,22 @@
                 <el-button type="primary" @click="submitProcessForm">确 定</el-button>
             </div>
         </el-dialog>
-        <!-- 新增物料弹窗 -->
-        <el-dialog :close-on-click-modal="false" title="新增物料" :visible.sync="materialDialogVisible" width="50%"
-            append-to-body>
+        <!-- 物料对话框 -->
+        <el-dialog :close-on-click-modal="false" :title="materialDialog.title" :visible.sync="materialDialog.visible"
+            width="50%" append-to-body @close="$refs.materialForm.resetFields()">
             <el-form ref="materialForm" :model="materialForm" :rules="materialRules" label-width="100px">
                 <el-row :gutter="20">
                     <el-col :span="24">
                         <el-form-item label="选择物料" prop="materialId">
                             <el-select v-model="materialForm.materialId" placeholder="请选择物料" filterable remote
-                                :remote-method="getMaterialList" :loading="materialLoading"
+                                :remote-method="getMaterialList" :loading="materialDialog.loading"
                                 @change="handleMaterialChange" style="width: 100%">
                                 <el-option v-for="item in materialOptions" :key="item._id"
                                     :label="`${item.FNumber} - ${item.FName}`" :value="item._id">
                                     <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                    <span style="float: right; color: #8492a6; font-size: 13px">{{ item.FSpecification
-                                        || '无规格'
-                                        }}</span>
+                                    <span style="float: right; color: #8492a6; font-size: 13px">
+                                        {{ item.FSpecification || '无规格' }}
+                                    </span>
                                 </el-option>
                             </el-select>
                         </el-form-item>
@@ -380,24 +380,25 @@
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="物料编码" prop="materialCode">
-                            <el-input disabled v-model="materialForm.materialCode" placeholder="请输入物料编码"></el-input>
+                            <el-input disabled v-model="materialForm.materialCode" placeholder="请输入物料编码" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="物料名称" prop="materialName">
-                            <el-input disabled v-model="materialForm.materialName" placeholder="请输入物料名称"></el-input>
+                            <el-input disabled v-model="materialForm.materialName" placeholder="请输入物料名称" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="规格型号" prop="specification">
-                            <el-input disabled v-model="materialForm.specification" placeholder="请输入规格型号"></el-input>
+                            <el-input disabled v-model="materialForm.specification" placeholder="请输入规格型号" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="物料用量">
-                            <el-input v-model="materialForm.quantity" placeholder="请输入物料用量"></el-input>
+                        <el-form-item label="物料用量" prop="quantity">
+                            <el-input-number v-model="materialForm.quantity" :min="0" :precision="2" :step="1"
+                                style="width: 100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -415,24 +416,22 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="扫码操作">
-                            <el-select v-model="materialForm.scanOperation" placeholder="请选择扫码操作" style="width: 100%">
-                                <el-option label="是" value="true" />
-                                <el-option label="否" value="false" />
-                            </el-select>
+                            <el-switch v-model="materialForm.scanOperation" :active-value="true" :inactive-value="false">
+                            </el-switch>
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="是否组件">
-                            <el-switch v-model="materialForm.isComponent"></el-switch>
+                            <el-switch v-model="materialForm.isComponent" />
                         </el-form-item>
                     </el-col>
                 </el-row>
             </el-form>
             <div slot="footer" class="dialog-footer">
-                <el-button @click="materialDialogVisible = false">取 消</el-button>
-                <el-button type="primary" @click="submitMaterialForm">确 定</el-button>
+                <el-button @click="materialDialog.visible = false">取 消</el-button>
+                <el-button type="primary" :loading="materialDialog.loading" @click="submitMaterialForm">确 定</el-button>
             </div>
         </el-dialog>
     </div>
@@ -532,7 +531,7 @@ export default {
                 unit: '',          // 单位
                 isKey: '0',      // 是否关键物料
                 remark: '',        // 备注
-                scanOperation: '', // 扫码操作
+                scanOperation: false, // 扫码操作
                 isComponent: '0' // 是否组件
             },
             //物料表单验证规则
@@ -598,6 +597,34 @@ export default {
             showAdvanced: false,
             materialOptions: [], // 物料选项列表
             materialLoading: false, // 物料加载状态
+
+            // 编辑物料对话框数据
+            materialDialog: {
+                visible: false,
+                title: '新增物料',
+                loading: false
+            },
+            materialForm: {
+                materialId: '',
+                materialCode: '',
+                materialName: '',
+                specification: '',
+                quantity: 1,
+                unit: '个',
+                scanOperation: false,
+                isComponent: false
+            },
+            materialOptions: [],
+            materialRules: {
+                materialId: [
+                    { required: true, message: '请选择物料', trigger: 'change' }
+                ],
+                quantity: [
+                    { required: true, message: '请输入用量', trigger: 'blur' },
+                    { type: 'number', min: 0, message: '用量必须大于0', trigger: 'blur' }
+                ]
+            },
+            searchDebounce: null,
         }
     },
     methods: {
@@ -715,7 +742,11 @@ export default {
                             await addData('craft', craftData);
                             this.$message.success('添加成功');
                         } else {
-                            await updateData('craft', craftData);
+                            let updateReq = {
+                                query: { _id: this.tempCraftId },
+                                update: craftData
+                            }
+                            await updateData('craft', updateReq);
                             this.$message.success('更新成功');
                         }
 
@@ -778,17 +809,17 @@ export default {
             this.materialTableData.total = 0;
         },
 
-        // handleEditProcess(row) {
-        //     if (!row || !row._id) {
-        //         this.$message.error('无效的工序数据');
-        //         return;
-        //     }
+        handleEditProcess(row) {
+            if (!row || !row._id) {
+                this.$message.error('无效的工序数据');
+                return;
+            }
 
-        //     this.processDialogVisible = true;
-        //     this.tempProcessId = row._id;
-        //     this.processForm = JSON.parse(JSON.stringify(row));
-        //     this.fetchMaterialData(); // 加载关联的物料数据
-        // },
+            this.processDialogVisible = true;
+            this.tempProcessId = row._id;
+            this.processForm = JSON.parse(JSON.stringify(row));
+            this.fetchMaterialData(); // 加载关联的物料数据
+        },
 
         handleDeleteProcess(row) {
             this.$confirm('确认要删除该工序吗?', '提示', {
@@ -873,31 +904,14 @@ export default {
         },
 
         handleAddMaterial() {
-            if (!this.tempProcessId || !this.tempCraftId) {
-                this.$message.warning('工艺或工序ID不存在');
-                return;
-            }
-
-            this.materialDialogStatus = 'create';
-            this.editingMaterialId = null;
-            this.materialDialogVisible = true;
-            this.materialForm = {
-                craftId: this.tempCraftId,
-                processStepId: this.tempProcessId,
-                materialId: '',
-                materialCode: '',
-                materialName: '',
-                specification: '',
-                quantity: null,
-                unit: '',
-                isKey: false,
-                remark: '',
-                scanOperation: '',
-                isComponent: false
-            };
+            this.materialDialog.title = '新增物料'
+            this.materialDialog.visible = true
+            this.$nextTick(() => {
+                this.$refs.materialForm.resetFields()
+            })
         },
 
-        handleEdit(row) {
+        async handleEdit(row) {
             if (!row || !row._id) {
                 this.$message.error('无效的工艺数据');
                 return;
@@ -907,6 +921,23 @@ export default {
             this.dialogFormVisible = true;
             this.tempCraftId = row._id;
             this.craftForm = JSON.parse(JSON.stringify(row));
+
+            // 如果存在materialId，则初始化物料选项
+            if (this.craftForm.materialId) {
+                try {
+                    const result = await getData('k3_BD_MATERIAL', {
+                        query: { _id: this.craftForm.materialId }
+                    });
+                    if (result.data && result.data.length > 0) {
+                        this.materialOptions = result.data;
+                        this.craftForm.selectedMaterial = this.craftForm.materialId;
+                    }
+                } catch (error) {
+                    console.error('获取物料数据失败:', error);
+                    this.$message.error('获取物料数据失败');
+                }
+            }
+
             this.fetchProcessData(); // 加载关联的工序数据
         },
 
@@ -949,34 +980,75 @@ export default {
             this.$refs.materialForm.validate(async (valid) => {
                 if (valid) {
                     try {
-                        const formData = {
-                            ...this.materialForm,
-                            craftId: this.tempCraftId.toString(),
-                            processStepId: this.tempProcessId.toString(),
-                            materialId: this.materialForm.materialId, // 确保绑定所选物料的_id
-                            createBy: this.$store.getters.userId  // 添加创建人ID
+                        await this.$refs.materialForm.validate()
+                        this.materialDialog.loading = true
+
+                        // 构建物料数据
+                        const materialData = {
+                            craftId: this.tempCraftId,
+                            processStepId: this.tempProcessId,
+                            materialId: this.materialForm.materialId,
+                            materialCode: this.materialForm.materialCode,
+                            materialName: this.materialForm.materialName,
+                            specification: this.materialForm.specification,
+                            quantity: this.materialForm.quantity,
+                            unit: this.materialForm.unit,
+                            scanOperation: this.materialForm.scanOperation,
+                            isComponent: this.materialForm.isComponent,
+                            createBy: this.$store.getters.userId
                         };
 
-                        if (this.materialDialogStatus === 'edit') {
-                            formData._id = this.editingMaterialId;
-                            await updateData('processMaterials', formData);
+                        if (this.materialDialog.title === '新增物料') {
+                            // 新增时生成ID
+                            materialData._id = this.ObjectId();
+                            await addData('processMaterials', materialData);
                         } else {
-                            formData._id = this.ObjectId();
-                            await addData('processMaterials', formData);
+                            // 更新时使用现有ID
+                            let updateReq = {
+                                query: { _id: this.editingMaterialId },
+                                update: materialData
+                            }   
+                            await updateData('processMaterials', updateReq);
                         }
 
-                        this.$message.success(this.materialDialogStatus === 'edit' ? '更新成功' : '添加成功');
-                        this.materialDialogVisible = false;
-                        this.fetchMaterialData();
-
-                        this.materialDialogStatus = 'create';
-                        this.editingMaterialId = null;
+                        this.$message.success('操作成功');
+                        this.materialDialog.visible = false;
+                        this.fetchMaterialData(); // 刷新物料列表
                     } catch (error) {
-                        console.error('操作失败:', error);
-                        this.$message.error('操作失败: ' + error.message);
+                        console.error('提交失败:', error);
+                        this.$message.error('提交失败');
+                    } finally {
+                        this.materialDialog.loading = false;
                     }
                 }
             });
+        },
+
+        // 修改编辑物料的处理方法
+        handleEditMaterial(row) {
+            this.materialDialog.title = '编辑物料';
+            this.materialDialog.visible = true;
+            this.editingMaterialId = row._id; // 保存正在编辑的物料ID
+
+            // 填充表单数据
+            this.materialForm = {
+                materialId: row.materialId,
+                materialCode: row.materialCode,
+                materialName: row.materialName,
+                specification: row.specification,
+                quantity: row.quantity,
+                unit: row.unit || '个',
+                scanOperation: row.scanOperation ? true : false,
+                isComponent: row.isComponent
+            };
+
+            // 初始化物料选项
+            this.materialOptions = [{
+                _id: row.materialId,
+                FNumber: row.materialCode,
+                FName: row.materialName,
+                FSpecification: row.specification
+            }];
         },
 
         // ================ 其他通用方法 ================
@@ -1033,28 +1105,36 @@ export default {
         },
         // 获取物料列表
         async getMaterialList(query) {
-            if (query !== '') {
-                this.materialLoading = true;
-                try {
-                    const result = await getData('k3_BD_MATERIAL', {
-                        query: {
-                            $or: [
-                                { FNumber: { $regex: query, $options: 'i' } },
-                                { FName: { $regex: query, $options: 'i' } }
-                            ]
-                        },
-                        page: 1,
-                        limit: 20
-                    });
-                    this.materialOptions = result.data;
-                } catch (error) {
-                    console.error('获取物料列表失败:', error);
-                    this.$message.error('获取物料列表失败');
-                } finally {
-                    this.materialLoading = false;
+            this.materialLoading = true;
+            try {
+                let queryCondition;
+                if (query === '' && this.craftForm.selectedMaterial) {
+                    // 如果是初始加载且有选中值，直接查询选中的物料
+                    queryCondition = { _id: this.craftForm.selectedMaterial };
+                } else if (query !== '') {
+                    // 搜索查询
+                    queryCondition = {
+                        $or: [
+                            { FNumber: { $regex: query, $options: 'i' } },
+                            { FName: { $regex: query, $options: 'i' } }
+                        ]
+                    };
+                } else {
+                    this.materialOptions = [];
+                    return;
                 }
-            } else {
-                this.materialOptions = [];
+
+                const result = await getData('k3_BD_MATERIAL', {
+                    query: queryCondition,
+                    page: 1,
+                    limit: 20
+                });
+                this.materialOptions = result.data;
+            } catch (error) {
+                console.error('获取物料列表失败:', error);
+                this.$message.error('获取物料列表失败');
+            } finally {
+                this.materialLoading = false;
             }
         },
         // 处理工艺表单的物料选择变更
@@ -1080,6 +1160,17 @@ export default {
                 // 如果有其他需要自动填充的字段，也可以在这里添加
             }
         },
+
+ 
+        // 添加防抖方法
+        handleRemoteSearch(query) {
+            if (this.searchDebounce) {
+                clearTimeout(this.searchDebounce);
+            }
+            this.searchDebounce = setTimeout(() => {
+                this.getMaterialList(query);
+            }, 300);
+        }
     },
     created() {
         this.fetchCraftData();
