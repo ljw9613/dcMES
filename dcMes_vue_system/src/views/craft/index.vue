@@ -798,12 +798,12 @@ export default {
 
                         if (this.dialogStatus === 'create') {
                             // 新增操作
-                            craftData.createBy = this.$store.getters.userId;
+                            craftData.createBy = this.$store.getters.name;
                             await addData('craft', craftData);
                             this.$message.success('添加成功');
                         } else {
                             // 更新操作
-                            craftData.updateBy = this.$store.getters.userId;
+                            craftData.updateBy = this.$store.getters.name;
                             const updateReq = {
                                 query: { _id: this.tempCraftId },
                                 update: craftData
@@ -934,12 +934,12 @@ export default {
                         if (this.processOperationType === 'create') {
                             // 新增操作
                             processData._id = this.tempProcessId;
-                            processData.createBy = this.$store.getters.userId;
+                            processData.createBy = this.$store.getters.name;
                             await addData('processStep', processData);
                             this.$message.success('添加成功');
                         } else {
                             // 编辑操作
-                            processData.updateBy = this.$store.getters.userId;
+                            processData.updateBy = this.$store.getters.name;
                             const updateReq = {
                                 query: { _id: this.tempProcessId },
                                 update: processData
@@ -1095,7 +1095,7 @@ export default {
                             unit: this.materialForm.unit,
                             scanOperation: this.materialForm.scanOperation,
                             isComponent: this.materialForm.isComponent,
-                            createBy: this.$store.getters.userId
+                            createBy: this.$store.getters.name
                         };
 
                         if (this.materialDialog.title === '新增物料') {
