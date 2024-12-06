@@ -133,7 +133,7 @@
         <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
             :tableData="tableList" :tableDataloading="listLoading" :total="total"
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
-            @handleSizeChange="baseTableHandleSizeChange">
+            :cell-style="{ textAlign: 'center' }" @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
                 <!-- FUseOrgId 使用组织 -->
                 <el-table-column label="使用组织" prop="FUseOrgId" width="150" />
@@ -203,53 +203,22 @@
             </div>
         </el-dialog>
 
-        <el-dialog title="物料流程图" :visible.sync="flowChartDialogVisible" width="90%" class="flow-chart-dialog">
-            <div class="flow-chart-container">
-                <div v-loading="flowChartLoading" class="flow-chart">
-                    <div class="flow-chart-wrapper">
-                        <div v-for="(level, levelIndex) in processedFlowChartData" :key="levelIndex" class="flow-level">
-                            <div v-for="node in level" :key="node._id" class="flow-node"
-                                :class="{ 'has-children': node.children && node.children.length }">
-                                <div class="node-card">
-                                    <div class="node-header">
-                                        <span class="node-title">{{ node.label }}</span>
-                                    </div>
-                                    <div class="node-body">
-                                        <template v-if="node.craftName">
-                                            <div class="node-info">
-                                                <i class="el-icon-s-operation"></i>
-                                                <span>工艺：{{ node.craftName }}</span>
-                                            </div>
-                                        </template>
-                                        <template v-if="node.processName">
-                                            <div class="node-info">
-                                                <i class="el-icon-s-order"></i>
-                                                <span>工序：{{ node.processName }}</span>
-                                            </div>
-                                        </template>
-                                        <template v-if="node.materialName">
-                                            <div class="node-info">
-                                                <i class="el-icon-s-goods"></i>
-                                                <span>物料：{{ node.materialName }}</span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </el-dialog>
+        <!-- 使用新的流程图组件 -->
+        <material-flow-chart :visible.sync="flowChartDialogVisible" :loading="flowChartLoading"
+            :flow-data="processedFlowChartData" />
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
+import MaterialFlowChart from './MaterialFlowChart.vue'
 
 export default {
     name: 'MaterialManagement',
     dicts: ['product_type'],
+    components: {
+        MaterialFlowChart
+    },
     data() {
         return {
             searchForm: {
@@ -345,32 +314,35 @@ export default {
                 }
             };
 
-            // 基础字段查询
-            if (this.searchForm.FNumber) {
-                req.query.$and.push({ FNumber: { $regex: this.searchForm.FNumber, $options: 'i' } });
-            }
-            if (this.searchForm.FName) {
-                req.query.$and.push({ FName: { $regex: this.searchForm.FName, $options: 'i' } });
-            }
-            if (this.searchForm.FSpecification) {
-                req.query.$and.push({ FSpecification: { $regex: this.searchForm.FSpecification, $options: 'i' } });
-            }
-            if (this.searchForm.FDocumentStatus) {
-                req.query.$and.push({ FDocumentStatus: this.searchForm.FDocumentStatus });
-            }
-            if (this.searchForm.FBOMCATEGORY) {
-                req.query.$and.push({ FBOMCATEGORY: this.searchForm.FBOMCATEGORY });
-            }
-            if (this.searchForm.FBOMUSE) {
-                req.query.$and.push({ FBOMUSE: this.searchForm.FBOMUSE });
-            }
-            if (this.searchForm.FITEMPPROPERTY) {
-                req.query.$and.push({ FITEMPPROPERTY: this.searchForm.FITEMPPROPERTY });
-            }
-            if (this.searchForm.FForbidStatus) {
-                req.query.$and.push({ FForbidStatus: this.searchForm.FForbidStatus });
-            }
+            // 遍历 searchForm 中的所有字段
+            Object.entries(this.searchForm).forEach(([key, value]) => {
+                if (value) { // 只处理有值的字段
+                    switch (key) {
+                        // 使用模糊查询的字段
+                        case 'FNumber':
+                        case 'FName':
+                        case 'FSpecification':
+                        case 'FOldNumber':
+                        case 'FNameEn':
+                            req.query.$and.push({ [key]: { $regex: value, $options: 'i' } });
+                            break;
 
+                        // 精确匹配的字段
+                        case 'FDocumentStatus':
+                        case 'FForbidStatus':
+                        case 'FBaseUnitId_FNumber':
+                        case 'FStockId_FNumber':
+                        case 'F_TFQJ_CheckBox':
+                        case 'FBOMCATEGORY':
+                        case 'FBOMUSE':
+                        case 'FITEMPPROPERTY':
+                            req.query.$and.push({ [key]: value });
+                            break;
+                    }
+                }
+            });
+
+            // 如果没有查询条件,删除 $and
             if (!req.query.$and.length) {
                 delete req.query.$and;
             }
@@ -380,23 +352,41 @@ export default {
 
         // 重置表单
         resetForm() {
+            // 重置表单字段
             this.$refs.searchForm.resetFields();
+
+            // 手动清空所有搜索字段
             this.searchForm = {
-                FNumber: '',
-                FName: '',
-                FSpecification: '',
-                FDocumentStatus: '',
-                FForbidStatus: '',
-                FOldNumber: '',
-                FBaseUnitId_FNumber: '',
-                FStockId_FNumber: '',
-                F_TFQJ_CheckBox: '',
-                FNameEn: '',
-                FCreateOrgId: '',
-                FUseOrgId: ''
+                FNumber: '',           // 物料编码
+                FName: '',            // 物料名称
+                FSpecification: '',    // 规格型号
+                FDocumentStatus: '',   // 数据状态
+                FForbidStatus: '',     // 禁用状态
+                FOldNumber: '',        // 旧物料编码
+                FBaseUnitId_FNumber: '', // 基本单位
+                FStockId_FNumber: '',    // 仓库
+                F_TFQJ_CheckBox: '',     // 是否长新物料
+                FNameEn: '',             // 英文名称
+                FCreateOrgId: '',        // 创建组织
+                FUseOrgId: '',          // 使用组织
+                // 高级搜索字段
+                FBOMCATEGORY: '',        // BOM分类
+                FBOMUSE: '',            // BOM用途
+                FITEMPPROPERTY: ''      // 物料属性
             };
+
+            // 重置高级搜索的显示状态
+            this.showAdvanced = false;
+
+            // 重置分页
             this.currentPage = 1;
+            this.pageSize = 10;
+
+            // 重新获取数据
             this.fetchData();
+
+            // 提示用户
+            this.$message.success('重置成功');
         },
 
         // 获取数据
@@ -406,12 +396,21 @@ export default {
                 let req = this.searchData();
                 req.page = this.currentPage;
                 req.limit = this.pageSize;
+
+                // 添加排序
+                req.sort = { FNumber: 1 }; // 按物料编码升序排序
+
                 const result = await getData("k3_BD_MATERIAL", req);
-                this.tableList = result.data;
-                this.total = result.countnum;
+
+                if (result.code === 200) {
+                    this.tableList = result.data;
+                    this.total = result.countnum;
+                } else {
+                    this.$message.error(result.msg || '获取数据失败');
+                }
             } catch (error) {
                 console.error('获取数据失败:', error);
-                this.$message.error('获取数据失败');
+                this.$message.error('获取数据失败: ' + error.message);
             } finally {
                 this.listLoading = false;
             }
@@ -527,8 +526,16 @@ export default {
 
         // 搜索方法
         search() {
-            this.currentPage = 1; // 重置页码到第一页
-            this.fetchData(); // 获取数据
+            // 验证必填项
+            this.$refs.searchForm.validate((valid) => {
+                if (valid) {
+                    this.currentPage = 1; // 重置到第一页
+                    this.fetchData();
+                } else {
+                    this.$message.warning('请检查输入项是否正确');
+                    return false;
+                }
+            });
         },
 
         // 选择项改变
@@ -615,16 +622,31 @@ export default {
         async handleViewFlowChart(row) {
             this.flowChartLoading = true;
             try {
-                // 只在直接查看物料流程图时检查是否为组件
-                const processMaterial = await this.getProcessMaterialByMaterialId(row._id);
-                if (processMaterial && processMaterial.isComponent === false) {
-                    this.$message.info('该物料非组件，无流程图');
+                // 添加调试日志
+                console.log('当前物料:', row);
+
+                // 1. 先查询该物料是否有关联的工艺
+                const craft = await this.getCraftByMaterialId(row._id);
+                console.log('关联工艺:', craft);
+
+                if (!craft) {
+                    this.$message.info('该物料未关联工艺，无流程图');
                     return;
                 }
 
+                // 2. 检查工艺下是否有工序
+                if (!craft.processSteps || craft.processSteps.length === 0) {
+                    this.$message.info('该物料工艺下无工序，无流程图');
+                    return;
+                }
+
+                // 3. 构建流程图数据
                 this.flowChartDialogVisible = true;
-                const flowData = await this.buildFlowChartData(row._id, new Set(), true); // 添加 isRoot 参数
-                this.processedFlowChartData = this.processFlowChartData([flowData]);
+                const flowData = await this.buildFlowChartData(row._id, new Set());
+                console.log('构建的流程图数据:', flowData);
+
+                this.processedFlowChartData = [flowData]; // 修改这里，直接传入数组形式
+                console.log('处理后的流程图数据:', this.processedFlowChartData);
             } catch (error) {
                 console.error('获取流程图数据失败:', error);
                 this.$message.error('获取流程图数据失败');
@@ -634,21 +656,13 @@ export default {
         },
 
         // 构建流程图数据
-        async buildFlowChartData(materialId, visited = new Set(), isRoot = false) {
+        async buildFlowChartData(materialId, visited = new Set()) {
             if (visited.has(materialId)) {
                 return null;
             }
             visited.add(materialId);
 
             try {
-                // 只在根节点（直接查看的物料）时检查是否为组件
-                if (isRoot) {
-                    const processMaterial = await this.getProcessMaterialByMaterialId(materialId);
-                    if (processMaterial && processMaterial.isComponent === false) {
-                        return null;
-                    }
-                }
-
                 // 获取物料信息
                 const material = await this.getMaterialById(materialId);
                 if (!material) return null;
@@ -690,8 +704,7 @@ export default {
                                         const relation = await this.getProcessMaterialById(materialRelationId);
                                         if (!relation) return null;
 
-                                        // 递归获取下一层物料信息，传递 false 表示不是根节点
-                                        const childFlow = await this.buildFlowChartData(relation.materialId, visited, false);
+                                        const childFlow = await this.buildFlowChartData(relation.materialId, visited);
                                         if (childFlow) {
                                             childFlow.materialRelationType = relation.relationType;
                                             childFlow.materialQuantity = relation.quantity;
@@ -926,111 +939,6 @@ export default {
         .stat-label {
             font-size: 13px;
             color: #909399;
-        }
-    }
-}
-
-.flow-chart-dialog {
-    .flow-chart-container {
-        min-height: 500px;
-        padding: 20px;
-        overflow-x: auto;
-    }
-
-    .flow-chart-wrapper {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        padding: 20px;
-        min-width: fit-content;
-    }
-
-    .flow-level {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        margin-right: 40px;
-        position: relative;
-
-        &:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            right: -20px;
-            top: 50%;
-            width: 20px;
-            height: 2px;
-            background: #dcdfe6;
-        }
-    }
-
-    .flow-node {
-        position: relative;
-        min-width: 250px;
-
-        &.has-children::after {
-            content: '';
-            position: absolute;
-            right: -20px;
-            top: 50%;
-            width: 20px;
-            height: 2px;
-            background: #dcdfe6;
-        }
-    }
-
-    .node-card {
-        border: 1px solid #dcdfe6;
-        border-radius: 8px;
-        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-        background: white;
-        transition: all 0.3s ease;
-
-        &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
-        }
-    }
-
-    .node-header {
-        padding: 12px 15px;
-        border-bottom: 1px solid #ebeef5;
-        background: #f5f7fa;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .node-title {
-        font-weight: bold;
-        color: #303133;
-        font-size: 15px;
-    }
-
-    .node-body {
-        padding: 15px;
-    }
-
-    .node-info {
-        display: flex;
-        align-items: center;
-        margin-bottom: 8px;
-        color: #606266;
-        font-size: 13px;
-
-        i {
-            margin-right: 8px;
-            color: #409EFF;
-        }
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
-}
-
-// 添加响应式样式
-@media screen and (max-width: 1200px) {
-    .flow-chart-dialog {
-        .flow-node {
-            min-width: 200px;
         }
     }
 }

@@ -13,16 +13,16 @@
                 <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="工艺名称">
-                            <el-input v-model="searchForm.FName" placeholder="请输入工艺名称" clearable></el-input>
+                            <el-input v-model="searchForm.craftName" placeholder="请输入工艺名称" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="工艺编码">
-                            <el-input v-model="searchForm.FNumber" placeholder="请输入工艺编码" clearable></el-input>
+                            <el-input v-model="searchForm.craftCode" placeholder="请输入工艺编码" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="计划日期">
+                        <el-form-item label="创建日期">
                             <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
                                 start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
                                 style="width: 100%">
@@ -44,8 +44,7 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="工艺状态">
-                            <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择工艺状态" clearable
-                                style="width: 100%">
+                            <el-select v-model="searchForm.status" placeholder="请选择工艺状态" clearable style="width: 100%">
                                 <el-option label="创建" value="CREATE" />
                                 <el-option label="启用" value="ENABLE" />
                                 <el-option label="作废" value="VOID" />
@@ -53,11 +52,22 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="产品型号">
-                            <el-select v-model="searchForm.FProductType" placeholder="请选择产品类型" clearable
+                        <el-form-item label="生产阶级">
+                            <el-select v-model="searchForm.productStage" placeholder="请选择生产阶级" clearable
                                 style="width: 100%">
-                                <el-option v-for="dict in dict.type.product_type" :key="dict.value" :label="dict.label"
-                                    :value="dict.value" />
+                                <el-option label="SMT" value="SMT" />
+                                <el-option label="DIP" value="DIP" />
+                                <el-option label="ASSEMPLY" value="ASSEMPLY" />
+                                <el-option label="PACK" value="PACK" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="是否标准">
+                            <el-select v-model="searchForm.isStandard" placeholder="请选择是否标准" clearable
+                                style="width: 100%">
+                                <el-option label="是" :value="true" />
+                                <el-option label="否" :value="false" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -198,7 +208,8 @@
             <base-table ref="processTable" :currentPage="processTableData.currentPage"
                 :pageSize="processTableData.pageSize" :tableData="processTableData.tableList"
                 :tableDataloading="processTableData.listLoading" :total="processTableData.total"
-                @handleCurrentChange="handleProcessTableCurrentChange" @handleSizeChange="handleProcessTableSizeChange">
+                :cell-style="{ textAlign: 'center' }" @handleCurrentChange="handleProcessTableCurrentChange"
+                @handleSizeChange="handleProcessTableSizeChange">
                 <template slot="law">
                     <el-table-column label="工序编码" prop="processCode" width="150" align="center" />
                     <el-table-column label="工序描述" prop="processDesc" align="center" />
@@ -358,7 +369,7 @@
         </el-dialog>
         <!-- 物料对话框 -->
         <el-dialog :close-on-click-modal="false" :title="materialDialog.title" :visible.sync="materialDialog.visible"
-            width="50%" append-to-body @close="$refs.materialForm.resetFields()">
+            :before-close="materialDialog.beforeClose" width="50%" append-to-body>
             <el-form ref="materialForm" :model="materialForm" :rules="materialRules" label-width="100px">
                 <el-row :gutter="20">
                     <el-col :span="24">
@@ -416,7 +427,8 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="扫码操作">
-                            <el-switch v-model="materialForm.scanOperation" :active-value="true" :inactive-value="false">
+                            <el-switch v-model="materialForm.scanOperation" :active-value="true"
+                                :inactive-value="false">
                             </el-switch>
                         </el-form-item>
                     </el-col>
@@ -585,12 +597,14 @@ export default {
 
             // 搜索表单数据
             searchForm: {
-                FName: '',              // 工艺名称
-                FNumber: '',            // 工艺编码
-                dateRange: [],          // 日期范围
-                craftType: '',          // 工艺类型
-                FDocumentStatus: '',    // 工艺状态
-                FProductType: ''        // 产品型号
+                craftName: '',        // 工艺名称 (原 FName)
+                craftCode: '',        // 工艺编码 (原 FNumber) 
+                dateRange: [],        // 日期范围
+                craftType: '',        // 工艺类型
+                status: '',          // 工艺状态 (原 FDocumentStatus)
+                productName: '',      // 产品型号 (原 FProductType)
+                productStage: '',     // 生产阶级
+                isStandard: '',       // 是否标准工艺
             },
 
             // 是否显示高级搜索
@@ -602,7 +616,27 @@ export default {
             materialDialog: {
                 visible: false,
                 title: '新增物料',
-                loading: false
+                loading: false,
+                beforeClose: (done) => {
+                    // 清空表单数据
+                    this.materialForm = {
+                        materialId: '',
+                        materialCode: '',
+                        materialName: '',
+                        specification: '',
+                        quantity: 1,
+                        unit: '个',
+                        scanOperation: false,
+                        isComponent: false
+                    };
+                    // 清空物料选项
+                    this.materialOptions = [];
+                    // 重置表单验证
+                    if (this.$refs.materialForm) {
+                        this.$refs.materialForm.resetFields();
+                    }
+                    done();
+                }
             },
             materialForm: {
                 materialId: '',
@@ -625,6 +659,7 @@ export default {
                 ]
             },
             searchDebounce: null,
+            processOperationType: 'create', // 新增: 'create', 编辑: 'edit'
         }
     },
     methods: {
@@ -674,13 +709,40 @@ export default {
             this.processTableData.total = 0;
         },
 
-        // handleEdit(row) {
-        //     this.dialogStatus = 'edit';
-        //     this.dialogFormVisible = true;
-        //     this.tempCraftId = row._id;
-        //     this.craftForm = JSON.parse(JSON.stringify(row));
-        //     this.fetchProcessData();
-        // },
+        async handleEdit(row) {
+            // 先设置基本状态，确保弹窗能够显示
+            this.dialogStatus = 'edit';
+            this.dialogFormVisible = true;
+            this.tempCraftId = row._id;
+
+            try {
+                // 基础数据复制
+                this.craftForm = JSON.parse(JSON.stringify(row));
+
+                // 如果存在materialId，初始化物料选项
+                if (this.craftForm.materialId) {
+                    try {
+                        const result = await getData('k3_BD_MATERIAL', {
+                            query: { _id: this.craftForm.materialId }
+                        });
+                        if (result.data && result.data.length > 0) {
+                            this.materialOptions = result.data;
+                            this.craftForm.selectedMaterial = this.craftForm.materialId;
+                        }
+                    } catch (error) {
+                        console.error('获取物料数据失败:', error);
+                        this.$message.warning('获取物料数据失败，但可以继续编辑其他信息');
+                    }
+                }
+
+                // 加载关联的工序数据
+                await this.fetchProcessData();
+
+            } catch (error) {
+                console.error('初始化编辑数据失败:', error);
+                this.$message.error('初始化编辑数据失败');
+            }
+        },
 
         handleDelete(row) {
             this.$confirm('确认要删除该工艺吗?', '提示', {
@@ -724,28 +786,28 @@ export default {
 
                         // 获取所有工序的ID数组
                         const processSteps = this.processTableData.tableList.map(process => process._id);
-                        if (processSteps.length === 0) {
-                            this.$message.warning('请先添加工序');
-                            return;
-                        }
 
                         const craftData = {
                             ...this.craftForm,
                             materialId: this.craftForm.selectedMaterial,
-                            processSteps: processSteps,
-                            createBy: this.$store.getters.userId  // 添加创建人ID
+                            processSteps: processSteps
                         };
 
+                        // 删除不需要的字段
                         delete craftData.selectedMaterial;
 
                         if (this.dialogStatus === 'create') {
+                            // 新增操作
+                            craftData.createBy = this.$store.getters.userId;
                             await addData('craft', craftData);
                             this.$message.success('添加成功');
                         } else {
-                            let updateReq = {
+                            // 更新操作
+                            craftData.updateBy = this.$store.getters.userId;
+                            const updateReq = {
                                 query: { _id: this.tempCraftId },
                                 update: craftData
-                            }
+                            };
                             await updateData('craft', updateReq);
                             this.$message.success('更新成功');
                         }
@@ -789,6 +851,7 @@ export default {
                 this.$message.warning('工艺ID不存在');
                 return;
             }
+            this.processOperationType = 'create'; // 设置为新增操作
             this.tempProcessId = this.ObjectId();  // 生成临时工序ID
             this.processDialogVisible = true;
             this.processForm = {
@@ -815,6 +878,7 @@ export default {
                 return;
             }
 
+            this.processOperationType = 'edit'; // 设置为编辑操作
             this.processDialogVisible = true;
             this.tempProcessId = row._id;
             this.processForm = JSON.parse(JSON.stringify(row));
@@ -853,28 +917,48 @@ export default {
             this.$refs.processForm.validate(async (valid) => {
                 if (valid) {
                     try {
+                        // 获取当前物料列表的ID数组
                         const materialIds = this.materialTableData.tableList.map(material => material._id.toString());
                         if (materialIds.length === 0) {
                             this.$message.warning('请先添加物料');
                             return;
                         }
 
+                        // 构建工序数据
                         const processData = {
                             ...this.processForm,
-                            craftId: this.tempCraftId.toString(),
-                            _id: this.tempProcessId.toString(),
+                            craftId: this.tempCraftId,
                             materials: materialIds,
-                            createBy: this.$store.getters.userId  // 添加创建人ID
                         };
 
-                        await addData('processStep', processData);
-                        this.$message.success('添加成功');
+                        if (this.processOperationType === 'create') {
+                            // 新增操作
+                            processData._id = this.tempProcessId;
+                            processData.createBy = this.$store.getters.userId;
+                            await addData('processStep', processData);
+                            this.$message.success('添加成功');
+                        } else {
+                            // 编辑操作
+                            processData.updateBy = this.$store.getters.userId;
+                            const updateReq = {
+                                query: { _id: this.tempProcessId },
+                                update: processData
+                            };
+                            await updateData('processStep', updateReq);
+                            this.$message.success('更新成功');
+                        }
+
+                        // 关闭弹窗并刷新数据
                         this.processDialogVisible = false;
-                        this.fetchProcessData();
+                        await this.fetchProcessData();
+
                     } catch (error) {
                         console.error('操作失败:', error);
-                        this.$message.error('操作失败');
+                        this.$message.error('操作失败: ' + error.message);
                     }
+                } else {
+                    this.$message.warning('请填写必填项');
+                    return false;
                 }
             });
         },
@@ -911,34 +995,35 @@ export default {
             })
         },
 
-        async handleEdit(row) {
+        async handleEditMaterial(row) {
             if (!row || !row._id) {
-                this.$message.error('无效的工艺数据');
+                this.$message.error('无效的物料数据');
                 return;
             }
 
-            this.dialogStatus = 'edit';
-            this.dialogFormVisible = true;
-            this.tempCraftId = row._id;
-            this.craftForm = JSON.parse(JSON.stringify(row));
+            this.materialDialog.title = '编辑物料';
+            this.materialDialog.visible = true;
+            this.editingMaterialId = row._id; // 保存正在编辑的物料ID
 
-            // 如果存在materialId，则初始化物料选项
-            if (this.craftForm.materialId) {
-                try {
-                    const result = await getData('k3_BD_MATERIAL', {
-                        query: { _id: this.craftForm.materialId }
-                    });
-                    if (result.data && result.data.length > 0) {
-                        this.materialOptions = result.data;
-                        this.craftForm.selectedMaterial = this.craftForm.materialId;
-                    }
-                } catch (error) {
-                    console.error('获取物料数据失败:', error);
-                    this.$message.error('获取物料数据失败');
-                }
-            }
+            // 填充表单数据
+            this.materialForm = {
+                materialId: row.materialId,
+                materialCode: row.materialCode,
+                materialName: row.materialName,
+                specification: row.specification,
+                quantity: row.quantity,
+                unit: row.unit || '个',
+                scanOperation: row.scanOperation ? true : false,
+                isComponent: row.isComponent
+            };
 
-            this.fetchProcessData(); // 加载关联的工序数据
+            // 初始化物料选项
+            this.materialOptions = [{
+                _id: row.materialId,
+                FNumber: row.materialCode,
+                FName: row.materialName,
+                FSpecification: row.specification
+            }];
         },
 
         handleDeleteMaterial(row) {
@@ -980,10 +1065,25 @@ export default {
             this.$refs.materialForm.validate(async (valid) => {
                 if (valid) {
                     try {
-                        await this.$refs.materialForm.validate()
-                        this.materialDialog.loading = true
+                        // 再次验证物料是否重复（防止并发操作）
+                        const isDuplicate = this.materialTableData.tableList.some(
+                            item => item.materialId === this.materialForm.materialId
+                        );
 
-                        // 构建物料数据
+                        if (isDuplicate) {
+                            this.$message.warning('该物料已经被选择，请选择其他物料');
+                            return;
+                        }
+
+                        if (this.materialForm.materialId === this.craftForm.materialId) {
+                            this.$message.warning('不能选择与工艺相同的物料');
+                            return;
+                        }
+
+                        // 继续原有的提交逻辑
+                        await this.$refs.materialForm.validate();
+                        this.materialDialog.loading = true;
+
                         const materialData = {
                             craftId: this.tempCraftId,
                             processStepId: this.tempProcessId,
@@ -999,21 +1099,19 @@ export default {
                         };
 
                         if (this.materialDialog.title === '新增物料') {
-                            // 新增时生成ID
                             materialData._id = this.ObjectId();
                             await addData('processMaterials', materialData);
                         } else {
-                            // 更新时使用现有ID
                             let updateReq = {
                                 query: { _id: this.editingMaterialId },
                                 update: materialData
-                            }   
+                            }
                             await updateData('processMaterials', updateReq);
                         }
 
                         this.$message.success('操作成功');
                         this.materialDialog.visible = false;
-                        this.fetchMaterialData(); // 刷新物料列表
+                        this.fetchMaterialData();
                     } catch (error) {
                         console.error('提交失败:', error);
                         this.$message.error('提交失败');
@@ -1024,40 +1122,31 @@ export default {
             });
         },
 
-        // 修改编辑物料的处理方法
-        handleEditMaterial(row) {
-            this.materialDialog.title = '编辑物料';
-            this.materialDialog.visible = true;
-            this.editingMaterialId = row._id; // 保存正在编辑的物料ID
-
-            // 填充表单数据
-            this.materialForm = {
-                materialId: row.materialId,
-                materialCode: row.materialCode,
-                materialName: row.materialName,
-                specification: row.specification,
-                quantity: row.quantity,
-                unit: row.unit || '个',
-                scanOperation: row.scanOperation ? true : false,
-                isComponent: row.isComponent
-            };
-
-            // 初始化物料选项
-            this.materialOptions = [{
-                _id: row.materialId,
-                FNumber: row.materialCode,
-                FName: row.materialName,
-                FSpecification: row.specification
-            }];
-        },
-
         // ================ 其他通用方法 ================
         toggleAdvanced() {
             this.showAdvanced = !this.showAdvanced;
         },
 
         resetForm() {
+            // 重置表单数据
+            this.searchForm = {
+                craftName: '',        // 工艺名称
+                craftCode: '',        // 工艺编码
+                dateRange: [],        // 日期范围
+                craftType: '',        // 工艺类型
+                status: '',          // 工艺状态
+                productName: '',      // 产品型号
+                productStage: '',     // 生产阶级
+                isStandard: '',       // 是否标准工艺
+            };
+
+            // 重置表单验证
             this.$refs.searchForm.resetFields();
+
+            // 重置分页到第一页
+            this.craftTableData.currentPage = 1;
+
+            // 重新获取数据
             this.fetchCraftData();
         },
 
@@ -1067,13 +1156,40 @@ export default {
         },
 
         searchData() {
-            const searchData = { ...this.searchForm };
-            if (searchData.dateRange && searchData.dateRange.length === 2) {
-                searchData.startDate = searchData.dateRange[0];
-                searchData.endDate = searchData.dateRange[1];
-                delete searchData.dateRange;
+            const searchData = {};
+
+            // 添加非空字段到查询条件
+            if (this.searchForm.craftName) {
+                searchData.craftName = { $regex: this.searchForm.craftName, $options: 'i' };
             }
-            return searchData;
+            if (this.searchForm.craftCode) {
+                searchData.craftCode = { $regex: this.searchForm.craftCode, $options: 'i' };
+            }
+            if (this.searchForm.craftType) {
+                searchData.craftType = this.searchForm.craftType;
+            }
+            if (this.searchForm.status) {
+                searchData.status = this.searchForm.status;
+            }
+            if (this.searchForm.productName) {
+                searchData.productName = { $regex: this.searchForm.productName, $options: 'i' };
+            }
+            if (this.searchForm.productStage) {
+                searchData.productStage = this.searchForm.productStage;
+            }
+            if (this.searchForm.isStandard !== '') {
+                searchData.isStandard = this.searchForm.isStandard;
+            }
+
+            // 处理日期范围
+            if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
+                searchData.createAt = {
+                    $gte: new Date(this.searchForm.dateRange[0]),
+                    $lte: new Date(this.searchForm.dateRange[1] + ' 23:59:59')
+                };
+            }
+
+            return { query: searchData };
         },
 
         getStatusType(status) {
@@ -1107,12 +1223,12 @@ export default {
         async getMaterialList(query) {
             this.materialLoading = true;
             try {
-                let queryCondition;
+                let queryCondition = {};
+
+                // 构建基础查询条件
                 if (query === '' && this.craftForm.selectedMaterial) {
-                    // 如果是初始加载且有选中值，直接查询选中的物料
                     queryCondition = { _id: this.craftForm.selectedMaterial };
                 } else if (query !== '') {
-                    // 搜索查询
                     queryCondition = {
                         $or: [
                             { FNumber: { $regex: query, $options: 'i' } },
@@ -1124,11 +1240,32 @@ export default {
                     return;
                 }
 
+                // 添加排除条件
+                const excludeMaterialIds = [];
+
+                // 1. 排除工艺级别已选择的物料
+                if (this.craftForm.materialId) {
+                    excludeMaterialIds.push(this.craftForm.materialId);
+                }
+
+                // 2. 排除当前工序中已选择的物料
+                if (this.materialTableData.tableList && this.materialTableData.tableList.length > 0) {
+                    excludeMaterialIds.push(...this.materialTableData.tableList.map(item => item.materialId));
+                }
+
+                // 如果有需要排除的物料ID，添加到查询条件中
+                if (excludeMaterialIds.length > 0) {
+                    queryCondition._id = {
+                        $nin: excludeMaterialIds
+                    };
+                }
+
                 const result = await getData('k3_BD_MATERIAL', {
                     query: queryCondition,
                     page: 1,
                     limit: 20
                 });
+
                 this.materialOptions = result.data;
             } catch (error) {
                 console.error('获取物料列表失败:', error);
@@ -1151,17 +1288,34 @@ export default {
         },
         // 处理物料表单的物料选择变更
         handleMaterialChange(materialId) {
+            // 验证是否已经选择过该物料
+            const isDuplicate = this.materialTableData.tableList.some(
+                item => item.materialId === materialId
+            );
+
+            if (isDuplicate) {
+                this.$message.warning('该物料已经被选择，请选择其他物料');
+                this.materialForm.materialId = '';
+                return;
+            }
+
+            // 验证是否与工艺级物料重复
+            if (materialId === this.craftForm.materialId) {
+                this.$message.warning('不能选择与工艺相同的物料');
+                this.materialForm.materialId = '';
+                return;
+            }
+
+            // 如果验证通过，继续原有的处理逻辑
             const selectedMaterial = this.materialOptions.find(item => item._id === materialId);
             if (selectedMaterial) {
-                // 处理 materialForm 的自动填充
                 this.materialForm.materialCode = selectedMaterial.FNumber;
                 this.materialForm.materialName = selectedMaterial.FName;
                 this.materialForm.specification = selectedMaterial.FSpecification || '';
-                // 如果有其他需要自动填充的字段，也可以在这里添加
             }
         },
 
- 
+
         // 添加防抖方法
         handleRemoteSearch(query) {
             if (this.searchDebounce) {
