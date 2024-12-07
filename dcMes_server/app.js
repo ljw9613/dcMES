@@ -109,7 +109,7 @@ app.use("/", require("./routes/data"));
 app.use("/", require("./routes/getRouter"));
 app.use("/", require("./routes/k3requestData.js"));
 app.use("/api/v1/k3", require("./routes/K3asyncData"));
-
+app.use("/", require("./routes/materialProcessFlowService"));
 const uploadAvatarRouter = require("./routes/uploadAvatar");
 app.use("/", uploadAvatarRouter);
 //方法

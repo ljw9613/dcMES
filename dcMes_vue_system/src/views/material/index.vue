@@ -142,8 +142,7 @@
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.FNumber }}</el-link>
                     </template>
                 </el-table-column>
-
-                <el-table-column label="物料名称" prop="FName" width="150" />
+                <el-table-column label="物料名称" prop="FName" />
                 <el-table-column label="规格型号" prop="FSpecification" width="120" />
                 <el-table-column label="基本单位" prop="FBaseUnitId_FName" width="100" />
                 <el-table-column label="仓库" prop="FStockId_FName" width="120" />
@@ -672,6 +671,7 @@ export default {
                     _id: materialId,
                     label: material.FName,
                     materialName: material.FName,
+                    materialCode: material.FNumber,
                     children: []
                 };
 
@@ -694,6 +694,7 @@ export default {
                             const stepNode = {
                                 _id: stepId,
                                 label: step.processName,
+                                sort: step.sort,
                                 processName: step.processName,
                                 children: []
                             };
@@ -707,6 +708,8 @@ export default {
                                         const childFlow = await this.buildFlowChartData(relation.materialId, visited);
                                         if (childFlow) {
                                             childFlow.materialRelationType = relation.relationType;
+                                            childFlow.isComponent = relation.isComponent;
+                                            childFlow.scanOperation = relation.scanOperation;
                                             childFlow.materialQuantity = relation.quantity;
                                         }
                                         return childFlow;
@@ -744,7 +747,7 @@ export default {
         },
 
         async getProcessStepById(id) {
-            const response = await getData('processStep', { query: { _id: id } });
+            const response = await getData('processStep', { query: { _id: id }, sort: { sort: 1 } });
             return response.data[0];
         },
 

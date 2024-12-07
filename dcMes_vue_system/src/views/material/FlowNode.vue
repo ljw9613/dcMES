@@ -7,6 +7,15 @@
                 <div v-if="node.craftName" class="node-subtitle">
                     工艺：{{ node.craftName }}
                 </div>
+                <div v-if="node.materialCode" class="node-info">
+                    编码：{{ node.materialCode }}
+                </div>
+                <div v-if="node.scanOperation" class="node-info">
+                    扫码操作：{{ node.scanOperation ? '需要扫码' : '不需要扫码' }}
+                </div>
+                <div v-if="node.isComponent" class="node-info">
+                    是否组件：{{ node.isComponent ? '是' : '否' }}
+                </div>
                 <div v-if="node.materialQuantity" class="node-info">
                     用量：{{ node.materialQuantity }}{{ node.unit || '个' }}
                 </div>
@@ -20,7 +29,7 @@
             <div class="process-level">
                 <div v-for="process in node.children" :key="process._id" class="process-container">
                     <div class="process-node">
-                        <div class="node-title">{{ process.processName }}</div>
+                        <div class="node-title">{{ process.sort }}.{{ process.processName }}</div>
                         <div class="node-content">
                             <template v-if="process.children && process.children.length">
                                 <div v-for="material in process.children" :key="material._id" class="sub-material">

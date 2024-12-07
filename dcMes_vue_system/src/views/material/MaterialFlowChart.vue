@@ -1,5 +1,5 @@
 <template>
-    <el-dialog title="物料流程图" :visible.sync="dialogVisible" width="95%" class="flow-chart-dialog" :append-to-body="false"
+    <el-dialog title="物料工艺流程图" :visible.sync="dialogVisible" width="95%" class="flow-chart-dialog" :append-to-body="false"
         :modal-append-to-body="false" custom-class="material-flow-dialog">
         <div v-loading="loading" class="flow-container">
             <div v-if="!flowData || flowData.length === 0" class="empty-data">
