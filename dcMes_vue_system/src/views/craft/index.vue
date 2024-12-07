@@ -63,7 +63,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="是否标准">
+                        <el-form-item label="是���标准">
                             <el-select v-model="searchForm.isStandard" placeholder="请选择是否标准" clearable
                                 style="width: 100%">
                                 <el-option label="是" :value="true" />
@@ -132,7 +132,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="工艺类型" prop="craftType">
+                        <el-form-item label="工艺类���" prop="craftType">
                             <el-select v-model="craftForm.craftType" placeholder="请选择工艺类型" clearable
                                 style="width: 100%">
                                 <el-option label="标准工艺" value="STANDARD_PROCESS" />
@@ -507,7 +507,7 @@ export default {
                 businessType: '',  // 业务类型
                 status: 'CREATE',  // 状态
                 materials: [],     // 工序物料清单
-                remark: '',        // 备注
+                remark: '',        // ���注
                 sort: 1            // 工序次序
             },
 
@@ -615,7 +615,7 @@ export default {
             // 编辑物料对话框数据
             materialDialog: {
                 visible: false,
-                title: '新增物料',
+                title: '���增物料',
                 loading: false,
                 beforeClose: (done) => {
                     // 清空表单数据
@@ -1034,7 +1034,7 @@ export default {
                 return;
             }
 
-            this.$confirm('确认要删除该物料吗?', '提示', {
+            this.$confirm('确认要删除该物料吗?', '��示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
@@ -1065,9 +1065,10 @@ export default {
             this.$refs.materialForm.validate(async (valid) => {
                 if (valid) {
                     try {
-                        // 再次验证物料是否重复（防止并发操作）
+                        // 修改重复判断逻辑，排除当前正在编辑的物料
                         const isDuplicate = this.materialTableData.tableList.some(
-                            item => item.materialId === this.materialForm.materialId
+                            item => item.materialId === this.materialForm.materialId &&
+                                item._id !== this.editingMaterialId  // 排除当前正在编辑的物料
                         );
 
                         if (isDuplicate) {
@@ -1288,9 +1289,10 @@ export default {
         },
         // 处理物料表单的物料选择变更
         handleMaterialChange(materialId) {
-            // 验证是否已经选择过该物料
+            // 验证是否已经选择过该物料，排除当前正在编辑的物料
             const isDuplicate = this.materialTableData.tableList.some(
-                item => item.materialId === materialId
+                item => item.materialId === materialId &&
+                    item._id !== this.editingMaterialId  // 排除当前正在编辑的物料
             );
 
             if (isDuplicate) {
