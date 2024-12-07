@@ -87,7 +87,8 @@
                             <span>主物料</span>
                         </div>
                         <div class="material-section">
-                            <el-form-item :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`" label-width="100%" class="vertical-form-item">
+                            <el-form-item :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`" label-width="100%"
+                                class="vertical-form-item">
                                 <div class="input-with-status">
                                     <el-input v-model="scanForm.mainBarcode" placeholder="请扫描主物料条码"
                                         @input="validateInput('mainBarcode')"
@@ -480,17 +481,58 @@ export default {
                 this.scanForm.barcodes = {};
             }
         },
+        async validateMainBarcode(barcode) {
+            if (!barcode) return false;
+            console.log("🚀 ~ validateMainBarcode ~ barcode:", barcode.length)
+            // 根据不同长度判断不同类型的条码
+            switch (barcode.length) {
+                case 41: // 成品码
+                    const productDI = barcode.substring(2, 18);
+                    return await this.validateDICode(productDI);
+
+                case 34: // 电风扇与制冷片组件
+                    const fanDI = barcode.substring(7, 19);
+                    return await this.validateDICode(fanDI);
+
+                case 48: // 灯板组件
+                    const lightDI = barcode.substring(0, 5);
+                    return await this.validateDICode(lightDI);
+
+                case 32: // 遥控器组件
+                    const remoteDI = barcode.substring(0, 8);
+                    return await this.validateDICode(remoteDI);
+
+                default:
+                    this.$message.error('UDI条码格式不正确');
+                    return false;
+            }
+        },
+
+        // 新增辅助方法验证DI码
+        async validateDICode(diCode) {
+            console.log("🚀 ~ validateDICode ~ diCode:", diCode)
+            // 这里可以添加具体的DI码验证逻辑
+            const response = await getData('productDiNum', { query: { diNum: diCode }, populate: JSON.stringify([{ path: 'productId', model: 'k3_BD_MATERIAL' }]) });
+            console.log('验证DI码结果:', response.data);
+            if (response.data.length > 0) {
+                //校验对应di码绑定的物料是否时当前工序所需物料编码
+                if (response.data[0].productId.FNumber === this.mainMaterialCode) {
+                    return true;
+                } else {
+                    this.$message.error('该DI编码绑定的物料与当前工序所需物料不一致');
+                    return false;
+                }
+            } else {
+                this.$message.error('该DI编码不存在本系统');
+                return false;
+            }
+        },
 
         // 验证条码格式
         validateBarcode(barcode) {
             // 条码格式：物料编号_序号
             const pattern = /^[A-Za-z0-9]+_[0-9]+$/;
             return pattern.test(barcode);
-        },
-
-        // 从条码中提取物料编号
-        getMaterialCodeFromBarcode(barcode) {
-            return barcode.split('_')[0];
         },
 
         // 验证输入并处理主条码
@@ -505,12 +547,22 @@ export default {
                     return;
                 }
 
-                // 验证条码格式
-                if (!this.validateBarcode(value)) {
-                    this.$message.error('条码格式不正确，应为：物料编号_序号');
-                    this.validateStatus[key] = false;
-                    return;
+                if (key === 'mainBarcode') {
+                    // 验证条码格式
+                    if (!await this.validateMainBarcode(value)) {
+                        this.validateStatus[key] = false;
+                        return;
+                    }
+                } else {
+                    // 验证条码格式
+                    if (!this.validateBarcode(value)) {
+                        this.$message.error('条码格式不正确，应为：物料编号_序号');
+                        this.validateStatus[key] = false;
+                        return;
+                    }
                 }
+
+
 
                 if (key === 'mainBarcode') {
                     // 处理主条码
@@ -539,14 +591,14 @@ export default {
                 if (response.data && response.data.length > 0) {
                     // 条码已存在，获取流程信息
                     const flowData = response.data[0];
-                    this.$message.warning('该条码已存在工艺流程记录');
-                    
+                    this.$message.success('扫描成功');
+
                     // TODO: 可以在这里添加额外的处理逻辑，比如显示当前流程状态等
-                    
+
                 } else {
                     // 条码不存在，创建新的流程记录
-                    const materialCode = this.getMaterialCodeFromBarcode(barcode);
-                    
+                    const materialCode = this.mainMaterialCode;
+
                     // 调用创建流程的API
                     const createResponse = await createFlow({
                         materialCode,
@@ -674,8 +726,8 @@ export default {
 
         // 获取验证状态图标
         getValidateIcon(key) {
-            return this.validateStatus[key] 
-                ? 'el-icon-check success-icon' 
+            return this.validateStatus[key]
+                ? 'el-icon-check success-icon'
                 : 'el-icon-close error-icon';
         },
 
@@ -683,13 +735,13 @@ export default {
         resetScanForm() {
             // 重置主条码
             this.scanForm.mainBarcode = '';
-            
+
             // 重置子物料条码
             this.scanForm.barcodes = {};
-            
+
             // 重置验证状态
             this.validateStatus = { mainBarcode: false };
-            
+
             // 重置子物料的验证状态和条码
             if (this.processMaterials && this.processMaterials.length > 0) {
                 this.processMaterials.forEach(material => {
@@ -745,7 +797,7 @@ export default {
                 });
 
                 // 5. 检查是否所有工序都已完成
-                const allProcessesCompleted = updatedNodes.every(node => 
+                const allProcessesCompleted = updatedNodes.every(node =>
                     node.nodeType === 'PROCESS_STEP' ? node.status === 'COMPLETED' : true
                 );
 
@@ -1033,14 +1085,15 @@ export default {
     flex-direction: column;
 }
 
-.vertical-form-item >>> .el-form-item__label {
+.vertical-form-item>>>.el-form-item__label {
     text-align: left;
     padding: 0 0 10px 0;
     line-height: 1.4;
-    white-space: normal;  /* 允许标签文字换行 */
+    white-space: normal;
+    /* 允许标签文字换行 */
 }
 
-.vertical-form-item >>> .el-form-item__content {
+.vertical-form-item>>>.el-form-item__content {
     margin-left: 0 !important;
 }
 </style>

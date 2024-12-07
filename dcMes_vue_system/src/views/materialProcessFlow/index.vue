@@ -1,0 +1,1189 @@
+<template>
+    <div class="app-container">
+        <!-- 搜索卡片 -->
+        <el-card class="filter-container">
+            <div slot="header" class="clearfix">
+                <span>筛选搜索</span>
+                <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced">
+                    {{ showAdvanced ? '收起' : '展开' }}高级搜索
+                </el-button>
+            </div>
+
+            <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
+                <el-row :gutter="20">
+                    <el-col :span="6">
+                        <el-form-item label="主条码">
+                            <el-input v-model="searchForm.barcode" placeholder="请输入主条码" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="物料编码">
+                            <el-input v-model="searchForm.materialCode" placeholder="请输入物料编码" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="流程状态">
+                            <el-select v-model="searchForm.status" placeholder="请选择流程状态" clearable style="width: 100%">
+                                <el-option label="待处理" value="PENDING" />
+                                <el-option label="进行中" value="IN_PROCESS" />
+                                <el-option label="已完成" value="COMPLETED" />
+                                <el-option label="异常" value="ABNORMAL" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+
+                <div v-show="showAdvanced">
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="开始时间">
+                                <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
+                                    start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
+                                    style="width: 100%">
+                                </el-date-picker>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-form-item label="完成进度">
+                                <el-input-number v-model="searchForm.progress" :min="0" :max="100"
+                                    placeholder="完成进度"></el-input-number>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </div>
+
+                <el-form-item>
+                    <el-button type="primary" @click="search">查询搜索</el-button>
+                    <el-button @click="resetForm">重置</el-button>
+                    <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
+                </el-form-item>
+            </el-form>
+        </el-card>
+
+        <!-- 列表标题区 -->
+        <div class="screen1">
+            <div class="screen_content">
+                <div class="screen_content_first">
+                    <i class="el-icon-tickets">主条码工艺流程列表</i>
+                    <!-- <el-button type="primary" @click="handleAdd">新增订单</el-button> -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 表格区域 -->
+        <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
+            :tableData="tableList" :tableDataloading="listLoading" :total="total"
+            @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
+            :cell-style="{ textAlign: 'center' }" @handleSizeChange="baseTableHandleSizeChange">
+            <template slot="law">
+                <el-table-column label="主条码" prop="barcode">
+                    <template slot-scope="scope">
+                        {{ scope.row.barcode }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="物料信息">
+                    <template slot-scope="scope">
+                        <div>编码：{{ scope.row.materialCode }}</div>
+                        <div>名称：{{ scope.row.materialName }}</div>
+                        <div>规格：{{ scope.row.materialSpec }}</div>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="流程状态" width="100">
+                    <template slot-scope="scope">
+                        <el-tag :type="getProcessStatusType(scope.row.status)">
+                            {{ getProcessStatusText(scope.row.status) }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="完成进度" width="200">
+                    <template slot-scope="scope">
+                        <el-progress :percentage="scope.row.progress || 0"></el-progress>
+                    </template>
+                </el-table-column>
+
+
+                <el-table-column label="操作" fixed="right" width="200">
+                    <template slot-scope="scope">
+                        <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
+                    </template>
+                </el-table-column>
+            </template>
+        </base-table>
+
+        <!-- 在template最后添加弹窗组件 -->
+        <el-dialog :title="'工艺流程详情 - ' + dataForm.barcode" :visible.sync="dialogFormVisible" width="80%"
+            class="process-flow-dialog" :close-on-click-modal="false">
+            <div class="process-flow-container">
+                <!-- 右侧工序流程 -->
+                <div class="process-section">
+                    <el-card class="process-card">
+                        <div slot="header">
+                            <span><i class="el-icon-time"></i> 工艺流程</span>
+                        </div>
+
+                        <div class="process-flow">
+                            <!-- 主产品物料信息 -->
+                            <div class="main-material">
+                                <div class="main-material-header">
+                                    <i class="el-icon-box"></i>
+                                    <span class="title">主产品信息</span>
+                                    <el-tag type="primary" size="mini">{{ dataForm.materialCode }}</el-tag>
+                                </div>
+                                <div class="main-material-content">
+                                    <div class="info-row">
+                                        <div class="info-item">
+                                            <label>产品条码：</label>
+                                            <span>{{ dataForm.barcode }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-item">
+                                            <label>物料名称：</label>
+                                            <span>{{ dataForm.materialName }}</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <label>规格型号：</label>
+                                            <span>{{ dataForm.materialSpec }}</span>
+                                        </div>
+                                        <!-- <div class="info-item">
+                                            <label>工艺版本：</label>
+                                            <span>{{ dataForm.craftVersion }}</span>
+                                        </div> -->
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-item">
+                                            <label>整体进度：</label>
+                                            <el-progress :percentage="dataForm.progress || 0"></el-progress>
+                                        </div>
+                                        <div class="info-item">
+                                            <label>当前状态：</label>
+                                            <el-tag :type="getProcessStatusType(dataForm.status)">
+                                                {{ getProcessStatusText(dataForm.status) }}
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <el-tabs v-model="activeTab" type="border-card">
+                                <!-- 工序信息 -->
+                                <el-tab-pane label="工序信息" name="process">
+                                    <process-step-list 
+                                        ref="processStepList" 
+                                        :loading="listLoading"
+                                        :flow-data="processedFlowChartData">
+                                    </process-step-list>
+                                </el-tab-pane>
+
+                                <!-- 物料信息 -->
+                                <el-tab-pane label="物料信息" name="material">
+                                    <el-table :data="dataForm.materials || []" border>
+                                        <el-table-column label="物料编码" prop="materialCode"></el-table-column>
+                                        <el-table-column label="物料名称" prop="materialName"></el-table-column>
+                                        <el-table-column label="规格型号" prop="materialSpec"></el-table-column>
+                                        <el-table-column label="数量" prop="quantity"></el-table-column>
+                                        <el-table-column label="单位" prop="unit"></el-table-column>
+                                    </el-table>
+                                </el-tab-pane>
+
+                                <!-- 检测信息 -->
+                                <el-tab-pane label="检测信息" name="inspection">
+                                    <el-table :data="dataForm.inspections || []" border>
+                                        <el-table-column label="检测项目" prop="inspectionItem"></el-table-column>
+                                        <el-table-column label="检测标准" prop="standard"></el-table-column>
+                                        <el-table-column label="检测结果" prop="result"></el-table-column>
+                                        <el-table-column label="检测时间" prop="inspectionTime">
+                                            <template slot-scope="scope">
+                                                {{ formatDate(scope.row.inspectionTime) }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="检测人员" prop="inspector"></el-table-column>
+                                    </el-table>
+                                </el-tab-pane>
+
+                                <!-- 解绑信息 -->
+                                <el-tab-pane label="解绑信息" name="unbind">
+                                    <el-table :data="dataForm.unbindRecords || []" border>
+                                        <el-table-column label="解绑时间" prop="unbindTime">
+                                            <template slot-scope="scope">
+                                                {{ formatDate(scope.row.unbindTime) }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="解绑原因" prop="reason"></el-table-column>
+                                        <el-table-column label="操作人" prop="operator"></el-table-column>
+                                        <el-table-column label="备注" prop="remark"></el-table-column>
+                                    </el-table>
+                                </el-tab-pane>
+                            </el-tabs>
+                        </div>
+                    </el-card>
+                </div>
+            </div>
+        </el-dialog>
+
+    </div>
+</template>
+
+<script>
+import { getData, addData, updateData, removeData } from "@/api/data";
+import ProcessStepList from '@/components/ProcessStepList/index.vue';
+
+export default {
+    name: 'SaleOrder',
+    components: {
+        ProcessStepList
+    },
+    data() {
+        return {
+            searchForm: {
+                barcode: '',
+                materialCode: '',
+                status: '',
+                dateRange: [],
+                progress: ''
+            },
+            tableList: [],
+            total: 0,
+            currentPage: 1,
+            pageSize: 10,
+            listLoading: true,
+            showAdvanced: false,
+            dialogFormVisible: false,
+            dialogStatus: '',
+            selection: [],
+            dataForm: {
+                barcode: '',
+                materialCode: '',
+                materialName: '',
+                materialSpec: '',
+                craftVersion: '',
+                startTime: null,
+                planCompletionTime: null,
+                endTime: null,
+                status: 'PENDING',
+                progress: 0,
+                processNodes: [],
+                remark: ''
+            },
+            rules: {
+                FCustomerName: [{ required: true, message: '请输入客户名称', trigger: 'blur' }],
+                FDate: [{ required: true, message: '请选择订单日期', trigger: 'change' }],
+                FSaleDeptName: [{ required: true, message: '请输入销售部门', trigger: 'blur' }]
+            },
+            processedFlowChartData: [], // 处理后的流程图数据
+            activeTab: 'process'
+        }
+    },
+    methods: {
+        // ... 其他方法保持与 material 页面类似,修改相应的字段名和业务逻辑
+        // 这里只列出一些需要特别修改的方法
+        // 获取流程状态样式
+        getProcessStatusType(status) {
+            const statusMap = {
+                'PENDING': 'info',
+                'IN_PROCESS': 'warning',
+                'COMPLETED': 'success',
+                'ABNORMAL': 'danger'
+            }
+            return statusMap[status] || 'info'
+        },
+
+        // 获取流程状态文本
+        getProcessStatusText(status) {
+            const statusMap = {
+                'PENDING': '待处理',
+                'IN_PROCESS': '进行中',
+                'COMPLETED': '已完成',
+                'ABNORMAL': '异常'
+            }
+            return statusMap[status] || status
+        },
+        // 获取数据
+        async fetchData() {
+            this.listLoading = true;
+            try {
+                let req = this.searchData();
+                req.page = this.currentPage;
+                req.limit = this.pageSize;
+                req.sort = { createAt: -1 };
+
+                const result = await getData("material_process_flow", req);
+
+                if (result.code === 200) {
+                    this.tableList = result.data;
+                    this.total = result.countnum || result.data.length;
+                } else {
+                    this.$message.error(result.msg || '获取数据失败');
+                }
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                this.$message.error('获取数据失败: ' + error.message);
+            } finally {
+                this.listLoading = false;
+            }
+        },// 分页方法
+        baseTableHandleCurrentChange(currentPage) {
+            this.currentPage = currentPage;
+            this.fetchData();
+        },
+
+        baseTableHandleSizeChange(pageSize) {
+            this.pageSize = pageSize;
+            this.fetchData();
+        },
+
+        // 切换高级搜索
+        toggleAdvanced() {
+            this.showAdvanced = !this.showAdvanced;
+        },
+
+        // 格式化日期
+        formatDate(date) {
+            if (!date) return '暂无数据';
+            return new Date(date).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        },
+
+        // 格式化金额
+        formatNumber(num) {
+            if (!num && num !== 0) return '¥0.00';
+            return '¥' + Number(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        },
+
+        // 搜索方法
+        search() {
+            this.currentPage = 1;
+            this.fetchData();
+        },
+
+        // 选择项改变
+        handleSelectionChange(selection) {
+            this.selection = selection;
+        },
+
+        // 查看详情
+        async handleView(row) {
+            try {
+                this.listLoading = true;
+                const result = await getData('material_process_flow', {
+                    query: { _id: row._id }
+                });
+                console.log(result, 'result');
+                if (result.code === 200 && result.data.length > 0) {
+                    this.dataForm = result.data[0];
+                    // 处理流程图数据
+                    this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
+                    console.log((this.processedFlowChartData));
+                    this.dialogFormVisible = true;
+                } else {
+                    this.$message.error('获取详情失败');
+                }
+            } catch (error) {
+                console.error('获取详情失败:', error);
+                this.$message.error('获取详情失败: ' + error.message);
+            } finally {
+                this.listLoading = false;
+            }
+        },
+
+        // 编辑
+        // handleEdit(row) {
+        //     this.dataForm = JSON.parse(JSON.stringify(row));
+        //     this.dialogStatus = 'edit';
+        //     this.dialogFormVisible = true;
+        // },
+
+        // 删除
+        async handleDelete(row) {
+            try {
+                await this.$confirm('确认要删除该订单吗？删除后不可恢复！', '警告', {
+                    type: 'warning',
+                    confirmButtonText: '确定删除',
+                    confirmButtonClass: 'el-button--danger'
+                });
+
+                await removeData('k3_SAL_SaleOrder', row._id);
+                this.$message.success('删除成功');
+                this.fetchData();
+            } catch (error) {
+                if (error === 'cancel') {
+                    this.$message.info('已取消删除');
+                } else {
+                    console.error('删除失败:', error);
+                    this.$message.error('删除失败');
+                }
+            }
+        },
+
+        // 提交表单
+        async handleSubmit(formData) {
+            try {
+                if (this.dialogStatus === 'edit') {
+                    await updateData('k3_SAL_SaleOrder', formData._id, formData);
+                    this.$message.success('更新成功');
+                } else {
+                    await addData('k3_SAL_SaleOrder', formData);
+                    this.$message.success('添加成功');
+                }
+                this.dialogFormVisible = false;
+                this.fetchData();
+            } catch (error) {
+                console.error('操作失败:', error);
+                this.$message.error('操作失败');
+            }
+        },
+        // 构建查询条件
+        searchData() {
+            let req = {
+                query: {
+                    $and: []
+                }
+            };
+
+            Object.entries(this.searchForm).forEach(([key, value]) => {
+                if (value) {
+                    switch (key) {
+                        case 'barcode':
+                        case 'materialCode':
+                            if (value.trim()) {
+                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                            }
+                            break;
+                        case 'status':
+                            req.query.$and.push({ [key]: value });
+                            break;
+                        case 'progress':
+                            if (value !== '') {
+                                req.query.$and.push({ progress: value });
+                            }
+                            break;
+                        case 'dateRange':
+                            if (Array.isArray(value) && value.length === 2) {
+                                req.query.$and.push({
+                                    startTime: {
+                                        $gte: value[0] + ' 00:00:00',
+                                        $lte: value[1] + ' 23:59:59'
+                                    }
+                                });
+                            }
+                            break;
+                    }
+                }
+            });
+
+            if (!req.query.$and.length) {
+                delete req.query.$and;
+            }
+
+            return req;
+        },
+
+
+        // 重置表单
+        resetForm() {
+            this.$refs.searchForm.resetFields();
+            this.searchForm = {
+                barcode: '',
+                materialCode: '',
+                status: '',
+                dateRange: [],
+                progress: ''
+            };
+            this.currentPage = 1;
+            this.fetchData();
+        },
+
+        // 导出数据
+        // exportData() {
+        //     // 获取当前的查询条件
+        //     const queryParams = this.searchData();
+        //     // TODO: 实现导出逻辑
+        //     this.$message.info('导出功能开发中...');
+        // },
+
+        // 添加缺失的事件处理方法
+        // handleAdd() {
+        //     this.dialogStatus = 'create';
+        //     this.dialogFormVisible = true;
+        //     this.$nextTick(() => {
+        //         this.$refs['dataForm'].resetFields();
+        //         this.dataForm = {
+        //             FBillNo: '',
+        //             FCustId: '',
+        //             FDate: new Date(),
+        //             FSaleDeptId: '',
+        //             FSalerId: '',
+        //             FDocumentStatus: 'A',
+        //             FCloseStatus: 'A'
+        //         };
+        //     });
+        // },
+
+        handleEdit(row) {
+            this.dialogStatus = 'edit';
+            this.dialogFormVisible = true;
+            this.$nextTick(() => {
+                this.$refs['dataForm'].resetFields();
+                this.dataForm = Object.assign({}, row);
+            });
+        },
+
+
+        async handleDelete(row) {
+            try {
+                await this.$confirm('确认要删除该订单吗？', '警告', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                await removeData('k3_SAL_SaleOrder', row._id);
+                this.$message.success('删除成功');
+                this.fetchData();
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('删除失败:', error);
+                    this.$message.error('删除失败: ' + error.message);
+                }
+            }
+        },
+
+        async handleSubmitAudit(row) {
+            try {
+                await this.$confirm('确认提交此订单进行审核？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                const updatedData = {
+                    ...row,
+                    FDocumentStatus: 'B', // 更改为审核中状态
+                    FModifyDate: new Date(),
+                    FModifierId: this.$store.state.user.name
+                };
+
+                await updateData('k3_SAL_SaleOrder', row._id, updatedData);
+                this.$message.success('提交审核成功');
+                this.fetchData();
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('提交审核失败:', error);
+                    this.$message.error('提交审核失败: ' + error.message);
+                }
+            }
+        },
+
+        // 表单提交
+        submitForm() {
+            this.$refs['dataForm'].validate(async (valid) => {
+                if (valid) {
+                    try {
+                        if (this.dialogStatus === 'create') {
+                            await addData('k3_SAL_SaleOrder', this.dataForm);
+                            this.$message.success('创建成功');
+                        } else {
+                            await updateData('k3_SAL_SaleOrder', this.dataForm._id, this.dataForm);
+                            this.$message.success('更新成功');
+                        }
+                        this.dialogFormVisible = false;
+                        this.fetchData();
+                    } catch (error) {
+                        console.error('操作失败:', error);
+                        this.$message.error('操作失败: ' + error.message);
+                    }
+                }
+            });
+        },
+
+        // 获取节点类型图标和颜色
+        getNodeIcon(node) {
+            const iconMap = {
+                'PROCESS_STEP': {
+                    icon: 'el-icon-s-operation',
+                    color: '#409EFF'
+                },
+                'MATERIAL': {
+                    icon: 'el-icon-box',
+                    color: '#67c23a'
+                }
+            };
+            return iconMap[node.nodeType] || { icon: 'el-icon-more', color: '#909399' };
+        },
+
+        // 获取时间轴节点类型
+        getTimelineItemType(status) {
+            const typeMap = {
+                'COMPLETED': 'success',
+                'IN_PROCESS': 'primary',
+                'ABNORMAL': 'danger',
+                'PENDING': 'info'
+            };
+            return typeMap[status] || 'info';
+        },
+
+        // 获取扫码图标
+        getScanIcon(node) {
+            if (!node.requireScan) return 'el-icon-minus info';
+            const statusMap = {
+                'COMPLETED': 'el-icon-check success',
+                'IN_PROCESS': 'el-icon-loading warning',
+                'ABNORMAL': 'el-icon-close danger',
+                'PENDING': 'el-icon-time info'
+            };
+            return statusMap[node.status] || 'el-icon-time info';
+        },
+
+        // 获取扫码状态文本
+        getScanStatus(node) {
+            if (!node.requireScan) return '无需扫码';
+            const statusMap = {
+                'COMPLETED': '已完成扫码',
+                'IN_PROCESS': '等待扫码',
+                'ABNORMAL': '扫码异常',
+                'PENDING': '未开始'
+            };
+            return statusMap[node.status] || '未开始';
+        },
+
+        // 获取当前激活的步骤
+        getActiveStep(nodes) {
+            const inProcessIndex = nodes.findIndex(node => node.status === 'IN_PROCESS');
+            if (inProcessIndex === -1) {
+                return nodes.filter(node => node.status === 'COMPLETED').length;
+            }
+            return inProcessIndex + 1;
+        },
+
+        // 获取步骤状态
+        getStepStatus(status) {
+            const statusMap = {
+                'COMPLETED': 'success',
+                'IN_PROCESS': 'process',
+                'ABNORMAL': 'error',
+                'PENDING': 'wait'
+            };
+            return statusMap[status] || 'wait';
+        },
+
+        // 获取步骤图标
+        getStepIcon(node) {
+            if (node.nodeType === 'PROCESS_STEP') {
+                return 'el-icon-s-operation';
+            }
+            return 'el-icon-box';
+        },
+
+        // 获取整体流程状态
+        getProcessOverallStatus(nodes) {
+            if (nodes.some(node => node.status === 'ABNORMAL')) {
+                return 'error';
+            }
+            if (nodes.some(node => node.status === 'IN_PROCESS')) {
+                return 'process';
+            }
+            if (nodes.every(node => node.status === 'COMPLETED')) {
+                return 'success';
+            }
+            return 'wait';
+        },
+
+        // 获取顶层工序节点
+        getProcessSteps() {
+            return this.dataForm.processNodes.filter(node =>
+                node.nodeType === 'PROCESS_STEP' && node.level === 1
+            ).sort((a, b) => a.processSort - b.processSort);
+        },
+
+        // 获取关联的物料节点
+        getRelatedMaterials(processNodeId) {
+            return this.dataForm.processNodes.filter(node =>
+                node.nodeType === 'MATERIAL' &&
+                node.parentNodeId === processNodeId &&
+                node.level === 2  // 只获取直接关联的物料
+            );
+        },
+
+        // 检查工序下是否有需要扫码的物料
+        hasRequireScanMaterials(processNodeId) {
+            return this.getRelatedMaterials(processNodeId).some(material => material.requireScan);
+        },
+
+        // 添加新的处理方法
+        processNodes(nodes) {
+            if (!nodes || !nodes.length) return [];
+
+            // 构建节点映射
+            const nodeMap = new Map();
+            nodes.forEach(node => {
+                nodeMap.set(node.nodeId, {
+                    ...node,
+                    children: []
+                });
+            });
+
+            // 构建树形结构
+            const result = [];
+            nodes.forEach(node => {
+                const processedNode = nodeMap.get(node.nodeId);
+
+                if (node.parentNodeId && nodeMap.has(node.parentNodeId)) {
+                    // 直接根据 parentNodeId 添加到父节点的 children 中
+                    const parentNode = nodeMap.get(node.parentNodeId);
+                    parentNode.children.push(processedNode);
+                } else {
+                    // 没有 parentNodeId 的作为根节点
+                    result.push(processedNode);
+                }
+            });
+
+            // 对每个节点的子节点进行排序
+            const sortChildren = (node) => {
+                if (node.children && node.children.length) {
+                    // 工序节点下的物料按照 materialCode 排序
+                    if (node.nodeType === 'PROCESS_STEP') {
+                        node.children.sort((a, b) => (a.materialCode || '').localeCompare(b.materialCode || ''));
+                    }
+                    // 物料节点下的工序按照 processSort 排序
+                    else if (node.nodeType === 'MATERIAL') {
+                        node.children.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
+                    }
+
+                    // 递归排序子节点
+                    node.children.forEach(child => sortChildren(child));
+                }
+            };
+
+            result.forEach(node => sortChildren(node));
+            return result;
+        }
+    },
+    created() {
+        this.fetchData();
+    }
+}
+</script>
+
+<style lang="scss" scoped>
+.screen1 {
+    height: auto;
+    margin: 2vw 0;
+    width: 100%;
+    border: 1px solid #ebeef5;
+    border-radius: 5px;
+}
+
+.screen_content_first {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.el-icon-search {
+    padding: 8px;
+}
+
+.el-icon-tickets {
+    line-height: 30px;
+}
+
+.screen_content_second {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.screen_content_second_one {
+    padding: 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.expert-detail-dialog {
+    .expert-detail-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 10px;
+    }
+
+    .detail-card {
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid #ebeef5;
+        border-radius: 5px;
+
+        .card-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #409EFF;
+            margin-bottom: 10px;
+        }
+    }
+}
+
+.modern-expert-dialog {
+    .expert-detail-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        padding: 20px;
+        background: #f5f7fa;
+    }
+
+    .detail-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #ebeef5;
+            background: linear-gradient(to right, #f0f2f5, #ffffff);
+
+            i {
+                margin-right: 8px;
+                font-size: 18px;
+                color: #409EFF;
+            }
+
+            span {
+                font-size: 16px;
+                font-weight: 600;
+                background: linear-gradient(120deg, #409EFF, #36cfc9);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+        }
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #409EFF;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #909399;
+        }
+    }
+}
+
+.process-card {
+    padding: 20px;
+
+    .el-steps {
+        margin: 20px 0;
+    }
+
+    .step-detail-card {
+        margin-top: 10px;
+        width: 200px;
+
+        .step-info {
+            font-size: 12px;
+            color: #606266;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .scan-info {
+            font-size: 12px;
+            color: #909399;
+
+            .scan-status {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                margin-bottom: 4px;
+
+                i {
+                    font-size: 14px;
+
+                    &.success {
+                        color: #67C23A;
+                    }
+
+                    &.warning {
+                        color: #E6A23C;
+                    }
+
+                    &.danger {
+                        color: #F56C6C;
+                    }
+
+                    &.info {
+                        color: #909399;
+                    }
+                }
+            }
+        }
+
+        .step-remark {
+            margin-top: 8px;
+            color: #E6A23C;
+        }
+    }
+}
+
+.materials-list {
+    margin-top: 10px;
+    border-top: 1px solid #EBEEF5;
+    padding-top: 10px;
+
+    .materials-title {
+        font-size: 12px;
+        color: #909399;
+        margin-bottom: 5px;
+    }
+
+    .material-info {
+        padding: 5px;
+        font-size: 12px;
+        color: #606266;
+
+        >div {
+            margin-bottom: 3px;
+        }
+    }
+}
+
+.process-flow {
+    padding: 20px;
+
+    .process-step {
+        margin-bottom: 20px;
+        border: 1px solid #EBEEF5;
+        border-radius: 4px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            background: #f5f7fa;
+            border-bottom: 1px solid #EBEEF5;
+
+            &.success {
+                background: #f0f9eb;
+            }
+
+            &.process {
+                background: #ecf5ff;
+            }
+
+            &.error {
+                background: #fef0f0;
+            }
+
+            .step-number {
+                width: 24px;
+                height: 24px;
+                line-height: 24px;
+                text-align: center;
+                background: #409EFF;
+                color: white;
+                border-radius: 50%;
+                margin-right: 12px;
+            }
+
+            .step-title {
+                flex: 1;
+
+                .process-name {
+                    font-size: 14px;
+                    font-weight: bold;
+                    margin-right: 8px;
+                }
+
+                .process-code {
+                    color: #909399;
+                    font-size: 12px;
+                }
+            }
+        }
+
+        .step-content {
+            padding: 16px;
+
+            .step-info {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+                margin-bottom: 16px;
+
+                .info-item {
+                    font-size: 13px;
+
+                    label {
+                        color: #909399;
+                        margin-right: 8px;
+                    }
+                }
+            }
+
+            .materials-section {
+                .materials-header {
+                    font-size: 13px;
+                    color: #606266;
+                    font-weight: bold;
+                    margin-bottom: 12px;
+                    padding-left: 8px;
+                    border-left: 3px solid #409EFF;
+                }
+            }
+        }
+    }
+}
+
+.scan-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    i {
+        &.success {
+            color: #67C23A;
+        }
+
+        &.warning {
+            color: #E6A23C;
+        }
+
+        &.danger {
+            color: #F56C6C;
+        }
+
+        &.info {
+            color: #909399;
+        }
+    }
+}
+
+.main-material {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+
+    .main-material-header {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #ebeef5;
+        background: linear-gradient(to right, #f5f7fa, #ffffff);
+
+        i {
+            font-size: 20px;
+            color: #409EFF;
+            margin-right: 12px;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+            margin-right: 12px;
+        }
+
+        .el-tag {
+            margin-left: auto;
+        }
+    }
+
+    .main-material-content {
+        padding: 20px;
+
+        .info-row {
+            display: flex;
+            margin-bottom: 16px;
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+
+            .info-item {
+                flex: 1;
+                display: flex;
+                align-items: center;
+
+                label {
+                    color: #909399;
+                    font-size: 14px;
+                    margin-right: 8px;
+                    min-width: 80px;
+                }
+
+                span {
+                    color: #303133;
+                    font-size: 14px;
+                }
+
+                .el-progress {
+                    width: 100%;
+                    margin-right: 20px;
+                }
+
+                .el-tag {
+                    padding: 0 12px;
+                    height: 28px;
+                    line-height: 26px;
+                }
+            }
+        }
+    }
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+}
+</style>

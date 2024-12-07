@@ -16,6 +16,7 @@ class MaterialProcessFlowService {
      */
     async createFlowByMaterialCode(materialCode, barcode) {
         try {
+            console.log("🚀 ~ createFlowByMaterialCode ~ materialCode:", materialCode)
             // 1. 获取物料信息
             const material = await Material.findOne({ FNumber: materialCode });
             if (!material) {
@@ -132,6 +133,7 @@ class MaterialProcessFlowService {
                             materialQuantity: processMaterial.quantity,
                             materialUnit: processMaterial.unit,
                             level: 2,
+                            barcode: '',
                             parentNodeId: processNode.nodeId,
                             craftId: craft._id,
                             craftName: craft.craftName,
@@ -149,8 +151,8 @@ class MaterialProcessFlowService {
                             const subNodes = await this.buildProcessNodes(material._id, subCraft);
                             // 调整子节点的层级和父节点
                             subNodes.forEach(node => {
-                                node.level += 2;
-                                if (node.level === 2) {
+                                node.level += materialNode.level;
+                                if (node.level === materialNode.level + 1) {
                                     node.parentNodeId = materialNode.nodeId;
                                 }
                             });

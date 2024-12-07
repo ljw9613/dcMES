@@ -27,6 +27,9 @@ const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
 const k3_PRD_MO = require("../model/k3/k3_PRD_MO");
 const k3_SAL_SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
 
+// 引入 udi 模型
+const productDiNum = require("../model/project/ProductDiNum");
+
 //封装
 const ADDROUTER = require("../libs/request");
 //三个参数 挂载路由 ， 表名 ， 表Model
@@ -41,10 +44,10 @@ ADDROUTER(router, "barcode", barcode);
 ADDROUTER(router, "processStep", processStep);
 ADDROUTER(router, "scanRecord", scanRecord);
 ADDROUTER(router, "processMaterials", processMaterials);
-ADDROUTER(router, "materialProcessFlow", materialProcessFlow);
+ADDROUTER(router, "material_process_flow", materialProcessFlow);
 // 为每个 k3 模型添加路由
 ADDROUTER(router, "k3_BD_MATERIAL", k3_BD_MATERIAL);
 ADDROUTER(router, "k3_PRD_MO", k3_PRD_MO);
 ADDROUTER(router, "k3_SAL_SaleOrder", k3_SAL_SaleOrder);
-
+ADDROUTER(router, "productDiNum", productDiNum);
 module.exports = router;
