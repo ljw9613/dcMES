@@ -118,6 +118,14 @@
                     </template>
                 </el-table-column>
 
+
+
+                <el-table-column label="修改日期" prop="FModifyDate" width="160">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.FModifyDate) }}
+                    </template>
+                </el-table-column>
+
                 <el-table-column label="销售部门" prop="FSaleDeptId" width="120">
                     <template slot-scope="scope">
                         {{ scope.row.FSaleDeptId || '-' }}
@@ -143,10 +151,19 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-
-                <el-table-column label="修改日期" prop="FModifyDate" width="160">
+                <el-table-column label="物料属性" width="100">
                     <template slot-scope="scope">
-                        {{ formatDate(scope.row.FModifyDate) }}
+                        <el-tag size="mini" :type="getMaterialPropertyTagType(scope.row.FDocumentStatus)">
+                            {{ getMaterialPropertyText(scope.row.FDocumentStatus) }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="越南不调拨" width="100">
+                    <template slot-scope="scope">
+                        <el-tag size="mini" :type="scope.row.FCancelStatus === 'B' ? 'danger' : 'success'">
+                            {{ scope.row.FCancelStatus === 'B' ? '是' : '否' }}
+                        </el-tag>
                     </template>
                 </el-table-column>
 
@@ -455,13 +472,13 @@ export default {
         },
 
         // 获取物料属性文本
-        getMaterialPropertyText(property) {
+        getMaterialPropertyText(status) {
             const propertyMap = {
-                'A': '自制',
-                'B': '外购',
-                'C': '委外'
+                'C': '自制',      // 已审核 -> 自制
+                'B': '外购',      // 审核中 -> 外购
+                'A': '委外'       // 草稿 -> 委外
             };
-            return propertyMap[property] || property;
+            return propertyMap[status] || status;
         },
 
         // 重置表单
@@ -588,6 +605,16 @@ export default {
                     }
                 }
             });
+        },
+
+        // 获取物料属性标签类型
+        getMaterialPropertyTagType(status) {
+            const typeMap = {
+                'C': 'primary',    // 已审核 -> 自制
+                'B': 'success',    // 审核中 -> 外购
+                'A': 'warning'     // 草稿 -> 委外
+            };
+            return typeMap[status] || 'info';
         }
     },
     created() {
