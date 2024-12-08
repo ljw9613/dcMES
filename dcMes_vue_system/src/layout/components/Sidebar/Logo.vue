@@ -4,7 +4,7 @@
  * @Author: joyce
  * @Date: 2020-05-20 10:48:35
 -->
-<template>
+<!-- <template>  先让控制台不显示这个报错
   <div class="sidebar-logo-container" :class="{ 'collapse': collapse }">
     <transition name="sidebarLogoFade">
       <router-link v-if="collapse" key="collapse" class="sidebar-logo-link" to="/">
@@ -14,6 +14,20 @@
       <router-link v-else key="expand" class="sidebar-logo-link" to="/">
         <span style="display: flex; align-items: center; justify-content: center;height: 50px;">
           <img v-if="logo" :src="logo" class="sidebar-logo">
+          <h1 class="sidebar-title">{{ title }} </h1>
+        </span>
+      </router-link>
+    </transition>
+  </div>
+</template> -->
+<template>
+  <div class="sidebar-logo-container" :class="{ 'collapse': collapse }">
+    <transition name="sidebarLogoFade">
+      <router-link v-if="collapse" key="collapse" class="sidebar-logo-link" to="/">
+        <h1 class="sidebar-title">{{ title1 }} </h1>
+      </router-link>
+      <router-link v-else key="expand" class="sidebar-logo-link" to="/">
+        <span style="display: flex; align-items: center; justify-content: center;height: 50px;">
           <h1 class="sidebar-title">{{ title }} </h1>
         </span>
       </router-link>
