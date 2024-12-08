@@ -871,6 +871,8 @@ export default {
                     throw new Error(scanResponse.message || '扫码失败');
                 }
 
+                //TODO成功后播放提示音
+
                 // 6. 重置表单
                 this.resetScanForm();
 
