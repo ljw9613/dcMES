@@ -63,7 +63,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="是���标准">
+                        <el-form-item label="是否标准">
                             <el-select v-model="searchForm.isStandard" placeholder="请选择是否标准" clearable
                                 style="width: 100%">
                                 <el-option label="是" :value="true" />
@@ -132,7 +132,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="工艺类���" prop="craftType">
+                        <el-form-item label="工艺类型" prop="craftType">
                             <el-select v-model="craftForm.craftType" placeholder="请选择工艺类型" clearable
                                 style="width: 100%">
                                 <el-option label="标准工艺" value="STANDARD_PROCESS" />
