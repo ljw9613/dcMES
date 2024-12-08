@@ -149,8 +149,16 @@
 </template>
 
 <script>
+//01012345678912391020240600122Q03UB001Z0K7
+// 1101103001-24120701
+// 1101103004-24120702
+// 1101103005-24120703
+// 1101103007-24120704
+
+//1303203003-24120701
+//1305103003-24120702
 import { getData, addData, updateData, removeData } from "@/api/data";
-import { createFlow } from "@/api/materialProcessFlowService";
+import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 export default {
     name: 'ScanBarCode',
     data() {
@@ -429,7 +437,8 @@ export default {
         // 获取工序相关物料
         async getProcessMaterials() {
             try {
-                console.log('正在获取工序信息，ID:', this.processStepId); // 调试日志
+                console.log('正在获取工序信息，ID:', this.processStepId);
+
                 // 获取工序信息
                 const stepResponse = await getData('processStep', {
                     query: { _id: this.processStepId },
@@ -437,14 +446,39 @@ export default {
                     limit: 1
                 });
 
-                console.log('获取到的工序信息:', stepResponse.data); // 调试日志
+                if (!stepResponse.data || !stepResponse.data.length === 0) {
+                    throw new Error('未找到工序信息');
+                }
 
-                if (stepResponse.data && stepResponse.data[0] && stepResponse.data[0].materials) {
-                    // 重置物料数组
-                    this.processMaterials = [];
+                const processStep = stepResponse.data[0];
 
-                    // 获取物料关系信息
-                    const materialPromises = stepResponse.data[0].materials.map(materialId =>
+                // 获取该工序所属的工艺信息
+                const craftResponse = await getData('craft', {
+                    query: { processSteps: this.processStepId },
+                    page: 1,
+                    limit: 1
+                });
+
+                if (!craftResponse.data || !craftResponse.data.length === 0) {
+                    throw new Error('未找到工艺信息');
+                }
+
+                const craft = craftResponse.data[0];
+
+                // 获取工艺对应的物料信息
+                const material = await this.getMaterialById(craft.materialId);
+
+                if (!material) {
+                    throw new Error('未找到物料信息');
+                }
+
+                // 更新主物料信息为工艺对应的物料
+                this.mainMaterialName = material.FName;
+                this.mainMaterialCode = material.FNumber;
+
+                // 获取工序关联的物料
+                if (processStep.materials && processStep.materials.length > 0) {
+                    const materialPromises = processStep.materials.map(materialId =>
                         getData('processMaterials', {
                             query: { _id: materialId },
                             page: 1,
@@ -453,7 +487,6 @@ export default {
                     );
 
                     const materialsResponses = await Promise.all(materialPromises);
-                    console.log('获取到的物料信息:', materialsResponses); // 调试日志
 
                     this.processMaterials = materialsResponses
                         .map(response => response.data[0])
@@ -468,14 +501,13 @@ export default {
                         this.$set(this.scanForm.barcodes, material._id, '');
                     });
                 } else {
-                    console.log('未找到工序相关物料'); // 调试日志
                     this.processMaterials = [];
                     this.validateStatus = { mainBarcode: false };
                     this.scanForm.barcodes = {};
                 }
             } catch (error) {
                 console.error('获取工序物料失败:', error);
-                this.$message.error('获取工序物料失败');
+                this.$message.error(error.message || '获取工序物料失败');
                 this.processMaterials = [];
                 this.validateStatus = { mainBarcode: false };
                 this.scanForm.barcodes = {};
@@ -502,9 +534,12 @@ export default {
                     const remoteDI = barcode.substring(0, 8);
                     return await this.validateDICode(remoteDI);
 
+                case 20: // 1.批次虚拟条码 14071230362-24120701
+                    const batchDI = barcode.substring(0, 11);
+                    return await this.validateDICode(batchDI);
                 default:
-                    this.$message.error('UDI条码格式不正确');
-                    return false;
+                    const pattern = /^[A-Za-z0-9]+-[0-9]+$/;
+                    return pattern.test(barcode);
             }
         },
 
@@ -530,8 +565,8 @@ export default {
 
         // 验证条码格式
         validateBarcode(barcode) {
-            // 条码格式：物料编号_序号
-            const pattern = /^[A-Za-z0-9]+_[0-9]+$/;
+            // 条码格式：1101103001-24120701
+            const pattern = /^[A-Za-z0-9]+-[0-9]+$/;
             return pattern.test(barcode);
         },
 
@@ -556,7 +591,7 @@ export default {
                 } else {
                     // 验证条码格式
                     if (!this.validateBarcode(value)) {
-                        this.$message.error('条码格式不正确，应为：物料编号_序号');
+                        this.$message.error('条码格式不正确，应为：物料编号-序号');
                         this.validateStatus[key] = false;
                         return;
                     }
@@ -625,40 +660,33 @@ export default {
                     throw new Error('请先扫描主条码');
                 }
 
+                //物料条码格式：1101103001-24120701
+
+
+
                 // 获取对应的物料信息
                 const material = this.processMaterials.find(m => m._id === materialId);
                 if (!material) {
                     throw new Error('未找到对应的物料信息');
                 }
 
-                // 获取产线名称
-                const productLine = this.productLineOptions.find(p => p._id === this.formData.productLine);
-                const stationName = productLine ? productLine.FName : '';
+                const materialCode = barcode.split('-')[0];
+                const sequence = barcode.split('-')[1];
 
-                // 创建扫码记录
-                const scanRecord = {
-                    flowId: this.currentFlowId,
-                    processStepId: this.processStepId,
-                    stationId: this.formData.productLine,
-                    stationName: stationName,
-                    materialBarcode: barcode,
-                    materialId: material.materialId,
-                    materialCode: material.materialCode,
-                    materialName: material.materialName,
-                    quantity: material.quantity,
-                    status: 'COMPLETED',
-                    scanTime: new Date(),
-                    operator: this.$store.state.user.name
-                };
-
-                // 保存扫码记录
-                const response = await addData('process_scan_record', scanRecord);
-
-                if (response.code !== 200) {
-                    throw new Error(response.msg || '保存扫码记录失败');
+                //对比物料编码是否一致
+                if (material.materialCode !== materialCode) {
+                    throw new Error('物料编码不一致');
                 }
 
-                this.$message.success('扫码记录保存成功');
+                // console.log("🚀 ~ handleSubBarcode ~ barcode:", material)
+
+
+
+                // // 获取产线名称
+                // const productLine = this.productLineOptions.find(p => p._id === this.formData.productLine);
+                // const stationName = productLine ? productLine.FName : '';
+
+                this.$message.success('扫码成功');
             } catch (error) {
                 console.error('处理子物料条码失败:', error);
                 throw error;
@@ -774,42 +802,32 @@ export default {
                     throw new Error('未找到对应的工艺流程记录');
                 }
 
-                const flowData = response.data[0];
-                this.currentFlowId = flowData._id;
+                //                 {
+                //     "mainBarcode": "MAIN123",
+                //     "processStepId": "21311231",
+                //     "componentScans": [{materialCode:"1031231",barcode:"com123"}, {materialCode:"1031232",barcode:"com1234"}, {materialCode:"1031233",barcode:"com123145"}]
+                // }
 
-                // 3. 更新工艺流程中当前工序的状态
-                const updatedNodes = flowData.processNodes.map(node => {
-                    if (node.processStepId === this.processStepId) {
-                        return {
-                            ...node,
-                            status: 'COMPLETED',
-                            endTime: new Date()
-                        };
-                    }
-                    return node;
-                });
+                let componentScans = [];
+                this.processMaterials.forEach(material => {
+                    componentScans.push({
+                        materialId: material.materialId,
+                        barcode: this.scanForm.barcodes[material._id]
+                    })
+                })
+                console.log("🚀 ~ handleConfirm ~ componentScans:", componentScans)
+                let scanReq = {
+                    mainBarcode: this.scanForm.mainBarcode,
+                    processStepId: this.processStepId,
+                    componentScans: componentScans
+                }
 
-                // 4. 更新主流程记录
-                await updateData('material_process_flow', flowData._id, {
-                    processNodes: updatedNodes,
-                    updateBy: this.$store.state.user.name,
-                    updateAt: new Date()
-                });
+                console.log("🚀 ~ handleConfirm ~ scanReq:", scanReq)
 
-                // 5. 检查是否所有工序都已完成
-                const allProcessesCompleted = updatedNodes.every(node =>
-                    node.nodeType === 'PROCESS_STEP' ? node.status === 'COMPLETED' : true
-                );
+                const scanResponse = await scanComponents(scanReq);
 
-                if (allProcessesCompleted) {
-                    // 更新整体流程状态为已完成
-                    await updateData('material_process_flow', flowData._id, {
-                        status: 'COMPLETED',
-                        endTime: new Date()
-                    });
-                    this.$message.success('所有工序已完成！');
-                } else {
-                    this.$message.success('当前工序扫码完成');
+                if (scanResponse.code !== 200) {
+                    throw new Error(scanResponse.msg || '扫码失败');
                 }
 
                 // 6. 重置表单

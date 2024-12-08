@@ -180,12 +180,163 @@
 
                                 <!-- 物料信息 -->
                                 <el-tab-pane label="物料信息" name="material">
-                                    <el-table :data="dataForm.materials || []" border>
-                                        <el-table-column label="物料编码" prop="materialCode"></el-table-column>
-                                        <el-table-column label="物料名称" prop="materialName"></el-table-column>
-                                        <el-table-column label="规格型号" prop="materialSpec"></el-table-column>
-                                        <el-table-column label="数量" prop="quantity"></el-table-column>
-                                        <el-table-column label="单位" prop="unit"></el-table-column>
+                                    <div class="material-info-container">
+                                        <!-- 表格标题区 -->
+                                        <div class="table-header">
+                                            <i class="el-icon-box"></i>
+                                            <span>工艺物料清单</span>
+                                        </div>
+                                        
+                                        <!-- 表格区域 -->
+                                        <el-table 
+                                            :data="processedFlowChartData[0] && processedFlowChartData[0].children ? 
+                                                   processedFlowChartData[0].children.filter(item => item.nodeType === 'PROCESS_STEP') : 
+                                                   []" 
+                                            border 
+                                            class="material-table"
+                                            :header-cell-style="{
+                                                background: '#f5f7fa',
+                                                color: '#606266',
+                                                fontWeight: 'bold',
+                                                fontSize: '14px',
+                                                textAlign: 'center',
+                                                height: '50px'
+                                            }"
+                                            :cell-style="{
+                                                textAlign: 'center'
+                                            }">
+                                            <el-table-column label="工序" width="180">
+                                                <template slot-scope="scope">
+                                                    <div class="process-info">
+                                                        <el-tag size="medium" :type="getProcessStatusType(scope.row.status)">
+                                                            {{ scope.row.processName }}
+                                                            <el-tag size="mini" type="info">{{ scope.row.processCode }}</el-tag>
+                                                        </el-tag>
+                                                    </div>
+                                                </template>
+                                            </el-table-column>
+                                            
+                                            <el-table-column label="关联物料">
+                                                <template slot-scope="scope">
+                                                    <el-table
+                                                        v-if="scope.row.children && scope.row.children.length"
+                                                        :data="scope.row.children.filter(item => item.nodeType === 'MATERIAL')"
+                                                        border
+                                                        class="inner-table">
+                                                        <el-table-column 
+                                                            label="物料编码" 
+                                                            prop="materialCode" 
+                                                            min-width="120">
+                                                        </el-table-column>
+                                                        <el-table-column 
+                                                            label="物料名称" 
+                                                            prop="materialName" 
+                                                            min-width="150">
+                                                        </el-table-column>
+                                                        <el-table-column 
+                                                            label="规格型号" 
+                                                            prop="materialSpec" 
+                                                            min-width="120">
+                                                        </el-table-column>
+                                                        <el-table-column 
+                                                            label="数量" 
+                                                            width="80">
+                                                            <template slot-scope="innerScope">
+                                                                {{ innerScope.row.materialQuantity }} {{ innerScope.row.materialUnit }}
+                                                            </template>
+                                                        </el-table-column>
+                                                        <el-table-column 
+                                                            label="状态" 
+                                                            width="100">
+                                                            <template slot-scope="innerScope">
+                                                                <el-tag 
+                                                                    :type="getProcessStatusType(innerScope.row.status)" 
+                                                                    size="small">
+                                                                    {{ getProcessStatusText(innerScope.row.status) }}
+                                                                </el-tag>
+                                                            </template>
+                                                        </el-table-column>
+                                                        <el-table-column 
+                                                            label="条码" 
+                                                            min-width="150">
+                                                            <template slot-scope="innerScope">
+                                                                <span v-if="innerScope.row.barcode">{{ innerScope.row.barcode }}</span>
+                                                                <span v-else class="no-barcode">-</span>
+                                                            </template>
+                                                        </el-table-column>
+                                                        <el-table-column 
+                                                            label="类型" 
+                                                            width="100">
+                                                            <template slot-scope="innerScope">
+                                                                <el-tag 
+                                                                    v-if="innerScope.row.isComponent" 
+                                                                    type="warning" 
+                                                                    size="mini">组件</el-tag>
+                                                                <el-tag 
+                                                                    v-if="innerScope.row.isKeyMaterial" 
+                                                                    type="danger" 
+                                                                    size="mini">关键</el-tag>
+                                                                <span v-if="!innerScope.row.isComponent && !innerScope.row.isKeyMaterial">-</span>
+                                                            </template>
+                                                        </el-table-column>
+                                                    </el-table>
+                                                    <div v-else class="no-material">暂无关联物料</div>
+                                                </template>
+                                            </el-table-column>
+                                        </el-table>
+                                    </div>
+                                </el-tab-pane>
+
+                                        <!-- 物料条码信息 -->
+                                <el-tab-pane label="物料条码信息" name="materialBarcode">
+                                    <el-table 
+                                        :data="processedMaterialBarcodeData" 
+                                        border
+                                        :header-cell-style="{
+                                            background: '#f5f7fa',
+                                            color: '#606266',
+                                            fontWeight: 'bold',
+                                            textAlign: 'center'
+                                        }"
+                                        :cell-style="{ textAlign: 'center' }">
+                                        <el-table-column label="条码" prop="barcode" min-width="150"></el-table-column>
+                                        <el-table-column label="物料编码" prop="materialCode" min-width="120"></el-table-column>
+                                        <el-table-column label="物料名称" prop="materialName" min-width="150"></el-table-column>
+                                        <el-table-column label="规格型号" prop="materialSpec" min-width="120"></el-table-column>
+                                        <el-table-column label="状态" width="100">
+                                            <template slot-scope="scope">
+                                                <el-tag :type="getProcessStatusType(scope.row.status)">
+                                                    {{ getProcessStatusText(scope.row.status) }}
+                                                </el-tag>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="所属工序" min-width="120">
+                                            <template slot-scope="scope">
+                                                <el-tag size="medium" type="info">
+                                                    {{ scope.row.processName }}
+                                                    <el-tag size="mini" type="info" v-if="scope.row.processCode">
+                                                        {{ scope.row.processCode }}
+                                                    </el-tag>
+                                                </el-tag>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="扫码时间" width="160">
+                                            <template slot-scope="scope">
+                                                {{ formatDate(scope.row.scanTime) }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="绑定人员" prop="bindOperator" width="100"></el-table-column>
+                                        <el-table-column label="备注" min-width="150">
+                                            <template slot-scope="scope">
+                                                <el-tooltip 
+                                                    v-if="scope.row.remark" 
+                                                    :content="scope.row.remark" 
+                                                    placement="top">
+                                                    <span>{{ scope.row.remark }}</span>
+                                                </el-tooltip>
+                                                <span v-else>-</span>
+                                            </template>
+                                        </el-table-column>
                                     </el-table>
                                 </el-tab-pane>
 
@@ -275,6 +426,39 @@ export default {
             },
             processedFlowChartData: [], // 处理后的流程图数据
             activeTab: 'process'
+        }
+    },
+    computed: {
+        processedMaterialBarcodeData() {
+            if (!this.dataForm.processNodes) return [];
+            
+            // 创建工序映射
+            const processMap = new Map();
+            this.dataForm.processNodes.forEach(node => {
+                if (node.nodeType === 'PROCESS_STEP') {
+                    processMap.set(node.nodeId, {
+                        processName: node.processName,
+                        processCode: node.processCode
+                    });
+                }
+            });
+            
+            // 过滤并处理物料数据
+            return this.dataForm.processNodes
+                .filter(node => node.nodeType === 'MATERIAL' && node.barcode) // 只显示有条码的物料
+                .map(node => {
+                    // 获取工序信息
+                    const processInfo = node.parentNodeId ? processMap.get(node.parentNodeId) : null;
+                    return {
+                        ...node,
+                        processName: processInfo ? processInfo.processName : '-',
+                        processCode: processInfo ? processInfo.processCode : ''
+                    };
+                })
+                .sort((a, b) => {
+                    // 按扫码时间降序排序
+                    return new Date(b.scanTime || 0) - new Date(a.scanTime || 0);
+                });
         }
     },
     methods: {
@@ -381,8 +565,8 @@ export default {
                 if (result.code === 200 && result.data.length > 0) {
                     this.dataForm = result.data[0];
                     // 处理流程图数据
+                    console.log(JSON.stringify(this.dataForm.processNodes), 'this.dataForm.processNodes');
                     this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
-                    console.log((this.processedFlowChartData));
                     this.dialogFormVisible = true;
                 } else {
                     this.$message.error('获取详情失败');
@@ -1184,6 +1368,97 @@ export default {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         transform: translateY(-2px);
         transition: all 0.3s ease;
+    }
+}
+
+.material-info-container {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    
+    .table-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 0 10px;
+        
+        i {
+            font-size: 20px;
+            color: #409EFF;
+            margin-right: 10px;
+        }
+        
+        span {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+        }
+    }
+    
+    .material-table {
+        margin-bottom: 20px;
+        
+        .process-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            .el-tag {
+                margin: 0 4px;
+            }
+        }
+        
+        .inner-table {
+            margin: 0;
+            background: #fafafa;
+            
+            &.el-table {
+                border: none;
+                
+                &::before {
+                    display: none;
+                }
+            }
+        }
+        
+        .no-material {
+            color: #909399;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+    }
+    
+    :deep(.el-table) {
+        .el-table__header-wrapper {
+            th {
+                background: #f5f7fa;
+            }
+        }
+        
+        .el-table__row {
+            transition: all 0.3s;
+            
+            &:hover {
+                background-color: #f5f7fa;
+            }
+        }
+    }
+    
+    .process-info {
+        .process-code {
+            margin-left: 5px;
+        }
+    }
+    
+    .no-barcode {
+        color: #909399;
+    }
+    
+    .inner-table {
+        .el-tag + .el-tag {
+            margin-left: 5px;
+        }
     }
 }
 </style>

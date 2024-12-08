@@ -38,6 +38,8 @@ const processNodeSchema = new mongoose.Schema(
 
     // 条码状态
     barcode: { type: String, default: "" }, // 条码信息
+    barcodeType: { type: String, default: "" }, // 条码类型 批次虚拟条码/物料上料条码
+    scanTime: { type: Date }, // 扫码时间
     status: {
       type: String,
       enum: ["PENDING", "IN_PROCESS", "COMPLETED", "ABNORMAL"],

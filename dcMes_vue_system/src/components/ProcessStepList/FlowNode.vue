@@ -106,9 +106,40 @@ export default {
     border-radius: 4px;
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
     margin: 0 20px;
+    position: relative;
 
     &.root-node {
         border: 2px solid #ffa640;
+    }
+
+    &.completed {
+        border: 2px solid #67C23A;
+        
+        &::after {
+            content: '✓';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            background: #67C23A;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .node-title {
+            background: #67C23A;
+        }
+
+        .node-subtitle,
+        .node-info {
+            color: #67C23A;
+        }
     }
 }
 

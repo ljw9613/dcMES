@@ -21,6 +21,8 @@ const processStep = require("../model/project/processStep");
 const scanRecord = require("../model/project/scanRecord");
 const processMaterials = require("../model/project/processMaterials");
 const materialProcessFlow = require("../model/project/materialProcessFlow");
+const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
+const productionLine = require("../model/project/productionLine");
 
 // 引入 k3 模型
 const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
@@ -45,6 +47,8 @@ ADDROUTER(router, "processStep", processStep);
 ADDROUTER(router, "scanRecord", scanRecord);
 ADDROUTER(router, "processMaterials", processMaterials);
 ADDROUTER(router, "material_process_flow", materialProcessFlow);
+ADDROUTER(router, "production_plan_work_order", productionPlanWorkOrder);
+ADDROUTER(router, "production_line", productionLine);
 // 为每个 k3 模型添加路由
 ADDROUTER(router, "k3_BD_MATERIAL", k3_BD_MATERIAL);
 ADDROUTER(router, "k3_PRD_MO", k3_PRD_MO);

@@ -8,3 +8,13 @@ export function createFlow(data) {
         data
     })
 }
+
+// /api/v1/scan-components
+export function scanComponents(data) {
+    return request({
+        url: '/scan-components',
+        method: 'post',
+        data
+    })
+}
+
