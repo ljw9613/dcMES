@@ -174,6 +174,10 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import ZrSelect from '@/components/ZrSelect'
+import {
+    tone
+} from "@/utils/tone.js";
+import smcg from "@/assets/tone/smcg.mp3";
 export default {
     name: 'ScanBarCode',
     components: {
@@ -872,7 +876,7 @@ export default {
                 }
 
                 //TODO成功后播放提示音
-
+                tone(smcg)
                 // 6. 重置表单
                 this.resetScanForm();
 
