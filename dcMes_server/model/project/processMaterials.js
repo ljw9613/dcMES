@@ -19,6 +19,7 @@ var processMaterialsSchema = new mongoose.Schema({
   remark: { type: String }, // 物料使用备注
   scanOperation: { type: Boolean, default: false }, // 扫码操作
   isComponent: { type: Boolean, default: false }, // 是否组件
+  isBatch: { type: Boolean, default: false }, // 是否批次物料
   createBy: { type: String }, // 创建人
   updateBy: { type: String }, // 更新人
   createAt: { type: Date, default: Date.now }, // 创建时间

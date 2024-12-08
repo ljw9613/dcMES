@@ -4,6 +4,7 @@
     filterable
     remote
     reserve-keyword
+    :disabled="disabled"
     :placeholder="placeholder"
     :remote-method="remoteSearch"
     :loading="loading"
@@ -58,7 +59,12 @@ export default {
       type: Object,
       default: () => ({})
     },
-    
+
+    disabled: {
+      type: Boolean,
+      default: false
+    },
+
     // 显示相关配置
     valueKey: { // 值字段
       type: String,

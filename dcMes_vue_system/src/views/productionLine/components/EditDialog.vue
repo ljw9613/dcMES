@@ -1,6 +1,7 @@
 <template>
     <el-dialog :title="dialogTitle" :visible.sync="visible" width="60%" @close="handleClose">
         <el-form ref="form" :model="form" :rules="rules" label-width="120px" size="small">
+            <!-- 基础信息 -->
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产线编码" prop="lineCode">
@@ -17,29 +18,41 @@
 
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="产线类型" prop="lineType">
-                        <el-select v-model="form.lineType" placeholder="请选择产线类型" style="width: 100%">
-                            <el-option label="组装线" value="ASSEMBLY" />
-                            <el-option label="SMT线" value="SMT" />
-                            <el-option label="测试线" value="TESTING" />
-                            <el-option label="包装线" value="PACKAGING" />
-                            <el-option label="其他" value="OTHER" />
-                        </el-select>
+                    <el-form-item label="车间线路编号" prop="lineNum">
+                        <el-input v-model="form.lineNum" placeholder="请输入车间线路编号"></el-input>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                    <el-form-item label="产线状态" prop="status">
-                        <el-select v-model="form.status" placeholder="请选择产线状态" style="width: 100%">
-                            <el-option label="运行中" value="RUNNING" />
-                            <el-option label="已停止" value="STOPPED" />
-                            <el-option label="维护中" value="MAINTENANCE" />
-                            <el-option label="未启用" value="INACTIVE" />
+                    <el-form-item label="状态" prop="state">
+                        <el-select v-model="form.state" placeholder="请选择状态" style="width: 100%">
+                            <el-option label="正常" :value="1" />
+                            <el-option label="作废" :value="0" />
                         </el-select>
                     </el-form-item>
                 </el-col>
             </el-row>
 
-            <!-- <el-row :gutter="20">
+            <!-- 设备信息 -->
+            <el-row :gutter="20">
+                <el-col :span="8">
+                    <el-form-item label="接收器卡号" prop="cardNum">
+                        <el-input v-model="form.cardNum" placeholder="请输入接收器卡号"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                    <el-form-item label="接收器机号" prop="machineNum">
+                        <el-input v-model="form.machineNum" placeholder="请输入接收器机号"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                    <el-form-item label="IP地址" prop="ipAddress">
+                        <el-input v-model="form.ipAddress" placeholder="请输入IP地址"></el-input>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+
+            <!-- 产线参数 -->
+            <el-row :gutter="20">
                 <el-col :span="8">
                     <el-form-item label="标准产能" prop="capacity">
                         <el-input-number v-model="form.capacity" :min="0" controls-position="right"
@@ -58,8 +71,9 @@
                             style="width: 100%" placeholder="人"></el-input-number>
                     </el-form-item>
                 </el-col>
-            </el-row> -->
+            </el-row>
 
+            <!-- 位置信息 -->
             <el-row :gutter="20">
                 <el-col :span="8">
                     <el-form-item label="所属车间" prop="workshop">
@@ -77,28 +91,6 @@
                     </el-form-item>
                 </el-col>
             </el-row>
-
-            <!-- <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="上次维护时间" prop="lastMaintenance">
-                        <el-date-picker v-model="form.lastMaintenance" type="datetime" 
-                            placeholder="选择上次维护时间" style="width: 100%">
-                        </el-date-picker>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="下次维护时间" prop="nextMaintenance">
-                        <el-date-picker v-model="form.nextMaintenance" type="datetime" 
-                            placeholder="选择下次维护时间" style="width: 100%">
-                        </el-date-picker>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-form-item label="维护周期(天)" prop="maintenanceCycle">
-                <el-input-number v-model="form.maintenanceCycle" :min="0" controls-position="right"
-                    style="width: 200px"></el-input-number>
-            </el-form-item> -->
 
             <el-form-item label="备注" prop="remark">
                 <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息"></el-input>
@@ -134,29 +126,25 @@ export default {
             form: {
                 lineCode: '',
                 lineName: '',
-                lineType: 'ASSEMBLY',
-                status: 'INACTIVE',
+                lineNum: '',
+                state: 1,
+                cardNum: '',
+                machineNum: '',
+                ipAddress: '',
                 capacity: 0,
                 cycleTime: 0,
                 workers: 0,
                 workshop: '',
                 area: '',
                 location: '',
-                lastMaintenance: '',
-                nextMaintenance: '',
-                maintenanceCycle: 30,
                 remark: ''
             },
             rules: {
                 lineCode: [{ required: true, message: '请输入产线编码', trigger: 'blur' }],
                 lineName: [{ required: true, message: '请输入产线名称', trigger: 'blur' }],
-                lineType: [{ required: true, message: '请选择产线类型', trigger: 'change' }],
-                status: [{ required: true, message: '请选择产线状态', trigger: 'change' }],
-                    // capacity: [{  message: '请输入标准产能', trigger: 'blur' }],
-                    // cycleTime: [{  message: '请输入节拍时间', trigger: 'blur' }],
-                    // workers: [{  message: '请输入标准人数', trigger: 'blur' }],
+                state: [{ required: true, message: '请选择状态', trigger: 'change' }],
                 workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
-                area: [{  message: '请输入区域', trigger: 'blur' }]
+                cardNum: [{ required: true, message: '请输入接收器卡号', trigger: 'blur' }]
             },
             submitLoading: false
         }
@@ -171,14 +159,6 @@ export default {
             if (val) {
                 this.initFormData()
             }
-        },
-        rowData: {
-            handler(val) {
-                if (val && this.visible) {
-                    this.initFormData()
-                }
-            },
-            deep: true
         }
     },
     methods: {
@@ -189,17 +169,17 @@ export default {
                 this.form = {
                     lineCode: '',
                     lineName: '',
-                    lineType: 'ASSEMBLY',
-                    status: 'INACTIVE',
+                    lineNum: '',
+                    state: 1,
+                    cardNum: '',
+                    machineNum: '',
+                    ipAddress: '',
                     capacity: 0,
                     cycleTime: 0,
                     workers: 0,
                     workshop: '',
                     area: '',
                     location: '',
-                    lastMaintenance: '',
-                    nextMaintenance: '',
-                    maintenanceCycle: 30,
                     remark: ''
                 }
             }
@@ -231,9 +211,6 @@ export default {
 
 <style lang="scss" scoped>
 .el-select {
-    width: 100%;
-}
-.el-date-picker {
     width: 100%;
 }
 </style> 

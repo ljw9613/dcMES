@@ -246,7 +246,7 @@ class MaterialProcessFlowService {
 
     // 验证工序节点状态
     if (processNode.status !== "PENDING") {
-      throw new Error("该工序节点已完成或处于异常状态");
+      throw new Error("该主物料条码对应工序节点已完成或处于异常状态");
     }
 
     // 检查前置工序完成状态

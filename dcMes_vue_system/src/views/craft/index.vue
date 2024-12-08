@@ -212,6 +212,7 @@
                 @handleSizeChange="handleProcessTableSizeChange">
                 <template slot="law">
                     <el-table-column label="工序编码" prop="processCode" width="150" align="center" />
+                    <el-table-column label="工序名称" prop="processName" align="center" />
                     <el-table-column label="工序描述" prop="processDesc" align="center" />
                     <el-table-column label="工序次序" prop="sort" width="150" align="center" />
                     <el-table-column label="工序类型" prop="processType" width="150" align="center" />
@@ -353,6 +354,20 @@
                             </el-switch>
                         </template>
                     </el-table-column>
+
+                    <el-table-column label="批次物料" prop="isBatch">
+                        <template slot-scope="scope">
+                            <el-switch v-model="scope.row.isBatch" :active-value="true" :inactive-value="false"
+                                disabled>
+                            </el-switch>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="关键物料" prop="isKey">
+                        <template slot-scope="scope">
+                            <el-switch v-model="scope.row.isKey" :active-value="true" :inactive-value="false" disabled>
+                            </el-switch>
+                        </template>
+                    </el-table-column>
                     <el-table-column label="操作" fixed="right" width="150">
                         <template slot-scope="scope">
                             <el-button type="text" size="small" @click="handleEditMaterial(scope.row)">编辑</el-button>
@@ -437,6 +452,16 @@
                     <el-col :span="12">
                         <el-form-item label="是否组件">
                             <el-switch v-model="materialForm.isComponent" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="批次物料">
+                            <el-switch v-model="materialForm.isBatch" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="关键物料">
+                            <el-switch v-model="materialForm.isKey" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -1096,6 +1121,8 @@ export default {
                             unit: this.materialForm.unit,
                             scanOperation: this.materialForm.scanOperation,
                             isComponent: this.materialForm.isComponent,
+                            isBatch: this.materialForm.isBatch,
+                            isKey: this.materialForm.isKey,
                             createBy: this.$store.getters.name
                         };
 
