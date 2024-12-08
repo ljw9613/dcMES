@@ -167,12 +167,7 @@
                 <el-table-column label="操作" fixed="right" width="150">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleViewFlowChart(scope.row)">查看流程图</el-button>
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-                        <el-button type="text" size="small" @click="handleDelete(scope.row)">删除</el-button>
-                        <el-button type="text" size="small" @click="handleToggleStatus(scope.row)"
-                            :disabled="scope.row.FDocumentStatus !== 'APPROVED'">
-                            {{ scope.row.FForbidStatus === 'DISABLE' ? '启用' : '禁用' }}
-                        </el-button>
+                        <el-button type="text" size="small" @click="handleEdit(scope.row)">DI码管理</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -184,12 +179,24 @@
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="物料编码" prop="FNumber">
-                            <el-input v-model="dataForm.FNumber" placeholder="请输入物料编码"></el-input>
+                            <el-input v-model="dataForm.FNumber" readonly :disabled="dialogStatus === 'view'"
+                                placeholder="请输入物料编码"></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="物料名称" prop="FName">
-                            <el-input v-model="dataForm.FName" placeholder="请输入物料名称"></el-input>
+                            <el-input v-model="dataForm.FName" readonly :disabled="dialogStatus === 'view'"
+                                placeholder="请输入物料名称"></el-input>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+
+                <!-- 添加DI码管理 -->
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-form-item label="DI码" prop="diNum">
+                            <el-input v-model="DINum" placeholder="请输入DI码" clearable>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -197,8 +204,7 @@
             </el-form>
             <div slot="footer" class="dialog-footer">
                 <el-button @click="dialogFormVisible = false">取 消</el-button>
-                <!-- TODO:后续需要添加物料再打开 -->
-                <!-- <el-button type="primary" @click="submitForm">确 定</el-button> -->
+                <el-button type="primary" @click="submitForm">确 定</el-button>
             </div>
         </el-dialog>
 
@@ -265,14 +271,19 @@ export default {
                 FCreatorId: '',
                 FCreateDate: null,
                 FModifierId: '',
-                FModifyDate: null
+                FModifyDate: null,
+                diNum: '', // 添加DI码字段
             },
+            DINum: '',
             rules: {
                 FName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
                 FBaseUnitId_FNumber: [{ required: true, message: '请选择基本单位', trigger: 'change' }],
                 FStockId_FNumber: [{ required: true, message: '请选择仓库', trigger: 'change' }],
                 FCreateOrgId: [{ required: true, message: '请选择创建组织', trigger: 'change' }],
-                FUseOrgId: [{ required: true, message: '请选择使用组织', trigger: 'change' }]
+                FUseOrgId: [{ required: true, message: '请选择使用组织', trigger: 'change' }],
+                diNum: [
+                    { max: 100, message: 'DI码长度不能超过100个字符', trigger: 'blur' }
+                ],
             },
             flowChartDialogVisible: false,
             flowChartLoading: false,
@@ -281,7 +292,8 @@ export default {
                 children: 'children',
                 label: 'label'
             },
-            processedFlowChartData: [] // 处理后的流程图数据
+            processedFlowChartData: [], // 处理后的流程图数据
+            productDiNumId: null, // 存储DI记录的ID
         }
     },
     methods: {
@@ -543,15 +555,19 @@ export default {
         },
 
         // 查看详情
-        handleView(row) {
+        async handleView(row) {
             this.dataForm = JSON.parse(JSON.stringify(row));
+            // 获取关联的DI码信息
+            await this.fetchDiNum(row._id);
             this.dialogStatus = 'view';
             this.dialogFormVisible = true;
         },
 
         // 编辑
-        handleEdit(row) {
+        async handleEdit(row) {
             this.dataForm = JSON.parse(JSON.stringify(row));
+            // 获取关联的DI码信息
+            await this.fetchDiNum(row._id);
             this.dialogStatus = 'edit';
             this.dialogFormVisible = true;
         },
@@ -577,21 +593,44 @@ export default {
         },
 
         // 提交表单
-        async handleSubmit(formData) {
-            try {
-                if (this.dialogStatus === 'edit') {
-                    await updateData('k3_PRD_MO', formData._id, formData);
-                    this.$message.success('更新成功');
-                } else {
-                    await addData('k3_PRD_MO', formData);
-                    this.$message.success('添加成功');
+        async submitForm() {
+            this.$refs.dataForm.validate(async (valid) => {
+                if (valid) {
+                    try {
+                        // 1. 更新物料信息
+                        // if (this.dialogStatus === 'edit') {
+                        //     await updateData('k3_BD_MATERIAL', this.dataForm._id, this.dataForm);
+                        // } else {
+                        //     await addData('k3_BD_MATERIAL', this.dataForm);
+                        // }
+
+                        // 2. 处理DI码信息
+                        const diNumData = {
+                            productId: this.dataForm._id,
+                            diNum: this.DINum,
+                            updateBy: this.$store.state.user.id
+                        };
+
+                        if (this.productDiNumId) {
+                            // 更新已存在的DI码记录
+                            await updateData('productDiNum', { query: { _id: this.productDiNumId }, update: diNumData });
+                        } else if (this.DINum) {
+                            // 创建新的DI码记录
+                            await addData('productDiNum', {
+                                ...diNumData,
+                                createBy: this.$store.state.user.id
+                            });
+                        }
+
+                        this.$message.success(this.dialogStatus === 'edit' ? '更新成功' : '添加成功');
+                        this.dialogFormVisible = false;
+                        this.fetchData();
+                    } catch (error) {
+                        console.error('保存失败:', error);
+                        this.$message.error('保存失败');
+                    }
                 }
-                this.dialogFormVisible = false;
-                this.fetchData();
-            } catch (error) {
-                console.error('操作失败:', error);
-                this.$message.error('操作失败');
-            }
+            });
         },
 
         // 切换物料状态
@@ -798,7 +837,26 @@ export default {
                 query: { materialId: materialId }
             });
             return response.data[0];
-        }
+        },
+
+        // 新增获取DI码信息的方法
+        async fetchDiNum(productId) {
+            try {
+                const result = await getData('productDiNum', {
+                    query: { productId }
+                });
+                if (result.data && result.data.length > 0) {
+                    this.DINum = result.data[0].diNum;
+                    this.productDiNumId = result.data[0]._id;
+                } else {
+                    this.DINum = '';
+                    this.productDiNumId = null;
+                }
+            } catch (error) {
+                console.error('获取DI码信息失败:', error);
+                this.$message.error('获取DI码信息失败');
+            }
+        },
     },
     created() {
         this.fetchData();

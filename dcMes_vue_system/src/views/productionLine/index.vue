@@ -18,24 +18,15 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="产线类型">
-                            <el-select v-model="searchForm.lineType" placeholder="请选择产线类型" clearable
-                                style="width: 100%">
-                                <el-option label="组装线" value="ASSEMBLY" />
-                                <el-option label="SMT线" value="SMT" />
-                                <el-option label="测试线" value="TESTING" />
-                                <el-option label="包装线" value="PACKAGING" />
-                                <el-option label="其他" value="OTHER" />
-                            </el-select>
+                        <el-form-item label="车间线路编号">
+                            <el-input v-model="searchForm.lineNum" placeholder="请输入车间线路编号" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="产线状态">
-                            <el-select v-model="searchForm.status" placeholder="请选择产线状态" clearable style="width: 100%">
-                                <el-option label="运行中" value="RUNNING" />
-                                <el-option label="已停止" value="STOPPED" />
-                                <el-option label="维护中" value="MAINTENANCE" />
-                                <el-option label="未启用" value="INACTIVE" />
+                        <el-form-item label="状态">
+                            <el-select v-model="searchForm.state" placeholder="请选择状态" clearable style="width: 100%">
+                                <el-option label="正常" :value="1" />
+                                <el-option label="作废" :value="0" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -66,30 +57,29 @@
             <template slot="law">
                 <el-table-column type="selection" width="55" />
 
-                <el-table-column label="产线编码" prop="lineCode" width="120">
+                <el-table-column label="产线编码" align="center" prop="lineCode" width="120">
                     <template slot-scope="scope">
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.lineCode }}</el-link>
                     </template>
                 </el-table-column>
 
-                <el-table-column label="产线名称" prop="lineName"/>
+                <el-table-column label="产线名称" align="center" prop="lineName" width="120" />
 
-                <el-table-column label="产线类型" width="100">
-                    <template slot-scope="scope">
-                        {{ getLineTypeText(scope.row.lineType) }}
-                    </template>
-                </el-table-column>
+                <el-table-column label="车间线路编号" align="center" prop="lineNum" width="120" />
 
-                <el-table-column label="产线状态" width="100">
+                <el-table-column label="接收器卡号" align="center" prop="cardNum" width="120" />
+
+                <el-table-column label="IP地址" align="center" prop="ipAddress" width="120" />
+
+                <el-table-column label="状态" align="center" width="80">
                     <template slot-scope="scope">
-                        <el-tag :type="getStatusType(scope.row.status)">
-                            {{ getStatusText(scope.row.status) }}
+                        <el-tag :type="scope.row.state === 1 ? 'success' : 'danger'">
+                            {{ scope.row.state === 1 ? '正常' : '作废' }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="所属车间" prop="workshop" width="120" />
 
-                <!-- <el-table-column label="标准产能" width="100">
+                <el-table-column label="标准产能" width="100">
                     <template slot-scope="scope">
                         {{ scope.row.capacity || '-' }} 件/时
                     </template>
@@ -101,20 +91,15 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="标准人数" width="100">
+                <el-table-column label="所属车间" align="center" prop="workshop" width="120" />
+
+                <el-table-column label="区域" align="center" prop="area" width="120" />
+
+                <el-table-column label="创建时间" align="center" width="160">
                     <template slot-scope="scope">
-                        {{ scope.row.workers || '-' }} 人
+                        {{ formatDate(scope.row.createAt) }}
                     </template>
                 </el-table-column>
-
-                <el-table-column label="所属车间" prop="workshop" width="120" />
-                <el-table-column label="区域" prop="area" width="120" />
-
-                <el-table-column label="下次维护时间" width="150">
-                    <template slot-scope="scope">
-                        {{ formatDate(scope.row.nextMaintenance) }}
-                    </template>
-                </el-table-column> -->
 
                 <el-table-column label="操作" width="180" fixed="right">
                     <template slot-scope="scope">
@@ -149,8 +134,8 @@ export default {
             searchForm: {
                 lineCode: '',
                 lineName: '',
-                lineType: '',
-                status: ''
+                lineNum: '',
+                state: ''
             },
             tableList: [],
             total: 0,
@@ -208,11 +193,11 @@ export default {
             if (this.searchForm.lineName) {
                 req.query.$and.push({ lineName: { $regex: this.searchForm.lineName, $options: 'i' } });
             }
-            if (this.searchForm.lineType) {
-                req.query.$and.push({ lineType: this.searchForm.lineType });
+            if (this.searchForm.lineNum) {
+                req.query.$and.push({ lineNum: { $regex: this.searchForm.lineNum, $options: 'i' } });
             }
-            if (this.searchForm.status) {
-                req.query.$and.push({ status: this.searchForm.status });
+            if (this.searchForm.state !== '') {
+                req.query.$and.push({ state: this.searchForm.state });
             }
 
             if (!req.query.$and.length) {
@@ -227,8 +212,8 @@ export default {
             this.searchForm = {
                 lineCode: '',
                 lineName: '',
-                lineType: '',
-                status: ''
+                lineNum: '',
+                state: ''
             };
             this.currentPage = 1;
             this.fetchData();

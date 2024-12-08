@@ -36,7 +36,7 @@ router.post('/api/v1/scan-components', async (req, res) => {
 
         // 参数验证
         if (!mainBarcode || !processStepId || !Array.isArray(componentScans)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: '缺少必要参数或参数格式错误'
             });
