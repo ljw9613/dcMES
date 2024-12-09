@@ -26,8 +26,8 @@ module.exports = {
    * Detail: https://cli.vuejs.org/config/#publicpath
    */
 
-  publicPath: "/darenWeb/",
-  outputDir: "../fengyang_server/admin",
+  publicPath: "/dcMes/",
+  outputDir: "../dcMes_server/admin",
   assetsDir: "static",
   lintOnSave: process.env.NODE_ENV === "development",
   productionSourceMap: false,

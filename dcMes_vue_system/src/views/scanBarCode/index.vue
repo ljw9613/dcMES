@@ -863,7 +863,8 @@ export default {
                 let scanReq = {
                     mainBarcode: this.scanForm.mainBarcode,
                     processStepId: this.processStepId,
-                    componentScans: componentScans
+                    componentScans: componentScans,
+                    userId: this.$store.getters.id
                 }
 
                 console.log("🚀 ~ handleConfirm ~ scanReq:", scanReq)
@@ -971,6 +972,7 @@ export default {
         await this.fillFormData();
     },
     mounted() {
+        console.log("🚀 ~ mounted ~ this.$store.getters.id:", this.$store.getters.id)
         // 页面加载时自动获取焦点
         this.$refs.scanInput.focus();
     }

@@ -19,7 +19,7 @@ var user_loginSchema = new mongoose.Schema({
     position: { type: String },//用户职位
     serveId: { type: mongoose.Schema.ObjectId, ref: "serve" },//服务方Id
     avatar: { type: String },//用户头像
-    role: { type: mongoose.Schema.ObjectId, ref: "role" },//角色Id
+    role: { type: mongoose.Schema.ObjectId, ref: "role", default: "6756975f8ed7216e7fd54b24" },//角色Id
     status: { type: Boolean, default: true },//账号状态
     createBy: { type: String }, // 创建人
     updateBy: { type: String }, // 更新人

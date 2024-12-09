@@ -230,6 +230,9 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
       `平均速度: ${(allResults.length / totalTime).toFixed(1)} 条/秒\n`
     );
 
+    // 更新同步任务状态为完成
+    syncTask.complete();
+
     return {
       code: 200,
       success: true,
@@ -314,6 +317,7 @@ router.post("/sync/BD_MATERIAL", async (req, res) => {
 // 同步销售订单数据
 router.post("/sync/SAL_SaleOrder", async (req, res) => {
   try {
+    const FilterString = req.body.FilterString;
     const modelName = "k3_SAL_SaleOrder";
 
     // 检查是否有正在进行的任务
@@ -381,6 +385,8 @@ router.post("/sync/all", async (req, res) => {
 router.get("/sync/status/:modelName", (req, res) => {
   const { modelName } = req.params;
   const task = syncTasks.get(modelName);
+
+  
 
   if (!task) {
     return res.json({

@@ -71,6 +71,21 @@ export default {
         }
       },
       immediate: true
+    },
+    loginType(newVal) {
+      if (newVal === 'qrcode') {
+        this.$nextTick(() => {
+          this.focusScanInput();
+        });
+      }
+    },
+    // 添加对 encryptedId 的监听
+    'loginForm.encryptedId': {
+      handler(newVal) {
+        if (newVal && this.loginType === 'qrcode') {
+          this.handleLogin();
+        }
+      }
     }
   },
   data() {
@@ -115,6 +130,7 @@ export default {
       passwordType: "password",
       redirect: undefined,
       loginType: 'account',
+      encryptionKey: 'your-secure-encryption-key',
     };
   },
   created() {
@@ -140,6 +156,16 @@ export default {
         return null;
       }
     },
+    decryptLoginData(encryptedStr) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(encryptedStr, this.encryptionKey);
+        const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        return decryptedData;
+      } catch (error) {
+        console.error('解密失败:', error);
+        return null;
+      }
+    },
     handleLogin() {
       this.$refs.loginForm.validate(async (valid) => {
         if (valid) {
@@ -159,8 +185,16 @@ export default {
                 return;
               }
 
+              const decryptedData = this.decryptLoginData(encryptedId);
+              if (!decryptedData) {
+                this.$message.error('二维码无效或已过期');
+                return;
+              }
+
               loginData = {
-                encryptedId: encryptedId
+                userName: decryptedData.userName,
+                password: decryptedData.password,
+                id: decryptedData.id
               };
             }
 
@@ -182,8 +216,18 @@ export default {
         }
         return acc
       }, {})
+    },
+    focusScanInput() {
+      if (this.loginType === 'qrcode' && this.$refs.scanInput) {
+        this.$refs.scanInput.focus();
+      }
     }
   },
+  mounted() {
+    if (this.loginType === 'qrcode') {
+      this.focusScanInput();
+    }
+  }
 };
 </script>
 
@@ -248,6 +292,31 @@ export default {
         font-size: 20px;
         font-weight: 400;
         color: rgba(92, 102, 240, 1);
+      }
+    }
+
+    .qrcode-tab {
+      .el-form-item {
+        margin-top: 49px;
+
+        .el-input {
+          input {
+            padding-left: 45px;
+            font-size: 14px;
+            background: #f6f4fc;
+
+            &:focus {
+              background: #fff;
+            }
+          }
+        }
+      }
+
+      .scan-tip {
+        text-align: center;
+        color: #909399;
+        font-size: 14px;
+        margin-top: 15px;
       }
     }
   }

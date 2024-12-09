@@ -1,13 +1,44 @@
-import {ScanCodeBindRecord} from "./ScanCodeBindRecord";
-import {Process} from "./Process";
+const mongoose = require("mongoose");
 
-const mongoose = require('mongoose');
+// 检测数据 Schema
+const inspectionDataSchema = new mongoose.Schema(
+  {
+    // 基础信息
+    scanCode: { type: String, maxlength: 100, description: "扫码数据" },
+    machineId: { type: String, description: "设备ID" },
+    machineIp: { type: String, description: "IP地址" },
+    processId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "processStep",
+      description: "工序",
+    },
+    scanCodeBindRecordId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "ScanCodeBindRecord",
+      description: "扫码数据绑定记录",
+    },
+    error: { type: Boolean, default: false, description: "错误标志" },
 
-export const filed = {
+    // 传感器数据
+    facialSensorValue: { type: Number, description: "面部传感器值" },
+    cell1Voltage: { type: Number, description: "电芯1电压" },
+    cell2Voltage: { type: Number, description: "电芯2电压" },
+    weight: { type: Number, description: "称重重量" },
+
+    // 测试数据
+    showSerialNo: {
+      type: Boolean,
+      description: "0.4 SHOW SERIALNO 显示序列号",
+    },
+    chkPowerOn: {
+      type: Boolean,
+      description: "A1.0 CHK POWER ON ATE 上电开机",
+    },
+    // ... 其他测试数据字段保持不变 ...
     scanCode: {type: String, maxlength: 100, default: null, description: '扫码数据'},
     machineId: {type: String, default: null, description: '设备ID'},
     machineIp: {type: String, default: null, description: 'IP地址'},
-    processId: {type: mongoose.Schema.Types.ObjectId, ref: Process, description: '工序'},
+    processId: {type: mongoose.Schema.Types.ObjectId, ref: 'process_step', description: '工序'},
     createTime: {type: Date, default: Date.now, description: '创建时间'},
     updateTime: {type: Date, default: null, description: '更新时间'},
     scanCodeBindRecordId: {
@@ -59,11 +90,18 @@ export const filed = {
     passFail: {type: String, description: 'PASS/Fail 测试结果'},
     testTime: {type: Number, description: '测试耗时（秒）'},
     startTime: {type: Date, description: '测试起始时间'}
-}
+   
+  },
+  {
+    timestamps: { createdAt: "createTime", updatedAt: "updateTime" },
+    collection: "inspection_data",
+  }
+);
 
-export const inspectionData = new mongoose.Schema(filed, {
-    timestamps: {createdAt: 'createTime', updatedAt: 'updateTime'},
-    collection: 'inspection_data', // 指定集合名称
-});
+// 添加索引
+inspectionDataSchema.index({ scanCode: 1 });
+inspectionDataSchema.index({ machineId: 1 });
+inspectionDataSchema.index({ createTime: -1 });
+inspectionDataSchema.index({ processId: 1 });
 
-export const InspectionData = mongoose.model('InspectionData', inspectionData);
+module.exports = mongoose.model("InspectionData", inspectionDataSchema);

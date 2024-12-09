@@ -301,7 +301,8 @@ export default {
                     query,
                     page: this.currentPage,
                     limit: this.pageSize,
-                    sort: { createTime: -1 }
+                    sort: { createTime: -1 },
+                    count: true
                 });
                 this.taskList = result.data;
                 this.total = result.total;

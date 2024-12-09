@@ -695,6 +695,7 @@ export default {
                 let req = this.searchData();
                 req.page = this.craftTableData.currentPage;
                 req.limit = this.craftTableData.pageSize;
+                req.count = true;
                 const result = await getData("craft", req);
                 this.craftTableData.tableList = result.data;
                 this.craftTableData.total = result.countnum;
@@ -858,7 +859,8 @@ export default {
                         craftId: craftId
                     },
                     page: this.processTableData.currentPage,
-                    limit: this.processTableData.pageSize
+                    limit: this.processTableData.pageSize,
+                    count: true
                 };
                 const result = await getData("processStep", req);
                 this.processTableData.tableList = result.data;
@@ -999,7 +1001,8 @@ export default {
                         processStepId: processId
                     },
                     page: this.materialTableData.currentPage,
-                    limit: this.materialTableData.pageSize
+                    limit: this.materialTableData.pageSize,
+                    count: true
                 };
                 const result = await getData("processMaterials", req);
                 this.materialTableData.tableList = result.data;

@@ -55,6 +55,7 @@
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
+                    <el-button type="primary" @click="openBarcodeSearch">成品追溯</el-button>
                     <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
                 </el-form-item>
             </el-form>
@@ -64,7 +65,7 @@
         <div class="screen1">
             <div class="screen_content">
                 <div class="screen_content_first">
-                    <i class="el-icon-tickets">主条码工艺流程列表</i>
+                    <i class="el-icon-tickets">主条码生产流程列表</i>
                     <!-- <el-button type="primary" @click="handleAdd">新增订单</el-button> -->
                 </div>
             </div>
@@ -342,17 +343,7 @@
 
                                 <!-- 检测信息 -->
                                 <el-tab-pane label="检测信息" name="inspection">
-                                    <el-table :data="dataForm.inspections || []" border>
-                                        <el-table-column label="检测项目" prop="inspectionItem"></el-table-column>
-                                        <el-table-column label="检测标准" prop="standard"></el-table-column>
-                                        <el-table-column label="检测结果" prop="result"></el-table-column>
-                                        <el-table-column label="检测时间" prop="inspectionTime">
-                                            <template slot-scope="scope">
-                                                {{ formatDate(scope.row.inspectionTime) }}
-                                            </template>
-                                        </el-table-column>
-                                        <el-table-column label="检测人员" prop="inspector"></el-table-column>
-                                    </el-table>
+                                    <inspection-list :inspections="dataForm.processNodes || []"></inspection-list>
                                 </el-tab-pane>
 
                                 <!-- 解绑信息 -->
@@ -375,17 +366,117 @@
             </div>
         </el-dialog>
 
+        <!-- 添加条码搜索弹窗 -->
+        <el-dialog
+            title="条码查询"
+            :visible.sync="barcodeSearchVisible"
+            width="70%"
+            :close-on-click-modal="false">
+            <div class="barcode-search-container">
+                <!-- 搜索区域 -->
+                <div class="search-area">
+                    <el-input
+                        v-model="searchBarcode"
+                        placeholder="请输入条码"
+                        clearable
+                        @keyup.enter.native="handleBarcodeSearch">
+                        <el-button slot="append" icon="el-icon-search" @click="handleBarcodeSearch">
+                            搜索
+                        </el-button>
+                    </el-input>
+                </div>
+
+                <!-- 搜索结果表格 -->
+                <div class="search-result" v-loading="searchLoading">
+                    <el-table
+                        v-if="searchResults.length"
+                        :data="searchResults"
+                        border
+                        style="width: 100%"
+                        :header-cell-style="{
+                            background: '#f5f7fa',
+                            color: '#606266',
+                            fontWeight: 'bold',
+                            textAlign: 'center'
+                        }"
+                        :cell-style="{ textAlign: 'center' }">
+                        <el-table-column label="条码类型" width="120">
+                            <template slot-scope="scope">
+                                <el-tag :type="scope.row.isMainBarcode ? 'primary' : 'success'">
+                                    {{ scope.row.isMainBarcode ? '主条码' : '子条码' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="条码" prop="barcode" min-width="150"></el-table-column>
+                        <el-table-column label="物料信息" min-width="200">
+                            <template slot-scope="scope">
+                                <div>编码：{{ scope.row.materialCode }}</div>
+                                <div>名称：{{ scope.row.materialName }}</div>
+                                <div>规格：{{ scope.row.materialSpec }}</div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="所属主条码" min-width="150">
+                            <template slot-scope="scope">
+                                <el-button 
+                                    v-if="!scope.row.isMainBarcode"
+                                    type="text" 
+                                    @click="handleView(scope.row.mainBarcodeData)">
+                                    {{ scope.row.mainBarcode }}
+                                </el-button>
+                                <span v-else>-</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="状态" width="100">
+                            <template slot-scope="scope">
+                                <el-tag :type="getProcessStatusType(scope.row.status)">
+                                    {{ getProcessStatusText(scope.row.status) }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="所属工序" min-width="150">
+                            <template slot-scope="scope">
+                                <template v-if="!scope.row.isMainBarcode">
+                                    <el-tag size="medium" type="info">
+                                        {{ scope.row.processName }}
+                                        <el-tag size="mini" type="info" v-if="scope.row.processCode">
+                                            {{ scope.row.processCode }}
+                                        </el-tag>
+                                    </el-tag>
+                                </template>
+                                <span v-else>-</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="120" fixed="right">
+                            <template slot-scope="scope">
+                                <el-button 
+                                    type="text" 
+                                    @click="handleView(scope.row.isMainBarcode ? scope.row : scope.row.mainBarcodeData)">
+                                    查看详情
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div v-else-if="!searchLoading" class="no-result">
+                        <i class="el-icon-warning-outline"></i>
+                        <span>暂无搜索结果</span>
+                    </div>
+                </div>
+            </div>
+        </el-dialog>
+
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ProcessStepList from '@/components/ProcessStepList/index.vue';
+import InspectionList from '@/components/InspectionList/index.vue';
 
 export default {
     name: 'SaleOrder',
     components: {
-        ProcessStepList
+        ProcessStepList,
+        InspectionList
     },
     data() {
         return {
@@ -425,7 +516,11 @@ export default {
                 FSaleDeptName: [{ required: true, message: '请输入销售部门', trigger: 'blur' }]
             },
             processedFlowChartData: [], // 处理后的流程图数据
-            activeTab: 'process'
+            activeTab: 'process',
+            barcodeSearchVisible: false,
+            searchBarcode: '',
+            searchResults: [],
+            searchLoading: false,
         }
     },
     computed: {
@@ -491,8 +586,10 @@ export default {
             try {
                 let req = this.searchData();
                 req.page = this.currentPage;
+                req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.sort = { createAt: -1 };
+                req.count = true;
 
                 const result = await getData("material_process_flow", req);
 
@@ -949,7 +1046,85 @@ export default {
 
             result.forEach(node => sortChildren(node));
             return result;
-        }
+        },
+
+        // 打开条码搜索弹窗
+        openBarcodeSearch() {
+            this.barcodeSearchVisible = true;
+            this.searchBarcode = '';
+            this.searchResults = [];
+        },
+
+        // 处理条码搜索
+        async handleBarcodeSearch() {
+            if (!this.searchBarcode.trim()) {
+                this.$message.warning('请输入要搜索的条码');
+                return;
+            }
+
+            this.searchLoading = true;
+            try {
+                // 使用 $or 查询主条码和子条码
+                const searchQuery = {
+                    query: {
+                        $or: [
+                            { barcode: this.searchBarcode.trim() },
+                            { 'processNodes.barcode': this.searchBarcode.trim() }
+                        ]
+                    }
+                };
+
+                const result = await getData('material_process_flow', searchQuery);
+
+                if (result.code === 200 && result.data) {
+                    this.searchResults = [];
+                    
+                    result.data.forEach(record => {
+                        // 如果是主条码匹配
+                        if (record.barcode === this.searchBarcode.trim()) {
+                            this.searchResults.push({
+                                isMainBarcode: true,
+                                barcode: record.barcode,
+                                materialCode: record.materialCode,
+                                materialName: record.materialName,
+                                materialSpec: record.materialSpec,
+                                status: record.status,
+                                ...record
+                            });
+                        }
+                        
+                        // 查找匹配的子条码
+                        const matchedNodes = record.processNodes.filter(
+                            node => node.barcode === this.searchBarcode.trim()
+                        );
+                        
+                        matchedNodes.forEach(node => {
+                            this.searchResults.push({
+                                isMainBarcode: false,
+                                barcode: node.barcode,
+                                materialCode: node.materialCode,
+                                materialName: node.materialName,
+                                materialSpec: node.materialSpec,
+                                status: node.status,
+                                mainBarcode: record.barcode,
+                                mainBarcodeData: record,
+                                processName: node.processName,
+                                processCode: node.processCode,
+                                scanTime: node.scanTime,
+                                ...node
+                            });
+                        });
+                    });
+                } else {
+                    this.$message.error(result.msg || '搜索失败');
+                }
+            } catch (error) {
+                console.error('搜索失败:', error);
+                this.$message.error('搜索失败: ' + error.message);
+            } finally {
+                this.searchLoading = false;
+            }
+        },
     },
     created() {
         this.fetchData();
@@ -1458,6 +1633,47 @@ export default {
     .inner-table {
         .el-tag + .el-tag {
             margin-left: 5px;
+        }
+    }
+}
+
+.barcode-search-container {
+    .search-area {
+        margin-bottom: 20px;
+        
+        .el-input {
+            width: 400px;
+        }
+    }
+    
+    .search-result {
+        min-height: 200px;
+        
+        .no-result {
+            text-align: center;
+            padding: 40px 0;
+            color: #909399;
+            
+            i {
+                font-size: 24px;
+                margin-right: 8px;
+            }
+            
+            span {
+                font-size: 14px;
+            }
+        }
+        
+        .el-table {
+            margin-top: 10px;
+            
+            .el-button--text {
+                padding: 0;
+            }
+            
+            .el-tag + .el-tag {
+                margin-left: 4px;
+            }
         }
     }
 }

@@ -84,11 +84,13 @@
                             collection="k3_BD_MATERIAL"
                             :search-fields="['FNumber', 'FName', 'FSpecification']"
                             label-key="FName"
+                            value-key="FMaterialId"
                             tag-key="FNumber"
                             sub-key="FSpecification"
                             :multiple="false"
                             placeholder="请输入产品信息搜索"
                             @select="handleMaterialSelect"
+                            :additional-query="materialQuery"
                         />
                     </el-form-item>
                 </el-col>
@@ -223,9 +225,10 @@ export default {
             return this.dialogStatus === 'create' ? '新增生产计划工单' : '编辑生产计划工单'
         },
         productionOrderQuery() {
-            return this.form.saleOrderNo ? {
-                FSaleOrderNo: this.form.saleOrderNo
-            } : {}
+           return {}
+            // return this.form.saleOrderNo ? {
+            //     FSaleOrderNo: this.form.saleOrderNo
+            // } : {}
         }
     },
     watch: {
@@ -272,19 +275,26 @@ export default {
         },
         handleSaleOrderSelect(item) {
             if (item) {
+                console.log(item)
                 this.form.saleOrderNo = item.FBillNo
                 // 清空相关联的生产订单信息
                 this.form.productionOrderId = ''
                 this.form.productionOrderNo = ''
             }
         },
+        materialQuery() {
+            return this.form.saleOrderNo ? {
+                FNumber: this.form.saleOrderNo
+            } : {}
+        },
         handleProductionOrderSelect(item) {
             if (item) {
+                console.log(item)
                 this.form.productionOrderNo = item.FBillNo
                 this.form.productModel = item.FSpecification || ''
                 this.form.productName = item.FMaterialName || ''
                 this.form.planQuantity = item.FQty || 0
-                // this.form.materialId = item.FMaterialId
+                this.form.materialId = item.FMaterialId  
             }
         },
         handleMaterialSelect(item) {

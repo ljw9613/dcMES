@@ -31,7 +31,8 @@ router.post('/api/v1/scan-components', async (req, res) => {
         const { 
             mainBarcode,        // 主条码
             processStepId,      // 工序ID
-            componentScans      // 子物料条码数组
+            componentScans,      // 子物料条码数组
+            userId              // 用户ID
         } = req.body;
 
         // 参数验证
@@ -46,7 +47,8 @@ router.post('/api/v1/scan-components', async (req, res) => {
         const result = await MaterialProcessFlowService.scanProcessComponents(
             mainBarcode,
             processStepId,
-            componentScans
+            componentScans,
+            userId
         );
 
         res.json({

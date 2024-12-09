@@ -91,7 +91,7 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             :cell-style="{ textAlign: 'center' }" @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
-                <el-table-column label="销售单号" prop="FBillNo" width="120">
+                <el-table-column label="销售单号" prop="FBillNo">
                     <template slot-scope="scope">
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.FBillNo }}</el-link>
                     </template>
@@ -168,16 +168,16 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="150">
+                <!-- <el-table-column label="操作" fixed="right" width="150">
                     <template slot-scope="scope">
-                        <!-- <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button> -->
+                        <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
                         <el-button type="text" size="small" @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" size="small" @click="handleSubmitAudit(scope.row)"
                             v-if="scope.row.FDocumentStatus === 'DRAFT'">
                             提交审核
                         </el-button>
                     </template>
-                </el-table-column>
+                </el-table-column> -->
             </template>
         </base-table>
 
@@ -190,6 +190,35 @@
                 <el-button type="primary" @click="submitForm">确 定</el-button>
             </div>
         </el-dialog> -->
+
+        <!-- 添加同步订单弹窗 -->
+        <el-dialog title="同步销售订单" :visible.sync="syncDialogVisible" width="500px">
+            <el-form :model="syncForm" ref="syncForm" label-width="100px">
+                <el-form-item label="同步方式">
+                    <el-radio-group v-model="syncForm.syncType">
+                        <el-radio label="date">按日期同步</el-radio>
+                        <el-radio label="all">同步全部</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="审核日期" required v-if="syncForm.syncType === 'date'">
+                    <el-date-picker v-model="syncForm.dateRange" type="daterange" range-separator="至"
+                        start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
+                    </el-date-picker>
+                </el-form-item>
+                <el-form-item label="单据状态">
+                    <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
+                        placeholder="请选择单据状态" style="width: 100%">
+                        <el-option label="已审核" value="C" />
+                        <el-option label="审核中" value="B" />
+                        <el-option label="草稿" value="A" />
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="syncDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="confirmSync">确 定</el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -235,6 +264,12 @@ export default {
                 FSaleDeptName: [{ required: true, message: '请输入销售部门', trigger: 'blur' }]
             },
             syncProgressTimer: null,
+            syncDialogVisible: false,
+            syncForm: {
+                syncType: 'date',
+                dateRange: [],
+                documentStatus: 'C'
+            }
         }
     },
     methods: {
@@ -267,8 +302,10 @@ export default {
             try {
                 let req = this.searchData();
                 req.page = this.currentPage;
+                req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.sort = { FNumber: 1 };
+                req.count = true;
 
                 const result = await getData("k3_SAL_SaleOrder", req);
 
@@ -621,9 +658,28 @@ export default {
         },
 
         // 添加同步订单方法
-        async handleSync() {
+        handleSync() {
+            this.syncDialogVisible = true;
+            this.syncForm = {
+                syncType: 'date',
+                dateRange: [],
+                documentStatus: 'C'
+            };
+        },
+
+        // 添加确认同步方法
+        async confirmSync() {
+            if (this.syncForm.syncType === 'date' && (!this.syncForm.dateRange || this.syncForm.dateRange.length !== 2)) {
+                this.$message.warning('请选择审核日期范围');
+                return;
+            }
+
             try {
-                await this.$confirm('确认要同步销售订单数据吗？此操作可能需要一些时间', '提示', {
+                const confirmMessage = this.syncForm.syncType === 'all'
+                    ? '确认要同步所有销售订单数据吗？此操作可能需要较长时间'
+                    : '确认要同步选定日期范围的销售订单数据吗？此操作可能需要一些时间';
+
+                await this.$confirm(confirmMessage, '提示', {
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning'
@@ -637,27 +693,76 @@ export default {
                 });
 
                 try {
-                    const response = await syncSAL_SaleOrder();
+                    let req = {
+                        "FilterString": []
+                    };
+
+                    if (this.syncForm.syncType === 'date') {
+                        const [startDate, endDate] = this.syncForm.dateRange;
+                        req.FilterString = [
+                            {
+                                "FieldName": "FDocumentStatus",
+                                "Compare": "105",
+                                "Value": this.syncForm.documentStatus,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": 0
+                            },
+                            {
+                                "FieldName": "FApproveDate",
+                                "Compare": "88",
+                                "Value": `${startDate} 00:00:00`,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": 0
+                            },
+                            {
+                                "FieldName": "FApproveDate",
+                                "Compare": "32",
+                                "Value": `${endDate} 23:59:59`,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": "0"
+                            }
+                        ];
+                    } else {
+                        // 同步全部数据时，只需要单据状态条件
+                        // req.FilterString = [
+                        //     {
+                        //         "FieldName": "FDocumentStatus",
+                        //         "Compare": "105",
+                        //         "Value": "C", // 全量同步时默认只同步已审核的数据
+                        //         "Left": "",
+                        //         "Right": "",
+                        //         "Logic": 0
+                        //     }
+                        // ];
+                    }
+
+                    const response = await syncSAL_SaleOrder(req);
                     if (response.code === 200) {
+                        this.syncDialogVisible = false;
                         loading.close();
+                        this.startSyncProgressCheck();
                         if (response.taskStatus) {
-                            this.startSyncProgressCheck();
-                            this.$message.success(`同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
+                            this.$message.success(`销售订单同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
                         } else {
-                            this.$message.success('同步任务已启动');
+                            this.$message.success('销售订单同步任务已启动');
                         }
                     } else {
                         loading.close();
-                        this.$message.error(response.message || '订单同步失败');
+                        this.$message.error(response.message || '销售订单同步失败');
                     }
                 } catch (error) {
                     loading.close();
-                    console.error('订单同步失败:', error);
-                    this.$message.error('订单同步失败: ' + error.message);
+                    console.error('销售订单同步失败:', error);
+                    this.$message.error('销售订单同步失败: ' + error.message);
                 }
             } catch (error) {
-                console.error('操作失败:', error);
-                this.$message.error('操作失败');
+                if (error !== 'cancel') {
+                    console.error('销售订单同步失败:', error);
+                    this.$message.error('销售订单同步失败');
+                }
             }
         },
 
@@ -677,13 +782,13 @@ export default {
                                 case 'running':
                                     this.$notify({
                                         type: 'info',
-                                        message: `同步中：当前${saleOrderTask.processedRecords}条数据同步完成，耗时${saleOrderTask.elapsedTime}秒`,
+                                        message: `销售订单同步中：当前${saleOrderTask.processedRecords}条数据同步完成，耗时${saleOrderTask.elapsedTime}秒`,
                                         duration: 5000
                                     });
                                     break;
 
                                 case 'no_task':
-                                    this.$message.success(`同步完成！`);
+                                    this.$message.success(`销售订单同步完成！`);
                                     this.stopSyncProgressCheck();
                                     this.fetchData();
                                     break;
@@ -693,13 +798,13 @@ export default {
                                     this.stopSyncProgressCheck();
                             }
                         } else {
-                            this.$message.warning('未找到订单同步任务');
+                            this.$message.warning('未找到销售订单同步任务');
                             this.stopSyncProgressCheck();
                         }
                     }
                 } catch (error) {
-                    console.error('查询同步进度失败:', error);
-                    this.$message.error('查询同步进度失败');
+                    console.error('查询销售订单同步进度失败:', error);
+                    this.$message.error('查询销售订单同步进度失败');
                     this.stopSyncProgressCheck();
                 }
             }, 10000);

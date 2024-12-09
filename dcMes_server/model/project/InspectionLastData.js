@@ -1,10 +1,18 @@
-import {filed} from "./InspectionData";
-
 const mongoose = require('mongoose');
+const InspectionData = require('./InspectionData');
 
-export const inspectionLastData = new mongoose.Schema(filed, {
-    timestamps: {createdAt: 'createTime', updatedAt: 'updateTime'},
-    collection: 'inspection_last_data', // 指定集合名称
+// 最新检测数据 Schema
+const inspectionLastDataSchema = new mongoose.Schema({
+    ...InspectionData.schema.obj  // 继承 InspectionData 的所有字段
+}, {
+    timestamps: { createdAt: 'createTime', updatedAt: 'updateTime' },
+    collection: 'inspection_last_data'
 });
 
-export const InspectionLastData = mongoose.model('InspectionLastData', inspectionLastData);
+// 添加索引
+inspectionLastDataSchema.index({ scanCode: 1 });
+inspectionLastDataSchema.index({ machineId: 1 });
+inspectionLastDataSchema.index({ createTime: -1 });
+inspectionLastDataSchema.index({ processId: 1 });
+
+module.exports = mongoose.model('InspectionLastData', inspectionLastDataSchema);

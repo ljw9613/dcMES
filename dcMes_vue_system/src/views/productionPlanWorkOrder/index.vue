@@ -337,7 +337,9 @@ export default {
             try {
                 let req = this.searchData();
                 req.page = this.currentPage;
+                req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.count = true;
                 const result = await getData("production_plan_work_order", req);
                 this.tableList = result.data;
                 this.total = result.countnum;

@@ -30,6 +30,10 @@ const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
 const k3_PRD_MO = require("../model/k3/k3_PRD_MO");
 const k3_SAL_SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
 
+//检测模块
+const InspectionLastData = require("../model/project/InspectionLastData");
+const InspectionData = require("../model/project/InspectionData");
+
 // 引入 udi 模型
 const productDiNum = require("../model/project/ProductDiNum");
 
@@ -56,4 +60,9 @@ ADDROUTER(router, "k3_BD_MATERIAL", k3_BD_MATERIAL);
 ADDROUTER(router, "k3_PRD_MO", k3_PRD_MO);
 ADDROUTER(router, "k3_SAL_SaleOrder", k3_SAL_SaleOrder);
 ADDROUTER(router, "productDiNum", productDiNum);
+
+//检测模块
+ADDROUTER(router, "InspectionLastData", InspectionLastData);
+ADDROUTER(router, "InspectionData", InspectionData);
+
 module.exports = router;

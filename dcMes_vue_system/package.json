@@ -28,6 +28,7 @@
     "file-saver": "^2.0.2",
     "js-cookie": "2.2.0",
     "jsencrypt": "^3.3.2",
+    "jsqr": "^1.4.0",
     "jszip": "^3.10.1",
     "less": "^2.7.3",
     "less-loader": "^5.0.0",

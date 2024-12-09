@@ -27,6 +27,7 @@
         <el-form-item label="菜单权限" label-width="100px" required>
           <el-card v-if="menu" shadow="never">
             <el-tree
+              ref="menuTree"
               v-model="postList.menuList"
               :data="optionsList"
               :default-checked-keys="postList.menuList"
@@ -80,10 +81,23 @@ export default {
   async created() {
   },
   methods: {
-    getTree(checkedNodes, checkedKeys) {
-      console.log(checkedKeys);
-      this.postList.menuList = checkedKeys.checkedKeys;
-      console.log(this.postList.menuList);
+    getTree(currentNode, checkedStatus) {
+      // 获取选中和半选中的节点
+      const checkedNodes = this.$refs.menuTree.getCheckedNodes();
+      const halfCheckedNodes = this.$refs.menuTree.getHalfCheckedNodes();
+      
+      // 获取选中和半选中的节点ID
+      const checkedKeys = checkedNodes.map(node => node._id);
+      const halfCheckedKeys = halfCheckedNodes.map(node => node._id);
+      
+      // 合并所有需要的ID
+      this.postList.menuList = [...new Set([...checkedKeys, ...halfCheckedKeys])];
+      
+      console.log({
+        完全选中的节点: checkedKeys,
+        半选中的父节点: halfCheckedKeys,
+        最终选中列表: this.postList.menuList
+      });
     },
     async getSelectData() {
       let {data: dataList} = await getData("menu", {
@@ -116,6 +130,7 @@ export default {
       this.getSelectData();
       this.$nextTick(() => {
         this.menu = true;
+        this.initTreeSelection();
         this.$forceUpdate();
       });
     },
@@ -196,6 +211,14 @@ export default {
       if (Array.isArray(item)) {
         this.postList.parentId = item[item.length - 1];
         console.log(this.postList.parentId);
+      }
+    },
+    // 编辑时初始化树的选中状态
+    initTreeSelection() {
+      if (this.postList.menuList && this.postList.menuList.length > 0) {
+        this.$nextTick(() => {
+          this.$refs.menuTree.setCheckedKeys(this.postList.menuList);
+        });
       }
     },
   },

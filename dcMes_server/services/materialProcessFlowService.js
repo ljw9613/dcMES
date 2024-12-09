@@ -219,11 +219,13 @@ class MaterialProcessFlowService {
    * @param {string} mainBarcode - 主条码
    * @param {string} processStepId - 工序ID
    * @param {Array<{materialId: string, barcode: string}>} componentScans - 子物料扫描信息数组
+   * @param {string} userId - 用户ID
    */
   static async scanProcessComponents(
     mainBarcode,
     processStepId,
-    componentScans
+    componentScans,
+    userId
   ) {
     // 查找主条码对应的流程记录
     const flowRecord = await MaterialProcessFlow.findOne({
@@ -330,6 +332,7 @@ class MaterialProcessFlowService {
                 subNode.endTime;
               flowRecord.processNodes[matchingNodeIndex].status =
                 subNode.status;
+              flowRecord.processNodes[matchingNodeIndex].updateBy = userId;
             }
           }
           if (subNode.nodeType === "PROCESS_STEP") {
@@ -349,7 +352,8 @@ class MaterialProcessFlowService {
                 subNode.endTime;
               flowRecord.processNodes[matchingNodeIndex].status =
                 subNode.status;
-            }
+              flowRecord.processNodes[matchingNodeIndex].updateBy = userId;
+              }
           }
         }
       }
@@ -390,6 +394,7 @@ class MaterialProcessFlowService {
               status: "COMPLETED",
               scanTime: new Date(),
               endTime: new Date(),
+              updateBy: userId,
             };
           }
         } else {
@@ -399,6 +404,7 @@ class MaterialProcessFlowService {
             status: "COMPLETED",
             scanTime: new Date(),
             endTime: new Date(),
+            updateBy: userId,
           };
         }
       }
@@ -408,6 +414,7 @@ class MaterialProcessFlowService {
           ...node,
           status: "COMPLETED",
           endTime: new Date(),
+          updateBy: userId,
         };
       }
       return node;

@@ -160,6 +160,40 @@
             </template>
         </base-table>
 
+        <!-- 添加同步订单弹窗 -->
+        <el-dialog title="同步生产订单" :visible.sync="syncDialogVisible" width="500px">
+            <el-form :model="syncForm" ref="syncForm" label-width="100px">
+                <el-form-item label="同步方式">
+                    <el-radio-group v-model="syncForm.syncType">
+                        <el-radio label="date">按日期同步</el-radio>
+                        <el-radio label="all">同步全部</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="审核日期" required v-if="syncForm.syncType === 'date'">
+                    <el-date-picker
+                        v-model="syncForm.dateRange"
+                        type="daterange"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期"
+                        value-format="yyyy-MM-dd"
+                        style="width: 100%">
+                    </el-date-picker>
+                </el-form-item>
+                <el-form-item label="单据状态">
+                    <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus" placeholder="请选择单据状态" style="width: 100%">
+                        <el-option label="已审核" value="C" />
+                        <el-option label="审核中" value="B" />
+                        <el-option label="草稿" value="A" />
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="syncDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="confirmSync">确 定</el-button>
+            </div>
+        </el-dialog>
+
     </div>
 </template>
 
@@ -206,6 +240,12 @@ export default {
                 FPlanFinishDate: ''
             },
             syncProgressTimer: null,
+            syncDialogVisible: false,
+            syncForm: {
+                syncType: 'date',
+                dateRange: [],
+                documentStatus: 'C'
+            }
         }
     },
     methods: {
@@ -296,7 +336,9 @@ export default {
             try {
                 let req = this.searchData();
                 req.page = this.currentPage;
+                req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.count = true;
                 const result = await getData("k3_PRD_MO", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
@@ -483,10 +525,29 @@ export default {
             }
         },
 
-        // 添加同步生产订单方法
-        async handleSync() {
+        // 修改现有的 handleSync 方法
+        handleSync() {
+            this.syncDialogVisible = true;
+            this.syncForm = {
+                syncType: 'date',
+                dateRange: [],
+                documentStatus: 'C'
+            };
+        },
+
+        // 添加确认同步方法
+        async confirmSync() {
+            if (this.syncForm.syncType === 'date' && (!this.syncForm.dateRange || this.syncForm.dateRange.length !== 2)) {
+                this.$message.warning('请选择审核日期范围');
+                return;
+            }
+
             try {
-                await this.$confirm('确认要同步生产订单数据吗？此操作可能需要一些时间', '提示', {
+                const confirmMessage = this.syncForm.syncType === 'all' 
+                    ? '确认要同步所有生产订单数据吗？此操作可能需要较长时间' 
+                    : '确认要同步选定日期范围的生产订单数据吗？此操作可能需要一些时间';
+
+                await this.$confirm(confirmMessage, '提示', {
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning'
@@ -500,8 +561,55 @@ export default {
                 });
 
                 try {
-                    const response = await syncPRD_MO();
+                    let req = {
+                        "FilterString": []
+                    };
+
+                    if (this.syncForm.syncType === 'date') {
+                        const [startDate, endDate] = this.syncForm.dateRange;
+                        req.FilterString = [
+                            {
+                                "FieldName": "FDocumentStatus",
+                                "Compare": "105",
+                                "Value": this.syncForm.documentStatus,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": 0
+                            },
+                            {
+                                "FieldName": "FApproveDate",
+                                "Compare": "88",
+                                "Value": `${startDate} 00:00:00`,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": 0
+                            },
+                            {
+                                "FieldName": "FApproveDate",
+                                "Compare": "32",
+                                "Value": `${endDate} 23:59:59`,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": "0"
+                            }
+                        ];
+                    } else {
+                        // 同步全部数据时，只需要单据状态条件
+                        // req.FilterString = [
+                        //     {
+                        //         "FieldName": "FDocumentStatus",
+                        //         "Compare": "105",
+                        //         "Value": "C", // 全量同步时默认只同步已审核的数据
+                        //         "Left": "",
+                        //         "Right": "",
+                        //         "Logic": 0
+                        //     }
+                        // ];
+                    }
+
+                    const response = await syncPRD_MO(req);
                     if (response.code === 200) {
+                        this.syncDialogVisible = false;
                         loading.close();
                         if (response.taskStatus) {
                             this.startSyncProgressCheck();
@@ -519,8 +627,10 @@ export default {
                     this.$message.error('生产订单同步失败: ' + error.message);
                 }
             } catch (error) {
-                console.error('操作失败:', error);
-                this.$message.error('操作失败');
+                if (error !== 'cancel') {
+                    console.error('操作失败:', error);
+                    this.$message.error('操作失败');
+                }
             }
         },
 

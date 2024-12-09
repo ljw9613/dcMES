@@ -1,7 +1,7 @@
 var mongoose = require("mongoose");
 
 var materialSchema = new mongoose.Schema({
-    FMATERIALID: { type: Number }, // 实体主键
+    FMATERIALID: { type: String }, // 实体主键
     FDocumentStatus: { type: String }, // 数据状态
     FForbidStatus: { type: String }, // 禁用状态
     FName: { type: String, required: true }, // 名称
