@@ -3,65 +3,44 @@
     <div class="login-logo-bysj"></div>
     <el-row>
       <el-col :lg="8" :md="24" :sm="24" :xl="8" :xs="24">
-        <el-form
-          ref="loginForm"
-          :model="loginForm"
-          :rules="loginRules"
-          auto-complete="off"
-          class="login-form"
-          label-position="left"
-        >
+        <el-form ref="loginForm" :model="loginForm" :rules="loginRules" auto-complete="off" class="login-form"
+          label-position="left">
           <div class="title">
             hello !
           </div>
           <div class="title-tips">欢迎来到{{ title }}！</div>
-          <el-form-item
-            class="login-form-admin"
-            prop="userName"
-            style="margin-top: 49px;"
-          >
-            <span class="svg-container svg-container-admin">
-              <byui-icon :icon="['fas', 'user']"/>
-            </span>
-            <el-input
-              v-focus
-              v-model.trim="loginForm.userName"
-              auto-complete="off"
-              placeholder="请输入用户名"
-              tabindex="1"
-              type="text"
-            />
-          </el-form-item>
-          <el-form-item class="login-form-pass" prop="password">
-            <span class="svg-container svg-container-pass"
-            ><byui-icon :icon="['fas', 'lock']"
-            /></span>
-            <el-input
-              :key="passwordType"
-              ref="password"
-              v-model.trim="loginForm.password"
-              :type="passwordType"
-              auto-complete="on"
-              placeholder="请输入密码"
-              tabindex="2"
-              @keyup.enter.native="handleLogin"
-            />
-            <span
-              v-if="passwordType === 'password'"
-              class="show-pwd"
-              @click="showPwd"
-            ><byui-icon :icon="['fas', 'eye-slash']"
-            /></span>
-            <span v-else class="show-pwd" @click="showPwd"
-            ><byui-icon :icon="['fas', 'eye']"
-            /></span>
-          </el-form-item>
-          <el-button
-            :loading="loading"
-            class="login-btn"
-            type="primary"
-            @click.native.prevent="handleLogin"
-          >登录
+          <el-tabs v-model="loginType">
+            <el-tab-pane label="账号密码登录" name="account">
+              <el-form-item class="login-form-admin" prop="userName" style="margin-top: 49px;">
+                <span class="svg-container svg-container-admin">
+                  <byui-icon :icon="['fas', 'user']" />
+                </span>
+                <el-input v-focus v-model="loginForm.userName" auto-complete="off" placeholder="请输入用户名" tabindex="1"
+                  type="text" @input="val => loginForm.userName = val ? val.trim() : ''" />
+              </el-form-item>
+              <el-form-item class="login-form-pass" prop="password">
+                <span class="svg-container svg-container-pass">
+                  <byui-icon :icon="['fas', 'lock']" />
+                </span>
+                <el-input :key="passwordType" ref="password" v-model="loginForm.password" :type="passwordType"
+                  auto-complete="on" placeholder="请输入密码" tabindex="2"
+                  @input="val => loginForm.password = val ? val.trim() : ''" @keyup.enter.native="handleLogin" />
+                <span v-if="passwordType === 'password'" class="show-pwd" @click="showPwd"><byui-icon
+                    :icon="['fas', 'eye-slash']" /></span>
+                <span v-else class="show-pwd" @click="showPwd"><byui-icon :icon="['fas', 'eye']" /></span>
+              </el-form-item>
+            </el-tab-pane>
+            <el-tab-pane label="扫码登录" name="qrcode">
+              <el-form-item prop="encryptedId">
+                <span class="svg-container">
+                  <byui-icon :icon="['fas', 'qrcode']" />
+                </span>
+                <el-input v-model="loginForm.encryptedId" placeholder="请使用扫描枪扫描二维码" @keyup.enter.native="handleLogin"
+                  ref="scanInput" />
+              </el-form-item>
+            </el-tab-pane>
+          </el-tabs>
+          <el-button :loading="loading" class="login-btn" type="primary" @click.native.prevent="handleLogin">登录
           </el-button>
         </el-form>
       </el-col>
@@ -70,7 +49,8 @@
 </template>
 
 <script>
-import {isPassword} from "@/utils/validate";
+import { isPassword } from "@/utils/validate";
+import CryptoJS from 'crypto-js';
 
 export default {
   name: "Login",
@@ -113,6 +93,7 @@ export default {
       loginForm: {
         userName: "",
         password: "",
+        encryptedId: ""
       },
       loginRules: {
         userName: [
@@ -133,6 +114,7 @@ export default {
       loading: false,
       passwordType: "password",
       redirect: undefined,
+      loginType: 'account',
     };
   },
   created() {
@@ -148,46 +130,49 @@ export default {
         this.$refs.password.focus();
       });
     },
-    async handleLogin() {
-      this.$refs.loginForm.validate((valid) => {
+    decryptId(encryptedId) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(encryptedId, 'your-secret-key');
+        const decryptedId = bytes.toString(CryptoJS.enc.Utf8);
+        return decryptedId;
+      } catch (err) {
+        console.error('解密失败:', err);
+        return null;
+      }
+    },
+    handleLogin() {
+      this.$refs.loginForm.validate(async (valid) => {
         if (valid) {
-          this.loading = true
-          this.$store.dispatch('user/login', this.loginForm)
-            .then(() => {
-              this.$router.push({path: this.redirect || '/'})
-              this.loading = false
-            })
-            .catch((err) => {
-              console.log('err')
-              console.log(err)
-              this.loading = false
-            })
-        } else {
-          console.log('error submit!!')
-          return false
+          try {
+            this.loading = true;
+            let loginData;
+
+            if (this.loginType === 'account') {
+              loginData = {
+                userName: (this.loginForm.userName || '').trim(),
+                password: (this.loginForm.password || '').trim()
+              };
+            } else {
+              const encryptedId = this.loginForm.encryptedId;
+              if (!encryptedId) {
+                this.$message.error('请扫描二维码');
+                return;
+              }
+
+              loginData = {
+                encryptedId: encryptedId
+              };
+            }
+
+            const response = await this.$store.dispatch('user/login', loginData);
+            this.$router.push({ path: this.redirect || '/' });
+          } catch (error) {
+            console.error('登录失败:', error && error.message || '未知错误');
+            this.$message.error(error && error.message || '登录失败，请重试');
+          } finally {
+            this.loading = false;
+          }
         }
-        // if (valid) {
-        //   this.loading = true
-
-
-        //   this.$store.dispatch('user/login', this.loginForm).then(() => {
-
-        //     this.$router.push({ path: this.redirect || '/' })
-        //     this.loading = false
-
-        //   }).catch(() => {
-        //     this.loading = false
-        //     this.$message({
-        //       type: "error",
-        //       message: "账号密码错误，请重新输入"
-        //     });
-        //   })
-
-        // } else {
-
-        //  console.log('error submit!!')
-        //   return false
-        // }
       });
     },
     getOtherQuery(query) {

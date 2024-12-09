@@ -17,39 +17,15 @@
         <div class="screen_content_second">
           <div class="screen_content_second_one">
             <div style="width: 140px">用户名称:</div>
-            <el-input
-              v-model="userName"
-              clearable
-              placeholder="请输入用户名称"
-              @clear="clearclick()"
-            ></el-input>
-            <el-button
-              style="margin-left: 10px"
-              type="primary"
-              @click="Search()"
-            >查询搜索
-            </el-button
-            >
+            <el-input v-model="userName" clearable placeholder="请输入用户名称" @clear="clearclick()"></el-input>
+            <el-button style="margin-left: 10px" type="primary" @click="Search()">查询搜索
+            </el-button>
           </div>
-          <div
-            v-if="$store.state.user.roles == '超级管理员'"
-            class="screen_content_second_one"
-          >
+          <div v-if="$store.state.user.roles == '超级管理员'" class="screen_content_second_one">
             <div style="width: 80px">用户角色:</div>
-            <el-select
-              v-model="roledata"
-              filterable
-              placeholder="请选择用户角色"
-              style="width: "
-              @change="searchrole"
-              @clear="clearclick()"
-            >
-              <el-option
-                v-for="item in userlist"
-                :key="item"
-                :label="item"
-                :value="item"
-              ></el-option>
+            <el-select v-model="roledata" filterable placeholder="请选择用户角色" style="width: " @change="searchrole"
+              @clear="clearclick()">
+              <el-option v-for="item in userlist" :key="item" :label="item" :value="item"></el-option>
             </el-select>
           </div>
         </div>
@@ -60,94 +36,76 @@
         <div class="screen_content_first">
           <i class="el-icon-tickets">管理员列表</i>
 
-          <el-button
-            class="filter-item"
-            icon="el-icon-plus"
-            type="primary"
-            @click="AddFilter"
-          >添加管理人员
-          </el-button
-          >
+          <el-button class="filter-item" icon="el-icon-plus" type="primary" @click="AddFilter">添加管理人员
+          </el-button>
         </div>
       </div>
     </div>
 
     <div class="filter-container"></div>
-    <el-table
-      v-loading="listLoading"
-      :data="categorylist"
-      border
-      element-loading-text="Loading"
-      fit
-      highlight-current-row
-      style="width: 100%"
-    >
-      <el-table-column align="center" label="用户名称">
+    <el-table v-loading="listLoading" :data="categorylist" border element-loading-text="Loading" fit
+      highlight-current-row style="width: 100%">
+      <el-table-column align="center" label="用户名称" min-width="120">
         <template slot-scope="scope">
           <span class="link-type">{{ scope.row.nickName }}</span>
         </template>
       </el-table-column>
-      <el-table-column align="center" label="账号" width="160">
+
+      <el-table-column align="center" label="账号" min-width="120">
         <template slot-scope="scope">{{ scope.row.userName }}</template>
       </el-table-column>
-      <el-table-column align="center" label="密码" width="120">
+
+      <el-table-column align="center" label="密码" min-width="120">
         <template slot-scope="scope">{{ scope.row.password }}</template>
       </el-table-column>
-      <el-table-column align="center" label="用户角色" width="120">
-        <template slot-scope="scope"
-        >{{ scope.row.role ? scope.row.role.name : "无" }}
+
+      <el-table-column align="center" label="用户角色" min-width="120">
+        <template slot-scope="scope">
+          {{ scope.row.role ? scope.row.role.name : "无" }}
         </template>
       </el-table-column>
-      <el-table-column align="center" label="审核状态" width="100">
+
+      <el-table-column align="center" label="审核状态" min-width="100">
         <template slot-scope="scope">
           <el-tag v-if="scope.row.status" type="success">在线</el-tag>
           <el-tag v-else type="warning">不在线</el-tag>
         </template>
       </el-table-column>
-      <el-table-column
-        align="center"
-        label="创建时间"
-        prop="created_at"
-        width="200"
-      >
+
+      <el-table-column align="center" label="创建时间" prop="created_at" min-width="160">
         <template slot-scope="scope">
-          <i class="el-icon-time"/>
-          <span>{{
-              scope.row.createAt | parseTime("{y}-{m}-{d} {h}:{i}")
-            }}</span>
+          <i class="el-icon-time" />
+          <span>{{ scope.row.createAt | parseTime("{y}-{m}-{d} {h}:{i}") }}</span>
         </template>
       </el-table-column>
-      <el-table-column align="center" label="操作">
-        <template slot-scope="{ row }">
-          <el-button size="mini" type="primary" @click="handleEdit(row)"
-          >编辑
-          </el-button
-          >
 
-          <el-button
-            v-if="!row.status"
-            size="mini"
-            type="success"
-            @click="handisshow(row)"
-          >上线
-          </el-button
-          >
-          <el-button v-else size="mini" type="danger" @click="handisshow(row)"
-          >下线
-          </el-button
-          >
+      <el-table-column align="center" label="登录二维码" min-width="100">
+        <template slot-scope="scope">
+          <el-button v-if="scope.row.qrCode" type="primary" size="mini" @click="showQRCode(scope.row)">
+            查看二维码
+          </el-button>
+        </template>
+      </el-table-column>
+
+      <el-table-column align="center" label="操作" min-width="200">
+        <template slot-scope="{ row }">
+          <el-button size="mini" type="primary" @click="handleEdit(row)" style="margin-right: 8px">
+            编辑
+          </el-button>
+
+          <el-button v-if="!row.status" size="mini" type="success" @click="handisshow(row)" style="margin-right: 8px">
+            上线
+          </el-button>
+          <el-button v-else size="mini" type="danger" @click="handisshow(row)">
+            下线
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <!-- 弹窗start -->
-    <el-dialog :visible.sync="dialogFormVisible" title="管理人员信息">
-      <el-form
-        ref="dataForm"
-        label-position="left"
-        label-width="70px"
-        style="width: 500px; margin-left: 50px"
-      >
+    <el-dialog :close-on-click-modal="false" :visible.sync="dialogFormVisible" title="管理人员信息">
+      <el-form ref="dataForm" label-position="left" label-width="70px" style="width: 500px; margin-left: 50px">
         <!-- <el-form-item label="管理员" label-width="120">
           <el-select v-model="userId" filterable placeholder="请选择用户成为管理员">
             <el-option
@@ -159,26 +117,21 @@
           </el-select>
         </el-form-item> -->
         <el-form-item label="用户账号" label-width="120">
-          <el-input v-model="number" placeholder="管理人员的账号"/>
+          <el-input v-model="number" placeholder="管理人员的账号" />
         </el-form-item>
         <el-form-item label="用户密码" label-width="120">
-          <el-input v-model="password" placeholder="请输入管理人员的密码"/>
+          <el-input v-model="password" placeholder="请输入管理人员的密码" />
         </el-form-item>
         <el-form-item label="联系姓名" label-width="120">
-          <el-input v-model="name" placeholder="请输入管理人员的姓名"/>
+          <el-input v-model="name" placeholder="请输入管理人员的姓名" />
         </el-form-item>
         <el-form-item label="联系方式" label-width="120">
-          <el-input v-model="phone" placeholder="请输入联系方式"/>
+          <el-input v-model="phone" placeholder="请输入联系方式" />
         </el-form-item>
         <!-- v-if="$store.state.user.roles == '超级管理员'" -->
         <el-form-item label="用户角色" label-width="120">
           <el-select v-model="role" filterable placeholder="请选择用户角色">
-            <el-option
-              v-for="(item, index) in userlist"
-              :key="index"
-              :label="item.name"
-              :value="item._id"
-            ></el-option>
+            <el-option v-for="(item, index) in userlist" :key="index" :label="item.name" :value="item._id"></el-option>
           </el-select>
         </el-form-item>
         <!-- <el-form-item label="选择部门" label-width="120">
@@ -191,24 +144,43 @@
             >
           </el-radio-group>
         </el-form-item> -->
+        <el-form-item v-if="dialogStatus === 'create' && qrCodeUrl" label="登录码" label-width="120">
+          <div class="qrcode-container">
+            <img :src="qrCodeUrl" alt="登录二维码">
+            <el-button type="primary" size="small" @click="printQRCode">打印二维码</el-button>
+            <el-button type="success" size="small" @click="downloadQRCode">下载二维码</el-button>
+          </div>
+        </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="dialogStatus == 'create' ? createData() : editData()"
-        >确定
-        </el-button
-        >
+        <el-button type="primary" @click="dialogStatus == 'create' ? createData() : editData()">确定
+        </el-button>
       </div>
     </el-dialog>
     <!-- 弹窗end -->
+
+    <!-- 添加二维码查看弹窗 -->
+    <el-dialog :visible.sync="qrCodeDialogVisible" title="登录二维码" width="400px">
+      <div class="qrcode-container">
+        <img :src="currentQRCode" alt="登录二维码">
+        <p>用户名：{{ currentUser.nickName }}</p>
+        <p>账号：{{ currentUser.userName }}</p>
+        <div class="qrcode-buttons">
+          <el-button type="primary" size="small" @click="printQRCode">打印二维码</el-button>
+          <el-button type="success" size="small" @click="downloadQRCode">下载二维码</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import {getData} from "@/api/data";
-import {postuserlist, putuserlist} from "@/api/user_list";
+import { getData } from "@/api/data";
+import { postuserlist, putuserlist } from "@/api/user_list";
+import QRCode from 'qrcode'
+import { v4 as uuidv4 } from 'uuid'
+import CryptoJS from 'crypto-js'
 
 let that;
 export default {
@@ -246,6 +218,10 @@ export default {
         create: "Create",
       },
       searchReq: {},
+      qrCodeUrl: '', // 用于存储二维码图片URL
+      qrCodeDialogVisible: false,
+      currentQRCode: '',
+      currentUser: {},
     };
   },
   created() {
@@ -257,17 +233,17 @@ export default {
   },
   methods: {
     async getUserRole() {
-      let {data: UserRole} = await getData("role", {query: {}});
+      let { data: UserRole } = await getData("role", { query: {} });
       this.userlist = UserRole;
     },
     //获取数据
     async fetchData() {
       this.listLoading = true;
       var data1 = {
-        query: {...this.searchReq},
-        populate: JSON.stringify([{path: "role"}]),
+        query: { ...this.searchReq },
+        populate: JSON.stringify([{ path: "role" }]),
       };
-      let {data: response} = await getData("user_login", data1);
+      let { data: response } = await getData("user_login", data1);
       console.log(response);
       this.categorylist = response;
       this.categorylist1 = this.categorylist;
@@ -288,14 +264,14 @@ export default {
       this.password = row.password;
       this.role = row.role._id ? row.role._id : row.role;
       this.number = row.userName;
-      // this.checkList = row.department;
       this.name = row.nickName;
       this.phone = row.phone;
       this.dialogStatus = "edit";
+      this.qrCodeUrl = ''; // 清空二维码
     },
     handisshow(row) {
       var data = {
-        query: {_id: row._id},
+        query: { _id: row._id },
         update: {
           status: !row.status,
         },
@@ -326,52 +302,75 @@ export default {
       this._id = "";
       this.userId = "";
       this.number = "";
-      // this.checkList = "";
-      this.role = "部门管理员";
+      this.role = "";
       this.password = "Enterprise123";
       this.name = "";
       this.phone = "";
       this.dialogFormVisible = true;
       this.dialogStatus = "create";
+      this.qrCodeUrl = ''; // 清空二维码
     },
-    createData() {
+    // 生成加密ID
+    generateEncryptedId() {
+      const uuid = uuidv4()
+      // 使用AES加密
+      const encrypted = CryptoJS.AES.encrypt(uuid, 'your-secret-key').toString()
+      return encrypted
+    },
+    // 修改createData方法
+    async createData() {
       if (
         this.number != "" &&
         this.name != "" &&
         this.password != "" &&
         this.phone != "" &&
         this.role != ""
-        // this.checkList.length != ""
       ) {
         const index = this.categorylist.findIndex(
           (v) => v.usernumber === this.number
         );
-        console.log(index);
         if (index == -1) {
+          const encryptedId = this.generateEncryptedId();
+          // 生成二维码
+          try {
+            this.qrCodeUrl = await QRCode.toDataURL(encryptedId);
+          } catch (err) {
+            console.error('QR Code generation failed:', err);
+            return;
+          }
+
           var data = {
             nickName: this.name,
             userName: this.number,
             password: this.password,
             phone: this.phone,
             role: this.role,
-            // department: this.checkList,
+            encryptedId: encryptedId,
+            qrCode: this.qrCodeUrl, // 保存二维码
           };
-          console.log(data);
+
           postuserlist(data).then((response) => {
-            console.log(response);
             if (response.code == 200) {
               this.dialogFormVisible = false;
               this.fetchData();
+              // 创建成功后立即显示二维码弹窗
+              this.currentQRCode = this.qrCodeUrl;
+              this.currentUser = {
+                nickName: this.name,
+                userName: this.number
+              };
+              this.qrCodeDialogVisible = true;
+
               this.$notify({
                 title: "添加成功",
-                message: "edit Successfully",
+                message: "请及时保存登录二维码",
                 type: "success",
-                duration: 2000,
+                duration: 3000,
               });
             } else {
               this.$notify({
                 title: "添加失败",
-                message: "edit failly",
+                message: "添加失败",
                 type: "warning",
                 duration: 2000,
               });
@@ -395,6 +394,7 @@ export default {
       }
     },
 
+    // 修改editData方法
     editData() {
       if (
         this.number != "" &&
@@ -402,23 +402,19 @@ export default {
         this.phone != "" &&
         this.password != "" &&
         this.role != ""
-        // this.checkList != ""
       ) {
         var data = {
-          query: {_id: this._id},
+          query: { _id: this._id },
           update: {
             nickName: this.name,
             userName: this.number,
             password: this.password,
             phone: this.phone,
             role: this.role,
-            // department: this.checkList,
           },
         };
-        console.log("data");
-        console.log(data);
+
         putuserlist(data).then((response) => {
-          console.log(response);
           if (response.code == 200) {
             this.dialogFormVisible = false;
             this.fetchData();
@@ -463,7 +459,7 @@ export default {
       this.searchReq = {};
 
       if (this.userName) {
-        this.searchReq.userName = {$regex: this.userName};
+        this.searchReq.userName = { $regex: this.userName };
       } else {
         delete this.searchReq.userName;
       }
@@ -510,6 +506,89 @@ export default {
       }
       return arr;
     },
+    // 添加打印二维码方法
+    printQRCode() {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>打印二维码</title>
+            <style>
+              body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+              .print-container { text-align: center; }
+              img { max-width: 200px; }
+              p { margin: 10px 0; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="print-container">
+              <img src="${this.qrCodeUrl}" alt="登录二维码">
+              <p>用户名：${this.name}</p>
+              <p>账号：${this.number}</p>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    },
+
+    // 添加下载二维码方法
+    downloadQRCode() {
+      const link = document.createElement('a');
+      link.download = `登录码_${this.name}_${this.number}.png`;
+      link.href = this.qrCodeUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+
+    // 显示二维码
+    showQRCode(row) {
+      this.currentQRCode = row.qrCode;
+      this.currentUser = {
+        nickName: row.nickName,
+        userName: row.userName
+      };
+      this.qrCodeDialogVisible = true;
+    },
+
+    // 打印二维码
+    printQRCode() {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>打印二维码</title>
+            <style>
+              body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+              .print-container { text-align: center; }
+              img { max-width: 200px; }
+              p { margin: 10px 0; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="print-container">
+              <img src="${this.currentQRCode}" alt="登录二维码">
+              <p>用户名：${this.currentUser.nickName}</p>
+              <p>账号：${this.currentUser.userName}</p>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    },
+
+    // 下载二维码
+    downloadQRCode() {
+      const link = document.createElement('a');
+      link.download = `登录码_${this.currentUser.nickName}_${this.currentUser.userName}.png`;
+      link.href = this.currentQRCode;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   },
 };
 </script>
@@ -638,5 +717,62 @@ export default {
 
 .forworktitle {
   margin: 0 5px;
+}
+
+.qrcode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  img {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 10px;
+  }
+}
+
+.el-table {
+  margin: 15px 0;
+
+  ::v-deep {
+    .el-table__header-wrapper {
+      th {
+        background-color: #f5f7fa;
+        padding: 12px 0;
+      }
+    }
+
+    .el-table__body-wrapper {
+      td {
+        padding: 12px 0;
+      }
+    }
+
+    .el-button+.el-button {
+      margin-left: 8px;
+    }
+  }
+}
+
+// 调整按钮间距
+.el-button+.el-button {
+  margin-left: 8px;
+}
+
+// 调整表格内容垂直对齐
+.el-table td {
+  vertical-align: middle;
+}
+
+// 优化状态标签样式
+.el-tag {
+  min-width: 60px;
+  text-align: center;
+}
+
+// 优化时间列样式
+.el-icon-time {
+  margin-right: 5px;
 }
 </style>
