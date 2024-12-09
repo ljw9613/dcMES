@@ -68,25 +68,47 @@ const actions = {
     removeid();
     resetRouter();
     commit("RESET_STATE");
-    let { userName, password } = userInfo;
-    password = jsencrypt(password);
-    console.log(password);
+
     return new Promise((resolve, reject) => {
-      login({ userName: userName.trim(), password: password })
-        .then(response => {
-          const { token, user } = response;
-          commit("SET_TOKEN", token);
-          commit("SET_ID", user._id);
-          commit("SET_USERNAME", user.userName);
-          commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
-          commit("SET_SERVE", "user.serve");
-          setToken(token);
-          setid(user._id);
-          resolve();
+      if (userInfo.encryptedId) {
+        // 扫码登录
+        login({ encryptedId: userInfo.encryptedId })
+          .then(response => {
+            const { token, user } = response;
+            commit("SET_TOKEN", token);
+            commit("SET_ID", user._id);
+            commit("SET_USERNAME", user.userName);
+            commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
+            commit("SET_SERVE", "user.serve");
+            setToken(token);
+            setid(user._id);
+            resolve();
+          })
+          .catch(error => {
+            reject(error);
+          });
+      } else {
+        // 账号密码登录
+        const encryptedPassword = jsencrypt(userInfo.password);
+        login({
+          userName: userInfo.userName.trim(),
+          password: encryptedPassword
         })
-        .catch(error => {
-          reject(error);
-        });
+          .then(response => {
+            const { token, user } = response;
+            commit("SET_TOKEN", token);
+            commit("SET_ID", user._id);
+            commit("SET_USERNAME", user.userName);
+            commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
+            commit("SET_SERVE", "user.serve");
+            setToken(token);
+            setid(user._id);
+            resolve();
+          })
+          .catch(error => {
+            reject(error);
+          });
+      }
     });
   },
 
