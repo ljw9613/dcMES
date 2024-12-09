@@ -116,6 +116,7 @@
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
                     <el-button type="success" @click="exportData">导出数据</el-button>
+                    <el-button type="warning" @click="handleSync">同步物料</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -216,6 +217,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { syncBD_MATERIAL, getSyncStatusAll, getSyncStatus } from "@/api/K3Data";
 import MaterialFlowChart from './MaterialFlowChart.vue'
 
 export default {
@@ -294,6 +296,7 @@ export default {
             },
             processedFlowChartData: [], // 处理后的流程图数据
             productDiNumId: null, // 存储DI记录的ID
+            syncProgressTimer: null, // 用于存储定时器ID
         }
     },
     methods: {
@@ -856,6 +859,116 @@ export default {
                 console.error('获取DI码信息失败:', error);
                 this.$message.error('获取DI码信息失败');
             }
+        },
+
+        // 同步物料数据
+        async handleSync() {
+            try {
+                await this.$confirm('确认要同步物料数据吗？此操作可能需要一些时间', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在启动同步任务...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                try {
+                    const response = await syncBD_MATERIAL();
+                    if (response.code === 200) {
+                        loading.close();
+                        if (response.taskStatus) {
+                            // 启动定时查询进度
+                            this.startSyncProgressCheck();
+                            this.$message.success(`同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
+                        } else {
+                            this.$message.success('同步任务已启动');
+                        }
+
+                    } else {
+                        loading.close();
+                        this.$message.error(response.message || '物料同步失败');
+                    }
+                } catch (error) {
+                    loading.close();
+                    console.error('物料同步失败:', error);
+                    this.$message.error('物料同步失败: ' + error.message);
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                this.$message.error('操作失败');
+            }
+        },
+
+        // 开始定时查询同步进度
+        startSyncProgressCheck() {
+            // 清除可能存在的旧定时器
+            if (this.syncProgressTimer) {
+                clearInterval(this.syncProgressTimer);
+            }
+
+            // 创建新的定时器，每10秒查询一次进度
+            this.syncProgressTimer = setInterval(async () => {
+                try {
+                    const response = await getSyncStatus('k3_BD_MATERIAL');
+                    console.log("🚀 ~ this.syncProgressTimer=setInterval ~ response:", response)
+                    if (response.code === 200) {
+                        // 查找物料同步任务的状态
+                        const materialTask = response.taskStatus;
+                        if (materialTask) {
+                            // 根据任务状态处理
+                            switch (materialTask.status) {
+                                case 'running':
+                                    // 更新进度提示
+                                    this.$notify({
+                                        type: 'info',
+                                        message: `同步中：当前${materialTask.processedRecords}条数据同步完成，耗时${materialTask.elapsedTime}秒`,
+                                        duration: 5000
+                                    });
+                                    break;
+
+                                case 'no_task':
+                                    // 同步完成
+                                    this.$message.success(`同步完成！`);
+                                    this.stopSyncProgressCheck();
+                                    // 刷新数据列表
+                                    this.fetchData();
+                                    break;
+
+                                default:
+                                    // 未知状态
+                                    this.$message.warning('未知的同步状态');
+                                    this.stopSyncProgressCheck();
+                            }
+                        } else {
+                            // 没有找到物料同步任务
+                            this.$message.warning('未找到物料同步任务');
+                            this.stopSyncProgressCheck();
+                        }
+                    }
+                } catch (error) {
+                    console.error('查询同步进度失败:', error);
+                    this.$message.error('查询同步进度失败');
+                    this.stopSyncProgressCheck();
+                }
+            }, 10000); // 每10秒执行一次
+        },
+
+        // 停止定时查询
+        stopSyncProgressCheck() {
+            if (this.syncProgressTimer) {
+                clearInterval(this.syncProgressTimer);
+                this.syncProgressTimer = null;
+            }
+        },
+
+        // 组件销毁时清理定时器
+        beforeDestroy() {
+            this.stopSyncProgressCheck();
         },
     },
     created() {

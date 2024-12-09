@@ -7,7 +7,7 @@ import store from '@/store'
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
   // withCredentials: true, // send cookies when cross-domain requests
-  timeout: 10000 // request timeout
+  timeout: 3000000 // request timeout
 })
 // 是否显示重新登录
 export let isRelogin = {show: false};

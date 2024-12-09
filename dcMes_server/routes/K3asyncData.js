@@ -17,6 +17,7 @@ class SyncTask {
     this.processedRecords = 0;
     this.startTime = Date.now();
     this.error = null;
+    this.currentProgressMessage = null;
   }
 
   updateProgress(processed, total) {
@@ -97,22 +98,27 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
     console.log("🚀 ~ syncK3Data ~ filterString:", filterString);
     // 使用循环进行分页查询
     while (hasMoreData) {
+      console.log("🚀 ~ syncK3Data ~ hasMoreData:", hasMoreData);
+      console.log("🚀 ~ syncK3Data ~ startRow:", startRow);
+      console.log("🚀 ~ syncK3Data ~ pageSize:", pageSize);
+      console.log("🚀 ~ syncK3Data ~ filterString:", filterString);
       let k3Data = await k3cMethod("BillQuery", modelName, {
         FormId: formId,
         FieldKeys: fieldKeys,
         FilterString: filterString,
         OrderString: "",
-        TopRowCount: pageSize,
+        TopRowCount: 0,
         StartRow: startRow,
         Limit: pageSize,
       });
+      console.log("🚀 ~ syncK3Data ~ k3Data:", k3Data.length);
       // console.log(JSON.stringify(k3Data));
       // 修改K3错误响应检查部分
       let responseData = k3Data;
       // 处理嵌套数组的情况
       if (Array.isArray(k3Data) && k3Data.length > 0) {
         responseData = k3Data[0][0];
-        console.log("🚀 ~ syncK3Data ~ responseData:", responseData);
+        // console.log("🚀 ~ syncK3Data ~ responseData:", responseData);
       }
 
       if (responseData.Result && responseData.Result.ResponseStatus) {
@@ -185,13 +191,15 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
             ).toFixed(2);
             const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
+            // 更新任务状态
+            syncTask.updateProgress(totalProcessed, transformedData.length);
+
             // 打印当前进度
-            console.log(
-              `[${modelName}] 进度: ${progress}% ` +
-                `(${totalProcessed}/${transformedData.length}) | ` +
-                `当前批次: ${currentBatch}/${totalBatches} | ` +
-                `已用时: ${timeElapsed}秒`
-            );
+            const progressMessage = `[${modelName}] 进度: ${progress}% (${totalProcessed}/${transformedData.length}) | 当前批次: ${currentBatch}/${totalBatches} | 已用时: ${timeElapsed}秒`;
+            console.log(progressMessage);
+
+            // 更新任务的状态信息
+            syncTask.currentProgressMessage = progressMessage;
 
             break;
           } catch (err) {
@@ -222,11 +230,11 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
       `平均速度: ${(allResults.length / totalTime).toFixed(1)} 条/秒\n`
     );
 
-    syncTask.updateProgress(totalProcessed, allResults.length);
-    syncTask.complete();
     return {
+      code: 200,
       success: true,
-      message: `成功同步${allResults.length}条数据`,
+      message:
+        syncTask.currentProgressMessage || `成功同步${allResults.length}条数据`,
       modelName: modelName,
       totalTime: `${totalTime}秒`,
       taskStatus: syncTask.getStatus(),
@@ -248,6 +256,7 @@ router.post("/sync/PRD_MO", async (req, res) => {
       const existingTask = syncTasks.get(modelName);
       if (existingTask.status === "running") {
         return res.json({
+          code: 200,
           success: true,
           message: "同步任务正在进行中",
           taskStatus: existingTask.getStatus(),
@@ -255,8 +264,12 @@ router.post("/sync/PRD_MO", async (req, res) => {
       }
     }
 
-    const result = await syncK3Data(modelName, "PRD_MO", "FID", FilterString);
-    res.json(result);
+    syncK3Data(modelName, "PRD_MO", "FID", FilterString);
+    res.json({
+      code: 200,
+      success: true,
+      message: "同步任务已启动",
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -276,6 +289,7 @@ router.post("/sync/BD_MATERIAL", async (req, res) => {
       const existingTask = syncTasks.get(modelName);
       if (existingTask.status === "running") {
         return res.json({
+          code: 200,
           success: true,
           message: "同步任务正在进行中",
           taskStatus: existingTask.getStatus(),
@@ -283,13 +297,12 @@ router.post("/sync/BD_MATERIAL", async (req, res) => {
       }
     }
 
-    const result = await syncK3Data(
-      modelName,
-      "BD_MATERIAL",
-      "FMATERIALID",
-      FilterString
-    );
-    res.json(result);
+    syncK3Data(modelName, "BD_MATERIAL", "FMATERIALID", FilterString);
+    res.json({
+      code: 200,
+      success: true,
+      message: "同步任务已启动",
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -301,8 +314,27 @@ router.post("/sync/BD_MATERIAL", async (req, res) => {
 // 同步销售订单数据
 router.post("/sync/SAL_SaleOrder", async (req, res) => {
   try {
-    const result = await syncK3Data("k3_SAL_SaleOrder", "SAL_SaleOrder", "FID");
-    res.json(result);
+    const modelName = "k3_SAL_SaleOrder";
+
+    // 检查是否有正在进行的任务
+    if (syncTasks.has(modelName)) {
+      const existingTask = syncTasks.get(modelName);
+      if (existingTask.status === "running") {
+        return res.json({
+          code: 200,
+          success: true,
+          message: "同步任务正在进行中",
+          taskStatus: existingTask.getStatus(),
+        });
+      }
+    }
+
+    syncK3Data(modelName, "SAL_SaleOrder", "FID", FilterString);
+    res.json({
+      code: 200,
+      success: true,
+      message: "同步任务已启动",
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -314,7 +346,6 @@ router.post("/sync/SAL_SaleOrder", async (req, res) => {
 // 同步所有数据的路由
 router.post("/sync/all", async (req, res) => {
   try {
-    const results = [];
     const modelConfigs = [
       { modelName: "k3_PRD_MO", formId: "PRD_MO", primaryKey: "FID" },
       {
@@ -330,17 +361,13 @@ router.post("/sync/all", async (req, res) => {
     ];
 
     for (const config of modelConfigs) {
-      const result = await syncK3Data(
-        config.modelName,
-        config.formId,
-        config.primaryKey
-      );
-      results.push(result);
+      syncK3Data(config.modelName, config.formId, config.primaryKey);
     }
 
     res.json({
+      code: 200,
       success: true,
-      results: results,
+      message: "同步任务已启动",
     });
   } catch (error) {
     res.status(500).json({
@@ -357,6 +384,7 @@ router.get("/sync/status/:modelName", (req, res) => {
 
   if (!task) {
     return res.json({
+      code: 200,
       success: true,
       status: "no_task",
       message: "没有正在进行的同步任务",
@@ -364,9 +392,38 @@ router.get("/sync/status/:modelName", (req, res) => {
   }
 
   res.json({
+    code: 200,
+    status: "running",
     success: true,
     taskStatus: task.getStatus(),
   });
+});
+
+// 获取所有同步任务的状态
+router.get("/sync/status/all", (req, res) => {
+  try {
+    const allTasksStatus = Array.from(syncTasks.entries()).map(
+      ([modelName, task]) => ({
+        modelName,
+        ...task.getStatus(),
+      })
+    );
+
+    res.json({
+      code: 200,
+      success: true,
+      data: allTasksStatus,
+      totalTasks: allTasksStatus.length,
+      message:
+        allTasksStatus.length > 0 ? "获取同步状态成功" : "当前没有同步任务",
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      success: false,
+      message: `获取同步状态失败: ${error.message}`,
+    });
+  }
 });
 
 module.exports = router;

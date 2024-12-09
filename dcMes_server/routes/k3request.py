@@ -80,7 +80,6 @@ def BillQuery_Method(method_FormId,method_Query):
     doct2 = json.loads(method_Query)
     doct1.update(doct2)
     response = api_sdk.ExecuteBillQuery(doct1)
-
     print(response)
     res = json.loads(response)
     if len(res) > 0:

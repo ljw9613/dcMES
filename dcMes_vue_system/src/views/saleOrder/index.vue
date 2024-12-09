@@ -70,6 +70,7 @@
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
                     <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
+                    <el-button type="warning" @click="handleSync">同步订单</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -194,6 +195,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { syncSAL_SaleOrder, getSyncStatus } from "@/api/K3Data";
 
 export default {
     name: 'SaleOrder',
@@ -231,7 +233,8 @@ export default {
                 FCustomerName: [{ required: true, message: '请输入客户名称', trigger: 'blur' }],
                 FDate: [{ required: true, message: '请选择订单日期', trigger: 'change' }],
                 FSaleDeptName: [{ required: true, message: '请输入销售部门', trigger: 'blur' }]
-            }
+            },
+            syncProgressTimer: null,
         }
     },
     methods: {
@@ -615,7 +618,105 @@ export default {
                 'A': 'warning'     // 草稿 -> 委外
             };
             return typeMap[status] || 'info';
-        }
+        },
+
+        // 添加同步订单方法
+        async handleSync() {
+            try {
+                await this.$confirm('确认要同步销售订单数据吗？此操作可能需要一些时间', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在启动同步任务...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                try {
+                    const response = await syncSAL_SaleOrder();
+                    if (response.code === 200) {
+                        loading.close();
+                        if (response.taskStatus) {
+                            this.startSyncProgressCheck();
+                            this.$message.success(`同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
+                        } else {
+                            this.$message.success('同步任务已启动');
+                        }
+                    } else {
+                        loading.close();
+                        this.$message.error(response.message || '订单同步失败');
+                    }
+                } catch (error) {
+                    loading.close();
+                    console.error('订单同步失败:', error);
+                    this.$message.error('订单同步失败: ' + error.message);
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                this.$message.error('操作失败');
+            }
+        },
+
+        // 开始定时查询同步进度
+        startSyncProgressCheck() {
+            if (this.syncProgressTimer) {
+                clearInterval(this.syncProgressTimer);
+            }
+
+            this.syncProgressTimer = setInterval(async () => {
+                try {
+                    const response = await getSyncStatus('k3_SAL_SaleOrder');
+                    if (response.code === 200) {
+                        const saleOrderTask = response.taskStatus;
+                        if (saleOrderTask) {
+                            switch (saleOrderTask.status) {
+                                case 'running':
+                                    this.$notify({
+                                        type: 'info',
+                                        message: `同步中：当前${saleOrderTask.processedRecords}条数据同步完成，耗时${saleOrderTask.elapsedTime}秒`,
+                                        duration: 5000
+                                    });
+                                    break;
+
+                                case 'no_task':
+                                    this.$message.success(`同步完成！`);
+                                    this.stopSyncProgressCheck();
+                                    this.fetchData();
+                                    break;
+
+                                default:
+                                    this.$message.warning('未知的同步状态');
+                                    this.stopSyncProgressCheck();
+                            }
+                        } else {
+                            this.$message.warning('未找到订单同步任务');
+                            this.stopSyncProgressCheck();
+                        }
+                    }
+                } catch (error) {
+                    console.error('查询同步进度失败:', error);
+                    this.$message.error('查询同步进度失败');
+                    this.stopSyncProgressCheck();
+                }
+            }, 10000);
+        },
+
+        // 停止定时查询
+        stopSyncProgressCheck() {
+            if (this.syncProgressTimer) {
+                clearInterval(this.syncProgressTimer);
+                this.syncProgressTimer = null;
+            }
+        },
+
+        // 组件销毁时清理定时器
+        beforeDestroy() {
+            this.stopSyncProgressCheck();
+        },
     },
     created() {
         this.fetchData();
