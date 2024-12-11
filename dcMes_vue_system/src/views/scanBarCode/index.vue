@@ -17,10 +17,10 @@
                         </div>
 
                         <el-form-item label="产品型号">
-                            <zr-select v-if="!mainMaterialId" v-model="formData.productModel" collection="k3_BD_MATERIAL"
-                                :disabled="!!mainMaterialId && !!processStepId" :search-fields="['FNumber', 'FName']"
-                                label-key="FName" sub-key="FMATERIALID" :multiple="false" placeholder="请输入物料编码/名称搜索"
-                                @select="handleProductChange">
+                            <zr-select v-if="!mainMaterialId" v-model="formData.productModel"
+                                collection="k3_BD_MATERIAL" :disabled="!!mainMaterialId && !!processStepId"
+                                :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
+                                :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleProductChange">
                                 <template #option="{ item }">
                                     <div class="item-option">
                                         <div class="item-info">
@@ -185,6 +185,8 @@ import {
 import smcg from "@/assets/tone/smcg.mp3";
 import tmyw from "@/assets/tone/tmyw.mp3";
 import bdcg from "@/assets/tone/bdcg.mp3";
+import cfbd from "@/assets/tone/cfbd.mp3";
+
 export default {
     name: 'ScanBarCode',
     components: {
@@ -749,7 +751,7 @@ export default {
             }
         },
 
-        // 处理子物��条码
+        // 处理子物料条码
         async handleSubBarcode(materialId, materialCode) {
             try {
                 // 验证主条码是否已扫描
@@ -927,17 +929,25 @@ export default {
                 }
 
                 //TODO成功后播放提示音
-                tone(bdcg)
+                setTimeout(() => {
+                    tone(bdcg); // 延迟播放绑定成功提示音
+                }, 1000);
                 // 6. 重置表单
                 this.resetScanForm();
 
             } catch (error) {
                 console.error('确认失败:', error);
-                tone(tmyw)
+                // tone(tmyw)
                 if (error.message.includes("该主物料条码对应工序节点已完成或处于异常状态")) {
                     this.$message.warning(error.message);
+                    setTimeout(() => {
+                        tone(cfbd); // 延迟播放绑定成功提示音
+                    }, 1000);
                 } else {
                     this.$message.error('确认失败:' + error.message);
+                    setTimeout(() => {
+                        tone(tmyw); // 延迟播放绑定成功提示音
+                    }, 1000);
                 }
             }
         },
@@ -959,7 +969,9 @@ export default {
 
                     const isValidResult = await this.validateBarcode(cleanValue);
                     if (!isValidResult.isValid) {
-                        tone(tmyw); // 播放错误提示音
+                        setTimeout(() => {
+                            tone(tmyw); // 延迟播放错误提示音
+                        }, 300);
                         this.$notify({
                             title: '条码验证失败',
                             message: '条码格式不正确或未在系统中注册',
@@ -980,7 +992,7 @@ export default {
                         this.scanForm.mainBarcode = value;
                         await this.handleMainBarcode(value);
                         this.validateStatus.mainBarcode = true;
-                        tone(smcg); // 播放扫描成功提示音
+                        tone(smcg); // 延迟播放扫描成功提示音
                         this.$notify({
                             title: '主物料扫描成功',
                             dangerouslyUseHTMLString: true,
@@ -1005,7 +1017,7 @@ export default {
                                 this.$set(this.scanForm.barcodes, material._id, value);
                                 await this.handleSubBarcode(material._id, materialCode);
                                 tone(smcg); // 播放扫描成功提示音
-                                
+
                                 this.$notify({
                                     title: '子物料扫描成功',
                                     dangerouslyUseHTMLString: true,
@@ -1028,7 +1040,9 @@ export default {
                     }
 
                     if (!matched) {
-                        tone(tmyw); // 播放错误提示音
+                        setTimeout(() => {
+                            tone(tmyw); // 延迟播放错误提示音
+                        }, 1000);
                         this.$notify({
                             title: '未匹配成功',
                             dangerouslyUseHTMLString: true,
@@ -1049,7 +1063,9 @@ export default {
                     const allScanned = Object.values(this.validateStatus).every(status => status === true);
 
                     if (allScanned) {
-                        tone(bdcg); // 播放绑定成功提示音
+                        setTimeout(() => {
+                            tone(bdcg); // 延迟播放绑定成功提示音
+                        }, 1000);
                         this.$notify({
                             title: '扫描完成',
                             dangerouslyUseHTMLString: true,
@@ -1071,7 +1087,7 @@ export default {
                             .filter(material => !this.validateStatus[material._id])
                             .map(material => `${material.materialName}(${material.materialCode})`)
                             .join('\n');
-                        
+
                         if (remainingMaterials) {
                             this.$notify({
                                 title: '继续扫描',
@@ -1091,7 +1107,9 @@ export default {
 
                 } catch (error) {
                     console.error('扫描处理失败:', error);
-                    tone(tmyw); // 播放错误提示音
+                    setTimeout(() => {
+                        tone(tmyw); // 延迟播放错误提示音
+                    }, 1000);
                     this.$notify({
                         title: '扫描失败',
                         message: error.message || '扫描处理失败',
