@@ -343,7 +343,7 @@
 
                                 <!-- 检测信息 -->
                                 <el-tab-pane label="检测信息" name="inspection">
-                                    <inspection-list :inspections="dataForm.processNodes || []"></inspection-list>
+                                    <inspection-list :inspections="dataForm || []"></inspection-list>
                                 </el-tab-pane>
 
                                 <!-- 解绑信息 -->
@@ -692,7 +692,7 @@ export default {
                     confirmButtonClass: 'el-button--danger'
                 });
 
-                await removeData('k3_SAL_SaleOrder', row._id);
+                await removeData('k3_SAL_SaleOrder', { query: { _id: row._id } });
                 this.$message.success('删除成功');
                 this.fetchData();
             } catch (error) {
@@ -827,7 +827,7 @@ export default {
                     type: 'warning'
                 });
 
-                await removeData('k3_SAL_SaleOrder', row._id);
+                await removeData('k3_SAL_SaleOrder', { query: { _id: row._id } });
                 this.$message.success('删除成功');
                 this.fetchData();
             } catch (error) {

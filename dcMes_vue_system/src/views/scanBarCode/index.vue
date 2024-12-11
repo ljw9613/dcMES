@@ -17,18 +17,20 @@
                         </div>
 
                         <el-form-item label="产品型号">
-                            <el-select v-model="formData.productModel" placeholder="请选择产品型号"
-                                @change="handleProductChange" filterable remote :remote-method="getMaterialList"
-                                :loading="materialLoading" class="custom-select"
-                                :disabled="!!mainMaterialId && !!processStepId">
-                                <el-option v-for="item in productOptions" :key="item._id"
-                                    :label="`${item.FNumber} - ${item.FName}`" :value="item._id">
-                                    <div class="option-content">
-                                        <span class="option-main">{{ item.FNumber }} - {{ item.FName }}</span>
-                                        <span class="option-sub">{{ item.FSpecification || '无规格' }}</span>
+                            <zr-select v-model="formData.productModel" collection="k3_BD_MATERIAL"
+                                :disabled="!!mainMaterialId && !!processStepId" :search-fields="['FNumber', 'FName']"
+                                label-key="FName" sub-key="FMATERIALID" :multiple="false" placeholder="请输入物料编码/名称搜索"
+                                @select="handleProductChange">
+                                <template #option="{ item }">
+                                    <div class="item-option">
+                                        <div class="item-info">
+                                            <span>{{ item.FNumber }} - {{ item.FName }}</span>
+                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId
+                                                }}</el-tag>
+                                        </div>
                                     </div>
-                                </el-option>
-                            </el-select>
+                                </template>
+                            </zr-select>
                         </el-form-item>
 
                         <el-form-item label="产品工序">
@@ -51,12 +53,10 @@
                                 label-key="lineName" tag-key="lineCode" sub-key="workshop" :multiple="false"
                                 placeholder="请输入产线信息搜索" @select="handleProductionLineSelect" />
                         </el-form-item>
-
-
                     </div>
 
                     <!-- 按钮部分 -->
-                    <div class="button-group">
+                    <div class="button-group" v-if="hasEditPermission">
                         <el-button type="danger" @click="handleCancelSave" icon="el-icon-close"
                             v-if="mainMaterialId && processStepId">
                             取消设置
@@ -115,28 +115,31 @@
                             <span>子物料</span>
                         </div>
                         <div class="material-section">
-                            <el-form-item v-for="material in processMaterials" :key="material._id"
-                                :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
-                                class="vertical-form-item">
-                                <!-- 批次：${material.isBatch ? '是' : '否'} -->
+                            <el-row :gutter="20">
+                                <el-col :span="12" v-for="material in processMaterials" :key="material._id">
+                                    <el-form-item :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
+                                        class="vertical-form-item">
+                                        <div class="input-with-status">
+                                            <el-input v-model="scanForm.barcodes[material._id]"
+                                                :placeholder="`请扫描子物料条码`"
+                                                :class="{ 'valid-input': validateStatus[material._id] }" readonly>
+                                                <template slot="prefix">
+                                                    <i class="el-icon-full-screen"></i>
 
-                                <div class="input-with-status">
-                                    <el-input v-model="scanForm.barcodes[material._id]" :placeholder="`请扫描子物料条码`"
-                                        :class="{ 'valid-input': validateStatus[material._id] }" readonly>
-                                        <template slot="prefix">
-                                            <i class="el-icon-full-screen"></i>
+                                                </template>
+                                                <template slot="suffix" v-if="material.isBatch">
+                                                    <el-tag type="warning">批次物料</el-tag>
+                                                </template>
+                                            </el-input>
+                                            <div class="status-indicator"
+                                                :class="{ 'valid': validateStatus[material._id] }">
+                                                <i :class="getValidateIcon(material._id)"></i>
+                                            </div>
+                                        </div>
+                                    </el-form-item>
+                                </el-col>
+                            </el-row>
 
-                                        </template>
-                                        <template slot="suffix" v-if="material.isBatch">
-                                            <el-tag type="warning">批次物料</el-tag>
-                                        </template>
-                                    </el-input>
-                                    <div class="status-indicator" :class="{ 'valid': validateStatus[material._id] }">
-                                        <i :class="getValidateIcon(material._id)"></i>
-
-                                    </div>
-                                </div>
-                            </el-form-item>
                         </div>
 
                         <!-- 按钮组 -->
@@ -178,6 +181,8 @@ import {
     tone
 } from "@/utils/tone.js";
 import smcg from "@/assets/tone/smcg.mp3";
+import tmyw from "@/assets/tone/tmyw.mp3";
+import bdcg from "@/assets/tone/bdcg.mp3";
 export default {
     name: 'ScanBarCode',
     components: {
@@ -217,6 +222,7 @@ export default {
             },
             loading: false, // 加载状态
             unifiedScanInput: '', // 新增统一扫描输入框的值
+            hasEditPermission: false, // 添加权限控制状态
         }
     },
     computed: {
@@ -267,7 +273,8 @@ export default {
             set(value) {
                 localStorage.setItem('productLineName', value)
             }
-        }
+        },
+
     },
     watch: {
         // 监听缓存ID变化，获取相关数据
@@ -301,8 +308,7 @@ export default {
         handleProductionLineSelect(item) {
             if (item) {
                 this.formData.lineName = item.lineName;
-                this.productLineId = item._id;
-                this.productLineName = item.lineName;
+                this.formData.productLine = item._id;
             }
         },
         // API 调用方法
@@ -384,7 +390,8 @@ export default {
         },
 
         // 产品型号变化处理
-        async handleProductChange(materialId) {
+        async handleProductChange(material) {
+            let materialId = material._id
             this.processStepOptions = [];
             this.formData.processStep = '';
             this.mainMaterialId = ''; // 清空缓存的主物料ID
@@ -393,8 +400,10 @@ export default {
 
             try {
                 const processSteps = await this.getAllProcessSteps(materialId);
+                console.log("🚀 ~ handleProductChange ~ processSteps:", processSteps)
                 this.processStepOptions = Array.from(processSteps);
-                this.mainMaterialId = materialId; // 缓存选中的产品型号ID
+                this.formData.productModel = materialId;
+                // this.mainMaterialId = materialId; // 缓存选中的产品型号ID
             } catch (error) {
                 console.error('获取工序列表失败:', error);
                 this.$message.error('获取工序列表失败');
@@ -407,7 +416,8 @@ export default {
                 this.processStepId = '';
                 return;
             }
-            this.processStepId = processId; // 缓存选中的工序ID
+            this.formData.processStep = processId;
+            // this.processStepId = processId; // 缓存选中的工序ID
         },
 
         // 保存按钮处理
@@ -596,66 +606,82 @@ export default {
 
         // 修改验证条码的方法
         async validateBarcode(barcode) {
+            console.log('validateBarcode', barcode);
             if (!barcode) return false;
 
             let materialCode;
+            let relatedBill = "";
 
-            // 根据不同长度判断不同类型的条码
-            switch (barcode.length) {
-                case 47: // 成品码
-                    const productDI = barcode.substring(4, 18);
-                    const productResult = await this.validateDICode(productDI);
-                    if (!productResult.isValid) return false;
-                    materialCode = productResult.materialCode;
-                    break;
 
-                case 34: // 电风扇与制冷片组件
-                    const fanDI = barcode.substring(7, 19);
-                    const fanResult = await this.validateDICode(fanDI);
-                    if (!fanResult.isValid) return false;
-                    materialCode = fanResult.materialCode;
-                    break;
+            let valid = false;
+            //检测条码是否包含-
+            if (barcode.includes('-') && barcode.length != 34) {
+                materialCode = barcode.split('-')[0];
+                relatedBill = barcode.split('-')[1];
+                valid = true;
+            }
 
-                case 48: // 灯板组件
-                    const lightDI = barcode.substring(0, 5);
-                    const lightResult = await this.validateDICode(lightDI);
-                    if (!lightResult.isValid) return false;
-                    materialCode = lightResult.materialCode;
-                    break;
+            if (!valid) {
+                // 根据不同长度判断不同类型的条码
+                switch (barcode.length) {
+                    case 47: // 成品码
+                        const productDI = barcode.substring(4, 18);
+                        console.log('productDI', productDI);
+                        const productResult = await this.validateDICode(productDI);
+                        if (!productResult.isValid) return false;
+                        materialCode = productResult.materialCode;
+                        break;
 
-                case 32: // 遥控器组件
-                    const remoteDI = barcode.substring(0, 8);
-                    const remoteResult = await this.validateDICode(remoteDI);
-                    if (!remoteResult.isValid) return false;
-                    materialCode = remoteResult.materialCode;
-                    break;
+                    case 34: // 电风扇与制冷片组件
+                        const fanDI = barcode.substring(7, 19);
+                        console.log('fanDI', fanDI);
+                        const fanResult = await this.validateDICode(fanDI);
+                        if (!fanResult.isValid) return false;
+                        materialCode = fanResult.materialCode;
+                        break;
 
-                case 20: // 批次虚拟条码
-                    const batchDI = barcode.substring(0, 11);
-                    const batchResult = await this.validateDICode(batchDI);
-                    if (!batchResult.isValid) return false;
-                    materialCode = batchResult.materialCode;
-                    break;
+                    case 48: // 灯板组件
+                        const lightDI = barcode.substring(0, 5);
+                        console.log('lightDI', lightDI);
+                        const lightResult = await this.validateDICode(lightDI);
+                        if (!lightResult.isValid) return false;
+                        materialCode = lightResult.materialCode;
+                        break;
 
-                default:
-                    // 处理普通条码格式
-                    const pattern = /^[A-Za-z0-9]+-[0-9]+$/;
-                    if (!pattern.test(barcode)) {
+                    case 32: // 遥控器组件
+                        const remoteDI = barcode.substring(0, 8);
+                        console.log('remoteDI', remoteDI);
+                        const remoteResult = await this.validateDICode(remoteDI);
+                        if (!remoteResult.isValid) return false;
+                        materialCode = remoteResult.materialCode;
+                        break;
+
+                    case 20: // 批次虚拟条码
+                        const batchDI = barcode.substring(0, 11);
+                        console.log('batchDI', batchDI);
+                        const batchResult = await this.validateDICode(batchDI);
+                        if (!batchResult.isValid) return false;
+                        materialCode = batchResult.materialCode;
+                        break;
+
+                    default:
+                        // 处理普通条码格式
                         this.$message.error('条码格式不正确，应为：物料编号-序号');
+                        tone(tmyw)
                         return false;
-                    }
-                    materialCode = barcode.split('-')[0];
+                }
+
             }
 
             // 验证物料编码是否匹配当前工序需求
             if (materialCode === this.mainMaterialCode) {
-                return { materialCode: materialCode, isValid: true };
+                return { materialCode: materialCode, isValid: true, relatedBill: relatedBill };
             }
 
             // 检查是否为子物料
             const matchedMaterial = this.processMaterials.find(m => m.materialCode === materialCode);
             if (matchedMaterial) {
-                return { materialCode: materialCode, isValid: true };
+                return { materialCode: materialCode, isValid: true, relatedBill: relatedBill };
             }
 
             this.$message.error('该条码对应的物料与当前工序所需物料不匹配');
@@ -676,15 +702,16 @@ export default {
                     // 条码已存在，获取流程信息
                     const flowData = response.data[0];
                     this.$message.success('扫描成功');
-
                     // TODO: 可以在这里添加额外的处理逻辑，比如显示当前流程状态等
 
                 } else {
                     // 条码不存在，创建新的流程记录
                     const materialCode = this.mainMaterialCode;
+                    const mainMaterialId = this.mainMaterialId;
 
                     // 调用创建流程的API
                     const createResponse = await createFlow({
+                        mainMaterialId,
                         materialCode,
                         barcode
                     });
@@ -697,6 +724,7 @@ export default {
                 }
             } catch (error) {
                 console.error('处理主条码失败:', error);
+                tone(tmyw)
                 throw error;
             }
         },
@@ -722,8 +750,10 @@ export default {
 
                 this.validateStatus[materialId] = true;
                 this.$message.success('扫码成功');
+
             } catch (error) {
                 console.error('处理子物料条码失败:', error);
+                tone(tmyw)
                 throw error;
             }
         },
@@ -752,7 +782,7 @@ export default {
                     type: 'warning'
                 });
 
-                // 创建全屏加���
+                // 创建全屏加载
                 const loading = this.$loading({
                     lock: true,
                     text: '取消设置中...',
@@ -877,25 +907,34 @@ export default {
                 }
 
                 //TODO成功后播放提示音
-                tone(smcg)
+                tone(bdcg)
                 // 6. 重置表单
                 this.resetScanForm();
 
             } catch (error) {
                 console.error('确认失败:', error);
-                this.$message.error('确认失败: ' + error.message);
+                tone(tmyw)
+                if (error.message.includes("该主物料条码对应工序节点已完成或处于异常状态")) {
+                    this.$message.warning(error.message);
+                } else {
+                    this.$message.error('确认失败:' + error.message);
+                }
             }
         },
 
 
 
-        // 新增统一扫描处理方法
+        // 修改统一扫描处理方法
         async handleUnifiedScan(value) {
             if (!value) return;
 
+            // 去除可能的回车符和换行符
+            const cleanValue = value.trim().replace(/[\r\n]/g, '');
+            if (!cleanValue) return;
+
             try {
                 // 验证条码格式
-                const isValidResult = await this.validateBarcode(value);
+                const isValidResult = await this.validateBarcode(cleanValue);
                 if (!isValidResult.isValid) {
                     this.unifiedScanInput = '';
                     this.$refs.scanInput.focus();
@@ -911,6 +950,7 @@ export default {
                     this.scanForm.mainBarcode = value;
                     await this.handleMainBarcode(value);
                     this.validateStatus.mainBarcode = true;
+                    tone(smcg)
                     this.$message.success('主物料扫描成功');
                     matched = true;
                 }
@@ -921,6 +961,7 @@ export default {
                         if (material.materialCode === materialCode) {
                             this.$set(this.scanForm.barcodes, material._id, value);
                             await this.handleSubBarcode(material._id, materialCode);
+                            tone(smcg)
                             this.$message.success(`${material.materialName} 扫描成功`);
                             matched = true;
                             break;
@@ -929,8 +970,11 @@ export default {
                 }
 
                 if (!matched) {
+                    tone(tmyw)
                     this.$message.warning('未找到匹配的物料');
+                    return;
                 }
+
 
                 const allScanned = Object.values(this.validateStatus).every(status => status === true);
 
@@ -972,9 +1016,21 @@ export default {
         await this.fillFormData();
     },
     mounted() {
-        console.log("🚀 ~ mounted ~ this.$store.getters.id:", this.$store.getters.id)
+        console.log("🚀 ~ mounted ~ this.$store.getters.id:", this.$store.getters)
         // 页面加载时自动获取焦点
-        this.$refs.scanInput.focus();
+        if (this.mainMaterialId && this.processStepId) {
+            this.$refs.scanInput.focus();
+        }
+
+
+        console.log("Complete roles data:", this.$store.getters.roles);
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        if (roles.buttonList.includes("scan_edit_configuration")) {
+            this.hasEditPermission = true;
+        }
     }
 }
 </script>
@@ -987,7 +1043,6 @@ export default {
 }
 
 .scan-card {
-    max-width: 1000px;
     margin: 0 auto;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);

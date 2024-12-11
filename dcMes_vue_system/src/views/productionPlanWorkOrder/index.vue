@@ -496,7 +496,7 @@ export default {
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('k3_PRD_MO', row._id);
+                    await removeData('k3_PRD_MO', { query: { _id: row._id } });
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {
@@ -577,7 +577,7 @@ export default {
             }).then(async () => {
                 try {
                     const ids = this.selection.map(item => item._id)
-                    await removeData('production_plan_work_order', ids)
+                    await removeData('production_plan_work_order', { query: { _id: { $in: ids } } })
                     this.$message.success('批量删除成功')
                     this.fetchData()
                 } catch (error) {

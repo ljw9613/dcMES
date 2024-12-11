@@ -111,8 +111,6 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
         StartRow: startRow,
         Limit: pageSize,
       });
-      console.log("🚀 ~ syncK3Data ~ k3Data:", k3Data.length);
-      // console.log(JSON.stringify(k3Data));
       // 修改K3错误响应检查部分
       let responseData = k3Data;
       // 处理嵌套数组的情况
@@ -159,7 +157,6 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
 
       // 截取transformedData前10条数据
       //   transformedData = transformedData.slice(0, 1000);
-      console.log("🚀 ~ syncK3Data ~ transformedData:", transformedData.length);
 
       // 批量更新逻辑
       const batchSize = 100;
@@ -386,7 +383,7 @@ router.get("/sync/status/:modelName", (req, res) => {
   const { modelName } = req.params;
   const task = syncTasks.get(modelName);
 
-  
+
 
   if (!task) {
     return res.json({

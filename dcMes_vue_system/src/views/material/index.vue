@@ -138,6 +138,8 @@
             <template slot="law">
                 <!-- FUseOrgId 使用组织 -->
                 <el-table-column label="使用组织" prop="FUseOrgId" width="150" />
+                <!-- FMATERIALID 物料ID -->
+                <el-table-column label="物料ID" prop="FMATERIALID" width="150" />
                 <el-table-column label="物料编码" prop="FNumber" width="120">
                     <template slot-scope="scope">
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.FNumber }}</el-link>
@@ -169,6 +171,7 @@
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleViewFlowChart(scope.row)">查看流程图</el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">DI码管理</el-button>
+                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -212,6 +215,46 @@
         <!-- 使用新的流程图组件 -->
         <material-flow-chart :visible.sync="flowChartDialogVisible" :loading="flowChartLoading"
             :flow-data="processedFlowChartData" />
+
+        <!-- 添加同步物料弹窗 -->
+        <el-dialog title="同步物料数据" :visible.sync="syncDialogVisible" width="500px">
+            <el-form :model="syncForm" ref="syncForm" label-width="100px">
+                <el-form-item label="同步方式">
+                    <el-radio-group v-model="syncForm.syncType">
+                        <el-radio label="number">按物料编号同步</el-radio>
+                        <el-radio label="date">按日期同步</el-radio>
+                        <el-radio label="all">同步全部</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+
+                <!-- 物料编号输入框 -->
+                <el-form-item label="物料编号" v-if="syncForm.syncType === 'number'">
+                    <el-input type="textarea" :rows="3" v-model="syncForm.materialNumbers"
+                        placeholder="请输入物料编号，多个编号用英文逗号分隔"></el-input>
+                </el-form-item>
+
+                <!-- 日期选择 -->
+                <el-form-item label="审核日期" v-if="syncForm.syncType === 'date'">
+                    <el-date-picker v-model="syncForm.dateRange" type="daterange" range-separator="至"
+                        start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
+                    </el-date-picker>
+                </el-form-item>
+
+                <!-- 单据状态选择 -->
+                <el-form-item label="单据状态">
+                    <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
+                        placeholder="请选择单据状态" style="width: 100%">
+                        <el-option label="已审核" value="C" />
+                        <el-option label="审核中" value="B" />
+                        <el-option label="草稿" value="A" />
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="syncDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="confirmSync">确 定</el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -297,6 +340,13 @@ export default {
             processedFlowChartData: [], // 处理后的流程图数据
             productDiNumId: null, // 存储DI记录的ID
             syncProgressTimer: null, // 用于存储定时器ID
+            syncDialogVisible: false,
+            syncForm: {
+                syncType: 'date',
+                materialNumbers: '',
+                dateRange: [],
+                documentStatus: 'C'
+            }
         }
     },
     methods: {
@@ -584,7 +634,7 @@ export default {
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('k3_PRD_MO', row._id);
+                    await removeData('k3_PRD_MO', { query: { _id: row._id } });
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {
@@ -664,7 +714,7 @@ export default {
         async handleViewFlowChart(row) {
             this.flowChartLoading = true;
             try {
-                // 添加调试日志
+                // 添加调试���志
                 console.log('当前物料:', row);
 
                 // 1. 先查询该物料是否有关联的工艺
@@ -682,7 +732,7 @@ export default {
                     return;
                 }
 
-                // 3. 构建流程图数据
+                // 3. 构建流程��数据
                 this.flowChartDialogVisible = true;
                 const flowData = await this.buildFlowChartData(row._id, new Set());
                 console.log('构建的流程图数据:', flowData);
@@ -864,8 +914,78 @@ export default {
 
         // 同步物料数据
         async handleSync() {
+            this.syncDialogVisible = true;
+            this.syncForm = {
+                syncType: 'date',
+                materialNumbers: '',
+                dateRange: [],
+                documentStatus: 'C'
+            };
+        },
+
+        // 单个同步
+        async handleOneSync(row) {
+            console.log("🚀 ~ handleOneSync ~ row:", row)
             try {
-                await this.$confirm('确认要同步物料数据吗？此操作可能需要一些时间', '提示', {
+                let req = {
+                    "FilterString": []
+                };
+
+                await this.$confirm(`确认更新${row.FNumber}的数据吗？`, '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                req.FilterString = [
+                    {
+                        "FieldName": "FMATERIALID",
+                        "Compare": "=",
+                        "Value": row.FMATERIALID,
+                        "Left": "",
+                        "Right": "",
+                        "Logic": 0
+                    }
+                ];
+
+                const response = await syncBD_MATERIAL(req);
+                if (response.code === 200) {
+                    this.startSyncProgressCheck();
+                    if (response.taskStatus) {
+                        this.$message.success(`同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
+                    } else {
+                        this.$message.success('同步任务已启动');
+                    }
+                } else {
+                    this.$message.error(response.message || '物料同步失败');
+                }
+            } catch (error) {
+                console.error('物料同步失败:', error);
+                this.$message.error('物料同步失败');
+            }
+
+        },
+
+        // 确认同步方法
+        async confirmSync() {
+            // 验证表单
+            if (this.syncForm.syncType === 'number' && !this.syncForm.materialNumbers.trim()) {
+                this.$message.warning('请输入物料编号');
+                return;
+            }
+            if (this.syncForm.syncType === 'date' && (!this.syncForm.dateRange || this.syncForm.dateRange.length !== 2)) {
+                this.$message.warning('请选择审核日期范围');
+                return;
+            }
+
+            try {
+                const confirmMessage = {
+                    'number': '确认要同步选定物料编号的数据吗？',
+                    'date': '确认要同步选定日期范围的数据吗？',
+                    'all': '确认要同步所有物料数据吗？此操作可能需要较长时间'
+                }[this.syncForm.syncType];
+
+                await this.$confirm(confirmMessage, '提示', {
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning'
@@ -879,17 +999,93 @@ export default {
                 });
 
                 try {
-                    const response = await syncBD_MATERIAL();
+                    let req = {
+                        "FilterString": []
+                    };
+
+                    // 根据不同同步方式构建请求参数
+                    switch (this.syncForm.syncType) {
+                        case 'number':
+                            req.FilterString = [
+                                {
+                                    "FieldName": "FNumber",
+                                    "Compare": "IN",
+                                    // 清理物料编码：去除换行符、空格，并按逗号分隔
+                                    "Value": this.syncForm.materialNumbers
+                                        .replace(/[\n\r\s]+/g, ',') // 将换行符和多余空格替换为逗号
+                                        .split(',')                 // 按逗号分割
+                                        .filter(code => code)       // 过滤空值
+                                        .map(code => code.trim())   // 去除每个编码首尾空格
+                                        .join(','),                 // 重新用逗号连接
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                },
+                                {
+                                    "FieldName": "FDocumentStatus",
+                                    "Compare": "StatusEqualto",
+                                    "Value": this.syncForm.documentStatus,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                }
+                            ];
+                            break;
+
+                        case 'date':
+                            const [startDate, endDate] = this.syncForm.dateRange;
+                            req.FilterString = [
+                                {
+                                    "FieldName": "FDocumentStatus",
+                                    "Compare": "StatusEqualto",
+                                    "Value": this.syncForm.documentStatus,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                },
+                                {
+                                    "FieldName": "FApproveDate",
+                                    "Compare": ">",
+                                    "Value": `${startDate} 00:00:00`,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                },
+                                {
+                                    "FieldName": "FApproveDate",
+                                    "Compare": "<",
+                                    "Value": `${endDate} 23:59:59`,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                }
+                            ];
+                            break;
+
+                        case 'all':
+                            req.FilterString = [
+                                {
+                                    "FieldName": "FDocumentStatus",
+                                    "Compare": "StatusEqualto",
+                                    "Value": "C",
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                }
+                            ];
+                            break;
+                    }
+
+                    const response = await syncBD_MATERIAL(req);
                     if (response.code === 200) {
+                        this.syncDialogVisible = false;
                         loading.close();
+                        this.startSyncProgressCheck();
                         if (response.taskStatus) {
-                            // 启动定时查询进度
-                            this.startSyncProgressCheck();
                             this.$message.success(`同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
                         } else {
                             this.$message.success('同步任务已启动');
                         }
-
                     } else {
                         loading.close();
                         this.$message.error(response.message || '物料同步失败');
@@ -900,8 +1096,10 @@ export default {
                     this.$message.error('物料同步失败: ' + error.message);
                 }
             } catch (error) {
-                console.error('操作失败:', error);
-                this.$message.error('操作失败');
+                if (error !== 'cancel') {
+                    console.error('操作失败:', error);
+                    this.$message.error('操作失败');
+                }
             }
         },
 
@@ -939,7 +1137,13 @@ export default {
                                     // 刷新数据列表
                                     this.fetchData();
                                     break;
-
+                                case 'completed':
+                                    // 同步完成
+                                    this.$message.success(`同步完成！`);
+                                    this.stopSyncProgressCheck();
+                                    // 刷新数据列表
+                                    this.fetchData();
+                                    break;
                                 default:
                                     // 未知状态
                                     this.$message.warning('未知的同步状态');
@@ -956,7 +1160,7 @@ export default {
                     this.$message.error('查询同步进度失败');
                     this.stopSyncProgressCheck();
                 }
-            }, 10000); // 每10秒执行一次
+            }, 5000); // 每10秒执行一次
         },
 
         // 停止定时查询

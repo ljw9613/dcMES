@@ -10,24 +10,26 @@ const { v4: uuidv4 } = require("uuid");
 class MaterialProcessFlowService {
   /**
    * 根据物料编码创建工艺流程记录
+   * @param {string} mainMaterialId - 物料编码
    * @param {string} materialCode - 物料编码
    * @param {string} barcode - 物料条码
    * @returns {Promise<Object>} 创建的流程记录
    */
-  static async createFlowByMaterialCode(materialCode, barcode) {
+  static async createFlowByMaterialCode(mainMaterialId, materialCode, barcode) {
     try {
-      console.log(
-        "🚀 ~ createFlowByMaterialCode ~ materialCode:",
-        materialCode
-      );
       // 1. 获取物料信息
-      const material = await Material.findOne({ FNumber: materialCode });
+      const material = await Material.findOne({ _id: mainMaterialId });
       if (!material) {
         throw new Error(`未找到物料编码为 ${materialCode} 的物料信息`);
       }
 
+      console.log(
+        "🚀 ~ MaterialProcessFlowService ~ mainMaterialId:",
+        mainMaterialId
+      );
+
       // 2. 获取物料对应的工艺信息
-      const craft = await Craft.findOne({ materialId: material._id });
+      const craft = await Craft.findOne({ materialId: mainMaterialId });
       if (!craft) {
         throw new Error(`未找到物料 ${materialCode} 对应的工艺信息`);
       }
@@ -322,10 +324,17 @@ class MaterialProcessFlowService {
                 node.materialId &&
                 node.materialId.toString() === subNode.materialId.toString()
             );
-     
+
             if (matchingNodeIndex !== -1) {
               flowRecord.processNodes[matchingNodeIndex].barcode =
                 subNode.barcode;
+              if (
+                subNode.barcode.includes("-") &&
+                subNode.barcode.length < 30
+              ) {
+                flowRecord.processNodes[matchingNodeIndex].relatedBill =
+                  subNode.barcode.split("-")[1];
+              }
               flowRecord.processNodes[matchingNodeIndex].scanTime =
                 subNode.scanTime;
               flowRecord.processNodes[matchingNodeIndex].endTime =
@@ -342,10 +351,17 @@ class MaterialProcessFlowService {
                 node.processStepId.toString() ===
                   subNode.processStepId.toString()
             );
-          
+
             if (matchingNodeIndex !== -1) {
               flowRecord.processNodes[matchingNodeIndex].barcode =
                 subNode.barcode;
+              if (
+                subNode.barcode.includes("-") &&
+                subNode.barcode.length < 30
+              ) {
+                flowRecord.processNodes[matchingNodeIndex].relatedBill =
+                  subNode.barcode.split("-")[1];
+              }
               flowRecord.processNodes[matchingNodeIndex].scanTime =
                 subNode.scanTime;
               flowRecord.processNodes[matchingNodeIndex].endTime =
@@ -353,12 +369,11 @@ class MaterialProcessFlowService {
               flowRecord.processNodes[matchingNodeIndex].status =
                 subNode.status;
               flowRecord.processNodes[matchingNodeIndex].updateBy = userId;
-              }
+            }
           }
         }
       }
     }
-
 
     // 验证每个扫描的物料ID是否匹配
     for (const scan of componentScans) {
@@ -387,10 +402,18 @@ class MaterialProcessFlowService {
           const matchingScan = componentScans.find(
             (scan) => scan.materialId.toString() === node.materialId.toString()
           );
+          let relatedBill = "";
+          if (
+            matchingScan.barcode.includes("-") &&
+            matchingScan.barcode.length < 30
+          ) {
+            relatedBill = matchingScan.barcode.split("-")[1];
+          }
           if (matchingScan) {
             return {
               ...node,
               barcode: matchingScan.barcode,
+              relatedBill: relatedBill,
               status: "COMPLETED",
               scanTime: new Date(),
               endTime: new Date(),

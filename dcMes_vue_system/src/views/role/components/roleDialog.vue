@@ -7,52 +7,38 @@
 <template>
   <div class="app-container">
     <!-- 弹窗start -->
-    <el-dialog
-      :title="add ? '添加角色' : '编辑角色'"
-      :visible.sync="dialogFormVisible"
-    >
-      <el-form
-        v-if="isShow"
-        ref="dataForm"
-        v-model="postList"
-        label-position="right"
-      >
+    <el-dialog :title="add ? '添加角色' : '编辑角色'" :visible.sync="dialogFormVisible">
+      <el-form v-if="isShow" ref="dataForm" v-model="postList" label-position="right">
         <el-form-item label="角色名称" label-width="100px" required>
-          <el-input v-model="postList.name" placeholder="请输入角色名称"/>
+          <el-input v-model="postList.name" placeholder="请输入角色名称" />
         </el-form-item>
         <el-form-item label="角色标识" label-width="100px" required>
-          <el-input v-model="postList.label" placeholder="请输入角色标识"/>
+          <el-input v-model="postList.label" placeholder="请输入角色标识" />
         </el-form-item>
 
+        <!-- 按钮权限 -->
+        <el-form-item label="按钮权限" label-width="100px" required>
+          <el-select v-model="postList.buttonList" multiple placeholder="请选择按钮权限">
+            <el-option v-for="dict in dict.type.buttonPermissions" :key="dict.value" :label="dict.label"
+              :value="dict.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="菜单权限" label-width="100px" required>
           <el-card v-if="menu" shadow="never">
-            <el-tree
-              ref="menuTree"
-              v-model="postList.menuList"
-              :data="optionsList"
-              :default-checked-keys="postList.menuList"
-              :props="{ value: '_id', label: 'menuName' }"
-              node-key="_id"
-              show-checkbox
-              @check="getTree"
-            >
+            <el-tree ref="menuTree" v-model="postList.menuList" :data="optionsList"
+              :default-checked-keys="postList.menuList" :props="{ value: '_id', label: 'menuName' }" node-key="_id"
+              show-checkbox @check="getTree">
             </el-tree>
           </el-card>
         </el-form-item>
         <el-form-item label="备注" label-width="100px">
-          <el-input
-            v-model="postList.remark"
-            placeholder="请输入备注"
-            type="textarea"
-          />
+          <el-input v-model="postList.remark" placeholder="请输入备注" type="textarea" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="add ? createData() : editData()"
-        >确定
-        </el-button
-        >
+        <el-button type="primary" @click="add ? createData() : editData()">确定
+        </el-button>
       </div>
     </el-dialog>
     <!-- 弹窗end -->
@@ -60,12 +46,13 @@
 </template>
 
 <script>
-import {addData, getData, updateData} from "@/api/data";
+import { addData, getData, updateData } from "@/api/data";
 import IconSelect from "@/components/IconSelect";
-import {formatMenu2Tree} from "@/utils/format2Tree";
+import { formatMenu2Tree } from "@/utils/format2Tree";
 
 export default {
-  components: {IconSelect},
+  components: { IconSelect },
+  dicts: ['buttonPermissions'],
   porps: ["dialogFormVisible"],
   data() {
     return {
@@ -74,6 +61,7 @@ export default {
       add: true,
       _id: null,
       postList: {},
+      buttonList: [],
       optionsList: null,
       isShow: false,
     };
@@ -85,14 +73,14 @@ export default {
       // 获取选中和半选中的节点
       const checkedNodes = this.$refs.menuTree.getCheckedNodes();
       const halfCheckedNodes = this.$refs.menuTree.getHalfCheckedNodes();
-      
+
       // 获取选中和半选中的节点ID
       const checkedKeys = checkedNodes.map(node => node._id);
       const halfCheckedKeys = halfCheckedNodes.map(node => node._id);
-      
+
       // 合并所有需要的ID
       this.postList.menuList = [...new Set([...checkedKeys, ...halfCheckedKeys])];
-      
+
       console.log({
         完全选中的节点: checkedKeys,
         半选中的父节点: halfCheckedKeys,
@@ -100,9 +88,9 @@ export default {
       });
     },
     async getSelectData() {
-      let {data: dataList} = await getData("menu", {
+      let { data: dataList } = await getData("menu", {
         query: {},
-        sort: {sortNum: 1},
+        sort: { sortNum: 1 },
       });
       this.optionsList = formatMenu2Tree(dataList, null, []);
       console.log(" this.optionsList", this.optionsList);
@@ -189,7 +177,7 @@ export default {
       // console.log(this.postList); return
       delete this.postList._id;
       var data = {
-        query: {_id: this._id},
+        query: { _id: this._id },
         update: {
           ...this.postList,
         },

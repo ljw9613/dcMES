@@ -1,14 +1,18 @@
 <template>
-    <el-dialog title="物料工艺流程图" :visible.sync="dialogVisible" width="95%" class="flow-chart-dialog" :append-to-body="false"
-        :modal-append-to-body="false" custom-class="material-flow-dialog">
-        <div v-loading="loading" class="flow-container">
-            <div v-if="!flowData || flowData.length === 0" class="empty-data">
-                暂无流程图数据
+    <el-dialog title="物料工艺流程图" :visible.sync="dialogVisible" width="90%" class="material-flow-dialog"
+        :append-to-body="true" :modal-append-to-body="true" :close-on-click-modal="false" :destroy-on-close="true"
+        @closed="handleDialogClosed">
+        <div class="flow-chart-container">
+            <div v-loading="loading" class="flow-container">
+                <div v-if="!flowData || flowData.length === 0" class="empty-data">
+                    暂无流程图数据
+                </div>
+                <template v-else>
+                    <flow-node :node="flowData[0]" />
+                </template>
             </div>
-            <template v-else>
-                <flow-node :node="flowData[0]" />
-            </template>
         </div>
+
     </el-dialog>
 </template>
 
@@ -44,51 +48,101 @@ export default {
                 this.$emit('update:visible', val);
             }
         }
+    },
+    methods: {
+        handleDialogClosed() {
+            this.$emit('update:visible', false);
+        }
     }
 }
 </script>
 
-<style lang="scss">
-/* 注意：这里移除了 scoped，因为需要覆盖 el-dialog 的默认样式 */
+<style lang="scss" scoped>
 .material-flow-dialog {
-    margin-top: 8vh !important; // 调整顶部距离
-    height: 85vh; // 设置弹窗高度
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    // position: absolute !important;
-    // left: 60% !important;
-    // transform: translateX(-50%) !important;
-    // width: calc(100% - 300px) !important; // 左右各留 200px 的间距
-    // max-width: 1500px !important; // 设置最大宽度，避免在大屏上过宽
+    ::v-deep .el-dialog {
+        margin-top: 5vh !important;
+        display: flex;
+        flex-direction: column;
 
-    .el-dialog__body {
-        padding: 0;
-        flex: 1;
-        overflow: hidden;
+        .el-dialog__body {
+            padding: 10px;
+            height: calc(90vh - 120px);
+            overflow: hidden;
+        }
+
+        .el-dialog__header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e4e7ed;
+        }
     }
 
-    .el-dialog__header {
-        padding: 15px 20px;
-        border-bottom: 1px solid #e4e7ed;
-    }
-}
+    .flow-chart-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        width: 100%;
+        height: 100%;
 
-.flow-chart-dialog {
-    .flow-container {
-        overflow-x: auto;
-        overflow-y: auto;
-        padding: 20px;
-        height: calc(85vh - 100px); // 减去头部高度
-        background: #f6f8fb;
+        .flow-container {
+            width: 100%;
+            height: 70vh;
+            overflow: auto;
+            padding: 20px;
+            background: #f6f8fb;
+
+            // Webkit浏览器 (Chrome, Safari等)
+            &::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            &::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 4px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                background: #409EFF;
+                border-radius: 4px;
+            }
+
+            &::-webkit-scrollbar-thumb:hover {
+                background: #337ecc;
+            }
+
+            // Firefox
+            scrollbar-width: thin;
+            scrollbar-color: #409EFF #f1f1f1;
+
+            // IE
+            -ms-overflow-style: -ms-autohiding-scrollbar;
+
+            // 通用滚动条属性
+            overflow: auto;
+            
+            // 平滑滚动效果
+            scroll-behavior: smooth;
+            
+            // 触摸设备的滚动
+            -webkit-overflow-scrolling: touch;
+        }
+
+        // 可选：如果要隐藏IE下的滚动条
+        @media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+            .flow-container {
+                -ms-overflow-style: none;
+            }
+        }
+
+        .empty-data {
+            text-align: center;
+            padding: 20px;
+            color: #409EFF;
+            font-size: 14px;
+        }
     }
 
-    .empty-data {
-        text-align: center;
-        padding: 20px;
-        color: #409EFF;
-        font-size: 14px;
-    }
 }
 
 // 滚动条样式

@@ -232,7 +232,7 @@ export default {
           var datas = {
             query: {_id: row._id},
           };
-          let response = await removeData("role", datas);
+          let response = await removeData("role", { query: { _id: row._id } });
 
           console.log(response);
           this.fetchData();

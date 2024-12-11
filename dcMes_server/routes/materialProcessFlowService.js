@@ -6,8 +6,9 @@ const MaterialProcessFlowService = require('../services/materialProcessFlowServi
 // 创建流程记录
 router.post('/api/v1/create-flow', async (req, res) => {
     try {
-        const { materialCode, barcode } = req.body;
+        const { mainMaterialId, materialCode, barcode } = req.body;
         const flowRecord = await MaterialProcessFlowService.createFlowByMaterialCode(
+            mainMaterialId,
             materialCode,
             barcode
         );

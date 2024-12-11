@@ -32,7 +32,7 @@
                 </el-row>
 
                 <el-row :gutter="20">
-                    <el-col :span="6">
+                    <el-col :span="4">
                         <el-form-item label="工艺类型">
                             <el-select v-model="searchForm.craftType" placeholder="请选择工艺类型" clearable
                                 style="width: 100%">
@@ -42,7 +42,7 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="6">
+                    <el-col :span="4">
                         <el-form-item label="工艺状态">
                             <el-select v-model="searchForm.status" placeholder="请选择工艺状态" clearable style="width: 100%">
                                 <el-option label="创建" value="CREATE" />
@@ -51,7 +51,7 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="6">
+                    <el-col :span="4">
                         <el-form-item label="生产阶级">
                             <el-select v-model="searchForm.productStage" placeholder="请选择生产阶级" clearable
                                 style="width: 100%">
@@ -62,13 +62,35 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="6">
+                    <el-col :span="4">
                         <el-form-item label="是否标准">
                             <el-select v-model="searchForm.isStandard" placeholder="请选择是否标准" clearable
                                 style="width: 100%">
                                 <el-option label="是" :value="true" />
                                 <el-option label="否" :value="false" />
                             </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="4">
+                        <el-form-item label="物料信息">
+                            <zr-select v-model="searchForm.selectedMaterial" collection="k3_BD_MATERIAL"
+                                :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
+                                :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleSearchMaterialChange"
+                                clearable style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                            </el-tag>
+                                        </div>
+                                        <div class="option-sub" v-if="item.FSpecification">
+                                            <small>规格: {{ item.FSpecification }}</small>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -135,10 +157,10 @@
                         <el-form-item label="工艺类型" prop="craftType">
                             <el-select v-model="craftForm.craftType" placeholder="请选择工艺类型" clearable
                                 style="width: 100%">
-                                <el-option label="标准工艺" value="STANDARD_PROCESS" />
-                                <el-option label="制具工艺" value="TOOL_MAKING_TECHNOLOGY" />
-                                <el-option label="辅材工艺" value="AUXILIARY_MATERIAL_TECHNOLOGY" />
+                                <el-option v-for="dict in dict.type.craftType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
                             </el-select>
+
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -157,17 +179,23 @@
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="选择物料" prop="selectedMaterial">
-                            <el-select v-model="craftForm.selectedMaterial" placeholder="请选择物料" filterable remote
-                                :remote-method="handleRemoteSearch" :loading="materialLoading"
-                                @change="handleCraftMaterialChange" style="width: 100%">
-                                <el-option v-for="item in materialOptions" :key="item._id"
-                                    :label="`${item.FNumber} - ${item.FName}`" :value="item._id">
-                                    <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                    <span style="float: right; color: #8492a6; font-size: 13px">{{ item.FSpecification
-                                        || '无规格'
-                                        }}</span>
-                                </el-option>
-                            </el-select>
+                            <zr-select v-model="craftForm.selectedMaterial" collection="k3_BD_MATERIAL"
+                                :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
+                                :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleCraftMaterialChange">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                            </el-tag>
+                                        </div>
+                                        <div class="option-sub" v-if="item.FSpecification">
+                                            <small>规格: {{ item.FSpecification }}</small>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
@@ -191,7 +219,11 @@
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="业务类型" prop="businessType">
-                            <el-input v-model="craftForm.businessType" placeholder="请输入业务类型"></el-input>
+                            <el-select v-model="craftForm.businessType" placeholder="请选择业务类型" clearable
+                                style="width: 100%">
+                                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -239,26 +271,24 @@
         </el-dialog>
 
         <!-- 新增工序弹窗 -->
-        <el-dialog :close-on-click-modal="false" title="新增工序" :visible.sync="processDialogVisible" width="60%"
-            append-to-body>
+        <el-dialog :close-on-click-modal="false" :title="processOperationType === 'add' ? '新增工序' : '编辑工序'"
+            :visible.sync="processDialogVisible" width="60%" append-to-body>
             <el-form ref="processForm" :model="processForm" :rules="processRules" label-width="100px">
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="生产阶级" prop="processStage">
                             <el-select v-model="processForm.processStage" placeholder="请选择生产阶级" style="width: 100%">
-                                <el-option label="SMT" value="SMT" />
-                                <el-option label="DIP" value="DIP" />
-                                <el-option label="ASSEMPLY" value="ASSEMPLY" />
-                                <el-option label="PACK" value="PACK" />
+                                <el-option v-for="dict in dict.type.processStage" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="工序类型" prop="processType">
-                            <el-select v-model="processForm.processType" placeholder="请选择工序类型" style="width: 100%">
-                                <el-option label="标准工艺" value="STANDARD_PROCESS" />
-                                <el-option label="制具工艺" value="TOOL_MAKING_TECHNOLOGY" />
-                                <el-option label="辅材工艺" value="AUXILIARY_MATERIAL_TECHNOLOGY" />
+                            <el-select v-model="processForm.processType" placeholder="请选择工序类型" style="width: 100%"
+                                @change="handleProcessTypeChange">
+                                <el-option v-for="dict in dict.type.processType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -283,7 +313,11 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="业务类型" prop="businessType">
-                            <el-input v-model="processForm.businessType" placeholder="请输入业务类型"></el-input>
+                            <el-select v-model="processForm.businessType" placeholder="请选择业务类型" clearable
+                                style="width: 100%" @change="handleBusinessTypeChange">
+                                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -291,9 +325,8 @@
                     <el-col :span="12">
                         <el-form-item label="工序状态" prop="status">
                             <el-select v-model="processForm.status" placeholder="请选择工序状态" style="width: 100%">
-                                <el-option label="创建" value="CREATE" />
-                                <el-option label="启用" value="ENABLE" />
-                                <el-option label="作废" value="VOID" />
+                                <el-option v-for="dict in dict.type.processStatus" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -301,6 +334,28 @@
                         <el-form-item label="工序次序" prop="sort">
                             <el-input-number v-model="processForm.sort" :min="1" placeholder="请输入工序次序"
                                 style="width: 100%"></el-input-number>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-form-item label="选择设备" prop="machineId">
+                            <zr-select v-model="processForm.machineId" collection="machine"
+                                :search-fields="['machineCode', 'machineName']" label-key="machineName"
+                                sub-key="machineCode" :multiple="false" placeholder="请输入设备编号/名称搜索"
+                                @select="handleMachineSelect">
+                                <template #option="{ item }">
+                                    <div class="item-option">
+                                        <div class="item-info">
+                                            <span class="name">{{ item.machineName }}</span>
+                                            <el-tag size="mini" type="info">{{ item.machineCode }}</el-tag>
+                                        </div>
+                                        <div class="sub-info">
+                                            <small>{{ item.principal }}</small>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -389,17 +444,24 @@
                 <el-row :gutter="20">
                     <el-col :span="24">
                         <el-form-item label="选择物料" prop="materialId">
-                            <el-select v-model="materialForm.materialId" placeholder="请选择物料" filterable remote
-                                :remote-method="getMaterialList" :loading="materialDialog.loading"
-                                @change="handleMaterialChange" style="width: 100%">
-                                <el-option v-for="item in materialOptions" :key="item._id"
-                                    :label="`${item.FNumber} - ${item.FName}`" :value="item._id">
-                                    <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                    <span style="float: right; color: #8492a6; font-size: 13px">
-                                        {{ item.FSpecification || '无规格' }}
-                                    </span>
-                                </el-option>
-                            </el-select>
+
+                            <zr-select v-model="materialForm.materialId" collection="k3_BD_MATERIAL"
+                                :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
+                                :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleMaterialChange">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                            </el-tag>
+                                        </div>
+                                        <div class="option-sub" v-if="item.FSpecification">
+                                            <small>规格: {{ item.FSpecification }}</small>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -476,10 +538,12 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
+import ZrSelect from '@/components/ZrSelect'
 
 export default {
+    components: { ZrSelect },
     name: 'CraftManagement',
-    dicts: ['product_type'],
+    dicts: ['product_type', 'craftType', 'processType', 'processStage', 'businessType', 'processStatus'],
     data() {
         return {
             // 临时ID
@@ -530,9 +594,10 @@ export default {
                 processStage: '',  // 生产阶级
                 processType: '',   // 工序类型
                 businessType: '',  // 业务类型
+                machineId: "",//设备
                 status: 'CREATE',  // 状态
                 materials: [],     // 工序物料清单
-                remark: '',        // ���注
+                remark: '',        // 备注
                 sort: 1            // 工序次序
             },
 
@@ -614,7 +679,7 @@ export default {
             materialDialogVisible: false,
             dialogStatus: 'create',
             materialDialogStatus: 'create', // 新增状态标记
-            editingMaterialId: null,       // 正在编辑的物料ID
+            editingMaterialId: null,       // 正在编辑的物��ID
 
 
 
@@ -630,6 +695,9 @@ export default {
                 productName: '',      // 产品型号 (原 FProductType)
                 productStage: '',     // 生产阶级
                 isStandard: '',       // 是否标准工艺
+                selectedMaterial: '', // 选中的物料ID
+                materialCode: '',    // 物料编码
+                materialName: ''     // 物料名称
             },
 
             // 是否显示高级搜索
@@ -637,10 +705,10 @@ export default {
             materialOptions: [], // 物料选项列表
             materialLoading: false, // 物料加载状态
 
-            // 编辑物料对话框数据
+            // 编���物料对话框数据
             materialDialog: {
                 visible: false,
-                title: '���增物料',
+                title: '新增物料',
                 loading: false,
                 beforeClose: (done) => {
                     // 清空表单数据
@@ -694,7 +762,9 @@ export default {
             try {
                 let req = this.searchData();
                 req.page = this.craftTableData.currentPage;
+                req.skip = (this.craftTableData.currentPage - 1) * this.craftTableData.pageSize;
                 req.limit = this.craftTableData.pageSize;
+                req.sort = { _id: -1 }
                 req.count = true;
                 const result = await getData("craft", req);
                 this.craftTableData.tableList = result.data;
@@ -860,40 +930,142 @@ export default {
                     },
                     page: this.processTableData.currentPage,
                     limit: this.processTableData.pageSize,
-                    count: true
+                    count: true,
+                    sort: { _id: -1 }
                 };
                 const result = await getData("processStep", req);
                 this.processTableData.tableList = result.data;
                 this.processTableData.total = result.countnum;
             } catch (error) {
                 console.error('获取工序数据失败:', error);
-                this.$message.error('获取工序数据失败');
+                this.$message.error('获取工���数据失败');
             } finally {
                 this.processTableData.listLoading = false;
             }
         },
 
-        handleAddProcess() {
+        async generateProcessCode() {
+            try {
+                // 获取最后一个工序编码
+                const result = await getData('processStep', {
+                    query: {},
+                    sort: { processCode: -1 },
+                    limit: 1
+                });
+
+                // 获取序列号
+                let sequence = '0001';
+                if (result.data && result.data.length > 0) {
+                    const lastCode = result.data[0].processCode;
+                    const matches = lastCode.match(/\d{4}/);
+                    if (matches) {
+                        const lastSequence = parseInt(matches[0]);
+                        sequence = (lastSequence + 1).toString().padStart(4, '0');
+                    }
+                }
+
+                // 使用统一的编码生成逻辑
+                return this.generateUnifiedCode(
+                    this.craftForm.craftType,
+                    '',  // 初始时工序类型为空
+                    sequence,
+                    ''   // 初始时业务类型为空
+                );
+            } catch (error) {
+                console.error('生成工序编码失败:', error);
+                return 'ERROR_GENERATING_CODE';
+            }
+        },
+
+        // 添加统一的编码生成逻辑
+        generateUnifiedCode(craftType, processType, sequence, businessType) {
+            let code = craftType || '';
+
+            // 添加工序类型（如果存在）
+            if (processType) {
+                code += `_${processType}`;
+            }
+
+            // 添加序列号
+            code += `_${sequence}`;
+
+            // 添加业务类型（如果存在）
+            if (businessType) {
+                code += `_${businessType}`;
+            }
+
+            return code;
+        },
+
+        async handleProcessTypeChange(value) {
+            if (!this.processForm.processCode) return;
+
+            // 解析当前编码
+            const parts = this.processForm.processCode.split('_');
+            const craftType = parts[0];
+            const sequence = parts[parts.length - 1];
+            const businessType = parts.length > 3 ? parts[3] : '';
+
+            // 使用统一的编码生成逻辑
+            this.processForm.processCode = this.generateUnifiedCode(
+                craftType,
+                value,
+                sequence,
+                businessType
+            );
+        },
+
+        async handleBusinessTypeChange(value) {
+            if (!this.processForm.processCode) return;
+
+            // 解析当前编码
+            const parts = this.processForm.processCode.split('_');
+            const craftType = parts[0];
+            const processType = parts.length > 1 ? parts[1] : '';
+            const sequence = parts[2];
+
+            // 使用统一的编码生成逻辑
+            this.processForm.processCode = this.generateUnifiedCode(
+                craftType,
+                processType,
+                sequence,
+                value
+            );
+        },
+
+        async handleAddProcess() {
             if (!this.tempCraftId) {
                 this.$message.warning('工艺ID不存在');
                 return;
             }
-            this.processOperationType = 'create'; // 设置为新增操作
-            this.tempProcessId = this.ObjectId();  // 生成临时工序ID
+
+            // 计算新工序的次序
+            let nextSort = 1;
+            if (this.processTableData.tableList && this.processTableData.tableList.length > 0) {
+                nextSort = Math.max(...this.processTableData.tableList.map(p => p.sort)) + 1;
+            }
+
+            // 生成工序编码
+            const processCode = await this.generateProcessCode();
+
+            this.processOperationType = 'create';
+            this.tempProcessId = this.ObjectId();
             this.processDialogVisible = true;
             this.processForm = {
                 _id: this.tempProcessId,
                 craftId: this.tempCraftId,
-                stepNo: null,
-                stepName: '',
-                stepDesc: '',
-                standardTime: null,
-                equipment: '',
-                materials: [],
+                processCode: processCode,
+                processName: '',
+                processDesc: '',
+                processStage: '',
+                processType: '',
+                businessType: '',
                 status: 'CREATE',
+                materials: [],
                 remark: '',
-                sort: 1
+                sort: nextSort
             };
+
             // 重置物料列表
             this.materialTableData.tableList = [];
             this.materialTableData.total = 0;
@@ -944,6 +1116,17 @@ export default {
             this.$refs.processForm.validate(async (valid) => {
                 if (valid) {
                     try {
+                        // 检查工序次序是否重复
+                        const isDuplicateSort = this.processTableData.tableList.some(
+                            process => process.sort === this.processForm.sort &&
+                                process._id !== this.tempProcessId
+                        );
+
+                        if (isDuplicateSort) {
+                            this.$message.warning('工序次序重复，请修改');
+                            return;
+                        }
+
                         // 获取当前物料列表的ID数组
                         const materialIds = this.materialTableData.tableList.map(material => material._id.toString());
                         if (materialIds.length === 0) {
@@ -1062,7 +1245,7 @@ export default {
                 return;
             }
 
-            this.$confirm('确认要删除该物料吗?', '��示', {
+            this.$confirm('确认要删除该物料吗?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
@@ -1169,6 +1352,9 @@ export default {
                 productName: '',      // 产品型号
                 productStage: '',     // 生产阶级
                 isStandard: '',       // 是否标准工艺
+                selectedMaterial: '', // 选中的物料ID
+                materialCode: '',    // 物料编码
+                materialName: ''     // 物料名称
             };
 
             // 重置表单验证
@@ -1220,6 +1406,17 @@ export default {
                 };
             }
 
+            // 添加物料相关的查询条件
+            if (this.searchForm.selectedMaterial) {
+                searchData.materialId = this.searchForm.selectedMaterial;
+            }
+            if (this.searchForm.materialCode) {
+                searchData.materialCode = { $regex: this.searchForm.materialCode, $options: 'i' };
+            }
+            if (this.searchForm.materialName) {
+                searchData.materialName = { $regex: this.searchForm.materialName, $options: 'i' };
+            }
+
             return { query: searchData };
         },
 
@@ -1249,6 +1446,10 @@ export default {
             const id = timestamp + machineId + processId + counter;
             // 确保生成的ID是24位的十六进制字符串
             return id.substring(0, 24);
+        },
+        //设备选择绑定
+        handleMachineSelect() {
+
         },
         // 获取物料列表
         async getMaterialList(query) {
@@ -1306,22 +1507,23 @@ export default {
             }
         },
         // 处理工艺表单的物料选择变更
-        handleCraftMaterialChange(materialId) {
-            const selectedMaterial = this.materialOptions.find(item => item._id === materialId);
-            if (selectedMaterial) {
+        handleCraftMaterialChange(material) {
+            console.log(material, 'material')
+            if (material) {
                 // 更新工艺表单中的相关字段
-                this.craftForm.materialId = selectedMaterial._id;
-                this.craftForm.componentName = selectedMaterial.FName || '';
-                this.craftForm.productName = selectedMaterial.FSpecification || '';
+                this.craftForm.materialId = material._id;
+                this.craftForm.componentName = material.FName || '';
+                this.craftForm.productName = material.FSpecification || '';
                 // 保持selectedMaterial的值，用于表单验证
-                this.craftForm.selectedMaterial = materialId;
+                this.craftForm.selectedMaterial = material._id;
             }
         },
         // 处理物料表单的物料选择变更
-        handleMaterialChange(materialId) {
+        handleMaterialChange(material) {
+            console.log("material", material);
             // 验证是否已经选择过该物料，排除当前正在编辑的物料
             const isDuplicate = this.materialTableData.tableList.some(
-                item => item.materialId === materialId &&
+                item => item.materialId === material.FMATERIALID &&
                     item._id !== this.editingMaterialId  // 排除当前正在编辑的物料
             );
 
@@ -1332,19 +1534,16 @@ export default {
             }
 
             // 验证是否与工艺级物料重复
-            if (materialId === this.craftForm.materialId) {
+            if (material.FMATERIALID === this.craftForm.materialId) {
                 this.$message.warning('不能选择与工艺相同的物料');
                 this.materialForm.materialId = '';
                 return;
             }
 
             // 如果验证通过，继续原有的处理逻辑
-            const selectedMaterial = this.materialOptions.find(item => item._id === materialId);
-            if (selectedMaterial) {
-                this.materialForm.materialCode = selectedMaterial.FNumber;
-                this.materialForm.materialName = selectedMaterial.FName;
-                this.materialForm.specification = selectedMaterial.FSpecification || '';
-            }
+            this.materialForm.materialCode = material.FNumber;
+            this.materialForm.materialName = material.FName;
+            this.materialForm.specification = material.FSpecification || '';
         },
 
 
@@ -1356,6 +1555,14 @@ export default {
             this.searchDebounce = setTimeout(() => {
                 this.getMaterialList(query);
             }, 300);
+        },
+        // 处理物料选择变更
+        handleSearchMaterialChange(material) {
+            if (material) {
+                this.searchForm.materialCode = material.FNumber;
+                this.searchForm.materialName = material.FName;
+                this.search(); // 触发搜索
+            }
         }
     },
     created() {
@@ -1383,5 +1590,35 @@ export default {
 
 .el-icon-tickets {
     line-height: 30px;
+}
+
+.select-option {
+    padding: 8px 12px;
+
+    .option-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .option-label {
+            font-size: 14px;
+            color: #606266;
+        }
+
+        .option-tag {
+            margin-left: 8px;
+            font-size: 12px;
+        }
+    }
+
+    .option-sub {
+        margin-top: 4px;
+        color: #909399;
+        font-size: 12px;
+    }
+}
+
+.item-option {
+    display: none;
 }
 </style>

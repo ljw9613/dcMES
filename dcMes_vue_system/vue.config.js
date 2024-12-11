@@ -72,7 +72,7 @@ module.exports = {
         new TerserPlugin({
           terserOptions: {
             compress: {
-              drop_console: process.env.NODE_ENV === "production" // 设置在生产环境下才剔除 console
+              drop_console: false
             }
           }
         })

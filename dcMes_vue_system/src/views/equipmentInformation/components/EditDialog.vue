@@ -4,13 +4,13 @@
         <el-form ref="form" :model="form" :rules="rules" label-width="120px" size="small">
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="设备名称" prop="equipmentName">
-                        <el-input v-model="form.equipmentName" placeholder="请输入设备名称"></el-input>
+                    <el-form-item label="设备名称" prop="machineName">
+                        <el-input v-model="form.machineName" placeholder="请输入设备名称"></el-input>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                    <el-form-item label="设备编码" prop="equipmentCode">
-                        <el-input v-model="form.equipmentCode" placeholder="请输入设备编码"
+                    <el-form-item label="设备编号" prop="machineCode">
+                        <el-input v-model="form.machineCode" placeholder="请输入设备编号"
                             :disabled="dialogStatus === 'edit'"></el-input>
                     </el-form-item>
                 </el-col>
@@ -18,59 +18,19 @@
 
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="设备IP" prop="equipmentIp">
-                        <el-input v-model="form.equipmentIp" placeholder="请输入设备IP"></el-input>
+                    <el-form-item label="设备IP" prop="machineIp">
+                        <el-input v-model="form.machineIp" placeholder="请输入设备IP"></el-input>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                    <el-form-item label="设备类型" prop="equipmentType">
-                        <el-select v-model="form.equipmentType" placeholder="请选择设备类型" style="width: 100%">
-                            <el-option label="检测设备" value="检测设备" />
-                            <el-option label="打印设备" value="打印设备" />
-                            <el-option label="一体机" value="一体机" />
-                        </el-select>
+                    <el-form-item label="负责人" prop="principal">
+                        <el-input v-model="form.principal" placeholder="请输入负责人"></el-input>
                     </el-form-item>
                 </el-col>
             </el-row>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="采集方式" prop="collectionMethod">
-                        <el-select v-model="form.collectionMethod" placeholder="请选择采集方式" style="width: 100%">
-                            <el-option label="OPC" value="OPC" />
-                            <el-option label="ModbusTCP" value="ModbusTCP" />
-                            <el-option label="TCP/IP" value="TCP/IP" />
-                            <el-option label="其他" value="其他" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="设备状态" prop="status">
-                        <el-select v-model="form.status" placeholder="请选择设备状态" style="width: 100%">
-                            <el-option label="运行中" value="运行中" />
-                            <el-option label="停机" value="停机" />
-                            <el-option label="故障" value="故障" />
-                            <el-option label="离线" value="离线" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="厂区名称" prop="factoryName">
-                        <el-input v-model="form.factoryName" placeholder="请输入厂区名称"></el-input>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="产线名称" prop="productionLineName">
-                        <el-input v-model="form.productionLineName" placeholder="请输入产线名称"></el-input>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-form-item label="备注" prop="remarks">
-                <el-input type="textarea" v-model="form.remarks" placeholder="请输入备注信息"></el-input>
+            <el-form-item label="备注" prop="comment">
+                <el-input type="textarea" v-model="form.comment" placeholder="请输入备注信息"></el-input>
             </el-form-item>
         </el-form>
 
@@ -102,25 +62,17 @@ export default {
         return {
             dialogVisible: this.visible,
             form: {
-                equipmentName: '',
-                equipmentCode: '',
-                equipmentIp: '',
-                equipmentType: '检测设备',
-                collectionMethod: 'OPC',
-                status: '离线',
-                factoryName: '',
-                productionLineName: '',
-                remarks: ''
+                machineName: '',
+                machineCode: '',
+                machineIp: '',
+                principal: '',
+                comment: ''
             },
             rules: {
-                equipmentName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
-                equipmentCode: [{ required: true, message: '请输入设备编码', trigger: 'blur' }],
-                equipmentIp: [{ required: true, message: '请输入设备IP', trigger: 'blur' }],
-                equipmentType: [{ required: true, message: '请输入设备类型', trigger: 'blur' }],
-                collectionMethod: [{ required: true, message: '请选择采集方式', trigger: 'change' }],
-                status: [{ required: true, message: '请选择设备状态', trigger: 'change' }],
-                factoryName: [{ required: true, message: '请输入厂区名称', trigger: 'blur' }],
-                productionLineName: [{ required: true, message: '请输入产线名称', trigger: 'blur' }]
+                machineName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
+                machineCode: [{ required: true, message: '请输入设备编号', trigger: 'blur' }],
+                machineIp: [{ required: true, message: '请输入设备IP', trigger: 'blur' }],
+                principal: [{ required: true, message: '请输入负责人', trigger: 'blur' }]
             },
             submitLoading: false
         }
@@ -152,15 +104,11 @@ export default {
                 this.form = { ...this.rowData }
             } else {
                 this.form = {
-                    equipmentName: '',
-                    equipmentCode: '',
-                    equipmentIp: '',
-                    equipmentType: '检测设备',
-                    collectionMethod: 'OPC',
-                    status: '离线',
-                    factoryName: '',
-                    productionLineName: '',
-                    remarks: ''
+                    machineName: '',
+                    machineCode: '',
+                    machineIp: '',
+                    principal: '',
+                    comment: ''
                 }
             }
         },

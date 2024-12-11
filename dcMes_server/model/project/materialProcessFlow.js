@@ -38,6 +38,7 @@ const processNodeSchema = new mongoose.Schema(
 
     // 条码状态
     barcode: { type: String, default: "" }, // 条码信息
+    relatedBill: { type: String, default: "" }, // 相关单据
     barcodeType: { type: String, default: "" }, // 条码类型 批次虚拟条码/物料上料条码
     scanTime: { type: Date }, // 扫码时间
     status: {
@@ -58,6 +59,7 @@ const processNodeSchema = new mongoose.Schema(
 // 主条码工艺流程记录表
 const materialProcessFlowSchema = new mongoose.Schema({
   barcode: { type: String, required: true, unique: true }, // 主物料条码
+  relatedBill: { type: String, default: "" }, // 相关单据
 
   // 主物料信息
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID

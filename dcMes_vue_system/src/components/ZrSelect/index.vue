@@ -126,6 +126,10 @@ export default {
     }
   },
 
+  created() {
+    this.remoteSearch('')
+  },
+
   methods: {
     getItemLabel(item) {
       const label = item[this.labelKey]
@@ -135,21 +139,24 @@ export default {
 
     // 远程搜索
     async remoteSearch(query) {
-      if (query === '') return
-      
       this.loading = true
       try {
-        const searchConditions = this.searchFields.map(field => ({
+        const searchConditions = query ? this.searchFields.map(field => ({
           [field]: { $regex: query, $options: 'i' }
-        }))
-        
+        })) : []
+
+        const queryConditions = []
+        if (searchConditions.length > 0) {
+          queryConditions.push({ $or: searchConditions })
+        }
+        if (Object.keys(this.additionalQuery).length > 0) {
+          queryConditions.push(this.additionalQuery)
+        }
+
         const result = await getData(this.collection, {
-          query: JSON.stringify({
-            $and: [
-              { $or: searchConditions },
-              this.additionalQuery
-            ]
-          }),
+          query: JSON.stringify(
+            queryConditions.length > 0 ? { $and: queryConditions } : {}
+          ),
           limit: this.limit
         })
 

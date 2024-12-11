@@ -29,19 +29,25 @@
                     :icon="['fas', 'eye-slash']" /></span>
                 <span v-else class="show-pwd" @click="showPwd"><byui-icon :icon="['fas', 'eye']" /></span>
               </el-form-item>
+              <el-button :loading="accountLoading" class="login-btn" type="primary"
+                @click.native.prevent="handleAccountLogin">
+                账号登录
+              </el-button>
             </el-tab-pane>
             <el-tab-pane label="扫码登录" name="qrcode">
               <el-form-item prop="encryptedId">
                 <span class="svg-container">
                   <byui-icon :icon="['fas', 'qrcode']" />
                 </span>
-                <el-input v-model="loginForm.encryptedId" placeholder="请使用扫描枪扫描二维码" @keyup.enter.native="handleLogin"
-                  ref="scanInput" />
+                <el-input v-model="loginForm.encryptedId" placeholder="请使用扫描枪扫描二维码" ref="scanInput"
+                  :disabled="inputLoading" @input="handleScanInput" @change="handleScanChange">
+                  <template slot="append">
+                    <i v-if="inputLoading" class="el-icon-loading"></i>
+                  </template>
+                </el-input>
               </el-form-item>
             </el-tab-pane>
           </el-tabs>
-          <el-button :loading="loading" class="login-btn" type="primary" @click.native.prevent="handleLogin">登录
-          </el-button>
         </el-form>
       </el-col>
     </el-row>
@@ -79,14 +85,14 @@ export default {
         });
       }
     },
-    // 添加对 encryptedId 的监听
-    'loginForm.encryptedId': {
-      handler(newVal) {
-        if (newVal && this.loginType === 'qrcode') {
-          this.handleLogin();
-        }
-      }
-    }
+    // // 添加对 encryptedId 的监听
+    // 'loginForm.encryptedId': {
+    //   handler(newVal) {
+    //     if (newVal && this.loginType === 'qrcode') {
+    //       this.handleQrcodeLogin();
+    //     }
+    //   }
+    // }
   },
   data() {
     const validateUserName = (rule, value, callback) => {
@@ -126,11 +132,15 @@ export default {
           },
         ],
       },
-      loading: false,
+      accountLoading: false,
+      qrcodeLoading: false,
       passwordType: "password",
       redirect: undefined,
       loginType: 'account',
       encryptionKey: 'your-secure-encryption-key',
+      inputLoading: false,
+      scanTimer: null,
+      scanBuffer: '',
     };
   },
   created() {
@@ -166,48 +176,57 @@ export default {
         return null;
       }
     },
-    handleLogin() {
+    async handleAccountLogin() {
       this.$refs.loginForm.validate(async (valid) => {
         if (valid) {
           try {
-            this.loading = true;
-            let loginData;
-
-            if (this.loginType === 'account') {
-              loginData = {
-                userName: (this.loginForm.userName || '').trim(),
-                password: (this.loginForm.password || '').trim()
-              };
-            } else {
-              const encryptedId = this.loginForm.encryptedId;
-              if (!encryptedId) {
-                this.$message.error('请扫描二维码');
-                return;
-              }
-
-              const decryptedData = this.decryptLoginData(encryptedId);
-              if (!decryptedData) {
-                this.$message.error('二维码无效或已过期');
-                return;
-              }
-
-              loginData = {
-                userName: decryptedData.userName,
-                password: decryptedData.password,
-                id: decryptedData.id
-              };
-            }
+            this.accountLoading = true;
+            const loginData = {
+              userName: (this.loginForm.userName || '').trim(),
+              password: (this.loginForm.password || '').trim()
+            };
 
             const response = await this.$store.dispatch('user/login', loginData);
-            this.$router.push({ path: this.redirect || '/' });
+            this.$router.push('/');
           } catch (error) {
             console.error('登录失败:', error && error.message || '未知错误');
             this.$message.error(error && error.message || '登录失败，请重试');
           } finally {
-            this.loading = false;
+            this.accountLoading = false;
           }
         }
       });
+    },
+    async handleQrcodeLogin() {
+      if (this.qrcodeLoading) return;
+
+      try {
+        this.qrcodeLoading = true;
+        const encryptedId = this.loginForm.encryptedId;
+        if (!encryptedId) {
+          this.$message.error('请扫描二维码');
+          return;
+        }
+
+        const decryptedData = this.decryptLoginData(encryptedId);
+        if (!decryptedData) {
+          this.$message.error('二维码无效或已过期');
+          return;
+        }
+
+        const loginData = {
+          userName: decryptedData.userName,
+          password: decryptedData.password,
+          id: decryptedData.id
+        };
+
+        const response = await this.$store.dispatch('user/login', loginData);
+        this.$router.push('/');
+      } finally {
+        this.qrcodeLoading = false;
+        this.loginForm.encryptedId = '';
+        this.focusScanInput();
+      }
     },
     getOtherQuery(query) {
       return Object.keys(query).reduce((acc, cur) => {
@@ -221,6 +240,34 @@ export default {
       if (this.loginType === 'qrcode' && this.$refs.scanInput) {
         this.$refs.scanInput.focus();
       }
+    },
+    handleScanInput(val) {
+      console.log('handleScanInput', val);
+      if (this.loginType !== 'qrcode') return;
+
+      this.scanBuffer = val;
+      this.inputLoading = this.$loading({
+        lock: true,
+        text: 'Loading',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+
+      if (this.scanTimer) {
+        clearTimeout(this.scanTimer);
+      }
+
+      this.scanTimer = setTimeout(() => {
+        if (this.scanBuffer) {
+          this.loginForm.encryptedId = this.scanBuffer.trim();
+          this.handleQrcodeLogin();
+        }
+        this.inputLoading.close();
+        this.scanBuffer = '';
+      }, 1500);
+    },
+    handleScanChange(val) {
+      // 移除 change 事件的直接处理，统一由 input 事件处理
     }
   },
   mounted() {

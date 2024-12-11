@@ -12,39 +12,28 @@
                 <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="设备名称">
-                            <el-input v-model="searchForm.equipmentName" placeholder="请输入设备名称" clearable></el-input>
+                            <el-input v-model="searchForm.machineName" placeholder="请输入设备名称" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="设备编码">
-                            <el-input v-model="searchForm.equipmentCode" placeholder="请输入设备编码" clearable></el-input>
+                        <el-form-item label="设备编号">
+                            <el-input v-model="searchForm.machineCode" placeholder="请输入设备编号" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="设备状态">
-                            <el-select v-model="searchForm.status" placeholder="请选择设备状态" clearable style="width: 100%">
-                                <el-option label="运行中" value="运行中" />
-                                <el-option label="停机" value="停机" />
-                                <el-option label="故障" value="故障" />
-                                <el-option label="离线" value="离线" />
-                            </el-select>
+                        <el-form-item label="设备IP">
+                            <el-input v-model="searchForm.machineIp" placeholder="请输入设备IP" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="厂区名称">
-                            <el-input v-model="searchForm.factoryName" placeholder="请输入厂区名称" clearable></el-input>
+                        <el-form-item label="负责人">
+                            <el-input v-model="searchForm.principal" placeholder="请输入负责人" clearable></el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
 
                 <el-row :gutter="20" v-show="showAdvanced">
                     <el-col :span="6">
-                        <el-form-item label="设备IP">
-                            <el-input v-model="searchForm.equipmentIp" placeholder="请输入设备IP" clearable></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        {{ "就爱上了的距离喀什家里的事" }}
                         <el-form-item label="设备类型">
                             <el-select v-model="searchForm.equipmentType" placeholder="请选择设备类型" clearable
                                 style="width: 100%" :popper-append-to-body="true">
@@ -101,19 +90,13 @@
             <template slot="law">
                 <el-table-column type="selection" width="55" />
 
-                <el-table-column label="设备名称" prop="equipmentName" width="150" />
+                <el-table-column label="设备名称" prop="machineName" width="150" />
 
-                <el-table-column label="设备状态" width="100">
-                    <template slot-scope="scope">
-                        <el-tag :type="getStatusType(scope.row.status)">
-                            {{ scope.row.status }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
+                <el-table-column label="设备编号" prop="machineCode" width="150" />
 
-                <el-table-column label="设备编码" prop="equipmentCode" width="150" />
+                <el-table-column label="设备IP" prop="machineIp" width="150" />
 
-                <el-table-column label="设备IP" prop="equipmentIp" width="150" />
+                <el-table-column label="负责人" prop="principal" width="150" />
 
                 <el-table-column label="设备类型" width="120">
                     <template slot-scope="scope">
@@ -157,21 +140,18 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
 
 export default {
-    name: 'EquipmentInformation',
+    name: 'machine',
     components: {
         EditDialog
     },
     data() {
         return {
             searchForm: {
-                equipmentName: '',
-                equipmentCode: '',
-                equipmentIp: '',
-                equipmentType: '',
-                collectionMethod: '',
-                factoryName: '',
-                productionLineName: '',
-                status: ''
+                machineName: '',
+                machineCode: '',
+                machineIp: '',
+                principal: '',
+                // 其他字段根据需要添加
             },
             tableList: [],
             total: 0,
@@ -226,7 +206,7 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.count = true;
-                const result = await getData("equipmentInformation", req);
+                const result = await getData("machine", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
             } catch (error) {
@@ -244,14 +224,11 @@ export default {
 
         resetForm() {
             this.searchForm = {
-                equipmentName: '',
-                equipmentCode: '',
-                equipmentIp: '',
-                equipmentType: '',
-                collectionMethod: '',
-                factoryName: '',
-                productionLineName: '',
-                status: ''
+                machineName: '',
+                machineCode: '',
+                machineIp: '',
+                principal: '',
+                // 其他字段根据需要添加
             };
 
             this.$nextTick(() => {
@@ -286,7 +263,7 @@ export default {
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('equipmentInformation', { query: { _id: row._id } });
+                    await removeData('machine', { query: { _id: row._id } });
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {
@@ -307,7 +284,7 @@ export default {
             }).then(async () => {
                 try {
                     const ids = this.selection.map(item => item._id);
-                    await removeData('equipmentInformation', ids);
+                    await removeData('machine', { query: { _id: { $in: ids } } });
                     this.$message.success('批量删除成功');
                     this.fetchData();
                 } catch (error) {
@@ -320,10 +297,10 @@ export default {
         async handleSubmit(formData) {
             try {
                 if (this.dialogStatus === 'create') {
-                    await addData('equipmentInformation', formData);
+                    await addData('machine', formData);
                     this.$message.success('添加成功');
                 } else {
-                    await updateData('equipmentInformation', {
+                    await updateData('machine', {
                         query: { _id: formData._id },
                         update: formData
                     });
@@ -360,10 +337,10 @@ export default {
 
             // 定义表头
             const headers = {
-                equipmentName: '设备名称',
-                status: '设备状态',
-                equipmentCode: '设备编码',
-                equipmentIp: '设备IP',
+                machineName: '设备名称',
+                principal: '负责人',
+                machineCode: '设备编号',
+                machineIp: '设备IP',
                 equipmentType: '设备类型',
                 collectionMethod: '采集方式',
                 factoryName: '厂区名称',

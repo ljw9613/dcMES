@@ -319,7 +319,7 @@ export default {
             }).then(async () => {
                 try {
                     const ids = this.selection.map(item => item._id);
-                    await removeData('production_line', ids);
+                    await removeData('production_line', { query: { _id: { $in: ids } } });
                     this.$message.success('批量删除成功');
                     this.fetchData();
                 } catch (error) {

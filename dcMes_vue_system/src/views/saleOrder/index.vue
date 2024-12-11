@@ -168,16 +168,11 @@
                     </template>
                 </el-table-column>
 
-                <!-- <el-table-column label="操作" fixed="right" width="150">
+                <el-table-column label="操作" fixed="right" width="100">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-                        <el-button type="text" size="small" @click="handleDelete(scope.row)">删除</el-button>
-                        <el-button type="text" size="small" @click="handleSubmitAudit(scope.row)"
-                            v-if="scope.row.FDocumentStatus === 'DRAFT'">
-                            提交审核
-                        </el-button>
+                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
                     </template>
-                </el-table-column> -->
+                </el-table-column>
             </template>
         </base-table>
 
@@ -588,7 +583,7 @@ export default {
                     type: 'warning'
                 });
 
-                await removeData('k3_SAL_SaleOrder', row._id);
+                await removeData('k3_SAL_SaleOrder', { query: { _id: row._id } });
                 this.$message.success('删除成功');
                 this.fetchData();
             } catch (error) {
@@ -656,7 +651,48 @@ export default {
             };
             return typeMap[status] || 'info';
         },
+        // 单个同步
+        async handleOneSync(row) {
+            console.log("🚀 ~ handleOneSync ~ row:", row)
+            try {
+                let req = {
+                    "FilterString": []
+                };
 
+                await this.$confirm(`确认更新${row.FBillNo}的数据吗？`, '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                req.FilterString = [
+                    {
+                        "FieldName": "FID",
+                        "Compare": "=",
+                        "Value": row.FID,
+                        "Left": "",
+                        "Right": "",
+                        "Logic": 0
+                    }
+                ];
+
+                const response = await syncSAL_SaleOrder(req);
+                if (response.code === 200) {
+                    this.startSyncProgressCheck();
+                    if (response.taskStatus) {
+                        this.$message.success(`同步中：当前${response.taskStatus.processedRecords}条数据同步完成，耗时${response.taskStatus.elapsedTime}秒`);
+                    } else {
+                        this.$message.success('同步任务已启动');
+                    }
+                } else {
+                    this.$message.error(response.message || '销售订单同步失败');
+                }
+            } catch (error) {
+                console.error('销售订单同步失败:', error);
+                this.$message.error('销售订单同步失败');
+            }
+
+        },
         // 添加同步订单方法
         handleSync() {
             this.syncDialogVisible = true;
@@ -702,7 +738,7 @@ export default {
                         req.FilterString = [
                             {
                                 "FieldName": "FDocumentStatus",
-                                "Compare": "105",
+                                "Compare": "StatusEqualto",
                                 "Value": this.syncForm.documentStatus,
                                 "Left": "",
                                 "Right": "",
@@ -710,7 +746,7 @@ export default {
                             },
                             {
                                 "FieldName": "FApproveDate",
-                                "Compare": "88",
+                                "Compare": ">",
                                 "Value": `${startDate} 00:00:00`,
                                 "Left": "",
                                 "Right": "",
@@ -718,7 +754,7 @@ export default {
                             },
                             {
                                 "FieldName": "FApproveDate",
-                                "Compare": "32",
+                                "Compare": "<",
                                 "Value": `${endDate} 23:59:59`,
                                 "Left": "",
                                 "Right": "",
@@ -727,16 +763,16 @@ export default {
                         ];
                     } else {
                         // 同步全部数据时，只需要单据状态条件
-                        // req.FilterString = [
-                        //     {
-                        //         "FieldName": "FDocumentStatus",
-                        //         "Compare": "105",
-                        //         "Value": "C", // 全量同步时默认只同步已审核的数据
-                        //         "Left": "",
-                        //         "Right": "",
-                        //         "Logic": 0
-                        //     }
-                        // ];
+                        req.FilterString = [
+                            {
+                                "FieldName": "FDocumentStatus",
+                                "Compare": "StatusEqualto",
+                                "Value": "C", // 全量同步时默认只同步已审核的数据
+                                "Left": "",
+                                "Right": "",
+                                "Logic": 0
+                            }
+                        ];
                     }
 
                     const response = await syncSAL_SaleOrder(req);
@@ -792,7 +828,11 @@ export default {
                                     this.stopSyncProgressCheck();
                                     this.fetchData();
                                     break;
-
+                                case 'completed':
+                                    this.$message.success(`销售订单同步完成！`);
+                                    this.stopSyncProgressCheck();
+                                    this.fetchData();
+                                    break;
                                 default:
                                     this.$message.warning('未知的同步状态');
                                     this.stopSyncProgressCheck();
@@ -807,7 +847,7 @@ export default {
                     this.$message.error('查询销售订单同步进度失败');
                     this.stopSyncProgressCheck();
                 }
-            }, 10000);
+            }, 5000);
         },
 
         // 停止定时查询

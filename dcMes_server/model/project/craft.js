@@ -13,7 +13,7 @@ var craftSchema = new mongoose.Schema({
     craftVersion: { type: String }, // 工艺版本号
     craftType: { type: String }, // 工艺类型
     craftDesc: { type: String }, // 工艺描述
-    materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID
+    materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 物料ID
     componentName: { type: String }, // 组件名称
     productName: { type: String }, // 产品型号
     // 工艺参数

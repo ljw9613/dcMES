@@ -18,7 +18,7 @@ var processStepSchema = new mongoose.Schema({
     sort: { type: Number, default: 0 }, // 排序
     // 关联工序物料
     materials: [{ type: mongoose.Schema.ObjectId, ref: "processMaterials" }], // 关联工序物料ID数组
-
+    machineId: {type: mongoose.Schema.ObjectId, ref: "machine", description: '检验设备'},
     remark: { type: String }, // 备注
     createBy: { type: String }, // 创建人
     updateBy: { type: String }, // 更新人

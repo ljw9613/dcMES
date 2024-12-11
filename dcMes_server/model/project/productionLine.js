@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const productionLineSchema = new mongoose.Schema({
     // 基础信息
-    lineCode: { type: String, required: true, unique: true }, // 产线编码 (对应 line_no)
+    lineCode: { type: String, required: true }, // 产线编码 (对应 line_no)
     lineName: { type: String, required: true }, // 产线名称 (对应 line_name)
     lineNum: { type: String }, // 车间线路编号 (对应 line_num)
     
@@ -21,8 +21,8 @@ const productionLineSchema = new mongoose.Schema({
     // 产线配置
     processStepIds: [{ type: mongoose.Schema.ObjectId, ref: "process_step" }], // 关联工序列表
     scanStations: [{ // 扫码工位配置
-        stationCode: { type: String, required: true }, // 工位编码
-        stationName: { type: String, required: true }, // 工位名称
+        stationCode: { type: String, }, // 工位编码
+        stationName: { type: String,}, // 工位名称
         processStepId: { type: mongoose.Schema.ObjectId, ref: "process_step" }, // 关联工序
         ipAddress: { type: String }, // 工位IP地址
         deviceInfo: { // 设备信息
