@@ -17,7 +17,7 @@
                         </div>
 
                         <el-form-item label="产品型号">
-                            <zr-select v-model="formData.productModel" collection="k3_BD_MATERIAL"
+                            <zr-select v-if="!mainMaterialId" v-model="formData.productModel" collection="k3_BD_MATERIAL"
                                 :disabled="!!mainMaterialId && !!processStepId" :search-fields="['FNumber', 'FName']"
                                 label-key="FName" sub-key="FMATERIALID" :multiple="false" placeholder="请输入物料编码/名称搜索"
                                 @select="handleProductChange">
@@ -31,6 +31,8 @@
                                     </div>
                                 </template>
                             </zr-select>
+                            <el-input v-else v-model="formData.productName" placeholder="请输入物料编码/名称搜索"
+                                :disabled="!!mainMaterialId && !!processStepId" />
                         </el-form-item>
 
                         <el-form-item label="产品工序">
@@ -223,6 +225,7 @@ export default {
             loading: false, // 加载状态
             unifiedScanInput: '', // 新增统一扫描输入框的值
             hasEditPermission: false, // 添加权限控制状态
+            scanTimer: null, // 添加定时器属性
         }
     },
     computed: {
@@ -360,28 +363,45 @@ export default {
         },
 
         // 递归获取所有相关工序
-        async getAllProcessSteps(materialId, processSteps = new Set()) {
+        async getAllProcessSteps(materialId, processSteps = new Set(), processedMaterials = new Set()) {
             try {
-                // 获取工艺信息
+                // 检查材料是否已处理过（检测循环依赖）
+                if (processedMaterials.has(materialId)) {
+                    console.warn(`检测到循环依赖, 材料ID: ${materialId}`);
+                    return processSteps;
+                }
+
+                // 添加当前材料到已处理集合
+                processedMaterials.add(materialId);
+
                 const craft = await this.getCraftByMaterialId(materialId);
                 if (!craft || !craft.processSteps) return processSteps;
 
-                // 处理工序信息
                 for (const stepId of craft.processSteps) {
-                    const step = await this.getProcessStepById(stepId);
-                    if (step) {
-                        processSteps.add(step);
+                    if (!processSteps.has(stepId)) {
+                        const step = await this.getProcessStepById(stepId);
+                        if (step) {
+                            processSteps.add(step);
 
-                        // 获取工序关联的物料
-                        const processMaterialsResponse = await getData('processMaterials', { query: { processStepId: stepId } });
-                        if (processMaterialsResponse.data) {
-                            for (const material of processMaterialsResponse.data) {
-                                // 递归获取关联工序
-                                await this.getAllProcessSteps(material.materialId, processSteps);
+                            // 获取工序关联的物料
+                            const processMaterialsResponse = await getData('processMaterials', {
+                                query: { processStepId: stepId }
+                            });
+
+                            if (processMaterialsResponse.data) {
+                                for (const material of processMaterialsResponse.data) {
+                                    // 递归调用时传入已处理材料集合
+                                    await this.getAllProcessSteps(
+                                        material.materialId,
+                                        processSteps,
+                                        processedMaterials
+                                    );
+                                }
                             }
                         }
                     }
                 }
+
                 return processSteps;
             } catch (error) {
                 console.error('获取工序失败:', error);
@@ -391,19 +411,19 @@ export default {
 
         // 产品型号变化处理
         async handleProductChange(material) {
-            let materialId = material._id
+            const materialId = material._id;
             this.processStepOptions = [];
             this.formData.processStep = '';
-            this.mainMaterialId = ''; // 清空缓存的主物料ID
+            this.mainMaterialId = '';
 
             if (!materialId) return;
 
             try {
-                const processSteps = await this.getAllProcessSteps(materialId);
-                console.log("🚀 ~ handleProductChange ~ processSteps:", processSteps)
+                // 只需要传入初始的 Set 集合
+                const processSteps = await this.getAllProcessSteps(materialId, new Set(), new Set());
+                console.log("获取到的工序:", processSteps);
                 this.processStepOptions = Array.from(processSteps);
                 this.formData.productModel = materialId;
-                // this.mainMaterialId = materialId; // 缓存选中的产品型号ID
             } catch (error) {
                 console.error('获取工序列表失败:', error);
                 this.$message.error('获取工序列表失败');
@@ -729,7 +749,7 @@ export default {
             }
         },
 
-        // 处理子物料条码
+        // 处理子物��条码
         async handleSubBarcode(materialId, materialCode) {
             try {
                 // 验证主条码是否已扫描
@@ -761,7 +781,7 @@ export default {
         // 新增方法：根据ID获取产品型号和工序名称
         async fillFormData() {
             if (this.mainMaterialId && this.materialName) {
-                this.formData.productModel = this.materialName;
+                this.formData.productName = this.materialName;
             }
 
             if (this.processStepId && this.processName) {
@@ -928,75 +948,162 @@ export default {
         async handleUnifiedScan(value) {
             if (!value) return;
 
-            // 去除可能的回车符和换行符
-            const cleanValue = value.trim().replace(/[\r\n]/g, '');
-            if (!cleanValue) return;
+            if (this.scanTimer) {
+                clearTimeout(this.scanTimer);
+            }
 
-            try {
-                // 验证条码格式
-                const isValidResult = await this.validateBarcode(cleanValue);
-                if (!isValidResult.isValid) {
-                    this.unifiedScanInput = '';
-                    this.$refs.scanInput.focus();
-                    return;
-                }
+            this.scanTimer = setTimeout(async () => {
+                try {
+                    const cleanValue = value.trim().replace(/[\r\n]/g, '');
+                    if (!cleanValue) return;
 
-                // 获取当前条码的物料编码
-                const materialCode = isValidResult.materialCode;
-                let matched = false;
+                    const isValidResult = await this.validateBarcode(cleanValue);
+                    if (!isValidResult.isValid) {
+                        tone(tmyw); // 播放错误提示音
+                        this.$notify({
+                            title: '条码验证失败',
+                            message: '条码格式不正确或未在系统中注册',
+                            type: 'error',
+                            duration: 3000,
+                            position: 'top-right'
+                        });
+                        this.unifiedScanInput = '';
+                        this.$refs.scanInput.focus();
+                        return;
+                    }
 
-                // 检查是否匹配主物料（直接替换）
-                if (materialCode === this.mainMaterialCode) {
-                    this.scanForm.mainBarcode = value;
-                    await this.handleMainBarcode(value);
-                    this.validateStatus.mainBarcode = true;
-                    tone(smcg)
-                    this.$message.success('主物料扫描成功');
-                    matched = true;
-                }
+                    const materialCode = isValidResult.materialCode;
+                    let matched = false;
 
-                // 检查是否匹配任何子物料（直接替换）
-                if (!matched) {
-                    for (const material of this.processMaterials) {
-                        if (material.materialCode === materialCode) {
-                            this.$set(this.scanForm.barcodes, material._id, value);
-                            await this.handleSubBarcode(material._id, materialCode);
-                            tone(smcg)
-                            this.$message.success(`${material.materialName} 扫描成功`);
-                            matched = true;
-                            break;
+                    // 检查主物料
+                    if (materialCode === this.mainMaterialCode) {
+                        this.scanForm.mainBarcode = value;
+                        await this.handleMainBarcode(value);
+                        this.validateStatus.mainBarcode = true;
+                        tone(smcg); // 播放扫描成功提示音
+                        this.$notify({
+                            title: '主物料扫描成功',
+                            dangerouslyUseHTMLString: true,
+                            message: `
+                                <div style="line-height: 1.5">
+                                    <div>物料名称: ${this.mainMaterialName}</div>
+                                    <div>物料编码: ${materialCode}</div>
+                                    <div>条码: ${value}</div>
+                                </div>
+                            `,
+                            type: 'success',
+                            duration: 3000,
+                            position: 'top-right'
+                        });
+                        matched = true;
+                    }
+
+                    // 检查子物料
+                    if (!matched) {
+                        for (const material of this.processMaterials) {
+                            if (material.materialCode === materialCode) {
+                                this.$set(this.scanForm.barcodes, material._id, value);
+                                await this.handleSubBarcode(material._id, materialCode);
+                                tone(smcg); // 播放扫描成功提示音
+                                
+                                this.$notify({
+                                    title: '子物料扫描成功',
+                                    dangerouslyUseHTMLString: true,
+                                    message: `
+                                        <div style="line-height: 1.5">
+                                            <div>物料名称: ${material.materialName}</div>
+                                            <div>物料编码: ${material.materialCode}</div>
+                                            <div>条码: ${value}</div>
+                                            ${isValidResult.relatedBill ? `<div>关联单号: ${isValidResult.relatedBill}</div>` : ''}
+                                        </div>
+                                    `,
+                                    type: 'success',
+                                    duration: 3000,
+                                    position: 'top-right'
+                                });
+                                matched = true;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (!matched) {
-                    tone(tmyw)
-                    this.$message.warning('未找到匹配的物料');
-                    return;
-                }
+                    if (!matched) {
+                        tone(tmyw); // 播放错误提示音
+                        this.$notify({
+                            title: '未匹配成功',
+                            dangerouslyUseHTMLString: true,
+                            message: `
+                                <div style="line-height: 1.5">
+                                    <div>条码: ${value}</div>
+                                    <div>物料编码: ${materialCode}</div>
+                                    <div style="color: #F56C6C">该物料与当前工序不匹配</div>
+                                </div>
+                            `,
+                            type: 'warning',
+                            duration: 3000,
+                            position: 'top-right'
+                        });
+                        return;
+                    }
 
+                    const allScanned = Object.values(this.validateStatus).every(status => status === true);
 
-                const allScanned = Object.values(this.validateStatus).every(status => status === true);
+                    if (allScanned) {
+                        tone(bdcg); // 播放绑定成功提示音
+                        this.$notify({
+                            title: '扫描完成',
+                            dangerouslyUseHTMLString: true,
+                            message: `
+                                <div style="line-height: 1.5">
+                                    <div>所有物料已扫描完成</div>
+                                    <div style="color: #67C23A">正在发起确认提交...</div>
+                                </div>
+                            `,
+                            type: 'success',
+                            duration: 3000,
+                            position: 'top-right'
+                        });
 
-                if (allScanned) {
+                        this.handleConfirm();
+                    } else {
+                        // 显示还需要扫描的物料
+                        const remainingMaterials = this.processMaterials
+                            .filter(material => !this.validateStatus[material._id])
+                            .map(material => `${material.materialName}(${material.materialCode})`)
+                            .join('\n');
+                        
+                        if (remainingMaterials) {
+                            this.$notify({
+                                title: '继续扫描',
+                                dangerouslyUseHTMLString: true,
+                                message: `
+                                    <div style="line-height: 1.5">
+                                        <div>请继续扫描以下物料：</div>
+                                        <div style="color: #E6A23C; white-space: pre-line">${remainingMaterials}</div>
+                                    </div>
+                                `,
+                                type: 'info',
+                                duration: 3000,
+                                position: 'top-right'
+                            });
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('扫描处理失败:', error);
+                    tone(tmyw); // 播放错误提示音
                     this.$notify({
-                        title: '扫描完成',
-                        message: `正在发起确认提交`,
-                        type: 'success',
+                        title: '扫描失败',
+                        message: error.message || '扫描处理失败',
+                        type: 'error',
                         duration: 3000,
                         position: 'top-right'
                     });
-
-                    this.handleConfirm();
+                } finally {
+                    this.unifiedScanInput = '';
+                    this.$refs.scanInput.focus();
                 }
-
-            } catch (error) {
-                console.error('扫描处理失败:', error);
-                this.$message.error(error.message || '扫描处理失败');
-            } finally {
-                this.unifiedScanInput = '';
-                this.$refs.scanInput.focus();
-            }
+            }, 1000);
         },
 
         // 新增获取焦点方法
@@ -1030,6 +1137,12 @@ export default {
         }
         if (roles.buttonList.includes("scan_edit_configuration")) {
             this.hasEditPermission = true;
+        }
+    },
+    // 组件销毁时清除定时器
+    beforeDestroy() {
+        if (this.scanTimer) {
+            clearTimeout(this.scanTimer);
         }
     }
 }

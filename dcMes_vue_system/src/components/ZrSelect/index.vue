@@ -103,6 +103,10 @@ export default {
     limit: {
       type: Number,
       default: 20
+    },
+    lazyLoad: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -127,7 +131,9 @@ export default {
   },
 
   created() {
-    this.remoteSearch('')
+    if (!this.lazyLoad) {
+      this.remoteSearch('')
+    }
   },
 
   methods: {
@@ -139,6 +145,10 @@ export default {
 
     // 远程搜索
     async remoteSearch(query) {
+      if (this.lazyLoad && !query) {
+        return
+      }
+      
       this.loading = true
       try {
         const searchConditions = query ? this.searchFields.map(field => ({

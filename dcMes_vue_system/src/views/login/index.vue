@@ -207,8 +207,11 @@ export default {
           this.$message.error('请扫描二维码');
           return;
         }
+        // 去除可能的回车符和换行符
+        const cleanValue = encryptedId.trim().replace(/[\r\n]/g, '');
+        if (!cleanValue) return;
 
-        const decryptedData = this.decryptLoginData(encryptedId);
+        const decryptedData = this.decryptLoginData(cleanValue);
         if (!decryptedData) {
           this.$message.error('二维码无效或已过期');
           return;
@@ -264,7 +267,7 @@ export default {
         }
         this.inputLoading.close();
         this.scanBuffer = '';
-      }, 1500);
+      }, 1000);
     },
     handleScanChange(val) {
       // 移除 change 事件的直接处理，统一由 input 事件处理

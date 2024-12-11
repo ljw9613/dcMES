@@ -36,9 +36,8 @@
                         <el-form-item label="工艺类型">
                             <el-select v-model="searchForm.craftType" placeholder="请选择工艺类型" clearable
                                 style="width: 100%">
-                                <el-option label="标准工艺" value="STANDARD_PROCESS" />
-                                <el-option label="制具工艺" value="TOOL_MAKING_TECHNOLOGY" />
-                                <el-option label="辅材工艺" value="AUXILIARY_MATERIAL_TECHNOLOGY" />
+                                <el-option v-for="dict in dict.type.craftType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -1129,7 +1128,7 @@ export default {
 
                         // 获取当前物料列表的ID数组
                         const materialIds = this.materialTableData.tableList.map(material => material._id.toString());
-                        if (materialIds.length === 0) {
+                        if (this.processForm.processType !== 'P_INSPECTION' && materialIds.length === 0) {
                             this.$message.warning('请先添加物料');
                             return;
                         }

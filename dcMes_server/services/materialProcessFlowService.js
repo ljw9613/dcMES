@@ -34,8 +34,8 @@ class MaterialProcessFlowService {
         throw new Error(`未找到物料 ${materialCode} 对应的工艺信息`);
       }
 
-      // 3. 构建流程节点树
-      const processNodes = await this.buildProcessNodes(material._id, craft);
+      // 3. 构建流程节点树，传入新的 Set 用于防止循环依赖
+      const processNodes = await this.buildProcessNodes(material._id, craft, new Set());
 
       // 4. 创建流程记录
       const flowRecord = new MaterialProcessFlow({
@@ -65,12 +65,20 @@ class MaterialProcessFlowService {
    * 构建工艺流程节点树
    * @param {string} materialId - 物料ID
    * @param {Object} craft - 工艺信息
+   * @param {Set} processedMaterials - 已处理的物料集合（用于防止循环引用）
    * @returns {Promise<Array>} 节点树数组
    */
-  static async buildProcessNodes(materialId, craft) {
+  static async buildProcessNodes(materialId, craft, processedMaterials = new Set()) {
     try {
+      // 检查材料是否已处理过（检测循环依赖）
+      if (processedMaterials.has(materialId.toString())) {
+        console.warn(`检测到循环依赖, 材料ID: ${materialId}`);
+        return [];
+      }
+
       const nodes = [];
-      const processedMaterials = new Set(); // 用于防止循环引用
+      // 添加当前材料到已处理集合
+      processedMaterials.add(materialId.toString());
 
       // 创建根节点（主物料节点）
       const material = await Material.findById(materialId);
@@ -118,15 +126,7 @@ class MaterialProcessFlowService {
 
           // 处理工序物料节点
           for (const processMaterial of processMaterials) {
-            // 防止循环引用
-            if (processedMaterials.has(processMaterial.materialId.toString())) {
-              continue;
-            }
-            processedMaterials.add(processMaterial.materialId.toString());
-
-            const material = await Material.findById(
-              processMaterial.materialId
-            );
+            const material = await Material.findById(processMaterial.materialId);
             if (!material) continue;
 
             // 创建物料节点
@@ -152,12 +152,13 @@ class MaterialProcessFlowService {
             };
             nodes.push(materialNode);
 
-            // 递归处理子物料的工艺
+            // 递归处理子物料的工艺，传入已处理的物料集合
             const subCraft = await Craft.findOne({ materialId: material._id });
             if (subCraft) {
               const subNodes = await this.buildProcessNodes(
                 material._id,
-                subCraft
+                subCraft,
+                processedMaterials // 传入已处理的物料集合
               );
               // 调整子节点的层级和父节点
               subNodes.forEach((node) => {
