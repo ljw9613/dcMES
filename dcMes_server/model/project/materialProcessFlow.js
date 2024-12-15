@@ -41,6 +41,7 @@ const processNodeSchema = new mongoose.Schema(
     relatedBill: { type: String, default: "" }, // 相关单据
     barcodeType: { type: String, default: "" }, // 条码类型 批次虚拟条码/物料上料条码
     scanTime: { type: Date }, // 扫码时间
+ 
     status: {
       type: String,
       enum: ["PENDING", "IN_PROCESS", "COMPLETED", "ABNORMAL"],
@@ -60,7 +61,8 @@ const processNodeSchema = new mongoose.Schema(
 const materialProcessFlowSchema = new mongoose.Schema({
   barcode: { type: String, required: true, unique: true }, // 主物料条码
   relatedBill: { type: String, default: "" }, // 相关单据
-
+  productLineId: { type: mongoose.Schema.ObjectId, ref: "product_line" }, // 产线ID
+  productLineName: { type: String }, // 产线名称
   // 主物料信息
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID
   materialCode: { type: String }, // 物料编码

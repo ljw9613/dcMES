@@ -6,6 +6,19 @@ const mongooseDeleteConfig = {
 };
 
 
+const sqlServerConfig = {
+  server: '192.168.6.254',
+  port: 1433,
+  database: 'production_record',
+  user: 'dev',
+  password: 'DC@sqlServer230530$#1624',
+  options: {
+    encrypt: true,
+    trustServerCertificate: true,
+  },
+};
+
 module.exports = {
   mongooseDeleteConfig,
+  sqlServerConfig,
 };

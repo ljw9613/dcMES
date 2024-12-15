@@ -5,7 +5,7 @@
             <div class="material-node" 
                  :class="{ 
                      'root-node': !node.materialQuantity,
-                     'completed': node.barcode 
+                     'completed': node.barcode || node.status === 'COMPLETED'
                  }">
                 <div class="node-title">{{ node.materialName }}</div>
                 <div v-if="node.craftName" class="node-subtitle">
@@ -36,7 +36,7 @@
             <div class="process-level">
                 <div v-for="process in node.children" :key="process._id" class="process-container">
                     <div class="process-node">
-                        <div class="node-title">{{ process.processSort }}.{{ process.processName }}</div>
+                        <div class="node-title" :style="{ background: process.status === 'COMPLETED' ? '#67C23A' : '#ffa640' }">{{ process.processSort }}.{{ process.processName }}</div>
                         <div class="node-content">
                             <template v-if="process.children && process.children.length">
                                 <div v-for="material in process.children" :key="material._id" class="sub-material">

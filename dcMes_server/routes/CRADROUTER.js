@@ -34,6 +34,7 @@ const k3_SAL_SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
 //检测模块
 const InspectionLastData = require("../model/project/InspectionLastData");
 const InspectionData = require("../model/project/InspectionData");
+const unbindRecord = require("../model/project/unbindRecord");
 
 // 引入 udi 模型
 const productDiNum = require("../model/project/ProductDiNum");
@@ -66,5 +67,6 @@ ADDROUTER(router, "productDiNum", productDiNum);
 //检测模块
 ADDROUTER(router, "InspectionLastData", InspectionLastData);
 ADDROUTER(router, "InspectionData", InspectionData);
+ADDROUTER(router, "unbindRecord", unbindRecord);
 
 module.exports = router;

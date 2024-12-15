@@ -6,11 +6,13 @@ const MaterialProcessFlowService = require('../services/materialProcessFlowServi
 // 创建流程记录
 router.post('/api/v1/create-flow', async (req, res) => {
     try {
-        const { mainMaterialId, materialCode, barcode } = req.body;
+        const { mainMaterialId, materialCode, barcode, productLineId, productLineName } = req.body;
         const flowRecord = await MaterialProcessFlowService.createFlowByMaterialCode(
             mainMaterialId,
             materialCode,
-            barcode
+            barcode,
+            productLineId,
+            productLineName
         );
         res.json({
             code: 200,
@@ -59,6 +61,46 @@ router.post('/api/v1/scan-components', async (req, res) => {
         });
     } catch (error) {
         res.status(200).json({
+            code: 500,
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// 工序解绑
+router.post('/api/v1/unbind-components', async (req, res) => {
+    try {
+        const { 
+            mainBarcode,    // 主条码
+            processStepId,  // 工序ID
+            userId,         // 用户ID
+            reason         // 解绑原因
+        } = req.body;
+
+        // 参数验证
+        if (!mainBarcode || !processStepId || !userId || !reason) {
+            return res.status(200).json({
+                success: false,
+                message: '缺少必要参数'
+            });
+        }
+
+        const result = await MaterialProcessFlowService.unbindProcessComponents(
+            mainBarcode,
+            processStepId,
+            userId,
+            reason
+        );
+
+        res.json({
+            code: 200,
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        res.status(200).json({
+            code: 500,
             success: false,
             message: error.message
         });

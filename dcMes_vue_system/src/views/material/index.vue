@@ -196,13 +196,43 @@
                 </el-row>
 
                 <!-- 添加DI码管理 -->
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="DI码" prop="diNum">
-                            <el-input v-model="DINum" placeholder="请输入DI码" clearable>
-                            </el-input>
-                        </el-form-item>
-                    </el-col>
+                <el-row>
+                    DI码列表
+                    <div class="di-table-container">
+                        <div class="di-table-header">
+                            <el-button type="primary" size="small" @click="handleAddDI">新增DI码</el-button>
+                        </div>
+
+                        <el-table :data="diNumList" border style="width: 100%">
+                            <el-table-column prop="diNum" label="DI码">
+                                <template slot-scope="scope">
+                                    <el-input v-if="scope.row.isEdit" v-model="scope.row.diNum" size="small"
+                                        placeholder="请输入DI码">
+                                    </el-input>
+                                    <span v-else>{{ scope.row.diNum }}</span>
+                                </template>
+                            </el-table-column>
+
+                            <el-table-column prop="createTime" label="创建时间" width="180">
+                                <template slot-scope="scope">
+                                    {{ formatDate(scope.row.createTime) }}
+                                </template>
+                            </el-table-column>
+
+
+                            <el-table-column label="操作" width="200" align="center">
+                                <template slot-scope="scope">
+                                    <el-button v-if="scope.row.isEdit" type="success" size="mini"
+                                        @click="saveDI(scope.row)">保存</el-button>
+                                    <el-button v-if="scope.row.isEdit" type="info" size="mini"
+                                        @click="cancelEdit(scope.row)">取消</el-button>
+                                    <el-button v-if="!scope.row.isEdit" type="primary" size="mini"
+                                        @click="editDI(scope.row)">编辑</el-button>
+                                    <el-button type="danger" size="mini" @click="deleteDI(scope.row)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
                 </el-row>
                 <!-- 更多表单项... -->
             </el-form>
@@ -262,6 +292,7 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { syncBD_MATERIAL, getSyncStatusAll, getSyncStatus } from "@/api/K3Data";
 import MaterialFlowChart from './MaterialFlowChart.vue'
+import { query } from "quill";
 
 export default {
     name: 'MaterialManagement',
@@ -346,7 +377,9 @@ export default {
                 materialNumbers: '',
                 dateRange: [],
                 documentStatus: 'C'
-            }
+            },
+            diNumList: [], // DI码列表
+            diNumTemp: {}, // 临时存储编辑前的DI码数据
         }
     },
     methods: {
@@ -611,8 +644,7 @@ export default {
         // 查看详情
         async handleView(row) {
             this.dataForm = JSON.parse(JSON.stringify(row));
-            // 获取关联的DI码信息
-            await this.fetchDiNum(row._id);
+            await this.fetchDiNumList(row._id);
             this.dialogStatus = 'view';
             this.dialogFormVisible = true;
         },
@@ -620,8 +652,7 @@ export default {
         // 编辑
         async handleEdit(row) {
             this.dataForm = JSON.parse(JSON.stringify(row));
-            // 获取关联的DI码信息
-            await this.fetchDiNum(row._id);
+            await this.fetchDiNumList(row._id);
             this.dialogStatus = 'edit';
             this.dialogFormVisible = true;
         },
@@ -714,25 +745,35 @@ export default {
         async handleViewFlowChart(row) {
             this.flowChartLoading = true;
             try {
-                // 添加调试���志
+                // 添加调试日志
                 console.log('当前物料:', row);
 
-                // 1. 先查询该物料是否有关联的工艺
-                const craft = await this.getCraftByMaterialId(row._id);
-                console.log('关联工艺:', craft);
+                // 1. 查询该物料是否有关联的工艺
+                const craftResponse = await getData('craft', {
+                    query: { materialId: row._id },
+                    page: 1,
+                    limit: 1
+                });
 
-                if (!craft) {
+                if (!craftResponse.data || craftResponse.data.length === 0) {
                     this.$message.info('该物料未关联工艺，无流程图');
                     return;
                 }
 
-                // 2. 检查工艺下是否有工序
-                if (!craft.processSteps || craft.processSteps.length === 0) {
+                const craft = craftResponse.data[0];
+
+                // 2. 使用craft的_id查询相关工序
+                const processStepResponse = await getData('processStep', {
+                    query: { craftId: craft._id },
+                    sort: { sort: 1 }
+                });
+
+                if (!processStepResponse.data || processStepResponse.data.length === 0) {
                     this.$message.info('该物料工艺下无工序，无流程图');
                     return;
                 }
 
-                // 3. 构建流程��数据
+                // 3. 构建流程图数据
                 this.flowChartDialogVisible = true;
                 const flowData = await this.buildFlowChartData(row._id, new Set());
                 console.log('构建的流程图数据:', flowData);
@@ -769,35 +810,46 @@ export default {
                 };
 
                 // 获取工艺信息
-                const craft = await this.getCraftByMaterialId(materialId);
-                if (!craft) {
+                const craftResponse = await getData('craft', {
+                    query: { materialId },
+                    page: 1,
+                    limit: 1
+                });
+
+                if (!craftResponse.data || craftResponse.data.length === 0) {
                     return nodeData;
                 }
+
+                const craft = craftResponse.data[0];
 
                 // 添加工艺信息
                 nodeData.craftName = craft.craftName;
 
-                // 处理工序信息
-                if (craft.processSteps && craft.processSteps.length > 0) {
-                    const processStepsData = await Promise.all(
-                        craft.processSteps.map(async stepId => {
-                            const step = await this.getProcessStepById(stepId);
-                            if (!step) return null;
+                // 获取工序信息
+                const processStepResponse = await getData('processStep', {
+                    query: { craftId: craft._id },
+                    sort: { sort: 1 }
+                });
 
+                if (processStepResponse.data && processStepResponse.data.length > 0) {
+                    const processStepsData = await Promise.all(
+                        processStepResponse.data.map(async step => {
                             const stepNode = {
-                                _id: stepId,
+                                _id: step._id,
                                 label: step.processName,
                                 sort: step.sort,
                                 processName: step.processName,
                                 children: []
                             };
 
-                            if (step.materials && step.materials.length > 0) {
-                                const materialsData = await Promise.all(
-                                    step.materials.map(async materialRelationId => {
-                                        const relation = await this.getProcessMaterialById(materialRelationId);
-                                        if (!relation) return null;
+                            // 获取工序关联的物料
+                            const processMaterialsResponse = await getData('processMaterials', {
+                                query: { processStepId: step._id }
+                            });
 
+                            if (processMaterialsResponse.data && processMaterialsResponse.data.length > 0) {
+                                const materialsData = await Promise.all(
+                                    processMaterialsResponse.data.map(async relation => {
                                         const childFlow = await this.buildFlowChartData(relation.materialId, visited);
                                         if (childFlow) {
                                             childFlow.materialRelationType = relation.relationType;
@@ -1175,6 +1227,131 @@ export default {
         beforeDestroy() {
             this.stopSyncProgressCheck();
         },
+
+        // 获取DI码列表
+        async fetchDiNumList(productId) {
+            try {
+                const result = await getData('productDiNum', {
+                    query: { productId }
+                });
+                if (result.data) {
+                    this.diNumList = result.data.map(item => ({
+                        ...item,
+                        isEdit: false
+                    }));
+                }
+            } catch (error) {
+                console.error('获取DI码列表失败:', error);
+                this.$message.error('获取DI码列表失败');
+            }
+        },
+
+        // 新增DI码
+        handleAddDI() {
+            console.log("🚀 ~ handleAddDI ~ this.dataForm:", this.$store.state.user)
+            this.diNumList.unshift({
+                diNum: '',
+                productId: this.dataForm._id,
+                createBy: this.$store.state.user.id,
+                createTime: new Date(),
+                isEdit: true,
+                isNew: true
+            });
+        },
+
+        // 编辑DI码
+        editDI(row) {
+            this.diNumTemp = { ...row };
+            row.isEdit = true;
+        },
+
+        // 取消编辑
+        cancelEdit(row) {
+            if (row.isNew) {
+                this.diNumList = this.diNumList.filter(item => !item.isNew);
+            } else {
+                Object.assign(row, this.diNumTemp);
+                row.isEdit = false;
+            }
+        },
+
+        // 保存DI码
+        async saveDI(row) {
+            try {
+                if (!row.diNum) {
+                    this.$message.warning('请输入DI码');
+                    return;
+                }
+
+
+                // 验证DI码是否为空
+                if (!row.diNum) {
+                    this.$message.warning('DI码不能为空');
+                    return;
+                }
+
+                // 验证DI码在数据库是否唯一
+                // const isUniqueData = await getData('productDiNum', {
+                //     query: { diNum: row.diNum },
+                //     populate: JSON.stringify([{ path: 'productId', select: 'FNumber' }]),
+                //     limit: 1
+                // });
+                // if (isUniqueData.data.length > 0) {
+                //     let productName = isUniqueData.data[0].productId.FNumber;
+                //     this.$message.warning(`DI码已存在,物料编号:${productName}`);
+                //     return;
+                // }
+
+                if (row.isNew) {
+                    // 新增
+                    await addData('productDiNum', {
+                        productId: this.dataForm._id,
+                        diNum: row.diNum,
+                        createBy: this.$store.state.user.id
+                    });
+                } else {
+                    // 更新
+                    await updateData('productDiNum', {
+                        query: { _id: row._id },
+                        update: {
+                            $set: {
+                                diNum: row.diNum,
+                                updateBy: this.$store.state.user.id
+                            }
+                        }
+                    });
+                }
+
+                row.isEdit = false;
+                if (row.isNew) {
+                    delete row.isNew;
+                }
+
+                this.$message.success('保存成功');
+                await this.fetchDiNumList(this.dataForm._id);
+            } catch (error) {
+                console.error('保存DI码失败:', error);
+                this.$message.error('保存DI码失败');
+            }
+        },
+
+        // 删除DI码
+        async deleteDI(row) {
+            try {
+                await this.$confirm('确认删除该DI码吗?', '提示', {
+                    type: 'warning'
+                });
+
+                await removeData('productDiNum', { query: { _id: row._id } });
+                this.$message.success('删除成功');
+                await this.fetchDiNumList(this.dataForm._id);
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('删除DI码失败:', error);
+                    this.$message.error('删除DI码失败');
+                }
+            }
+        },
     },
     created() {
         this.fetchData();
@@ -1319,6 +1496,15 @@ export default {
             font-size: 13px;
             color: #909399;
         }
+    }
+}
+
+.di-table-container {
+    margin-top: 10px;
+
+    .di-table-header {
+        margin-bottom: 10px;
+        text-align: right;
     }
 }
 </style>

@@ -47,3 +47,10 @@ PERFORMANCE OF THIS SOFTWARE.
  * @param {object} options with values that will be used to replace placeholders
  * @returns {any[]} interpolated
  */
+
+/**!
+ * Sortable 1.10.2
+ * @author	RubaXa   <trash@rubaxa.org>
+ * @author	owenm    <owen23355@gmail.com>
+ * @license MIT
+ */

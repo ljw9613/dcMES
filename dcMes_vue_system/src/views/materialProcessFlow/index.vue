@@ -172,9 +172,7 @@
                             <el-tabs v-model="activeTab" type="border-card">
                                 <!-- 工序信息 -->
                                 <el-tab-pane label="工序信息" name="process">
-                                    <process-step-list 
-                                        ref="processStepList" 
-                                        :loading="listLoading"
+                                    <process-step-list ref="processStepList" :loading="listLoading"
                                         :flow-data="processedFlowChartData">
                                     </process-step-list>
                                 </el-tab-pane>
@@ -187,123 +185,108 @@
                                             <i class="el-icon-box"></i>
                                             <span>工艺物料清单</span>
                                         </div>
-                                        
+
                                         <!-- 表格区域 -->
-                                        <el-table 
-                                            :data="processedFlowChartData[0] && processedFlowChartData[0].children ? 
-                                                   processedFlowChartData[0].children.filter(item => item.nodeType === 'PROCESS_STEP') : 
-                                                   []" 
-                                            border 
-                                            class="material-table"
-                                            :header-cell-style="{
+                                        <el-table :data="processedFlowChartData[0] && processedFlowChartData[0].children ?
+                                            processedFlowChartData[0].children.filter(item => item.nodeType === 'PROCESS_STEP') :
+                                            []" border class="material-table" :header-cell-style="{
                                                 background: '#f5f7fa',
                                                 color: '#606266',
                                                 fontWeight: 'bold',
                                                 fontSize: '14px',
                                                 textAlign: 'center',
                                                 height: '50px'
-                                            }"
-                                            :cell-style="{
+                                            }" :cell-style="{
                                                 textAlign: 'center'
                                             }">
-                                            <el-table-column label="工序" width="180">
+                                            <el-table-column label="工序" width="300">
                                                 <template slot-scope="scope">
                                                     <div class="process-info">
-                                                        <el-tag size="medium" :type="getProcessStatusType(scope.row.status)">
+                                                        <el-tag size="medium"
+                                                            :type="getProcessStatusType(scope.row.status)">
                                                             {{ scope.row.processName }}
-                                                            <el-tag size="mini" type="info">{{ scope.row.processCode }}</el-tag>
+                                                            <el-tag size="mini" type="info">{{ scope.row.processCode
+                                                                }}</el-tag>
                                                         </el-tag>
                                                     </div>
                                                 </template>
                                             </el-table-column>
-                                            
+
                                             <el-table-column label="关联物料">
                                                 <template slot-scope="scope">
-                                                    <el-table
-                                                        v-if="scope.row.children && scope.row.children.length"
+                                                    <el-table v-if="scope.row.children && scope.row.children.length"
                                                         :data="scope.row.children.filter(item => item.nodeType === 'MATERIAL')"
-                                                        border
-                                                        class="inner-table">
-                                                        <el-table-column 
-                                                            label="物料编码" 
-                                                            prop="materialCode" 
+                                                        border class="inner-table">
+                                                        <el-table-column label="物料编码" prop="materialCode"
                                                             min-width="120">
                                                         </el-table-column>
-                                                        <el-table-column 
-                                                            label="物料名称" 
-                                                            prop="materialName" 
+                                                        <el-table-column label="物料名称" prop="materialName"
                                                             min-width="150">
                                                         </el-table-column>
-                                                        <el-table-column 
-                                                            label="规格型号" 
-                                                            prop="materialSpec" 
+                                                        <el-table-column label="规格型号" prop="materialSpec"
                                                             min-width="120">
                                                         </el-table-column>
-                                                        <el-table-column 
-                                                            label="数量" 
-                                                            width="80">
+                                                        <el-table-column label="数量" width="80">
                                                             <template slot-scope="innerScope">
-                                                                {{ innerScope.row.materialQuantity }} {{ innerScope.row.materialUnit }}
+                                                                {{ innerScope.row.materialQuantity }} {{
+                                                                    innerScope.row.materialUnit }}
                                                             </template>
                                                         </el-table-column>
-                                                        <el-table-column 
-                                                            label="状态" 
-                                                            width="100">
+                                                        <el-table-column label="状态" width="100">
                                                             <template slot-scope="innerScope">
-                                                                <el-tag 
-                                                                    :type="getProcessStatusType(innerScope.row.status)" 
+                                                                <el-tag
+                                                                    :type="getProcessStatusType(innerScope.row.status)"
                                                                     size="small">
                                                                     {{ getProcessStatusText(innerScope.row.status) }}
                                                                 </el-tag>
                                                             </template>
                                                         </el-table-column>
-                                                        <el-table-column 
-                                                            label="条码" 
-                                                            min-width="150">
+                                                        <el-table-column label="条码" min-width="150">
                                                             <template slot-scope="innerScope">
-                                                                <span v-if="innerScope.row.barcode">{{ innerScope.row.barcode }}</span>
+                                                                <span v-if="innerScope.row.barcode">{{
+                                                                    innerScope.row.barcode }}</span>
                                                                 <span v-else class="no-barcode">-</span>
                                                             </template>
                                                         </el-table-column>
-                                                        <el-table-column 
-                                                            label="类型" 
-                                                            width="100">
+                                                        <el-table-column label="类型" width="100">
                                                             <template slot-scope="innerScope">
-                                                                <el-tag 
-                                                                    v-if="innerScope.row.isComponent" 
-                                                                    type="warning" 
+                                                                <el-tag v-if="innerScope.row.isComponent" type="warning"
                                                                     size="mini">组件</el-tag>
-                                                                <el-tag 
-                                                                    v-if="innerScope.row.isKeyMaterial" 
-                                                                    type="danger" 
-                                                                    size="mini">关键</el-tag>
-                                                                <span v-if="!innerScope.row.isComponent && !innerScope.row.isKeyMaterial">-</span>
+                                                                <el-tag v-if="innerScope.row.isKeyMaterial"
+                                                                    type="danger" size="mini">关键</el-tag>
+                                                                <span
+                                                                    v-if="!innerScope.row.isComponent && !innerScope.row.isKeyMaterial">-</span>
                                                             </template>
                                                         </el-table-column>
                                                     </el-table>
                                                     <div v-else class="no-material">暂无关联物料</div>
                                                 </template>
                                             </el-table-column>
+                                            <el-table-column label="操作" width="120" fixed="right">
+                                                <template slot-scope="scope">
+                                                    <el-button type="text" size="small"
+                                                        @click="handleUnbind(scope.row)">解绑</el-button>
+                                                </template>
+                                            </el-table-column>
                                         </el-table>
                                     </div>
                                 </el-tab-pane>
 
-                                        <!-- 物料条码信息 -->
+                                <!-- 物料条码信息 -->
                                 <el-tab-pane label="物料条码信息" name="materialBarcode">
-                                    <el-table 
-                                        :data="processedMaterialBarcodeData" 
-                                        border
-                                        :header-cell-style="{
-                                            background: '#f5f7fa',
-                                            color: '#606266',
-                                            fontWeight: 'bold',
-                                            textAlign: 'center'
-                                        }"
-                                        :cell-style="{ textAlign: 'center' }">
+                                    <el-table :data="processedMaterialBarcodeData" border :header-cell-style="{
+                                        background: '#f5f7fa',
+                                        color: '#606266',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center'
+                                    }" :cell-style="{ textAlign: 'center' }">
                                         <el-table-column label="条码" prop="barcode" min-width="150"></el-table-column>
-                                        <el-table-column label="物料编码" prop="materialCode" min-width="120"></el-table-column>
-                                        <el-table-column label="物料名称" prop="materialName" min-width="150"></el-table-column>
-                                        <el-table-column label="规格型号" prop="materialSpec" min-width="120"></el-table-column>
+                                        <el-table-column label="物料编码" prop="materialCode"
+                                            min-width="120"></el-table-column>
+                                        <el-table-column label="物料名称" prop="materialName"
+                                            min-width="150"></el-table-column>
+                                        <el-table-column label="规格型号" prop="materialSpec"
+                                            min-width="120"></el-table-column>
                                         <el-table-column label="状态" width="100">
                                             <template slot-scope="scope">
                                                 <el-tag :type="getProcessStatusType(scope.row.status)">
@@ -329,34 +312,71 @@
                                         <el-table-column label="绑定人员" prop="bindOperator" width="100"></el-table-column>
                                         <el-table-column label="备注" min-width="150">
                                             <template slot-scope="scope">
-                                                <el-tooltip 
-                                                    v-if="scope.row.remark" 
-                                                    :content="scope.row.remark" 
+                                                <el-tooltip v-if="scope.row.remark" :content="scope.row.remark"
                                                     placement="top">
                                                     <span>{{ scope.row.remark }}</span>
                                                 </el-tooltip>
                                                 <span v-else>-</span>
                                             </template>
                                         </el-table-column>
+
                                     </el-table>
                                 </el-tab-pane>
 
                                 <!-- 检测信息 -->
                                 <el-tab-pane label="检测信息" name="inspection">
-                                    <inspection-list :inspections="dataForm || []"></inspection-list>
+                                    <inspection-list :inspections="dataForm"></inspection-list>
                                 </el-tab-pane>
 
                                 <!-- 解绑信息 -->
                                 <el-tab-pane label="解绑信息" name="unbind">
-                                    <el-table :data="dataForm.unbindRecords || []" border>
-                                        <el-table-column label="解绑时间" prop="unbindTime">
+                                    <el-table :data="unbindRecord || []" border :header-cell-style="{
+                                        background: '#f5f7fa',
+                                        color: '#606266',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center'
+                                    }" :cell-style="{ textAlign: 'center' }">
+                                        <el-table-column label="解绑时间" width="160">
                                             <template slot-scope="scope">
-                                                {{ formatDate(scope.row.unbindTime) }}
+                                                {{ formatDate(scope.row.operateTime) }}
                                             </template>
                                         </el-table-column>
-                                        <el-table-column label="解绑原因" prop="reason"></el-table-column>
-                                        <el-table-column label="操作人" prop="operator"></el-table-column>
-                                        <el-table-column label="备注" prop="remark"></el-table-column>
+                                        <el-table-column label="工序信息" min-width="150">
+                                            <template slot-scope="scope">
+                                                <el-tag size="medium" type="info">
+                                                    {{ scope.row.processName }}
+                                                    <el-tag size="mini" type="info" v-if="scope.row.processCode">
+                                                        {{ scope.row.processCode }}
+                                                    </el-tag>
+                                                </el-tag>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="解绑物料" min-width="200">
+                                            <template slot-scope="scope">
+                                                <el-table
+                                                    v-if="scope.row.unbindMaterials && scope.row.unbindMaterials.length"
+                                                    :data="scope.row.unbindMaterials" border size="mini"
+                                                    class="inner-table">
+                                                    <el-table-column label="物料编码" prop="materialCode" min-width="120">
+                                                    </el-table-column>
+                                                    <el-table-column label="物料名称" prop="materialName" min-width="150">
+                                                    </el-table-column>
+                                                    <el-table-column label="原条码" prop="originalBarcode" min-width="150">
+                                                    </el-table-column>
+                                                </el-table>
+                                                <span v-else>-</span>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="解绑原因" min-width="150">
+                                            <template slot-scope="scope">
+                                                <el-tooltip v-if="scope.row.reason" :content="scope.row.reason"
+                                                    placement="top">
+                                                    <span>{{ scope.row.reason }}</span>
+                                                </el-tooltip>
+                                                <span v-else>-</span>
+                                            </template>
+                                        </el-table-column>
+                                        <!-- <el-table-column label="操作人" prop="operatorId" width="100"></el-table-column> -->
                                     </el-table>
                                 </el-tab-pane>
                             </el-tabs>
@@ -367,18 +387,11 @@
         </el-dialog>
 
         <!-- 添加条码搜索弹窗 -->
-        <el-dialog
-            title="条码查询"
-            :visible.sync="barcodeSearchVisible"
-            width="70%"
-            :close-on-click-modal="false">
+        <el-dialog title="条码查询" :visible.sync="barcodeSearchVisible" width="70%" :close-on-click-modal="false">
             <div class="barcode-search-container">
                 <!-- 搜索区域 -->
                 <div class="search-area">
-                    <el-input
-                        v-model="searchBarcode"
-                        placeholder="请输入条码"
-                        clearable
+                    <el-input v-model="searchBarcode" placeholder="请输入条码" clearable
                         @keyup.enter.native="handleBarcodeSearch">
                         <el-button slot="append" icon="el-icon-search" @click="handleBarcodeSearch">
                             搜索
@@ -388,18 +401,13 @@
 
                 <!-- 搜索结果表格 -->
                 <div class="search-result" v-loading="searchLoading">
-                    <el-table
-                        v-if="searchResults.length"
-                        :data="searchResults"
-                        border
-                        style="width: 100%"
+                    <el-table v-if="searchResults.length" :data="searchResults" border style="width: 100%"
                         :header-cell-style="{
                             background: '#f5f7fa',
                             color: '#606266',
                             fontWeight: 'bold',
                             textAlign: 'center'
-                        }"
-                        :cell-style="{ textAlign: 'center' }">
+                        }" :cell-style="{ textAlign: 'center' }">
                         <el-table-column label="条码类型" width="120">
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.isMainBarcode ? 'primary' : 'success'">
@@ -417,9 +425,7 @@
                         </el-table-column>
                         <el-table-column label="所属主条码" min-width="150">
                             <template slot-scope="scope">
-                                <el-button 
-                                    v-if="!scope.row.isMainBarcode"
-                                    type="text" 
+                                <el-button v-if="!scope.row.isMainBarcode" type="text"
                                     @click="handleView(scope.row.mainBarcodeData)">
                                     {{ scope.row.mainBarcode }}
                                 </el-button>
@@ -448,11 +454,11 @@
                         </el-table-column>
                         <el-table-column label="操作" width="120" fixed="right">
                             <template slot-scope="scope">
-                                <el-button 
-                                    type="text" 
+                                <el-button type="text"
                                     @click="handleView(scope.row.isMainBarcode ? scope.row : scope.row.mainBarcodeData)">
                                     查看详情
                                 </el-button>
+                                <el-button type="text" style="color: red;" @click="handleInit(scope.row)">成品初始化</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -471,6 +477,7 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ProcessStepList from '@/components/ProcessStepList/index.vue';
 import InspectionList from '@/components/InspectionList/index.vue';
+import { unbindComponents } from '@/api/materialProcessFlowService';
 
 export default {
     name: 'SaleOrder',
@@ -521,12 +528,13 @@ export default {
             searchBarcode: '',
             searchResults: [],
             searchLoading: false,
+            unbindRecord: [], // 解绑记录
         }
     },
     computed: {
         processedMaterialBarcodeData() {
             if (!this.dataForm.processNodes) return [];
-            
+
             // 创建工序映射
             const processMap = new Map();
             this.dataForm.processNodes.forEach(node => {
@@ -537,7 +545,7 @@ export default {
                     });
                 }
             });
-            
+
             // 过滤并处理物料数据
             return this.dataForm.processNodes
                 .filter(node => node.nodeType === 'MATERIAL' && node.barcode) // 只显示有条码的物料
@@ -554,9 +562,106 @@ export default {
                     // 按扫码时间降序排序
                     return new Date(b.scanTime || 0) - new Date(a.scanTime || 0);
                 });
+        },
+        // 格式化后的解绑记录
+        formattedUnbindRecord() {
+            return this.unbindRecord.map(record => ({
+                ...record,
+                formattedTime: this.formatDate(record.operateTime),
+                materialList: record.unbindMaterials ? record.unbindMaterials.map(m => ({
+                    ...m,
+                    displayText: `${m.materialCode} - ${m.materialName}`
+                })) : []
+            }));
         }
     },
     methods: {
+        // 解绑
+        // 修改 handleUnbind 方法
+        async handleUnbind(row) {
+            try {
+                // 显示确认弹窗
+                const { value: reason } = await this.$prompt('请输入解绑原因', '解绑确认', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    inputType: 'textarea',
+                    inputPlaceholder: '请输入解绑原因(非必填)',
+                    inputValidator: (value) => {
+                        // if (!value) {
+                        //     return '解绑原因不能为空';
+                        // }
+                        return true;
+                    }
+                });
+
+                // if (!reason) return;
+
+                // 显示loading
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在解绑...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                try {
+                    // 检查是否为工序节点
+                    if (row.nodeType === 'PROCESS_STEP') {
+                        const response = await unbindComponents({
+                            mainBarcode: this.dataForm.barcode,
+                            processStepId: row.processStepId,
+                            userId: this.$store.state.user.id,
+                            reason: reason || '未填写解绑原因'
+                        });
+
+                        if (response.code === 200 && response.success) {
+                            this.$message.success('解绑成功');
+
+                            // 更新主数据
+                            if (response.data && response.data.flowRecord) {
+                                // 更新当前展示的数据
+                                this.dataForm = response.data.flowRecord;
+
+                                // 重新处理流程图数据
+                                this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
+
+                                // 获取最新的解绑记录
+                                const unbindRecordResponse = await getData('unbindRecord', {
+                                    query: { flowRecordId: this.dataForm._id },
+                                    populate: JSON.stringify([{ path: 'operatorId' }])
+                                });
+
+                                if (unbindRecordResponse.code === 200) {
+                                    this.unbindRecord = unbindRecordResponse.data;
+                                }
+
+                                // 自动切换到解绑信息标签页
+                                this.activeTab = 'unbind';
+
+                                // 更新列表中对应的数据
+                                const index = this.tableList.findIndex(item => item._id === this.dataForm._id);
+                                if (index !== -1) {
+                                    this.$set(this.tableList, index, response.data.flowRecord);
+                                }
+                            }
+                        } else {
+                            throw new Error(response.message || '解绑失败');
+                        }
+                    } else {
+                        throw new Error('只能对工序节点进行解绑操作');
+                    }
+                } catch (error) {
+                    this.$message.error(error.message || '解绑失败');
+                } finally {
+                    loading.close();
+                }
+            } catch (error) {
+                // 如果是用户取消操作，不显示错误提示
+                if (error !== 'cancel') {
+                    this.$message.error(error.message || '解绑失败');
+                }
+            }
+        },
         // ... 其他方法保持与 material 页面类似,修改相应的字段名和业务逻辑
         // 这里只列出一些需要特别修改的方法
         // 获取流程状态样式
@@ -651,6 +756,35 @@ export default {
             this.selection = selection;
         },
 
+        //成品初始化
+        async handleInit(row) {
+            try {
+                // 显示确认对话框
+                await this.$confirm('确认要成品初始化吗?该操作无法撤回！请谨慎操作！', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                // 调用成品初始化 API   
+                const result = await removeData('material_process_flow', {
+                    query: { _id: row._id }
+                });
+
+                if (result.code === 200) {
+                    this.$message.success('初始化成功');
+                    // 重新加载数据
+                    this.fetchData();
+                } else {
+                    throw new Error(result.msg || '初始化失败');
+                }
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('删除失败:', error);
+                    this.$message.error(error.message || '删除失败');
+                }
+            }
+        },
         // 查看详情
         async handleView(row) {
             try {
@@ -662,9 +796,17 @@ export default {
                 if (result.code === 200 && result.data.length > 0) {
                     this.dataForm = result.data[0];
                     // 处理流程图数据
-                    console.log(JSON.stringify(this.dataForm.processNodes), 'this.dataForm.processNodes');
+
                     this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
                     this.dialogFormVisible = true;
+
+                    // 获取解绑记录
+                    const unbindRecord = await getData('unbindRecord', {
+                        query: { flowRecordId: row._id },
+                        populate: JSON.stringify([{ path: 'operatorId' }])
+                    });
+                    console.log(unbindRecord, 'unbindRecord');
+                    this.unbindRecord = unbindRecord.data;
                 } else {
                     this.$message.error('获取详情失败');
                 }
@@ -736,7 +878,9 @@ export default {
                         case 'barcode':
                         case 'materialCode':
                             if (value.trim()) {
-                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                                // 对特殊字符进行转义
+                                const escapedValue = value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                req.query.$and.push({ [key]: { $regex: escapedValue, $options: 'i' } });
                             }
                             break;
                         case 'status':
@@ -999,7 +1143,7 @@ export default {
             return this.getRelatedMaterials(processNodeId).some(material => material.requireScan);
         },
 
-        // 添加新的处理方法
+        // 添加的处理方法
         processNodes(nodes) {
             if (!nodes || !nodes.length) return [];
 
@@ -1068,8 +1212,8 @@ export default {
                 const searchQuery = {
                     query: {
                         $or: [
-                            { barcode: this.searchBarcode.trim() },
-                            { 'processNodes.barcode': this.searchBarcode.trim() }
+                            { barcode: this.searchBarcode },
+                            { 'processNodes.barcode': this.searchBarcode }
                         ]
                     }
                 };
@@ -1078,7 +1222,7 @@ export default {
 
                 if (result.code === 200 && result.data) {
                     this.searchResults = [];
-                    
+
                     result.data.forEach(record => {
                         // 如果是主条码匹配
                         if (record.barcode === this.searchBarcode.trim()) {
@@ -1092,12 +1236,12 @@ export default {
                                 ...record
                             });
                         }
-                        
+
                         // 查找匹配的子条码
                         const matchedNodes = record.processNodes.filter(
                             node => node.barcode === this.searchBarcode.trim()
                         );
-                        
+
                         matchedNodes.forEach(node => {
                             this.searchResults.push({
                                 isMainBarcode: false,
@@ -1550,52 +1694,73 @@ export default {
     padding: 20px;
     background: #fff;
     border-radius: 8px;
-    
+
     .table-header {
         display: flex;
         align-items: center;
         margin-bottom: 20px;
         padding: 0 10px;
-        
+
         i {
             font-size: 20px;
             color: #409EFF;
             margin-right: 10px;
         }
-        
+
         span {
             font-size: 16px;
             font-weight: 600;
             color: #303133;
         }
     }
-    
+
     .material-table {
         margin-bottom: 20px;
-        
+
         .process-info {
             display: flex;
             align-items: center;
             justify-content: center;
-            
+
             .el-tag {
                 margin: 0 4px;
             }
         }
-        
+
         .inner-table {
             margin: 0;
-            background: #fafafa;
-            
+            background: transparent;
+
             &.el-table {
-                border: none;
-                
                 &::before {
                     display: none;
                 }
+
+                .el-table__header-wrapper {
+                    display: none;
+                }
+
+                .el-table__body-wrapper {
+                    background: transparent;
+                }
+
+                td {
+                    padding: 4px 8px;
+                    height: 32px;
+                    line-height: 24px;
+                    font-size: 12px;
+
+                    &.el-table__cell {
+                        border-bottom: 1px solid #EBEEF5;
+
+                        &:last-child {
+                            border-bottom: none;
+                        }
+                    }
+                }
             }
         }
-        
+
         .no-material {
             color: #909399;
             padding: 20px;
@@ -1603,35 +1768,35 @@ export default {
             font-size: 14px;
         }
     }
-    
+
     :deep(.el-table) {
         .el-table__header-wrapper {
             th {
                 background: #f5f7fa;
             }
         }
-        
+
         .el-table__row {
             transition: all 0.3s;
-            
+
             &:hover {
                 background-color: #f5f7fa;
             }
         }
     }
-    
+
     .process-info {
         .process-code {
             margin-left: 5px;
         }
     }
-    
+
     .no-barcode {
         color: #909399;
     }
-    
+
     .inner-table {
-        .el-tag + .el-tag {
+        .el-tag+.el-tag {
             margin-left: 5px;
         }
     }
@@ -1640,41 +1805,80 @@ export default {
 .barcode-search-container {
     .search-area {
         margin-bottom: 20px;
-        
+
         .el-input {
             width: 400px;
         }
     }
-    
+
     .search-result {
         min-height: 200px;
-        
+
         .no-result {
             text-align: center;
             padding: 40px 0;
             color: #909399;
-            
+
             i {
                 font-size: 24px;
                 margin-right: 8px;
             }
-            
+
             span {
                 font-size: 14px;
             }
         }
-        
+
         .el-table {
             margin-top: 10px;
-            
+
             .el-button--text {
                 padding: 0;
             }
-            
-            .el-tag + .el-tag {
+
+            .el-tag+.el-tag {
                 margin-left: 4px;
             }
         }
     }
+}
+
+.inner-table {
+    margin: 0;
+    background: transparent;
+
+    &.el-table {
+        &::before {
+            display: none;
+        }
+
+        .el-table__header-wrapper {
+            display: none;
+        }
+
+        .el-table__body-wrapper {
+            background: transparent;
+        }
+
+        td {
+            padding: 4px 8px;
+            height: 32px;
+            line-height: 24px;
+            font-size: 12px;
+
+            &.el-table__cell {
+                border-bottom: 1px solid #EBEEF5;
+
+                &:last-child {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+}
+
+.el-tooltip__popper {
+    max-width: 300px;
+    line-height: 1.5;
 }
 </style>

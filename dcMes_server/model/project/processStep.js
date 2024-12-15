@@ -20,7 +20,7 @@ var processStepSchema = new mongoose.Schema({
     materials: [{ type: mongoose.Schema.ObjectId, ref: "processMaterials" }], // 关联工序物料ID数组
     machineId: {type: mongoose.Schema.ObjectId, ref: "machine", description: '检验设备'},
     remark: { type: String }, // 备注
-    createBy: { type: String }, // 创建人
+    createBy: { type: String }, // 创建人pp
     updateBy: { type: String }, // 更新人
     createAt: { type: Date, default: Date.now }, // 创建时间
     updateAt: { type: Date, default: Date.now } // 更新时间

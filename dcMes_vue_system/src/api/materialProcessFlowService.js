@@ -18,3 +18,12 @@ export function scanComponents(data) {
     })
 }
 
+// /api/v1/unbind-components
+export function unbindComponents(data) {
+    return request({
+        url: '/unbind-components',
+        method: 'post',
+        data
+    })
+}
+

@@ -1,7 +1,7 @@
 var mongoose = require("mongoose");
 
 var salesOrderSchema = new mongoose.Schema({
-    FID: { type: Number }, // 实体主键
+    FID: { type: Number, required: true, unique: true }, // 实体主键
     FBillNo: { type: String }, // 单据编号
     FDocumentStatus: { type: String }, // 单据状态
     FSaleOrgId: { type: String, required: true }, // 销售组织

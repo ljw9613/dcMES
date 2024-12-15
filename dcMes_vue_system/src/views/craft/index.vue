@@ -236,12 +236,15 @@
                 </div>
             </div>
 
-            <base-table ref="processTable" :currentPage="processTableData.currentPage"
-                :pageSize="processTableData.pageSize" :tableData="processTableData.tableList"
-                :tableDataloading="processTableData.listLoading" :total="processTableData.total"
-                :cell-style="{ textAlign: 'center' }" @handleCurrentChange="handleProcessTableCurrentChange"
-                @handleSizeChange="handleProcessTableSizeChange">
+            <base-table ref="processTable" :tableData="processTableData.tableList"
+                :tableDataloading="processTableData.listLoading" :height="processTableData.height"
+                :cell-style="{ textAlign: 'center' }">
                 <template slot="law">
+                    <el-table-column width="50">
+                        <template slot-scope="scope">
+                            <i class="el-icon-rank" style="cursor:move" v-drag-handler></i>
+                        </template>
+                    </el-table-column>
                     <el-table-column label="工序编码" prop="processCode" width="150" align="center" />
                     <el-table-column label="工序名称" prop="processName" align="center" />
                     <el-table-column label="工序描述" prop="processDesc" align="center" />
@@ -254,8 +257,16 @@
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="操作" fixed="right" width="150">
+                    <el-table-column label="操作" fixed="right" width="280">
                         <template slot-scope="scope">
+                            <el-button type="text" size="small" @click="handleMoveUp(scope.row, scope.$index)" 
+                                :disabled="scope.$index === 0">
+                                上移
+                            </el-button>
+                            <el-button type="text" size="small" @click="handleMoveDown(scope.row, scope.$index)"
+                                :disabled="scope.$index === processTableData.tableList.length - 1">
+                                下移
+                            </el-button>
                             <el-button type="text" size="small" @click="handleEditProcess(scope.row)">编辑</el-button>
                             <el-button type="text" size="small" @click="handleDeleteProcess(scope.row)">删除</el-button>
                         </template>
@@ -347,7 +358,7 @@
                                     <div class="item-option">
                                         <div class="item-info">
                                             <span class="name">{{ item.machineName }}</span>
-                                            <el-tag size="mini" type="info">{{ item.machineCode }}</el-tag>
+                                            <el-tag size="mini" type="info">{{ item.machineCode || '--' }}</el-tag>
                                         </div>
                                         <div class="sub-info">
                                             <small>{{ item.principal }}</small>
@@ -368,11 +379,9 @@
                 </div>
             </div>
 
-            <base-table ref="materialTable" :currentPage="materialTableData.currentPage"
-                :pageSize="materialTableData.pageSize" :tableData="materialTableData.tableList"
-                :tableDataloading="materialTableData.listLoading" :total="materialTableData.total"
-                @handleCurrentChange="handleMaterialTableCurrentChange"
-                @handleSizeChange="handleMaterialTableSizeChange" :cell-style="{ textAlign: 'center' }">
+            <base-table ref="materialTable" :tableData="materialTableData.tableList"
+                :tableDataloading="materialTableData.listLoading" :height="materialTableData.height"
+                :cell-style="{ textAlign: 'center' }">
                 <template slot="law">
                     <el-table-column label="物料编码" prop="materialCode">
                         <template slot-scope="scope">
@@ -443,7 +452,6 @@
                 <el-row :gutter="20">
                     <el-col :span="24">
                         <el-form-item label="选择物料" prop="materialId">
-
                             <zr-select v-model="materialForm.materialId" collection="k3_BD_MATERIAL"
                                 :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
                                 :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleMaterialChange">
@@ -538,6 +546,7 @@
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ZrSelect from '@/components/ZrSelect'
+import Sortable from 'sortablejs'
 
 export default {
     components: { ZrSelect },
@@ -657,11 +666,9 @@ export default {
             },
 
             processTableData: {
-                tableList: [],
-                total: 0,
-                currentPage: 1,
-                pageSize: 10,
-                listLoading: false
+                tableList: [], // 工序列表数据
+                listLoading: false,
+                height: '400px' // 添加固定高度
             },
 
             materialTableData: {
@@ -678,7 +685,7 @@ export default {
             materialDialogVisible: false,
             dialogStatus: 'create',
             materialDialogStatus: 'create', // 新增状态标记
-            editingMaterialId: null,       // 正在编辑的物��ID
+            editingMaterialId: null,       // 正在编辑的物料ID
 
 
 
@@ -704,7 +711,7 @@ export default {
             materialOptions: [], // 物料选项列表
             materialLoading: false, // 物料加载状态
 
-            // 编���物料对话框数据
+            // 编辑物料对话框数据
             materialDialog: {
                 visible: false,
                 title: '新增物料',
@@ -840,18 +847,41 @@ export default {
         },
 
         handleDelete(row) {
-            this.$confirm('确认要删除该工艺吗?', '提示', {
+            this.$confirm('删除工艺将同时删除所有相关工序和物料数据，是否确认删除?', '警告', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('craft', { query: { _id: row._id } });
+                    // 1. 获取所有相关工序
+                    const processResult = await getData('processStep', {
+                        query: { craftId: row._id }
+                    });
+
+                    const processIds = processResult.data.map(process => process._id);
+
+                    // 2. 删除所有相关的工序物料
+                    if (processIds.length > 0) {
+                        await removeData('processMaterials', {
+                            query: { processStepId: { $in: processIds } }
+                        });
+                    }
+
+                    // 3. 删除所有相关工序
+                    await removeData('processStep', {
+                        query: { craftId: row._id }
+                    });
+
+                    // 4. 最后删除工艺
+                    await removeData('craft', {
+                        query: { _id: row._id }
+                    });
+
                     this.$message.success('删除成功');
                     this.fetchCraftData();
                 } catch (error) {
                     console.error('删除失败:', error);
-                    this.$message.error('删除失败');
+                    this.$message.error('删除失败: ' + error.message);
                 }
             }).catch(() => {
                 this.$message.info('已取消删除');
@@ -879,8 +909,30 @@ export default {
                             return;
                         }
 
+                        // 检查其他��艺是否使用了相同物料
+                        const duplicateCheck = await getData('craft', {
+                            query: {
+                                materialId: this.craftForm.selectedMaterial,
+                                _id: { $ne: this.tempCraftId }, // 排除当前工艺
+                                status: { $ne: 'VOID' } // 排除作废状态的工艺
+                            }
+                        });
+
+                        if (duplicateCheck.data && duplicateCheck.data.length > 0) {
+                            this.$message.warning(`该物料已被其他工艺使用，工艺名称:${duplicateCheck.data[0].craftName}`);
+                            return;
+                        }
+
+                        const processTableData = await getData('processStep', {
+                            query: {
+                                craftId: this.tempCraftId,
+                            },
+                            sort: { _id: -1 },
+                            select: { _id: 1 }
+                        });
+
                         // 获取所有工序的ID数组
-                        const processSteps = this.processTableData.tableList.map(process => process._id);
+                        const processSteps = processTableData.data.map(process => process._id);
 
                         const craftData = {
                             ...this.craftForm,
@@ -923,21 +975,18 @@ export default {
                 const craftId = this.craftForm._id;
                 if (!craftId) return;
 
+                // 移除分页相关参数,获取所有数据
                 let req = {
                     query: {
                         craftId: craftId
                     },
-                    page: this.processTableData.currentPage,
-                    limit: this.processTableData.pageSize,
-                    count: true,
-                    sort: { _id: -1 }
+                    sort: { sort: 1 } // 按工序顺序排序
                 };
                 const result = await getData("processStep", req);
                 this.processTableData.tableList = result.data;
-                this.processTableData.total = result.countnum;
             } catch (error) {
                 console.error('获取工序数据失败:', error);
-                this.$message.error('获取工���数据失败');
+                this.$message.error('获取工序数据失败');
             } finally {
                 this.processTableData.listLoading = false;
             }
@@ -945,7 +994,7 @@ export default {
 
         async generateProcessCode() {
             try {
-                // 获取最后一个工序编码
+                // 获最后一个工序编码
                 const result = await getData('processStep', {
                     query: {},
                     sort: { processCode: -1 },
@@ -1038,36 +1087,48 @@ export default {
                 return;
             }
 
-            // 计算新工序的次序
-            let nextSort = 1;
-            if (this.processTableData.tableList && this.processTableData.tableList.length > 0) {
-                nextSort = Math.max(...this.processTableData.tableList.map(p => p.sort)) + 1;
+            try {
+                // 获取当前工艺下所有工序
+                const result = await getData('processStep', {
+                    query: { craftId: this.tempCraftId },
+                    sort: { sort: -1 },
+                    limit: 1
+                });
+
+                // 计算新工序的次序
+                let nextSort = 1;
+                if (result.data && result.data.length > 0) {
+                    nextSort = result.data[0].sort + 1;
+                }
+
+                // 生成工序编码
+                const processCode = await this.generateProcessCode();
+
+                this.processOperationType = 'create';
+                this.tempProcessId = this.ObjectId();
+                this.processDialogVisible = true;
+                this.processForm = {
+                    _id: this.tempProcessId,
+                    craftId: this.tempCraftId,
+                    processCode: processCode,
+                    processName: '',
+                    processDesc: '',
+                    processStage: '',
+                    processType: '',
+                    businessType: '',
+                    status: 'CREATE',
+                    materials: [],
+                    remark: '',
+                    sort: nextSort
+                };
+
+                // 重置物料列表
+                this.materialTableData.tableList = [];
+                this.materialTableData.total = 0;
+            } catch (error) {
+                console.error('初始化工序失败:', error);
+                this.$message.error('初始化工序失败');
             }
-
-            // 生成工序编码
-            const processCode = await this.generateProcessCode();
-
-            this.processOperationType = 'create';
-            this.tempProcessId = this.ObjectId();
-            this.processDialogVisible = true;
-            this.processForm = {
-                _id: this.tempProcessId,
-                craftId: this.tempCraftId,
-                processCode: processCode,
-                processName: '',
-                processDesc: '',
-                processStage: '',
-                processType: '',
-                businessType: '',
-                status: 'CREATE',
-                materials: [],
-                remark: '',
-                sort: nextSort
-            };
-
-            // 重置物料列表
-            this.materialTableData.tableList = [];
-            this.materialTableData.total = 0;
         },
 
         handleEditProcess(row) {
@@ -1084,19 +1145,33 @@ export default {
         },
 
         handleDeleteProcess(row) {
-            this.$confirm('确认要删除该工序吗?', '提示', {
+            this.$confirm('删除工序将同时删除所有相关物料数据，是否确认删除?', '警告', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('processStep', { query: { _id: row._id } });
+                    // 1. 先删除工序相关的所有物料
+                    await removeData('processMaterials', {
+                        query: { processStepId: row._id }
+                    });
+
+                    // 2. 删除工序
+                    await removeData('processStep', {
+                        query: { _id: row._id }
+                    });
+
                     this.$message.success('删除成功');
                     this.fetchProcessData();
+
+                    // 3. 更新工序排序
+                    await this.reorderProcessSteps();
                 } catch (error) {
                     console.error('删除失败:', error);
-                    this.$message.error('删除失败');
+                    this.$message.error('删除失败: ' + error.message);
                 }
+            }).catch(() => {
+                this.$message.info('已取消删除');
             });
         },
 
@@ -1115,15 +1190,40 @@ export default {
             this.$refs.processForm.validate(async (valid) => {
                 if (valid) {
                     try {
-                        // 检查工序次序是否重复
-                        const isDuplicateSort = this.processTableData.tableList.some(
-                            process => process.sort === this.processForm.sort &&
-                                process._id !== this.tempProcessId
-                        );
+                        // // 检查工序编号是否重复
+                        // const existingProcess = await getData('processStep', {
+                        //     query: {
+                        //         processCode: this.processForm.processCode,
+                        //         _id: { $ne: this.tempProcessId } // 排除当前编辑的工序
+                        //     }
+                        // });
 
-                        if (isDuplicateSort) {
-                            this.$message.warning('工序次序重复，请修改');
-                            return;
+                        // if (existingProcess.data && existingProcess.data.length > 0) {
+                        //     this.$message.error('工序编号已存在,请修改后重试');
+                        //     return;
+                        // }
+
+                        // 检查工序次序是否重复
+                        const existingProcessSort = await getData('processStep', {
+                            query: {
+                                craftId: this.tempCraftId,
+                                sort: this.processForm.sort,
+                                _id: { $ne: this.tempProcessId }
+                            }
+                        });
+
+                        if (existingProcessSort.data && existingProcessSort.data.length > 0) {
+                            this.$message.warning('工序次序重复，系统将自动调整序号');
+                            
+                            // 获取最大序号
+                            const maxSortResult = await getData('processStep', {
+                                query: { craftId: this.tempCraftId },
+                                sort: { sort: -1 },
+                                limit: 1
+                            });
+
+                            this.processForm.sort = maxSortResult.data.length > 0 ? 
+                                maxSortResult.data[0].sort + 1 : 1;
                         }
 
                         // 获取当前物料列表的ID数组
@@ -1144,11 +1244,13 @@ export default {
                             // 新增操作
                             processData._id = this.tempProcessId;
                             processData.createBy = this.$store.getters.name;
+                            processData.createAt = new Date();
                             await addData('processStep', processData);
                             this.$message.success('添加成功');
                         } else {
                             // 编辑操作
                             processData.updateBy = this.$store.getters.name;
+                            processData.updateAt = new Date();
                             const updateReq = {
                                 query: { _id: this.tempProcessId },
                                 update: processData
@@ -1160,6 +1262,9 @@ export default {
                         // 关闭弹窗并刷新数据
                         this.processDialogVisible = false;
                         await this.fetchProcessData();
+                        
+                        // 重新排序所有工序
+                        await this.reorderProcessSteps();
 
                     } catch (error) {
                         console.error('操作失败:', error);
@@ -1211,36 +1316,57 @@ export default {
                 return;
             }
 
-            this.materialDialog.title = '编辑物料';
-            this.materialDialog.visible = true;
-            this.editingMaterialId = row._id; // 保存正在编辑的物料ID
+            try {
+                // 获取最新的物料数据
+                const materialResult = await getData('processMaterials', {
+                    query: { _id: row._id }
+                });
 
-            // 填充表单数据
-            this.materialForm = {
-                materialId: row.materialId,
-                materialCode: row.materialCode,
-                materialName: row.materialName,
-                specification: row.specification,
-                quantity: row.quantity,
-                unit: row.unit || '个',
-                scanOperation: row.scanOperation ? true : false,
-                isComponent: row.isComponent
-            };
+                if (!materialResult.data || materialResult.data.length === 0) {
+                    this.$message.error('未找到物料数据');
+                    return;
+                }
 
-            // 初始化物料选项
-            this.materialOptions = [{
-                _id: row.materialId,
-                FNumber: row.materialCode,
-                FName: row.materialName,
-                FSpecification: row.specification
-            }];
+                const currentMaterial = materialResult.data[0];
+
+                this.materialDialog.title = '编辑物料';
+                this.materialDialog.visible = true;
+                this.editingMaterialId = currentMaterial._id;
+
+                // 填充表单数据
+                this.materialForm = {
+                    materialId: currentMaterial.materialId,
+                    materialCode: currentMaterial.materialCode,
+                    materialName: currentMaterial.materialName,
+                    specification: currentMaterial.specification,
+                    quantity: currentMaterial.quantity || 1,
+                    unit: currentMaterial.unit || '个',
+                    scanOperation: Boolean(currentMaterial.scanOperation),
+                    isComponent: Boolean(currentMaterial.isComponent),
+                    isBatch: Boolean(currentMaterial.isBatch),
+                    isKey: Boolean(currentMaterial.isKey)
+                };
+
+                // 初始化物料选项
+                const materialDetailResult = await getData('k3_BD_MATERIAL', {
+                    query: { _id: currentMaterial.materialId }
+                });
+
+                if (materialDetailResult.data && materialDetailResult.data.length > 0) {
+                    this.materialOptions = [materialDetailResult.data[0]];
+                }
+
+            } catch (error) {
+                console.error('加载物料数据失败:', error);
+                this.$message.error('加载物料数据失败');
+            }
         },
 
         handleDeleteMaterial(row) {
             console.log("row", row);
 
             if (!row || !row._id) {
-                this.$message.error('无效的物料数据');
+                this.$message.error('无效���物料数据');
                 return;
             }
 
@@ -1273,6 +1399,7 @@ export default {
 
         submitMaterialForm() {
             this.$refs.materialForm.validate(async (valid) => {
+                console.log("valid", valid);
                 if (valid) {
                     try {
                         // 修改重复判断逻辑，排除当前正在编辑的物料
@@ -1286,15 +1413,14 @@ export default {
                             return;
                         }
 
+                        // 验证是否与工艺级物料重复
                         if (this.materialForm.materialId === this.craftForm.materialId) {
                             this.$message.warning('不能选择与工艺相同的物料');
+                            this.materialForm.materialId = '';
                             return;
                         }
 
-                        // 继续原有的提交逻辑
-                        await this.$refs.materialForm.validate();
                         this.materialDialog.loading = true;
-
                         const materialData = {
                             craftId: this.tempCraftId,
                             processStepId: this.tempProcessId,
@@ -1562,10 +1688,185 @@ export default {
                 this.searchForm.materialName = material.FName;
                 this.search(); // 触发搜索
             }
+        },
+        // ��加工��重新排序方法
+        async reorderProcessSteps() {
+            try {
+                // 获取当前工艺的所有工序，按照sort字段排序
+                const result = await getData('processStep', {
+                    query: { craftId: this.tempCraftId },
+                    sort: { sort: 1 }
+                });
+
+                if (!result.data || result.data.length === 0) return;
+
+                // 重新排序
+                const updatePromises = result.data.map((process, index) => {
+                    const newSort = index + 1;
+                    if (process.sort !== newSort) {
+                        return updateData('processStep', {
+                            query: { _id: process._id },
+                            update: { 
+                                sort: newSort,
+                                updateBy: this.$store.getters.name,
+                                updateAt: new Date()
+                            }
+                        });
+                    }
+                    return Promise.resolve();
+                });
+
+                await Promise.all(updatePromises);
+                
+                // 更新工艺的工序列表顺序
+                const processIds = result.data.map(process => process._id);
+                await updateData('craft', {
+                    query: { _id: this.tempCraftId },
+                    update: {
+                        processSteps: processIds,
+                        updateBy: this.$store.getters.name,
+                        updateAt: new Date()
+                    }
+                });
+
+            } catch (error) {
+                console.error('重新排序失败:', error);
+                this.$message.warning('工序重新排序失败');
+            }
+        },
+        initSortable() {
+            const tbody = document.querySelector('.el-table__body-wrapper tbody')
+            if (!tbody) return
+
+            Sortable.create(tbody, {
+                handle: '[v-drag-handler]',
+                animation: 150,
+                onEnd: async ({ newIndex, oldIndex }) => {
+                    const tableData = [...this.processTableData.tableList]
+                    const moveItem = tableData.splice(oldIndex, 1)[0]
+                    tableData.splice(newIndex, 0, moveItem)
+
+                    try {
+                        // 更新所有受影响的工序排序
+                        const updatePromises = tableData.map((process, index) => {
+                            const newSort = index + 1
+                            if (process.sort !== newSort) {
+                                return updateData('processStep', {
+                                    query: { _id: process._id },
+                                    update: {
+                                        sort: newSort,
+                                        updateBy: this.$store.getters.name,
+                                        updateAt: new Date()
+                                    }
+                                })
+                            }
+                            return Promise.resolve()
+                        })
+
+                        await Promise.all(updatePromises)
+
+                        // 更新工艺的工序列表顺序
+                        const processIds = tableData.map(process => process._id)
+                        await updateData('craft', {
+                            query: { _id: this.tempCraftId },
+                            update: {
+                                processSteps: processIds,
+                                updateBy: this.$store.getters.name,
+                                updateAt: new Date()
+                            }
+                        })
+
+                        this.$message.success('排序更新成功')
+                        await this.fetchProcessData() // 重新获取数据以确保显示正确顺序
+                    } catch (error) {
+                        console.error('更新排序失败:', error)
+                        this.$message.error('更新排序失败')
+                        await this.fetchProcessData() // 恢复原始顺序
+                    }
+                }
+            })
+        },
+        async handleMoveUp(row, index) {
+            if (index === 0) return; // 如果是第一个，不能上移
+            
+            try {
+                const currentProcess = this.processTableData.tableList[index];
+                const prevProcess = this.processTableData.tableList[index - 1];
+                
+                // 交换sort值
+                const tempSort = currentProcess.sort;
+                
+                // 更新当前工序和前一个工序的排序
+                await Promise.all([
+                    updateData('processStep', {
+                        query: { _id: currentProcess._id },
+                        update: { 
+                            sort: prevProcess.sort,
+                            updateBy: this.$store.getters.name,
+                            updateAt: new Date()
+                        }
+                    }),
+                    updateData('processStep', {
+                        query: { _id: prevProcess._id },
+                        update: { 
+                            sort: tempSort,
+                            updateBy: this.$store.getters.name,
+                            updateAt: new Date()
+                        }
+                    })
+                ]);
+                
+                this.$message.success('上移成功');
+                await this.fetchProcessData(); // 重新获��数据
+            } catch (error) {
+                console.error('上移失败:', error);
+                this.$message.error('上移失败');
+            }
+        },
+
+        async handleMoveDown(row, index) {
+            if (index === this.processTableData.tableList.length - 1) return; // 如果是最后一个，不能下移
+            
+            try {
+                const currentProcess = this.processTableData.tableList[index];
+                const nextProcess = this.processTableData.tableList[index + 1];
+                
+                // 交换sort值
+                const tempSort = currentProcess.sort;
+                
+                // 更新当前工序和后一个工序的排序
+                await Promise.all([
+                    updateData('processStep', {
+                        query: { _id: currentProcess._id },
+                        update: { 
+                            sort: nextProcess.sort,
+                            updateBy: this.$store.getters.name,
+                            updateAt: new Date()
+                        }
+                    }),
+                    updateData('processStep', {
+                        query: { _id: nextProcess._id },
+                        update: { 
+                            sort: tempSort,
+                            updateBy: this.$store.getters.name,
+                            updateAt: new Date()
+                        }
+                    })
+                ]);
+                
+                this.$message.success('下移成功');
+                await this.fetchProcessData(); // 重新获取数据
+            } catch (error) {
+                console.error('下移失败:', error);
+                this.$message.error('下移失败');
+            }
         }
     },
     created() {
         this.fetchCraftData();
+    },
+    mounted() {
+        this.initSortable()
     }
 }
 </script>
@@ -1618,6 +1919,27 @@ export default {
 }
 
 .item-option {
-    display: none;
+    padding: 8px 12px;
+
+    .item-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .name {
+            font-size: 14px;
+            color: #606266;
+        }
+
+        .el-tag {
+            margin-left: 8px;
+        }
+    }
+
+    .sub-info {
+        margin-top: 4px;
+        color: #909399;
+        font-size: 12px;
+    }
 }
 </style>

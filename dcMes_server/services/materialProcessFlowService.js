@@ -2,6 +2,7 @@ const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const Craft = require("../model/project/craft");
 const ProcessStep = require("../model/project/processStep");
 const ProcessMaterials = require("../model/project/processMaterials");
+const UnbindRecord = require("../model/project/unbindRecord");
 const mongoose = require("mongoose");
 const Material = mongoose.model("k3_BD_MATERIAL");
 
@@ -13,9 +14,11 @@ class MaterialProcessFlowService {
    * @param {string} mainMaterialId - 物料编码
    * @param {string} materialCode - 物料编码
    * @param {string} barcode - 物料条码
+   * @param {string} productLineId - 产线ID
+   * @param {string} productLineName - 产线名称
    * @returns {Promise<Object>} 创建的流程记录
    */
-  static async createFlowByMaterialCode(mainMaterialId, materialCode, barcode) {
+  static async createFlowByMaterialCode(mainMaterialId, materialCode, barcode, productLineId, productLineName) {
     try {
       // 1. 获取物料信息
       const material = await Material.findOne({ _id: mainMaterialId });
@@ -49,6 +52,8 @@ class MaterialProcessFlowService {
         processNodes,
         startTime: new Date(),
         status: "PENDING",
+        productLineId,
+        productLineName
       });
 
       // 5. 保存记录
@@ -96,12 +101,16 @@ class MaterialProcessFlowService {
       };
       nodes.push(rootNode);
 
-      // 处理工序节点
-      if (craft.processSteps && craft.processSteps.length > 0) {
-        for (const stepId of craft.processSteps) {
-          const processStep = await ProcessStep.findById(stepId);
-          if (!processStep) continue;
+      // 修改工序节点查询方式
+      // 原来的代码:
+      // if (craft.processSteps && craft.processSteps.length > 0) {
+      //   for (const stepId of craft.processSteps) {
+      //     const processStep = await ProcessStep.findById(stepId);
 
+      // 新的查询方式:
+      const processSteps = await ProcessStep.find({ craftId: craft._id }).sort({ sort: 1 });
+      if (processSteps && processSteps.length > 0) {
+        for (const processStep of processSteps) {
           // 创建工序节点
           const processNode = {
             nodeId: uuidv4(),
@@ -121,7 +130,7 @@ class MaterialProcessFlowService {
 
           // 获取工序关联的物料
           const processMaterials = await ProcessMaterials.find({
-            processStepId: stepId,
+            processStepId: processStep._id,
           });
 
           // 处理工序物料节点
@@ -189,32 +198,61 @@ class MaterialProcessFlowService {
   static checkPreviousProcessSteps(processNodes, currentNode) {
     const unfinishedSteps = [];
 
-    // 获取所有工序节点并按顺序排序
-    const processSteps = processNodes
-      .filter((node) => node.nodeType === "PROCESS_STEP")
+    // 获取当前节点的父物料节点
+    const parentMaterialNode = processNodes.find(node => node.nodeId === currentNode.parentNodeId);
+    if (!parentMaterialNode) return { isValid: true, unfinishedSteps: [] };
+
+    // 获取同级的所有工序节点并按顺序排序
+    const levelProcessSteps = processNodes
+      .filter(node => 
+        node.nodeType === "PROCESS_STEP" && 
+        node.parentNodeId === parentMaterialNode.nodeId
+      )
       .sort((a, b) => a.processSort - b.processSort);
 
     // 找到当前工序的索引
-    const currentIndex = processSteps.findIndex(
-      (step) => step.nodeId === currentNode.nodeId
-    );
+    const currentIndex = levelProcessSteps.findIndex(step => step.nodeId === currentNode.nodeId);
 
-    // 检查当前工序之前的所有工序
+    // 检查当前工序之前的所有工序完成状态
     for (let i = 0; i < currentIndex; i++) {
-      const step = processSteps[i];
+      const step = levelProcessSteps[i];
       if (step.status !== "COMPLETED") {
         unfinishedSteps.push({
           processName: step.processName,
           processCode: step.processCode,
           status: step.status,
+          level: step.level
         });
       }
     }
 
     return {
       isValid: unfinishedSteps.length === 0,
-      unfinishedSteps,
+      unfinishedSteps
     };
+  }
+
+  /**
+   * 获取节点的父物料节点链
+   * @param {Array} processNodes - 所有节点
+   * @param {Object} currentNode - 当前节点
+   * @returns {Array} 父物料节点链（从当前层级到顶层）
+   */
+  static getParentMaterialChain(processNodes, currentNode) {
+    const chain = [];
+    let currentParentId = currentNode.parentNodeId;
+
+    while (currentParentId) {
+      const parentNode = processNodes.find(node => node.nodeId === currentParentId);
+      if (!parentNode) break;
+
+      if (parentNode.nodeType === "MATERIAL") {
+        chain.push(parentNode);
+      }
+      currentParentId = parentNode.parentNodeId;
+    }
+
+    return chain;
   }
 
   /**
@@ -306,9 +344,15 @@ class MaterialProcessFlowService {
           barcode: materialBarcode.barcode,
         });
 
-        if (subFlowRecord && subFlowRecord.status !== "COMPLETED") {
-          throw new Error(`该${materialBarcode}物料条码的子物料工序未完成`);
+        // 添加空值检查
+        if (!subFlowRecord) {
+          throw new Error(`未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`);
         }
+
+        if (subFlowRecord.status !== "COMPLETED") {
+          throw new Error(`该${materialBarcode.barcode}物料条码的子物料工序未完成`);
+        }
+
         console.log(
           "🚀 ~ MaterialProcessFlowService ~ subFlowRecord:",
           subFlowRecord.processNodes
@@ -473,6 +517,177 @@ class MaterialProcessFlowService {
     await flowRecord.save();
 
     return flowRecord;
+  }
+
+  /**
+   * 工序解绑
+   * @param {string} mainBarcode - 主条码
+   * @param {string} processStepId - 工序ID
+   * @param {string} userId - 用户ID
+   * @param {string} reason - 解绑原因
+   */
+  static async unbindProcessComponents(mainBarcode, processStepId, userId, reason) {
+    // 查找主条码对应的流程记录
+    const flowRecord = await MaterialProcessFlow.findOne({
+      barcode: mainBarcode,
+    });
+    if (!flowRecord) {
+      throw new Error("未找到对应的主条码流程记录");
+    }
+
+    // 查找工序节点
+    const processNode = flowRecord.processNodes.find(
+      (node) =>
+        node.processStepId &&
+        node.processStepId.toString() === processStepId.toString() &&
+        node.nodeType === "PROCESS_STEP"
+    );
+    if (!processNode) {
+      throw new Error("未找到对应的工序节点");
+    }
+
+    // 验证工序节点状态
+    if (processNode.status !== "COMPLETED") {
+      throw new Error("该工序未完成，无需解绑");
+    }
+
+    // 获取需要解绑的物料信息用于记录
+    const materialNodes = flowRecord.processNodes.filter(
+      (node) =>
+        node.parentNodeId === processNode.nodeId &&
+        node.nodeType === "MATERIAL" &&
+        node.status === "COMPLETED"
+    );
+
+    // 创建解绑记录
+    const unbindRecord = new UnbindRecord({
+      flowRecordId: flowRecord._id,
+      mainBarcode,
+      processStepId,
+      processName: processNode.processName,
+      processCode: processNode.processCode,
+      unbindMaterials: materialNodes.map(node => ({
+        materialId: node.materialId,
+        materialCode: node.materialCode,
+        materialName: node.materialName,
+        originalBarcode: node.barcode || '',
+      })),
+      operatorId: userId,
+      reason
+    });
+    await unbindRecord.save();
+
+    // 更新流程节点状态
+    flowRecord.processNodes = flowRecord.processNodes.map((node) => {
+      // 重置工序节点
+      if (node.nodeId === processNode.nodeId) {
+        return {
+          ...node,
+          status: "PENDING",
+          endTime: null,
+          updateBy: userId,
+        };
+      }
+
+      // 重置该工序下的物料节点及其所有子节点
+      if (node.parentNodeId === processNode.nodeId && node.nodeType === "MATERIAL") {
+        // 获取该物料节点下的所有子节点ID（包括工序和物料）
+        const childNodeIds = this.getAllChildNodes(flowRecord.processNodes, node.nodeId);
+        // 将当前节点也加入需要重置的节点列表中
+        childNodeIds.push(node.nodeId);
+        
+        if (childNodeIds.includes(node.nodeId)) {
+          return {
+            ...node,
+            status: "PENDING",
+            barcode: "",
+            relatedBill: "",
+            scanTime: null,
+            endTime: null,
+            updateBy: userId,
+          };
+        }
+      }
+
+      // 检查是否是需要重置的子节点
+      for (const materialNode of materialNodes) {
+        const childNodeIds = this.getAllChildNodes(flowRecord.processNodes, materialNode.nodeId);
+        if (childNodeIds.includes(node.nodeId)) {
+          return {
+            ...node,
+            status: "PENDING",
+            barcode: "",
+            relatedBill: "",
+            scanTime: null,
+            endTime: null,
+            updateBy: userId,
+          };
+        }
+      }
+
+      return node;
+    });
+
+    // 更新整体进度
+    const completedNodes = flowRecord.processNodes.filter(
+      (node) => node.status === "COMPLETED" && node.level !== 0
+    ).length;
+    flowRecord.progress = Math.floor(
+      (completedNodes / (flowRecord.processNodes.length - 1)) * 100
+    );
+
+    // 更新整体状态
+    if (flowRecord.status === "COMPLETED") {
+      flowRecord.status = "IN_PROCESS";
+      flowRecord.endTime = null;
+      // 重置根节点状态
+      const materialNode = flowRecord.processNodes.find(
+        (node) => node.nodeType === "MATERIAL" && node.level === 0
+      );
+      if (materialNode) {
+        materialNode.status = "PENDING";
+        materialNode.endTime = null;
+      }
+    }
+
+    // 保存更新
+    await flowRecord.save();
+
+    return flowRecord;
+  }
+
+  /**
+   * 获取指定节点的所有子节点ID
+   * @param {Array} nodes - 所有节点
+   * @param {string} parentId - 父节点ID
+   * @returns {Array} 子节点ID数组
+   */
+  static getAllChildNodes(nodes, parentId) {
+    const childNodes = [];
+    
+    const findChildren = (currentParentId) => {
+      nodes.forEach(node => {
+        if (node.parentNodeId === currentParentId) {
+          childNodes.push(node.nodeId);
+          findChildren(node.nodeId);
+        }
+      });
+    };
+
+    findChildren(parentId);
+    return childNodes;
+  }
+
+  /**
+   * 判断一个节点是否是另一个节点的子节点
+   * @param {Array} nodes - 所有节点
+   * @param {string} parentId - 可能的父节点ID
+   * @param {string} nodeId - 待检查的节点ID
+   * @returns {boolean} 是否为子节点
+   */
+  static isChildNode(nodes, parentId, nodeId) {
+    const childNodes = this.getAllChildNodes(nodes, parentId);
+    return childNodes.includes(nodeId);
   }
 }
 
