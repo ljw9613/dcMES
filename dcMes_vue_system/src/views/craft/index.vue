@@ -225,6 +225,11 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="物料代码" prop="materialCode">
+                            <el-input v-model="craftForm.materialCode" placeholder="物料代码" disabled></el-input>
+                        </el-form-item>
+                    </el-col>
                 </el-row>
             </el-form>
 
@@ -259,7 +264,7 @@
                     </el-table-column>
                     <el-table-column label="操作" fixed="right" width="280">
                         <template slot-scope="scope">
-                            <el-button type="text" size="small" @click="handleMoveUp(scope.row, scope.$index)" 
+                            <el-button type="text" size="small" @click="handleMoveUp(scope.row, scope.$index)"
                                 :disabled="scope.$index === 0">
                                 上移
                             </el-button>
@@ -579,6 +584,7 @@ export default {
                 selectedMaterial: '', // 新增物料选择字段
                 componentName: '', // 组件名称
                 productName: '',   // 产品型号
+                materialCode: '',  // 物料代码
             },
             // 工艺表单验证规则
             rules: {
@@ -810,7 +816,6 @@ export default {
             this.processTableData.tableList = [];
             this.processTableData.total = 0;
         },
-
         async handleEdit(row) {
             // 先设置基本状态，确保弹窗能够显示
             this.dialogStatus = 'edit';
@@ -821,15 +826,22 @@ export default {
                 // 基础数据复制
                 this.craftForm = JSON.parse(JSON.stringify(row));
 
-                // 如果存在materialId，初始化物料选项
+                // 如果存在materialId，初始化物料选项和相关字段
                 if (this.craftForm.materialId) {
                     try {
                         const result = await getData('k3_BD_MATERIAL', {
                             query: { _id: this.craftForm.materialId }
                         });
+
                         if (result.data && result.data.length > 0) {
+                            const materialData = result.data[0];
                             this.materialOptions = result.data;
                             this.craftForm.selectedMaterial = this.craftForm.materialId;
+
+                            // 确保设置所有相关的物料字段
+                            this.craftForm.materialCode = materialData.FNumber || '';
+                            this.craftForm.componentName = materialData.FName || '';
+                            this.craftForm.productName = materialData.FSpecification || '';
                         }
                     } catch (error) {
                         console.error('获取物料数据失败:', error);
@@ -1214,7 +1226,7 @@ export default {
 
                         if (existingProcessSort.data && existingProcessSort.data.length > 0) {
                             this.$message.warning('工序次序重复，系统将自动调整序号');
-                            
+
                             // 获取最大序号
                             const maxSortResult = await getData('processStep', {
                                 query: { craftId: this.tempCraftId },
@@ -1222,7 +1234,7 @@ export default {
                                 limit: 1
                             });
 
-                            this.processForm.sort = maxSortResult.data.length > 0 ? 
+                            this.processForm.sort = maxSortResult.data.length > 0 ?
                                 maxSortResult.data[0].sort + 1 : 1;
                         }
 
@@ -1262,7 +1274,7 @@ export default {
                         // 关闭弹窗并刷新数据
                         this.processDialogVisible = false;
                         await this.fetchProcessData();
-                        
+
                         // 重新排序所有工序
                         await this.reorderProcessSteps();
 
@@ -1639,6 +1651,7 @@ export default {
                 this.craftForm.materialId = material._id;
                 this.craftForm.componentName = material.FName || '';
                 this.craftForm.productName = material.FSpecification || '';
+                this.craftForm.materialCode = material.FNumber || '';
                 // 保持selectedMaterial的值，用于表单验证
                 this.craftForm.selectedMaterial = material._id;
             }
@@ -1706,7 +1719,7 @@ export default {
                     if (process.sort !== newSort) {
                         return updateData('processStep', {
                             query: { _id: process._id },
-                            update: { 
+                            update: {
                                 sort: newSort,
                                 updateBy: this.$store.getters.name,
                                 updateAt: new Date()
@@ -1717,7 +1730,7 @@ export default {
                 });
 
                 await Promise.all(updatePromises);
-                
+
                 // 更新工艺的工序列表顺序
                 const processIds = result.data.map(process => process._id);
                 await updateData('craft', {
@@ -1788,19 +1801,19 @@ export default {
         },
         async handleMoveUp(row, index) {
             if (index === 0) return; // 如果是第一个，不能上移
-            
+
             try {
                 const currentProcess = this.processTableData.tableList[index];
                 const prevProcess = this.processTableData.tableList[index - 1];
-                
+
                 // 交换sort值
                 const tempSort = currentProcess.sort;
-                
+
                 // 更新当前工序和前一个工序的排序
                 await Promise.all([
                     updateData('processStep', {
                         query: { _id: currentProcess._id },
-                        update: { 
+                        update: {
                             sort: prevProcess.sort,
                             updateBy: this.$store.getters.name,
                             updateAt: new Date()
@@ -1808,14 +1821,14 @@ export default {
                     }),
                     updateData('processStep', {
                         query: { _id: prevProcess._id },
-                        update: { 
+                        update: {
                             sort: tempSort,
                             updateBy: this.$store.getters.name,
                             updateAt: new Date()
                         }
                     })
                 ]);
-                
+
                 this.$message.success('上移成功');
                 await this.fetchProcessData(); // 重新获��数据
             } catch (error) {
@@ -1826,19 +1839,19 @@ export default {
 
         async handleMoveDown(row, index) {
             if (index === this.processTableData.tableList.length - 1) return; // 如果是最后一个，不能下移
-            
+
             try {
                 const currentProcess = this.processTableData.tableList[index];
                 const nextProcess = this.processTableData.tableList[index + 1];
-                
+
                 // 交换sort值
                 const tempSort = currentProcess.sort;
-                
+
                 // 更新当前工序和后一个工序的排序
                 await Promise.all([
                     updateData('processStep', {
                         query: { _id: currentProcess._id },
-                        update: { 
+                        update: {
                             sort: nextProcess.sort,
                             updateBy: this.$store.getters.name,
                             updateAt: new Date()
@@ -1846,14 +1859,14 @@ export default {
                     }),
                     updateData('processStep', {
                         query: { _id: nextProcess._id },
-                        update: { 
+                        update: {
                             sort: tempSort,
                             updateBy: this.$store.getters.name,
                             updateAt: new Date()
                         }
                     })
                 ]);
-                
+
                 this.$message.success('下移成功');
                 await this.fetchProcessData(); // 重新获取数据
             } catch (error) {
