@@ -84,7 +84,7 @@
                             collection="k3_BD_MATERIAL"
                             :search-fields="['FNumber', 'FName', 'FSpecification']"
                             label-key="FName"
-                            value-key="FMaterialId"
+                            value-key="_id"
                             tag-key="FNumber"
                             sub-key="FSpecification"
                             :multiple="false"
@@ -225,10 +225,10 @@ export default {
             return this.dialogStatus === 'create' ? '新增生产计划工单' : '编辑生产计划工单'
         },
         productionOrderQuery() {
-           return {}
-            // return this.form.saleOrderNo ? {
-            //     FSaleOrderNo: this.form.saleOrderNo
-            // } : {}
+        //    return {}
+            return this.form.saleOrderNo ? {
+                FSaleOrderNo: this.form.saleOrderNo
+            } : {}
         }
     },
     watch: {

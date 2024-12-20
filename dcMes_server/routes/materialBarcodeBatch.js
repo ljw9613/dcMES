@@ -88,78 +88,7 @@ router.post('/api/v1/material-barcode/create', async (req, res) => {
             updateBy: req.user?.username || 'system'
         });
 
-        // await Promise.all([
-        //     newBatch.save(),
-        //     (async () => {
-        //         try {
-        //             await poolConnect;
-        //             transaction = new sql.Transaction(pool);
-        //             await transaction.begin();
-                    
-        //             const request = new sql.Request(transaction);
-                    
-        //             // 首先查询是否存在对应的 IP 地址记录
-        //             const result = await request
-        //                 .input('ipAddress', sql.VarChar, ipAddress)
-        //                 .query('SELECT TOP 1 * FROM MaterialBarcodeBatch WHERE IpAddress = @ipAddress');
-
-        //             if (result.recordset.length > 0) {
-        //                 // 如果存在，则更新该记录
-        //                 await request
-        //                     .input('batchId', sql.VarChar, batchId)
-        //                     .input('materialCode', sql.VarChar, materialCode)
-        //                     .input('updateBy', sql.VarChar, req.user?.username || 'system')
-        //                     .input('updateTime', sql.DateTime, new Date())
-        //                     .query(`
-        //                         UPDATE MaterialBarcodeBatch 
-        //                         SET BatchId = @batchId,
-        //                             MaterialCode = @materialCode,
-        //                             UpdateBy = @updateBy,
-        //                             UpdateTime = @updateTime
-        //                         WHERE IpAddress = @ipAddress
-        //                     `);
-        //             } else {
-        //                 // 如果不存在，则创建新记录
-        //                 await request
-        //                     .input('batchId', sql.VarChar, batchId)
-        //                     .input('materialCode', sql.VarChar, materialCode)
-        //                     .input('createBy', sql.VarChar, req.user?.username || 'system')
-        //                     .input('createTime', sql.DateTime, new Date())
-        //                     .query(`
-        //                         INSERT INTO MaterialBarcodeBatch 
-        //                         (BatchId, MaterialCode, IpAddress, CreateBy, CreateTime) 
-        //                         VALUES 
-        //                         (@batchId, @materialCode, @ipAddress, @createBy, @createTime)
-        //                     `);
-        //             }
-                    
-        //             await transaction.commit();
-        //         } catch (sqlError) {
-        //             // 如果发生错误，回滚事务
-        //             if (transaction) {
-        //                 await transaction.rollback();
-        //             }
-                    
-        //             // 根据错误类型返回不同的错误信息
-        //             let errorMessage = '数据库操作失败';
-        //             if (sqlError.code === 'ECONNREFUSED') {
-        //                 errorMessage = '无法连接到数据库服务器';
-        //             } else if (sqlError.code === 'ETIMEOUT') {
-        //                 errorMessage = '数据库连接超时';
-        //             } else if (sqlError.code === 'EREQUEST') {
-        //                 errorMessage = '数据库查询语法错误';
-        //             }
-                    
-        //             console.error('SQL Server 操作失败:', {
-        //                 code: sqlError.code,
-        //                 message: sqlError.message,
-        //                 stack: sqlError.stack
-        //             });
-                    
-        //             throw new Error(errorMessage);
-        //         }
-        //     })()
-        // ]);
+        await newBatch.save();
 
         res.json({
             code: 200,

@@ -121,6 +121,7 @@ export default {
   watch: {
     value: {
       handler(newVal) {
+        console.log('值变化:', newVal)
         this.selectedItems = this.multiple ? (Array.isArray(newVal) ? newVal : []) : newVal
         if (newVal && (this.multiple ? newVal.length : newVal) && !this.items.length) {
           this.fetchItemsByIds(this.multiple ? newVal : [newVal])
@@ -131,6 +132,7 @@ export default {
   },
 
   created() {
+    console.log('初始值:', this.value)
     if (!this.lazyLoad) {
       this.remoteSearch('')
     }
@@ -170,17 +172,8 @@ export default {
           limit: this.limit
         })
 
-        // 保留已选中的项
-        const selectedItems = this.items.filter(item => 
-          this.multiple 
-            ? this.selectedItems.includes(item[this.valueKey])
-            : this.selectedItems === item[this.valueKey]
-        )
-        
-        // 合并结果并去重
-        this.items = [...new Map(
-          [...selectedItems, ...result.data].map(item => [item[this.valueKey], item])
-        ).values()]
+        // 直接使用新的搜索结果
+        this.items = result.data
       } catch (error) {
         console.error('搜索失败:', error)
         this.$message.error('搜索失败')
@@ -199,6 +192,7 @@ export default {
     },
 
     async fetchItemsByIds(ids) {
+      console.log('查询ID:', ids)
       if (!ids.length) return
       
       try {

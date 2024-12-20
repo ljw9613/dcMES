@@ -25,10 +25,7 @@
         </el-form-item>
         <el-form-item label="菜单权限" label-width="100px" required>
           <el-card v-if="menu" shadow="never">
-            <el-tree ref="menuTree" v-model="postList.menuList" :data="optionsList"
-              :default-checked-keys="postList.menuList" :props="{ value: '_id', label: 'menuName' }" node-key="_id"
-              show-checkbox @check="getTree">
-            </el-tree>
+            <custom-menu-tree v-if="optionsList.length > 0" v-model="postList.menuList" :options="optionsList" />
           </el-card>
         </el-form-item>
         <el-form-item label="备注" label-width="100px">
@@ -49,9 +46,10 @@
 import { addData, getData, updateData } from "@/api/data";
 import IconSelect from "@/components/IconSelect";
 import { formatMenu2Tree } from "@/utils/format2Tree";
+import CustomMenuTree from "./customMenuTree.vue";
 
 export default {
-  components: { IconSelect },
+  components: { IconSelect, CustomMenuTree },
   dicts: ['buttonPermissions'],
   porps: ["dialogFormVisible"],
   data() {
@@ -93,7 +91,7 @@ export default {
         sort: { sortNum: 1 },
       });
       this.optionsList = formatMenu2Tree(dataList, null, []);
-      console.log(" this.optionsList", this.optionsList);
+      console.log(JSON.stringify(this.optionsList));
     },
     AddClick() {
       console.log("AddClick");

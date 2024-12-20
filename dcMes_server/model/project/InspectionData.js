@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const inspectionDataSchema = new mongoose.Schema(
   {
     scanCode: {type: String, maxlength: 100, default: null, description: '扫码数据'},
-    machineId: {type: String, default: null, description: '设备ID'},
+    machineId: {type:  mongoose.Schema.Types.ObjectId, ref: 'machine', default: null, description: '设备ID'},
     machineIp: {type: String, default: null, description: 'IP地址'},
     processId: {type: mongoose.Schema.Types.ObjectId, ref: 'processStep', description: '工序'},
     createTime: {type: Date, default: Date.now, description: '创建时间'},

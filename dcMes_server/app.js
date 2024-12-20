@@ -113,6 +113,8 @@ app.use("/", require("./routes/materialProcessFlowService"));
 app.use("/", require("./routes/materialBarcodeBatch"));
 const uploadAvatarRouter = require("./routes/uploadAvatar");
 app.use("/", uploadAvatarRouter);
+
+require("./services/createMappings");
 //方法
 // require("./routes/productLog")
 

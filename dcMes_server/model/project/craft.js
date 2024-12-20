@@ -16,12 +16,13 @@ var craftSchema = new mongoose.Schema({
     materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 物料ID
     componentName: { type: String }, // 组件名称
     productName: { type: String }, // 产品型号
+    materialCode: { type: String }, // 产品编码
     // 工艺参数
     craftParams: [{
         paramName: { type: String }, // 参数名称
         paramValue: { type: String }, // 参数值
         paramUnit: { type: String }, // 参数单位
-        upperLimit: { type: Number }, // 上限值
+        upperLimit: { type: Number }, // 上限值fisStandard
         lowerLimit: { type: Number }, // 下限值
     }],
 

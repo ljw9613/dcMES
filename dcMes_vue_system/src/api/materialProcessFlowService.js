@@ -27,3 +27,11 @@ export function unbindComponents(data) {
     })
 }
 
+// /api/v1/update-flow-nodes
+export function updateFlowNodes(data) {
+    return request({
+        url: '/update-flow-nodes',
+        method: 'post',
+        data
+    })
+}

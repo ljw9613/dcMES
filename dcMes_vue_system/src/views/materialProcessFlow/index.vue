@@ -66,7 +66,7 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">主条码生产流程列表</i>
-                    <!-- <el-button type="primary" @click="handleAdd">新增订单</el-button> -->
+                    <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
                 </div>
             </div>
         </div>
@@ -109,6 +109,10 @@
                 <el-table-column label="操作" fixed="right" width="200">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
+                        <el-button type="text" size="small" @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
+                        <el-button type="text" size="small" @click="handleSingleMainExport(scope.row)">
+                            导出条码数据
+                        </el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -309,7 +313,7 @@
                                                 {{ formatDate(scope.row.scanTime) }}
                                             </template>
                                         </el-table-column>
-                                        <el-table-column label="绑定人员" prop="bindOperator" width="100"></el-table-column>
+                                        <!-- <el-table-column label="绑定人员" prop="bindOperator" width="100"></el-table-column>
                                         <el-table-column label="备注" min-width="150">
                                             <template slot-scope="scope">
                                                 <el-tooltip v-if="scope.row.remark" :content="scope.row.remark"
@@ -318,8 +322,7 @@
                                                 </el-tooltip>
                                                 <span v-else>-</span>
                                             </template>
-                                        </el-table-column>
-
+                                        </el-table-column> -->
                                     </el-table>
                                 </el-tab-pane>
 
@@ -458,7 +461,9 @@
                                     @click="handleView(scope.row.isMainBarcode ? scope.row : scope.row.mainBarcodeData)">
                                     查看详情
                                 </el-button>
-                                <el-button type="text" style="color: red;" @click="handleInit(scope.row)">成品初始化</el-button>
+
+                                <el-button type="text" style="color: red;"
+                                    @click="handleInit(scope.row)">成品初始化</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -470,6 +475,25 @@
             </div>
         </el-dialog>
 
+        <!-- 导出选项弹窗 -->
+        <el-dialog title="导出选项" :visible.sync="exportDialogVisible" width="400px" :close-on-click-modal="false">
+            <el-form :model="exportForm" label-width="0px">
+                <el-form-item>
+                    <el-radio-group v-model="exportForm.exportOption"
+                        style="width: 100%; height: 100%;align-items: center;display: flex;flex-wrap: wrap; justify-content: space-around;">
+                        <el-radio-button border label="search" value="search"></el-radio-button>
+                        <el-radio-button border label="all" value="all"></el-radio-button>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="exportDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="confirmExport" :loading="exportLoading">
+                    确 定
+                </el-button>
+            </div>
+        </el-dialog>
+
     </div>
 </template>
 
@@ -477,7 +501,10 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ProcessStepList from '@/components/ProcessStepList/index.vue';
 import InspectionList from '@/components/InspectionList/index.vue';
-import { unbindComponents } from '@/api/materialProcessFlowService';
+import { unbindComponents, updateFlowNodes } from '@/api/materialProcessFlowService';
+import XLSX from 'xlsx';
+import JSZip from 'jszip';
+import FileSaver from 'file-saver';
 
 export default {
     name: 'SaleOrder',
@@ -529,6 +556,11 @@ export default {
             searchResults: [],
             searchLoading: false,
             unbindRecord: [], // 解绑记录
+            exportDialogVisible: false, // 导出选项弹窗显示状态
+            exportForm: {
+                exportOption: 'current' // 默认选择当前页
+            },
+            exportLoading: false, // 导出按钮loading状态
         }
     },
     computed: {
@@ -710,7 +742,7 @@ export default {
             } finally {
                 this.listLoading = false;
             }
-        },// 分页方法
+        },// ���页方法
         baseTableHandleCurrentChange(currentPage) {
             this.currentPage = currentPage;
             this.fetchData();
@@ -783,6 +815,28 @@ export default {
                     console.error('删除失败:', error);
                     this.$message.error(error.message || '删除失败');
                 }
+            }
+        },
+        //handleUpdateFlowNodes
+        async handleUpdateFlowNodes(row) {
+            try {
+                // 显示确认对话框
+                await this.$confirm('确认要更新流程节点吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+                const result = await updateFlowNodes({ barcode: row.barcode });
+                console.log(result, 'result');
+                if (result.code === 200 && result.success) {
+                    this.$message.success('更新成功');
+                    this.fetchData();
+                } else {
+                    this.$message.error('更新失败');
+                }
+            } catch (error) {
+                console.error('更新失败:', error);
+                this.$message.error('更新失败: ' + error.message);
             }
         },
         // 查看详情
@@ -929,13 +983,13 @@ export default {
 
         // 导出数据
         // exportData() {
-        //     // 获取当前的查询条件
+        //     // ��取当前的查询条件
         //     const queryParams = this.searchData();
         //     // TODO: 实现导出逻辑
         //     this.$message.info('导出功能开发中...');
         // },
 
-        // 添加缺失的事件处理方法
+        // 添加缺失的事件处���方法
         // handleAdd() {
         //     this.dialogStatus = 'create';
         //     this.dialogFormVisible = true;
@@ -1269,6 +1323,319 @@ export default {
                 this.searchLoading = false;
             }
         },
+
+        handleProcessedMaterialBarcodeData(dataForm) {
+            if (!dataForm.processNodes) return [];
+
+            // 创建工序映射
+            const processMap = new Map();
+            dataForm.processNodes.forEach(node => {
+                if (node.nodeType === 'PROCESS_STEP') {
+                    processMap.set(node.nodeId, {
+                        processName: node.processName,
+                        processCode: node.processCode
+                    });
+                }
+            });
+
+            // 过滤并处理物料数据
+            return dataForm.processNodes
+                .filter(node => node.nodeType === 'MATERIAL' && node.barcode) // 只显示有条码的物料
+                .map(node => {
+                    // 获取工序信息
+                    const processInfo = node.parentNodeId ? processMap.get(node.parentNodeId) : null;
+                    return {
+                        ...node,
+                        processName: processInfo ? processInfo.processName : '-',
+                        processCode: processInfo ? processInfo.processCode : ''
+                    };
+                })
+                .sort((a, b) => {
+                    // 按扫码时间降序排序
+                    return new Date(b.scanTime || 0) - new Date(a.scanTime || 0);
+                });
+        },
+
+        // 打开导出选项弹窗
+        handleAllExport() {
+            this.exportDialogVisible = true;
+            this.exportForm.exportOption = 'current'; // 重置选项
+        },
+
+        // 确认导出
+        async confirmExport() {
+            const exportOption = this.exportForm.exportOption;
+
+            // 如果选择导出全部数据，进行二次确认
+            if (exportOption === 'all') {
+                try {
+                    await this.$confirm('确认导出全部数据吗?数据量较大可能需要较长时间', '二次确认', {
+                        type: 'warning'
+                    });
+                } catch (error) {
+                    if (error === 'cancel') {
+                        this.$message.info('已取消导出');
+                        return;
+                    }
+                }
+            }
+
+            this.exportLoading = true;
+
+            try {
+                let exportData = [];
+
+                // 根据选择获取要导出的数据
+                switch (exportOption) {
+                    case 'all':
+                        const allResult = await getData('material_process_flow', {
+                            query: {},
+                        });
+                        if (allResult.code === 200) {
+                            exportData = allResult.data;
+                        } else {
+                            throw new Error(allResult.msg || '获取数据失败');
+                        }
+                        break;
+                    case 'search':
+                        let req = this.searchData();
+                        req.page = this.currentPage;
+                        req.skip = (this.currentPage - 1) * this.pageSize;
+                        req.limit = this.pageSize;
+                        req.sort = { createAt: -1 };
+                        req.count = true;
+                        const searchResult = await getData("material_process_flow", req);
+                        if (searchResult.code === 200) {
+                            exportData = searchResult.data;
+                        } else {
+                            throw new Error(searchResult.msg || '获取数据失败');
+                        }
+                        break;
+                }
+
+                console.log(exportData);
+
+                if (exportData.length === 0) {
+                    this.$message.warning('没有可导出的数据');
+                    return;
+                }
+
+                // 显示进度提示
+                const progressLoading = this.$loading({
+                    lock: true,
+                    text: `正在处理第 0/${exportData.length} 条数据...`,
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                // 创建zip实例
+                const zip = new JSZip();
+
+                // 处理每条数据
+                for (let i = 0; i < exportData.length; i++) {
+                    progressLoading.text = `正在处理第 ${i + 1}/${exportData.length} 条数据...`;
+                    const item = exportData[i];
+
+                    try {
+                        const result = await getData('material_process_flow', {
+                            query: { _id: item._id }
+                        });
+
+                        if (result.code === 200 && result.data.length > 0) {
+                            const detailData = result.data[0];
+                            const materialBarcodeData = this.handleProcessedMaterialBarcodeData(detailData);
+
+                            if (materialBarcodeData.length === 0) {
+                                continue;
+                            }
+
+                            // 创建Excel数据
+                            const excelData = materialBarcodeData.map(item => ({
+                                '条码': item.barcode || '-',
+                                '物料编码': item.materialCode || '-',
+                                '物料名称': item.materialName || '-',
+                                '规格型号': item.materialSpec || '-',
+                                '状态': this.getProcessStatusText(item.status) || '-',
+                                '所属工序': `${item.processName || ''} ${item.processCode ? `(${item.processCode})` : ''}`,
+                                '扫码时间': item.scanTime ? this.formatDate(item.scanTime) : '-'
+                            }));
+
+                            // 创建工作簿和设置样式
+                            const wb = XLSX.utils.book_new();
+                            const ws = XLSX.utils.json_to_sheet(excelData);
+
+                            // 设置列宽
+                            ws['!cols'] = [
+                                { wch: 20 }, // 条码
+                                { wch: 15 }, // 物料编码
+                                { wch: 20 }, // 物料名称
+                                { wch: 15 }, // 规格型号
+                                { wch: 10 }, // 状态
+                                { wch: 20 }, // 所属工序
+                                { wch: 20 }  // 扫码时间
+                            ];
+
+                            // 设置表头样式
+                            const range = XLSX.utils.decode_range(ws['!ref']);
+                            for (let C = range.s.c; C <= range.e.c; ++C) {
+                                const address = XLSX.utils.encode_cell({ r: 0, c: C });
+                                if (!ws[address]) continue;
+                                ws[address].s = {
+                                    font: { bold: true },
+                                    alignment: { horizontal: 'center' },
+                                    fill: { fgColor: { rgb: "f5f7fa" } }
+                                };
+                            }
+
+                            XLSX.utils.book_append_sheet(wb, ws, '物料条码信息');
+                            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+                            // 添加到zip
+                            const fileName = `${item.materialCode}_${item.materialName}_${item.barcode}.xlsx`;
+                            zip.file(fileName, excelBuffer);
+                        }
+                    } catch (error) {
+                        console.error('处理数据失败:', error);
+                        continue;
+                    }
+                }
+
+                // 生成并下载zip
+                const zipContent = await zip.generateAsync({ type: 'blob' });
+                FileSaver.saveAs(zipContent, `物料条码信息_${new Date().toLocaleDateString()}.zip`);
+
+                this.$message.success('导出成功');
+                this.exportDialogVisible = false;
+                progressLoading.close();
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败: ' + error.message);
+            } finally {
+                this.exportLoading = false;
+            }
+        },
+
+        // 处理物料条码数据的辅助方法
+        processMaterialBarcodeData(processNodes) {
+            if (!processNodes) return [];
+
+            return processNodes
+                .filter(node => node.nodeType === 'MATERIAL' && node.barcode)
+                .map(node => ({
+                    barcode: node.barcode,
+                    materialCode: node.materialCode,
+                    materialName: node.materialName,
+                    materialSpec: node.materialSpec,
+                    status: node.status,
+                    processName: node.processName,
+                    processCode: node.processCode,
+                    scanTime: node.scanTime
+                }))
+                .sort((a, b) => new Date(b.scanTime || 0) - new Date(a.scanTime || 0));
+        },
+
+        async handleSingleMainExport(row) {
+            try {
+                // 显示加载提示
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在获取数据，请稍候...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                try {
+                    // 获取详细数据
+                    const result = await getData('material_process_flow', {
+                        query: { _id: row._id }
+                    });
+
+                    if (result.code === 200 && result.data.length > 0) {
+                        const detailData = result.data[0];
+
+                        // 使用相同的处理方法获取物料条码信息数据
+                        const materialBarcodeData = this.handleProcessedMaterialBarcodeData(detailData);
+
+                        if (materialBarcodeData.length === 0) {
+                            this.$message.warning('该记录没有可导出的条码数据');
+                            loading.close();
+                            return;
+                        }
+
+                        // 转换数据为Excel格式
+                        const excelData = materialBarcodeData.map(item => ({
+                            '条码': item.barcode || '-',
+                            '物料编码': item.materialCode || '-',
+                            '物料名称': item.materialName || '-',
+                            '规格型号': item.materialSpec || '-',
+                            '状态': this.getProcessStatusText(item.status) || '-',
+                            '所属工序': `${item.processName || ''} ${item.processCode ? `(${item.processCode})` : ''}`,
+                            '扫码时间': item.scanTime ? this.formatDate(item.scanTime) : '-'
+                        }));
+
+                        // 创建工作簿
+                        const wb = XLSX.utils.book_new();
+                        const ws = XLSX.utils.json_to_sheet(excelData);
+
+                        // 设置列宽
+                        const colWidths = [
+                            { wch: 20 }, // 条码
+                            { wch: 15 }, // 物料编码
+                            { wch: 20 }, // 物料名称
+                            { wch: 15 }, // 规格型号
+                            { wch: 10 }, // 状态
+                            { wch: 20 }, // 所属工序
+                            { wch: 20 }  // 扫码时间
+                        ];
+                        ws['!cols'] = colWidths;
+
+                        // 设置表头样式
+                        const headerStyle = {
+                            font: { bold: true },
+                            alignment: { horizontal: 'center' },
+                            fill: {
+                                fgColor: { rgb: "f5f7fa" }
+                            }
+                        };
+
+                        // 应用表头样式
+                        const range = XLSX.utils.decode_range(ws['!ref']);
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            const address = XLSX.utils.encode_cell({ r: 0, c: C });
+                            if (!ws[address]) continue;
+                            ws[address].s = headerStyle;
+                        }
+
+                        // 将工作表添加到工作簿
+                        XLSX.utils.book_append_sheet(wb, ws, '物料条码信息');
+
+                        // 生成Excel文件的二进制数据
+                        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                        const blob = new Blob([excelBuffer], {
+                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        });
+
+                        // 文件名格式：物料编码_物料名称_主条码.xlsx
+                        const fileName = `${row.materialCode}_${row.materialName}_${row.barcode}.xlsx`;
+
+                        // 下载文件
+                        FileSaver.saveAs(blob, fileName);
+
+                        this.$message.success('导出成功');
+                    } else {
+                        throw new Error('获取数据失败');
+                    }
+                } catch (error) {
+                    console.error('导出失败:', error);
+                    this.$message.error('导出失败: ' + error.message);
+                } finally {
+                    loading.close();
+                }
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败: ' + error.message);
+            }
+        }
     },
     created() {
         this.fetchData();

@@ -23,199 +23,179 @@
           </div>
         </template>
       </el-table-column>
-
-      <el-table-column label="检测项目" prop="inspectionItem">
-        <template slot-scope="scope">
-          <div class="inspection-details">
-            <div>{{ scope.row.inspectionItem }}</div>
-
-          </div>
-        </template>
-      </el-table-column>
       <el-table-column label="检测结果" width="300">
         <template slot-scope="scope">
-          <div v-for="(result, index) in scope.row.inspectionResults" :key="index" class="inspection-result">
-            <div class="process-info" v-if="result.processStep">
-              <span>{{ result.processStep.processName }}</span>
-              <span>({{ result.processStep.processStage }})</span>
-            </div>
+          <div v-for="(result, index) in scope.row.inspectionData" :key="index" class="inspection-result">
+
             <div class="result-info">
-              <el-popover v-if="result.testDetails" placement="right" width="500" trigger="hover">
+              <el-popover v-if="result" placement="right" width="500" trigger="hover">
                 <div class="test-details">
                   <!-- 通用信息 -->
                   <div class="detail-section">
                     <div class="section-title">基础信息</div>
-                    <div v-if="result.testDetails.startDate">日期：{{ result.testDetails.startDate }}</div>
-                    <div v-if="result.testDetails.workstation">工位号：{{ result.testDetails.workstation }}</div>
-                    <div v-if="result.testDetails.productModel">产品型号：{{ result.testDetails.productModel }}</div>
+                    <div v-if="result.startDate">日期：{{ result.startDate }}</div>
+                    <div v-if="result.workstation">工位号：{{ result.workstation }}</div>
+                    <div v-if="result.productModel">产品型号：{{ result.productModel }}</div>
                   </div>
 
                   <!-- 面罩灯板测试 -->
-                  <div class="detail-section" v-if="hasLampBoardTestData">
+                  <div class="detail-section" v-if="hasLampBoardTestData(result)">
                     <div class="section-title">面罩灯板测试</div>
-                    <div v-if="result.testDetails.red">红色：{{ result.testDetails.red }}</div>
-                    <div v-if="result.testDetails.blue">蓝色：{{ result.testDetails.blue }}</div>
-                    <div v-if="result.testDetails.infrared">红外：{{ result.testDetails.infrared }}</div>
-                    <div v-if="result.testDetails.red2">红色2：{{ result.testDetails.red2 }}</div>
-                    <div v-if="result.testDetails.blue2">蓝色2：{{ result.testDetails.blue2 }}</div>
-                    <div v-if="result.testDetails.infrared2">红外2：{{ result.testDetails.infrared2 }}</div>
+                    <div v-if="result.red">红色：{{ result.red }}</div>
+                    <div v-if="result.blue">蓝色：{{ result.blue }}</div>
+                    <div v-if="result.infrared">红外：{{ result.infrared }}</div>
+                    <div v-if="result.red2">红色2：{{ result.red2 }}</div>
+                    <div v-if="result.blue2">蓝色2：{{ result.blue2 }}</div>
+                    <div v-if="result.infrared2">红外2：{{ result.infrared2 }}</div>
                   </div>
 
                   <!-- 面罩半成品测试 -->
-                  <div class="detail-section" v-if="hasSemiFinishedTestData">
+                  <div class="detail-section" v-if="hasSemiFinishedTestData(result)">
                     <div class="section-title">面罩半成品测试</div>
-                    <div v-if="result.testDetails.udiCode">UDI码：{{ result.testDetails.udiCode }}</div>
-                    <div v-if="result.testDetails.lampBoardQrCode">灯板二维码：{{ result.testDetails.lampBoardQrCode }}</div>
-                    <div v-if="result.testDetails.batteryCellCode">电芯码：{{ result.testDetails.batteryCellCode }}</div>
-                    <div v-if="result.testDetails.chargingBoardPcbaCode">充电板PCBA码：{{
-                      result.testDetails.chargingBoardPcbaCode }}</div>
-                    <div v-if="result.testDetails.maskPcbaCode">面罩PCBA码：{{ result.testDetails.maskPcbaCode }}</div>
-                    <div v-if="result.testDetails.controllerPcbaCode">手控器PCBA码：{{ result.testDetails.controllerPcbaCode
+                    <div v-if="result.udiCode">UDI码：{{ result.udiCode }}</div>
+                    <div v-if="result.lampBoardQrCode">灯板二维码：{{ result.lampBoardQrCode }}</div>
+                    <div v-if="result.batteryCellCode">电芯码：{{ result.batteryCellCode }}</div>
+                    <div v-if="result.chargingBoardPcbaCode">充电板PCBA码：{{
+                      result.chargingBoardPcbaCode }}</div>
+                    <div v-if="result.maskPcbaCode">面罩PCBA码：{{ result.maskPcbaCode }}</div>
+                    <div v-if="result.controllerPcbaCode">手控器PCBA码：{{ result.controllerPcbaCode
                       }}</div>
-                    <div v-if="result.testDetails.controllerSoftwareVersion">手控器软件版本：{{
-                      result.testDetails.controllerSoftwareVersion }}</div>
-                    <div v-if="result.testDetails.maskSoftwareVersion">面罩软件版本：{{ result.testDetails.maskSoftwareVersion
+                    <div v-if="result.controllerSoftwareVersion">手控器软件版本：{{
+                      result.controllerSoftwareVersion }}</div>
+                    <div v-if="result.maskSoftwareVersion">面罩软件版本：{{ result.maskSoftwareVersion
                       }}</div>
-                    <div v-if="result.testDetails.controllerFactoryQrCode">手控器出厂二维码：{{
-                      result.testDetails.controllerFactoryQrCode }}</div>
-                    <div v-if="result.testDetails.faceDetectionProgramVersion">面部探测程序版本：{{
-                      result.testDetails.faceDetectionProgramVersion }}</div>
-                    <div v-if="result.testDetails.circuitFaultCode">电路故障码：{{ result.testDetails.circuitFaultCode }}
+                    <div v-if="result.controllerFactoryQrCode">手控器出厂二维码：{{
+                      result.controllerFactoryQrCode }}</div>
+                    <div v-if="result.faceDetectionProgramVersion">面部探测程序版本：{{
+                      result.faceDetectionProgramVersion }}</div>
+                    <div v-if="result.circuitFaultCode">电路故障码：{{ result.circuitFaultCode }}
                     </div>
 
                     <!-- 光波参数 -->
                     <div class="sub-section">
                       <div class="sub-title">光波参数</div>
-                      <div v-if="result.testDetails.redLightWavelength">红灯波长：{{ result.testDetails.redLightWavelength }}
+                      <div v-if="result.redLightWavelength">红灯波长：{{ result.redLightWavelength }}
                       </div>
-                      <div v-if="result.testDetails.blueLightWavelength">蓝灯波长：{{ result.testDetails.blueLightWavelength
+                      <div v-if="result.blueLightWavelength">蓝灯波长：{{ result.blueLightWavelength
                         }}</div>
-                      <div v-if="result.testDetails.infraredLightWavelength">红外灯波长：{{
-                        result.testDetails.infraredLightWavelength }}</div>
-                      <div v-if="result.testDetails.redLightCurrent">红灯电流：{{ result.testDetails.redLightCurrent }}</div>
-                      <div v-if="result.testDetails.blueLightCurrent">蓝灯电流：{{ result.testDetails.blueLightCurrent }}
+                      <div v-if="result.infraredLightWavelength">红外灯波长：{{
+                        result.infraredLightWavelength }}</div>
+                      <div v-if="result.redLightCurrent">红灯电流：{{ result.redLightCurrent }}</div>
+                      <div v-if="result.blueLightCurrent">蓝灯电流：{{ result.blueLightCurrent }}
                       </div>
-                      <div v-if="result.testDetails.infraredLightCurrent">红外灯电流：{{
-                        result.testDetails.infraredLightCurrent }}</div>
-                      <div v-if="result.testDetails.msiLightCurrent">MSI灯电流：{{ result.testDetails.msiLightCurrent }}
+                      <div v-if="result.infraredLightCurrent">红外灯电流：{{
+                        result.infraredLightCurrent }}</div>
+                      <div v-if="result.msiLightCurrent">MSI灯电流：{{ result.msiLightCurrent }}
                       </div>
                     </div>
 
                     <!-- 电池参数 -->
                     <div class="sub-section">
                       <div class="sub-title">电池参数</div>
-                      <div v-if="result.testDetails.batteryVoltage">电池电压：{{ result.testDetails.batteryVoltage }}</div>
-                      <div v-if="result.testDetails.dischargeCurrent">放电电流：{{ result.testDetails.dischargeCurrent }}
+                      <div v-if="result.batteryVoltage">电池电压：{{ result.batteryVoltage }}</div>
+                      <div v-if="result.dischargeCurrent">放电电流：{{ result.dischargeCurrent }}
                       </div>
-                      <div v-if="result.testDetails.batteryPower">电池电量：{{ result.testDetails.batteryPower }}</div>
-                      <div v-if="result.testDetails.batteryCell1Voltage">电芯1电压：{{ result.testDetails.batteryCell1Voltage
+                      <div v-if="result.batteryPower">电池电量：{{ result.batteryPower }}</div>
+                      <div v-if="result.batteryCell1Voltage">电芯1电压：{{ result.batteryCell1Voltage
                         }}</div>
-                      <div v-if="result.testDetails.batteryCell2Voltage">电芯2电压：{{ result.testDetails.batteryCell2Voltage
+                      <div v-if="result.batteryCell2Voltage">电芯2电压：{{ result.batteryCell2Voltage
                         }}</div>
                     </div>
 
                     <!-- 传感器参数 -->
                     <div class="sub-section">
                       <div class="sub-title">传感器参数</div>
-                      <div v-if="result.testDetails.faceSensorStatus">面部传感器状态：{{ result.testDetails.faceSensorStatus }}
+                      <div v-if="result.faceSensorStatus">面部传感器状态：{{ result.faceSensorStatus }}
                       </div>
-                      <div v-if="result.testDetails.faceSensorValue">面部传感器值：{{ result.testDetails.faceSensorValue }}
+                      <div v-if="result.faceSensorValue">面部传感器值：{{ result.faceSensorValue }}
                       </div>
-                      <div v-if="result.testDetails.fanCurrent">风扇电流：{{ result.testDetails.fanCurrent }}</div>
+                      <div v-if="result.fanCurrent">风扇电流：{{ result.fanCurrent }}</div>
                     </div>
                   </div>
 
                   <!-- 面罩温度测试 -->
-                  <div class="detail-section" v-if="hasTemperatureTestData">
+                  <div class="detail-section" v-if="hasTemperatureTestData(result)">
                     <div class="section-title">面罩温度测试</div>
-                    <div v-if="result.testDetails.instrumentNtcDifferenceBeforeCooling">制冷前NTC差值：{{
-                      result.testDetails.instrumentNtcDifferenceBeforeCooling }}</div>
-                    <div v-if="result.testDetails.productAndInstrumentNtc1Difference">产品NTC1和仪器NTC1差值：{{
-                      result.testDetails.productAndInstrumentNtc1Difference }}</div>
-                    <div v-if="result.testDetails.productAndInstrumentNtc2Difference">产品NTC2和仪器NTC2差值：{{
-                      result.testDetails.productAndInstrumentNtc2Difference }}</div>
-                    <div v-if="result.testDetails.coolingStatus">制冷状态：{{ result.testDetails.coolingStatus }}</div>
-                    <div v-if="result.testDetails.coolingSetTemperature">制冷设置温度：{{
-                      result.testDetails.coolingSetTemperature }}</div>
+                    <div v-if="result.instrumentNtcDifferenceBeforeCooling">制冷前NTC差值：{{
+                      result.instrumentNtcDifferenceBeforeCooling }}</div>
+                    <div v-if="result.productAndInstrumentNtc1Difference">产品NTC1和仪器NTC1差值：{{
+                      result.productAndInstrumentNtc1Difference }}</div>
+                    <div v-if="result.productAndInstrumentNtc2Difference">产品NTC2和仪器NTC2差值：{{
+                      result.productAndInstrumentNtc2Difference }}</div>
+                    <div v-if="result.coolingStatus">制冷状态：{{ result.coolingStatus }}</div>
+                    <div v-if="result.coolingSetTemperature">制冷设置温度：{{
+                      result.coolingSetTemperature }}</div>
                   </div>
 
                   <!-- 耐压测试 -->
-                  <div class="detail-section" v-if="hasVoltageWithstandTestData">
+                  <div class="detail-section" v-if="hasVoltageWithstandTestData(result)">
                     <div class="section-title">耐压测试</div>
-                    <div v-if="result.testDetails.chargingTest">充电测试：{{ result.testDetails.chargingTest }}</div>
-                    <div v-if="result.testDetails.withstandVoltageTest">耐压测试：{{ result.testDetails.withstandVoltageTest
+                    <div v-if="result.chargingTest">充电测试：{{ result.chargingTest }}</div>
+                    <div v-if="result.withstandVoltageTest">耐压测试：{{ result.withstandVoltageTest
                       }}</div>
                   </div>
 
                   <!-- 模板整机灯光 -->
-                  <div class="detail-section" v-if="hasFullMachineTestData">
+                  <div class="detail-section" v-if="hasFullMachineTestData(result)">
                     <div class="section-title">整机灯光测试</div>
-                    <div v-if="result.testDetails.cellCode">电芯码：{{ result.testDetails.cellCode }}</div>
-                    <div v-if="result.testDetails.handheldControllerPcbaCode">手控器PCBA码：{{
-                      result.testDetails.handheldControllerPcbaCode }}</div>
-                    <div v-if="result.testDetails.handheldSoftwareVersion">手控器软件版本：{{
-                      result.testDetails.handheldSoftwareVersion }}</div>
-                    <div v-if="result.testDetails.handheldFactoryQrCode">手控器出厂二维码：{{
-                      result.testDetails.handheldFactoryQrCode }}</div>
-                    <div v-if="result.testDetails.batteryCapacity">电池电量：{{ result.testDetails.batteryCapacity }}</div>
-                    <div v-if="result.testDetails.cell1Voltage">电芯1电压：{{ result.testDetails.cell1Voltage }}</div>
-                    <div v-if="result.testDetails.cell2Voltage">电芯2电压：{{ result.testDetails.cell2Voltage }}</div>
-                    <div v-if="result.testDetails.meterChargingCurrent">仪表充电电流：{{
-                      result.testDetails.meterChargingCurrent }}</div>
+                    <div v-if="result.cellCode">电芯码：{{ result.cellCode }}</div>
+                    <div v-if="result.handheldControllerPcbaCode">手控器PCBA码：{{
+                      result.handheldControllerPcbaCode }}</div>
+                    <div v-if="result.handheldSoftwareVersion">手控器软件版本：{{
+                      result.handheldSoftwareVersion }}</div>
+                    <div v-if="result.handheldFactoryQrCode">手控器出厂二维码：{{
+                      result.handheldFactoryQrCode }}</div>
+                    <div v-if="result.batteryCapacity">电池电量：{{ result.batteryCapacity }}</div>
+                    <div v-if="result.cell1Voltage">电芯1电压：{{ result.cell1Voltage }}</div>
+                    <div v-if="result.cell2Voltage">电芯2电压：{{ result.cell2Voltage }}</div>
+                    <div v-if="result.meterChargingCurrent">仪表充电电流：{{
+                      result.meterChargingCurrent }}</div>
                   </div>
 
                   <!-- 电子秤重量 -->
-                  <div class="detail-section" v-if="hasWeightData">
+                  <div class="detail-section" v-if="hasWeightData(result)">
                     <div class="section-title">电子秤重量</div>
-                    <div v-if="result.testDetails.weight">称重重量：{{ result.testDetails.weight }}</div>
+                    <div v-if="result.weight">称重重量：{{ result.weight }}</div>
                   </div>
 
                   <!-- 遥控测试 -->
-                  <div class="detail-section" v-if="hasRemoteControlTestData">
+                  <div class="detail-section" v-if="hasRemoteControlTestData(result)">
                     <div class="section-title">遥控测试</div>
-                    <div v-if="result.testDetails.showSerialNo">显示序列号：{{ result.testDetails.showSerialNo }}</div>
-                    <div v-if="result.testDetails.chkPowerOn">上电开机：{{ result.testDetails.chkPowerOn }}</div>
-                    <div v-if="result.testDetails.enterDebugMode">进入调试模式：{{ result.testDetails.enterDebugMode }}</div>
-                    <div v-if="result.testDetails.readAllKeyOff">按键关闭状态：{{ result.testDetails.readAllKeyOff }}</div>
-                    <div v-if="result.testDetails.readK4K5">左右键状态：{{ result.testDetails.readK4K5 }}</div>
-                    <div v-if="result.testDetails.readPotentiometer">编码开关：{{ result.testDetails.readPotentiometer }}
+                    <div v-if="result.showSerialNo">显示序列号：{{ result.showSerialNo }}</div>
+                    <div v-if="result.chkPowerOn">上电开机：{{ result.chkPowerOn }}</div>
+                    <div v-if="result.enterDebugMode">进入调试模式：{{ result.enterDebugMode }}</div>
+                    <div v-if="result.readAllKeyOff">按键关闭状态：{{ result.readAllKeyOff }}</div>
+                    <div v-if="result.readK4K5">左右键状态：{{ result.readK4K5 }}</div>
+                    <div v-if="result.readPotentiometer">编码开关：{{ result.readPotentiometer }}
                     </div>
-                    <div v-if="result.testDetails.chkUiVersion">软件版本：{{ result.testDetails.chkUiVersion }}</div>
-                    <div v-if="result.testDetails.chkUiTx">通讯口校验：{{ result.testDetails.chkUiTx }}</div>
+                    <div v-if="result.chkUiVersion">软件版本：{{ result.chkUiVersion }}</div>
+                    <div v-if="result.chkUiTx">通讯口校验：{{ result.chkUiTx }}</div>
                   </div>
 
                   <!-- 测试结果 -->
-                  <div class="detail-section">
+                  <div class="detail-section" v-if="result.passFail">
                     <div class="section-title">测试结果</div>
-                    <div v-if="result.testDetails.passFail">测试结果：{{ result.testDetails.passFail }}</div>
-                    <div v-if="result.testDetails.testTime">测试耗时：{{ result.testDetails.testTime }}秒</div>
-                    <div v-if="result.testDetails.startTime">开始时间：{{ result.testDetails.startTime }}</div>
+                    <div v-if="result.passFail">测试结果：{{ result.passFail }}</div>
+                    <div v-if="result.testTime">测试耗时：{{ result.testTime }}秒</div>
+                    <div v-if="result.startTime">开始时间：{{ result.startTime }}</div>
                   </div>
                 </div>
-                <div class="result-main">
+                <div class="result-main" slot="reference">
+                  <div class="process-info">
+                    <el-tag :type="result.error ? 'danger' : 'success'" size="small">{{
+                      result.processId.processName }}</el-tag>
+                    <span>({{ result.processId.processStage }})</span>
+                  </div>
                   <span :class="{
-                    'success': result.result === '合格',
-                    'error': result.result === '不合格'
-                  }">{{ result.result }}</span>
-                  <span class="time">{{ formatDate(result.testTime) }}</span>
+                    'success': result.error === false,
+                    'error': result.error === true
+                  }">{{ result.error ? '不合格' : '合格' }}</span>
                 </div>
               </el-popover>
-
               <el-button type="text" size="mini"
                 @click="showHistory(scope.row.barcode, result.processId)">历史记录</el-button>
             </div>
           </div>
-        </template>
-      </el-table-column>
-      <!-- <el-table-column label="检测时间" prop="inspectionTime">
-        <template slot-scope="scope">
-          {{ formatDate(scope.row.inspectionTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="检测人员" prop="inspector"></el-table-column> -->
-      <el-table-column label="操作" width="120">
-        <template slot-scope="scope">
-          <el-button type="text" size="small" @click="showHistory(scope.row.barcode)">历史记录</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -443,7 +423,6 @@ export default {
             materialSpec: dataForm.materialSpec,
             standard: '',
             result: '',
-            testDetails: null
           }
 
           let inspectionList = dataForm.barcode ? [mainMaterial] : []
@@ -452,6 +431,9 @@ export default {
           // 获取所有有效条码
           const allBarcodes = [dataForm.barcode, ...processNodes.map(item => item.barcode)]
             .filter(barcode => barcode && barcode.trim())
+
+          const allBarcodesData = [mainMaterial, ...processNodes]
+          console.log("🚀 ~ handler ~ allBarcodesData:", allBarcodesData)
 
           if (allBarcodes.length === 0) {
             this.displayData = [];
@@ -471,39 +453,18 @@ export default {
             ])
           })
 
-          // 重新组织检测数据,按条码分组
-          const inspectionDataMap = res.data.reduce((acc, curr) => {
-            if (!acc[curr.scanCode]) {
-              acc[curr.scanCode] = [];
+          let inspectionData = res.data
+
+          for await (const element of allBarcodesData) {
+            const barcode = element.barcode
+            const processNode = inspectionData.filter(inspection => inspection.scanCode == barcode)
+            if (processNode.length > 0) {
+              element.inspectionData = processNode
             }
-            acc[curr.scanCode].push(curr);
-            return acc;
-          }, {});
-
-          // 处理展示数据
-          this.displayData = [];
-
-          // 处理主物料数据
-          if (dataForm.barcode) {
-            const mainData = inspectionDataMap[dataForm.barcode] || [];
-            this.displayData.push({
-              ...mainMaterial,
-              inspectionResults: mainData.map(data => this.formatInspectionData(data))
-            });
           }
 
-          // 处理工序节点数据
-          processNodes.forEach(node => {
-            if (node.barcode && node.barcode.trim()) {
-              const nodeData = inspectionDataMap[node.barcode] || [];
-              this.displayData.push({
-                ...node,
-                inspectionResults: nodeData.map(data => this.formatInspectionData(data))
-              });
-            }
-          });
-
-          console.log(this.displayData)
+          //过滤allBarcodesData，只保留有inspectionData的元素
+          this.displayData = allBarcodesData.filter(element => element.inspectionData)
         }
       },
       immediate: true
@@ -592,55 +553,33 @@ export default {
       this.currentPage = val
       this.fetchHistoryData()
     },
-
-    formatInspectionData(data) {
-      return {
-        processStep: data.processId ? {
-          processCode: data.processId.processCode,
-          processName: data.processId.processName,
-          processDesc: data.processId.processDesc,
-          processStage: data.processId.processStage,
-          processType: data.processId.processType
-        } : null,
-        result: data.error ? '不合格' : '合格',
-        testTime: data.testTime || data.createTime,
-        inspector: data.inspector,
-        testDetails: {
-          ...data
-        }
-      };
-    }
-  },
-  computed: {
     // 判断各个模块是否有数据需要显示
-    hasLampBoardTestData() {
-      const { testDetails } = this.result;
+    hasLampBoardTestData(testDetails) {
       return testDetails.red || testDetails.blue || testDetails.infrared ||
         testDetails.red2 || testDetails.blue2 || testDetails.infrared2;
     },
-    hasSemiFinishedTestData() {
-      const { testDetails } = this.result;
+    hasSemiFinishedTestData(testDetails) {
       return testDetails.udiCode || testDetails.lampBoardQrCode || testDetails.batteryCellCode;
     },
-    hasTemperatureTestData() {
-      const { testDetails } = this.result;
+    hasTemperatureTestData(testDetails) {
       return testDetails.instrumentNtcDifferenceBeforeCooling || testDetails.coolingStatus;
     },
-    hasVoltageWithstandTestData() {
-      const { testDetails } = this.result;
+    hasVoltageWithstandTestData(testDetails) {
       return testDetails.chargingTest || testDetails.withstandVoltageTest;
     },
-    hasFullMachineTestData() {
-      const { testDetails } = this.result;
+    hasFullMachineTestData(testDetails) {
       return testDetails.cellCode || testDetails.handheldControllerPcbaCode;
     },
-    hasWeightData() {
-      return this.result.testDetails.weight;
+    hasWeightData(testDetails) {
+      return testDetails.weight;
     },
-    hasRemoteControlTestData() {
-      const { testDetails } = this.result;
+    hasRemoteControlTestData(testDetails) {
       return testDetails.showSerialNo || testDetails.chkPowerOn || testDetails.enterDebugMode;
     }
+
+  },
+  computed: {
+
   }
 }
 </script>

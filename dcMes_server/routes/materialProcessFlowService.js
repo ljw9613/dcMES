@@ -107,4 +107,23 @@ router.post('/api/v1/unbind-components', async (req, res) => {
     }
 });
 
+
+// 更新流程节点
+router.post('/api/v1/update-flow-nodes', async (req, res) => {
+    try {
+        const { barcode } = req.body;
+        const result = await MaterialProcessFlowService.updateFlowNodes(barcode);
+        res.json({
+            code: 200,
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;

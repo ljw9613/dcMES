@@ -777,7 +777,7 @@ export default {
 
             if (!valid) {
                 //检测条码是否包含-
-                if (barcode.includes('-') && barcode.length != 34) {
+                if (barcode.includes('-') && barcode.length != 34 && barcode.length != 35) {
                     materialCode = barcode.split('-')[0];
                     relatedBill = barcode.split('-')[1];
                     valid = true;
@@ -800,6 +800,16 @@ export default {
                 console.log('barcode', barcode.length);
                 // 根据不同长度判断不同类型的条码
                 switch (barcode.length) {
+                    case 35:
+                        if (barcode.includes('-')) {
+                            // 电风扇与制冷片组件
+                            const middlePart = barcode.split('-')[1];
+                            console.log('middlePart', middlePart);
+                            const middlePartResult = await this.validateDICode(middlePart);
+                            if (!middlePartResult.isValid) return false;
+                            materialCode = middlePartResult.materialCode;
+                        }
+                        break;
                     case 34:
                         if (barcode.includes('-')) {
                             // 电风扇与制冷片组件

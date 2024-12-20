@@ -119,6 +119,12 @@
                 <el-table-column label="工艺描述" prop="craftDesc" />
                 <el-table-column label="工艺类型" prop="craftType" />
                 <el-table-column label="产品型号" prop="productName" />
+                <el-table-column label="物料编号" prop="materialCode">
+                    <template slot-scope="scope">
+                        {{ scope.row.materialCode || (scope.row.materialId && scope.row.materialId.FNumber) }}
+                    </template>
+                </el-table-column>
+                <!-- <el-table-column label="产品编号" prop="materialCode" /> -->
                 <el-table-column label="创建人" prop="createBy" />
                 <el-table-column label="创建时间" prop="createAt" />
                 <el-table-column label="状态">
@@ -138,8 +144,8 @@
         </base-table>
 
         <!-- 新增/编辑工艺弹窗 -->
-        <el-dialog :close-on-click-modal="false" :title="dialogStatus === 'create' ? '新增工艺' : '编辑工艺'"
-            :visible.sync="dialogFormVisible" width="70%">
+        <el-dialog :close-on-click-modal="false" v-if="dialogFormVisible"
+            :title="dialogStatus === 'create' ? '新增工艺' : '编辑工艺'" :visible.sync="dialogFormVisible" width="70%">
             <el-form ref="craftForm" :model="craftForm" :rules="rules" label-width="100px">
                 <el-row :gutter="20">
                     <el-col :span="12">
@@ -777,6 +783,7 @@ export default {
                 req.skip = (this.craftTableData.currentPage - 1) * this.craftTableData.pageSize;
                 req.limit = this.craftTableData.pageSize;
                 req.sort = { _id: -1 }
+                req.populate = JSON.stringify([{ path: 'materialId', select: 'FNumber' }]);
                 req.count = true;
                 const result = await getData("craft", req);
                 this.craftTableData.tableList = result.data;
@@ -823,8 +830,10 @@ export default {
             this.tempCraftId = row._id;
 
             try {
+
+                let craftGet = await getData('craft', { query: { _id: this.tempCraftId } });
                 // 基础数据复制
-                this.craftForm = JSON.parse(JSON.stringify(row));
+                this.craftForm = JSON.parse(JSON.stringify(craftGet.data[0]));
 
                 // 如果存在materialId，初始化物料选项和相关字段
                 if (this.craftForm.materialId) {
@@ -1697,8 +1706,8 @@ export default {
         // 处理物料选择变更
         handleSearchMaterialChange(material) {
             if (material) {
-                this.searchForm.materialCode = material.FNumber;
-                this.searchForm.materialName = material.FName;
+                // this.searchForm.materialCode = material.FNumber;
+                // this.searchForm.materialName = material.FName;
                 this.search(); // 触发搜索
             }
         },

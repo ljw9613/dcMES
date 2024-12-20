@@ -32,6 +32,7 @@ import DictTag from '@/components/DictTag'
 import Pagination from "@/components/Pagination";
 import DictData from '@/components/DictData'
 import ZrFile from '@/components/ZrFile/index.vue'
+import ZrSelect from '@/components/ZrSelect'
 import {adjustDataFormat} from '@/utils/filters'
 //自定义组件
 import BaseTable from "@/components/BaseTable";
@@ -72,6 +73,7 @@ Vue.component('Pagination', Pagination)
 Vue.component("BaseTable", BaseTable);
 Vue.component('DictTag', DictTag)
 Vue.component('ZrFile', ZrFile)
+Vue.component('ZrSelect', ZrSelect)
 
 //全局时间过滤器
 Vue.filter("dateFormat", function (value, format = "YYYY-MM-DD HH:mm:ss") {

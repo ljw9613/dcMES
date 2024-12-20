@@ -283,6 +283,8 @@ class MaterialProcessFlowService {
         node.processStepId.toString() === processStepId.toString() &&
         node.nodeType === "PROCESS_STEP"
     );
+    
+    console.log("🚀 ~ MaterialProcessFlowService ~ processNode:", processNode);
     if (!processNode) {
       throw new Error("未找到对应的工序节点");
     }
@@ -432,7 +434,7 @@ class MaterialProcessFlowService {
         const materialName = invalidMaterial
           ? invalidMaterial.FName
           : scan.materialId;
-        throw new Error(`物料 ${materialName} 不属于当前工序要求扫描的物料`);
+        throw new Error(`物料 ${materialName} 不属于当前工序要求扫描的物���`);
       }
     }
 
@@ -688,6 +690,119 @@ class MaterialProcessFlowService {
   static isChildNode(nodes, parentId, nodeId) {
     const childNodes = this.getAllChildNodes(nodes, parentId);
     return childNodes.includes(nodeId);
+  }
+
+  /**
+   * 更新工艺流程记录节点
+   * @param {string} barcode - 主条码
+   * @returns {Promise<Object>} 更新后的流程记录
+   */
+  static async updateFlowNodes(barcode) {
+    try {
+      // 1. 获取现有流程记录
+      const flowRecord = await MaterialProcessFlow.findOne({ barcode });
+      if (!flowRecord) {
+        throw new Error(`未找到条码为 ${barcode} 的流程记录`);
+      }
+
+      // 2. 获取最新的工艺信息
+      const craft = await Craft.findOne({ materialId: flowRecord.materialId });
+      if (!craft) {
+        throw new Error(`未找到物料 ${flowRecord.materialCode} 对应的工艺信息`);
+      }
+
+      // 3. 构建新的流程节点树
+      const newProcessNodes = await this.buildProcessNodes(flowRecord.materialId, craft, new Set());
+
+      // 4. 合并新旧节点
+      const updatedNodes = [];
+      const processedNodeIds = new Set();
+
+      // 首先处理已完成的旧节点
+      flowRecord.processNodes.forEach(oldNode => {
+        if (oldNode.status === 'COMPLETED') {
+          const newNode = newProcessNodes.find(node => {
+            if (oldNode.nodeType === 'PROCESS_STEP' && node.nodeType === 'PROCESS_STEP') {
+              return node.processCode === oldNode.processCode && node.level === oldNode.level;
+            }
+            if (oldNode.nodeType === 'MATERIAL' && node.nodeType === 'MATERIAL') {
+              return node.materialId.toString() === oldNode.materialId.toString() && node.level === oldNode.level;
+            }
+            return false;
+          });
+
+          if (newNode) {
+            // 保留已完成节点的信息
+            updatedNodes.push({
+              ...newNode,
+              status: oldNode.status,
+              barcode: oldNode.barcode || '',
+              scanTime: oldNode.scanTime,
+              endTime: oldNode.endTime,
+              updateBy: oldNode.updateBy
+            });
+            processedNodeIds.add(newNode.nodeId);
+
+            // 如果是工序节点，标记同级别的其他工序节点
+            if (oldNode.nodeType === 'PROCESS_STEP') {
+              const sameLevelNodes = newProcessNodes.filter(node => 
+                node.nodeType === 'PROCESS_STEP' && 
+                node.level === oldNode.level &&
+                node.parentNodeId === newNode.parentNodeId
+              );
+              sameLevelNodes.forEach(node => {
+                processedNodeIds.add(node.nodeId);
+              });
+            }
+          }
+        }
+      });
+
+      // 添加未处理的新节点
+      newProcessNodes.forEach(newNode => {
+        if (!processedNodeIds.has(newNode.nodeId)) {
+          updatedNodes.push({
+            ...newNode,
+            status: 'PENDING',
+            barcode: '',
+            scanTime: null,
+            endTime: null,
+            updateBy: null
+          });
+        }
+      });
+
+      // 按照节点层级和工序顺序排序
+      updatedNodes.sort((a, b) => {
+        if (a.level !== b.level) {
+          return a.level - b.level;
+        }
+        if (a.nodeType === 'PROCESS_STEP' && b.nodeType === 'PROCESS_STEP') {
+          return (a.processSort || 0) - (b.processSort || 0);
+        }
+        return 0;
+      });
+
+      // 5. 更新流程记录
+      flowRecord.processNodes = updatedNodes;
+      flowRecord.craftVersion = craft.craftVersion;
+
+      // 6. 重新计算进度
+      const completedNodes = flowRecord.processNodes.filter(
+        node => node.status === 'COMPLETED' && node.level !== 0
+      ).length;
+      flowRecord.progress = Math.floor(
+        (completedNodes / (flowRecord.processNodes.length - 1)) * 100
+      );
+
+      // 7. 保存更新
+      await flowRecord.save();
+
+      return flowRecord;
+    } catch (error) {
+      console.error("更新工艺流程记录失败:", error);
+      throw error;
+    }
   }
 }
 

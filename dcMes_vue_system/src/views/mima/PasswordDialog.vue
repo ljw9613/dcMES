@@ -23,6 +23,15 @@
   
   export default {
     data() {
+      let validatePasswordStrength = (rule, value, callback) => {
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+        if (!passwordRegex.test(value)) {
+          callback(new Error("密码必须包含数字、字母和特殊字符，且长度至少8位！"));
+        } else {
+          callback();
+        }
+      };
+
       let validateNewPassword = (rule, value, callback) => {
         if (value === this.form.password) {
           callback(new Error("新密码不能与原密码相同!"));
@@ -30,6 +39,7 @@
           callback();
         }
       };
+      
       let validateNewPassword2 = (rule, value, callback) => {
         if (value !== this.form.newPassword) {
           callback(new Error("与新密码不一致!"));
@@ -37,6 +47,7 @@
           callback();
         }
       };
+      
       return {
         dialogVisible: false,
         form: {
@@ -50,6 +61,7 @@
           ],
           newPassword: [
             { required: true, message: "请设置新密码", trigger: "blur" },
+            { validator: validatePasswordStrength, trigger: "blur" },
             { validator: validateNewPassword, trigger: "blur" }
           ],
           newPassword2: [
@@ -70,11 +82,6 @@
       async onSubmit(formName) {
         this.$refs[formName].validate(async valid => {
           if (valid) {
-            if (this.form.newPassword.length < 6) {
-              this.$message.error("密码需6位数，请重新输入");
-              return;
-            }
-  
             const storages = this.$store.state.user.id;
             const data1 = {
               query: { _id: storages },
