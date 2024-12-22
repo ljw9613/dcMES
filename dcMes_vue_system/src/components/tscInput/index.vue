@@ -141,20 +141,30 @@ export default {
     },
 
     async mounted() {
-        await this.initWebSocket()
-        setTimeout(() => {
-            this.getUsbPrinterList()
-            this.getDriverList()
-        }, 1000)
+        try {
+            await this.initWebSocket()
+            setTimeout(() => {
+                this.getUsbPrinterList()
+                this.getDriverList()
+            }, 1000)
+        } catch (error) {
+            console.error('打印服务连接失败:', error)
+            this.$message.error('打印服务连接失败，请确保TSC打印服务已启动')
+        }
     },
 
     methods: {
         async initWebSocket() {
-            this.websocket = new WebSocket(this.wsUrl)
-            this.websocket.onopen = this.handleWsOpen
-            this.websocket.onclose = this.handleWsClose
-            this.websocket.onmessage = this.handleWsMessage
-            this.websocket.onerror = this.handleWsError
+            try {
+                this.websocket = new WebSocket(this.wsUrl)
+                this.websocket.onopen = this.handleWsOpen
+                this.websocket.onclose = this.handleWsClose
+                this.websocket.onmessage = this.handleWsMessage
+                this.websocket.onerror = this.handleWsError
+            } catch (error) {
+                console.error('WebSocket连接失败:', error)
+                this.$message.error('打印服务连接失败，请确保TSC打印服务已启动')
+            }
         },
 
         handleWsOpen() {
@@ -193,12 +203,10 @@ export default {
             console.log('收到服务器消息:', event.data)
             try {
                 if (event.data === 'Finished') {
-                    this.$message.success('操作完成')
+                    this.$message.success('成功收到打印服务消息')
                     return
                 }
-
                 const response = JSON.parse(event.data)
-
                 // 处理USB打印机列表
                 if (response.usb_list) {
                     if (response.usb_list.length === 0) {
@@ -209,7 +217,6 @@ export default {
                         this.selectedUsbPrinter = this.usbPrinters[0].USBPath
                     }
                 }
-
                 // 处理驱动打印机列表
                 if (response.driver_list) {
                     if (response.driver_list.length === 0) {
@@ -219,22 +226,18 @@ export default {
                     if (this.driverPrinters.length > 0) {
                     }
                 }
-
                 // 处理错误信息
                 if (response.Function_Failed) {
                     this.$message.error(`操作失败: ${response.Function_Failed}`)
                 }
-
                 // 处理打印机状态信息
                 if (response.printerstatus && response.printerstatus.length > 0) {
                     this.$message.info(`打印机状态:\n${response.printerstatus.join('\n')}`)
                 }
-
                 // 处理打印机名称
                 if (response.printername) {
                     this.$message.info(`打印机名称: ${response.printername}`)
                 }
-
                 // 处理打印机序列号
                 if (response.printerserial) {
                     this.$message.info(`打印机序列号: ${response.printerserial}`)

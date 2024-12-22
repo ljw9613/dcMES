@@ -2,7 +2,11 @@ var mongoose = require("mongoose");
 
 var machineSchema = new mongoose.Schema(
   {
-    lineId: { type: mongoose.Schema.ObjectId, ref: "productionLine", description: "产线ID" },
+    lineId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "production_line",
+      description: "产线ID",
+    },
     machineName: {
       type: String,
       maxlength: 50,
@@ -34,6 +38,23 @@ var machineSchema = new mongoose.Schema(
       default: null,
       description: "备注",
     },
+    //新增字段
+    lineCode: { type: String }, // 产线编码 (对应 line_no)
+    lineName: { type: String }, // 产线名称 (对应 line_name)
+    // 设备类型
+    machineType: { type: String, description: "设备类型" },
+    collectionMethod: { type: String, description: "采集方式" },
+    //设备当前生产相关
+
+    materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 物料ID
+
+    processStepId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "processStep",
+      description: "当前工序ID",
+    },
+    status: { type: Boolean, default: false, description: "在线状态" },
+
     createTime: { type: Date, default: Date.now, description: "创建时间" },
     updateTime: { type: Date, default: null, description: "更新时间" },
     machineClassId: { type: Number, default: null, description: "设备类型" },

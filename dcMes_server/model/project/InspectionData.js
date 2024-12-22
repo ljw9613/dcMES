@@ -115,6 +115,7 @@ const inspectionDataSchema = new mongoose.Schema(
 
     // 电子秤重量
     weight: {type: String, description: '称重重量'},
+    lineNumber:{type:String, description:'线体号'},
 
     // 遥控
     showSerialNo: {type: String, description: '0.4 SHOW SERIALNO 显示序列号'},

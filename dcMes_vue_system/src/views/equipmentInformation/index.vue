@@ -35,29 +35,19 @@
                 <el-row :gutter="20" v-show="showAdvanced">
                     <el-col :span="6">
                         <el-form-item label="设备类型">
-                            <el-select v-model="searchForm.equipmentType" placeholder="请选择设备类型" clearable
+                            <el-select v-model="searchForm.machineType" placeholder="请选择设备类型" clearable
                                 style="width: 100%" :popper-append-to-body="true">
-                                <el-option label="检测设备" value="检测设备" />
-                                <el-option label="打印设备" value="打印设备" />
-                                <el-option label="一体机" value="一体机" />
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="采集方式">
-                            <el-select v-model="searchForm.collectionMethod" placeholder="请选择采集方式" clearable
-                                style="width: 100%">
-                                <el-option label="OPC" value="OPC" />
-                                <el-option label="ModbusTCP" value="ModbusTCP" />
-                                <el-option label="TCP/IP" value="TCP/IP" />
-                                <el-option label="其他" value="其他" />
+                                <el-option v-for="dict in dict.type.machine_type" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="产线名称">
-                            <el-input v-model="searchForm.productionLineName" placeholder="请输入产线名称"
-                                clearable></el-input>
+                            <zr-select v-model="searchForm.lineId" collection="production_line"
+                                :search-fields="['lineName', 'lineCode']" label-key="lineName" sub-key="lineCode"
+                                :multiple="false" placeholder="请输入产线名称搜索" clearable style="width: 100%">
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -83,6 +73,7 @@
             </div>
         </div>
 
+
         <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
             :tableData="tableList" :tableDataloading="listLoading" :total="total"
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
@@ -90,25 +81,38 @@
             <template slot="law">
                 <el-table-column type="selection" width="55" />
 
-                <el-table-column label="设备名称" prop="machineName" width="150" />
+                <el-table-column label="产线名称" prop="lineName" />
 
-                <el-table-column label="设备编号" prop="machineCode" width="150" />
-
-                <el-table-column label="设备IP" prop="machineIp" width="150" />
-
-                <el-table-column label="负责人" prop="principal" width="150" />
-
-                <el-table-column label="设备类型" width="120">
+                <el-table-column label="设备类型">
                     <template slot-scope="scope">
-                        <el-tag>{{ scope.row.equipmentType }}</el-tag>
+                        <el-tag>{{ scope.row.machineType }}</el-tag>
                     </template>
                 </el-table-column>
 
-                <el-table-column label="采集方式" prop="collectionMethod" width="120" />
+                <el-table-column label="当前工序" prop="processStepId">
+                    <template slot-scope="scope">
+                        <el-tooltip
+                            :content="scope.row.processStepId ? (scope.row.processStepId.processName + '-' + scope.row.processStepId.processCode) : '-'">
+                            <el-tag type="warning">{{ scope.row.processStepId ? (scope.row.processStepId.processName +
+                                '-' + scope.row.processStepId.processCode).substring(0, 10) + '...' : '-' }}</el-tag>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
 
-                <el-table-column label="厂区名称" prop="factoryName" width="150" />
+                <el-table-column label="设备名称" prop="machineName" />
 
-                <el-table-column label="产线名称" prop="productionLineName" width="150" />
+                <el-table-column label="设备编号" prop="machineCode" />
+
+                <el-table-column label="设备IP" prop="machineIp" width="150" />
+
+                <el-table-column label="设备在线状态">
+                    <template slot-scope="scope">
+                        <el-tag :type="scope.row.status ? 'success' : 'danger'">{{ scope.row.status ? '在线' : '离线'
+                            }}</el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="负责人" prop="principal" width="150" />
 
                 <el-table-column label="创建时间" width="180">
                     <template slot-scope="scope">
@@ -141,6 +145,7 @@ import EditDialog from './components/EditDialog'
 
 export default {
     name: 'machine',
+    dicts: ['machine_type'],
     components: {
         EditDialog
     },
@@ -151,6 +156,8 @@ export default {
                 machineCode: '',
                 machineIp: '',
                 principal: '',
+                machineType: '',
+                lineId: '',
                 // 其他字段根据需要添加
             },
             tableList: [],
@@ -205,6 +212,7 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.count = true;
+                req.populate = JSON.stringify([{ path: 'processStepId', select: 'processName processCode' }]);
                 const result = await getData("machine", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
@@ -251,9 +259,10 @@ export default {
             this.dialogFormVisible = true  // 显示对话框
         },
 
-        handleEdit(row) {
+        async handleEdit(row) {
             this.dialogStatus = 'edit'
-            this.dataForm = JSON.parse(JSON.stringify(row))  // 深拷贝避免直接修改数据
+            let machine = await getData('machine', { query: { _id: row._id } });
+            this.dataForm = JSON.parse(JSON.stringify(machine.data[0]))  // 深拷贝避免直接修改数据
             this.dialogFormVisible = true
         },
 
@@ -377,3 +386,171 @@ export default {
     }
 }
 </script>
+
+
+<style lang="scss" scoped>
+.screen1 {
+    height: auto;
+    margin: 2vw 0;
+    width: 100%;
+    border: 1px solid #ebeef5;
+    border-radius: 5px;
+}
+
+.screen_content_first {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.el-icon-search {
+    padding: 8px;
+}
+
+.el-icon-tickets {
+    line-height: 30px;
+}
+
+.screen_content_second {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.screen_content_second_one {
+    padding: 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.expert-detail-dialog {
+    .expert-detail-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 10px;
+    }
+
+    .detail-card {
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid #ebeef5;
+        border-radius: 5px;
+
+        .card-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #409EFF;
+            margin-bottom: 10px;
+        }
+    }
+}
+
+.modern-expert-dialog {
+    .expert-detail-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        padding: 20px;
+        background: #f5f7fa;
+    }
+
+    .detail-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #ebeef5;
+            background: linear-gradient(to right, #f0f2f5, #ffffff);
+
+            i {
+                margin-right: 8px;
+                font-size: 18px;
+                color: #409EFF;
+            }
+
+            span {
+                font-size: 16px;
+                font-weight: 600;
+                background: linear-gradient(120deg, #409EFF, #36cfc9);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+        }
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #409EFF;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #909399;
+        }
+    }
+}
+
+.table-operations {
+    margin: 15px 0;
+    display: flex;
+    gap: 10px;
+}
+
+.delete-btn {
+    color: #F56C6C;
+
+    &:hover {
+        color: #f78989;
+    }
+}
+
+.app-container {
+    padding: 20px;
+
+    .filter-container {
+        margin-bottom: 20px;
+    }
+}
+
+.table-expand {
+    padding: 20px;
+}
+</style>

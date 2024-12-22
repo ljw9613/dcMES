@@ -181,10 +181,28 @@
                         </el-form-item>
                     </el-col>
                 </el-row>
+
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-form-item label="业务类型" prop="businessType">
+                            <el-select v-model="craftForm.businessType" placeholder="请选择业务类型" clearable
+                                style="width: 100%">
+                                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="工艺描述" prop="craftDesc">
+                            <el-input v-model="craftForm.craftDesc" placeholder="请输入工艺描述"></el-input>
+                        </el-form-item>
+                    </el-col>
+
+                </el-row>
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="选择物料" prop="selectedMaterial">
-                            <zr-select v-model="craftForm.selectedMaterial" collection="k3_BD_MATERIAL"
+                            <zr-select  v-model="craftForm.materialId" collection="k3_BD_MATERIAL"
                                 :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
                                 :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleCraftMaterialChange">
                                 <template #option="{ item }">
@@ -204,36 +222,21 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="组件名称" prop="componentName">
-                            <el-input v-model="craftForm.componentName" placeholder="组件名称" disabled></el-input>
+                        <el-form-item label="物料名称" prop="componentName">
+                            <el-input v-model="craftForm.componentName" placeholder="物料名称" disabled></el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="工艺描述" prop="craftDesc">
-                            <el-input v-model="craftForm.craftDesc" placeholder="请输入工艺描述"></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="产品型号" prop="productName">
-                            <el-input v-model="craftForm.productName" placeholder="产品型号" disabled></el-input>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="业务类型" prop="businessType">
-                            <el-select v-model="craftForm.businessType" placeholder="请选择业务类型" clearable
-                                style="width: 100%">
-                                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
-                                    :value="dict.value" />
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
+
                     <el-col :span="12">
                         <el-form-item label="物料代码" prop="materialCode">
                             <el-input v-model="craftForm.materialCode" placeholder="物料代码" disabled></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="物料型号" prop="productName">
+                            <el-input v-model="craftForm.productName" placeholder="物料型号" disabled></el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -243,7 +246,10 @@
             <div class="screen1">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">工序管理列表</i>
-                    <el-button type="primary" @click="handleAddProcess">新增工序</el-button>
+                    <div>
+                        <el-button type="warning" @click="handleWork">一键生产</el-button>
+                        <el-button type="primary" @click="handleAddProcess">新增工序</el-button>
+                    </div>
                 </div>
             </div>
 
@@ -251,11 +257,6 @@
                 :tableDataloading="processTableData.listLoading" :height="processTableData.height"
                 :cell-style="{ textAlign: 'center' }">
                 <template slot="law">
-                    <el-table-column width="50">
-                        <template slot-scope="scope">
-                            <i class="el-icon-rank" style="cursor:move" v-drag-handler></i>
-                        </template>
-                    </el-table-column>
                     <el-table-column label="工序编码" prop="processCode" width="150" align="center" />
                     <el-table-column label="工序名称" prop="processName" align="center" />
                     <el-table-column label="工序描述" prop="processDesc" align="center" />
@@ -551,16 +552,21 @@
                 <el-button type="primary" :loading="materialDialog.loading" @click="submitMaterialForm">确 定</el-button>
             </div>
         </el-dialog>
+        <work-dialog
+          :visible.sync="workDialogVisible"
+          :material-id="craftForm.materialId"
+          :work-table-data="workTableData"
+        />
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ZrSelect from '@/components/ZrSelect'
+import workDialog from '@/components/workDialog'
 import Sortable from 'sortablejs'
-
 export default {
-    components: { ZrSelect },
+    components: { ZrSelect, workDialog },
     name: 'CraftManagement',
     dicts: ['product_type', 'craftType', 'processType', 'processStage', 'businessType', 'processStatus'],
     data() {
@@ -771,6 +777,9 @@ export default {
             },
             searchDebounce: null,
             processOperationType: 'create', // 新增: 'create', 编辑: 'edit'
+
+            workTableData: [],
+            workDialogVisible: false
         }
     },
     methods: {
@@ -846,7 +855,6 @@ export default {
                             const materialData = result.data[0];
                             this.materialOptions = result.data;
                             this.craftForm.selectedMaterial = this.craftForm.materialId;
-
                             // 确保设置所有相关的物料字段
                             this.craftForm.materialCode = materialData.FNumber || '';
                             this.craftForm.componentName = materialData.FName || '';
@@ -1102,6 +1110,22 @@ export default {
             );
         },
 
+        async handleWork() {
+            try {
+                // 假设这是获取当前工艺所有工序的API
+                const result = await getData('processStep', {
+                    query: { craftId: this.tempCraftId },
+                    sort: { sort: 1 },
+                    populate: JSON.stringify([{ path: 'machineId' }])
+                });
+                this.workTableData = result.data
+                console.log(this.workTableData, 'this.workTableData')
+                this.workDialogVisible = true
+            } catch (error) {
+                this.$message.error('获取工序数据失败')
+            }
+        },
+
         async handleAddProcess() {
             if (!this.tempCraftId) {
                 this.$message.warning('工艺ID不存在');
@@ -1316,7 +1340,7 @@ export default {
                 this.materialTableData.tableList = result.data;
                 this.materialTableData.total = result.countnum;
             } catch (error) {
-                console.error('获取物料数据失败:', error);
+                console.error('���取物料数据失败:', error);
                 this.$message.error('获取物料数据失败');
             } finally {
                 this.materialTableData.listLoading = false;
@@ -1657,7 +1681,7 @@ export default {
             console.log(material, 'material')
             if (material) {
                 // 更新工艺表单中的相关字段
-                this.craftForm.materialId = material._id;
+                // this.craftForm.materialId = material._id;
                 this.craftForm.componentName = material.FName || '';
                 this.craftForm.productName = material.FSpecification || '';
                 this.craftForm.materialCode = material.FNumber || '';

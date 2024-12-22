@@ -143,7 +143,7 @@ export default {
                 lineCode: [{ required: true, message: '请输入产线编码', trigger: 'blur' }],
                 lineName: [{ required: true, message: '请输入产线名称', trigger: 'blur' }],
                 state: [{ required: true, message: '请选择状态', trigger: 'change' }],
-                workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
+                // workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
                 cardNum: [{ required: true, message: '请输入接收器卡号', trigger: 'blur' }]
             },
             submitLoading: false

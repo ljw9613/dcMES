@@ -1,24 +1,8 @@
 <template>
-  <el-select
-    v-model="selectedItems"
-    filterable
-    remote
-    reserve-keyword
-    :disabled="disabled"
-    :placeholder="placeholder"
-    :remote-method="remoteSearch"
-    :loading="loading"
-    :clearable="clearable"
-    :multiple="multiple"
-    :collapse-tags="collapseTags"
-    @change="handleChange"
-  >
-    <el-option
-      v-for="item in items"
-      :key="item[valueKey]"
-      :label="getItemLabel(item)"
-      :value="item[valueKey]"
-    >
+  <el-select v-model="selectedItems" filterable remote reserve-keyword :disabled="disabled" :placeholder="placeholder"
+    :remote-method="remoteSearch" :loading="loading" :clearable="clearable" :multiple="multiple"
+    :collapse-tags="collapseTags" @change="handleChange">
+    <el-option v-for="item in items" :key="item[valueKey]" :label="getItemLabel(item)" :value="item[valueKey]">
       <slot name="option" :item="item">
         <div class="item-option">
           <div class="item-info">
@@ -32,6 +16,12 @@
           </div>
         </div>
       </slot>
+    </el-option>
+    
+    <el-option v-if="hasMore" class="load-more-option" :value="null" :disabled="true">
+      <div class="load-more" @click.stop="loadMore">
+        点击加载更多 (已显示 {{items.length}}/{{total}} 条)
+      </div>
     </el-option>
   </el-select>
 </template>
@@ -82,7 +72,7 @@ export default {
       type: String,
       default: ''
     },
-    
+
     // 选择器配置
     multiple: {
       type: Boolean,
@@ -114,7 +104,16 @@ export default {
     return {
       loading: false,
       items: [],
-      selectedItems: this.multiple ? (Array.isArray(this.value) ? this.value : []) : this.value
+      selectedItems: this.multiple ? (Array.isArray(this.value) ? this.value : []) : this.value,
+      total: 0,
+      offset: 0,
+      currentQuery: ''
+    }
+  },
+
+  computed: {
+    hasMore() {
+      return this.items.length < this.total
     }
   },
 
@@ -150,7 +149,20 @@ export default {
       if (this.lazyLoad && !query) {
         return
       }
-      
+
+      this.offset = 0
+      this.currentQuery = query
+      await this.fetchData(query)
+    },
+
+    // 新增加载更多方法
+    async loadMore() {
+      this.offset += this.limit
+      await this.fetchData(this.currentQuery, true)
+    },
+
+    // 抽取通用的数据获取方法
+    async fetchData(query, append = false) {
       this.loading = true
       try {
         const searchConditions = query ? this.searchFields.map(field => ({
@@ -169,11 +181,14 @@ export default {
           query: JSON.stringify(
             queryConditions.length > 0 ? { $and: queryConditions } : {}
           ),
-          limit: this.limit
+          count: true,
+          limit: this.limit,
+          skip: this.offset
         })
 
-        // 直接使用新的搜索结果
-        this.items = result.data
+        this.total = result.countnum || 0
+        // 根据是否追加来更新列表
+        this.items = append ? [...this.items, ...result.data] : result.data
       } catch (error) {
         console.error('搜索失败:', error)
         this.$message.error('搜索失败')
@@ -183,8 +198,8 @@ export default {
 
     handleChange(value) {
       this.$emit('input', value)
-      const selectedItems = this.items.filter(item => 
-        this.multiple 
+      const selectedItems = this.items.filter(item =>
+        this.multiple
           ? value.includes(item[this.valueKey])
           : value === item[this.valueKey]
       )
@@ -194,10 +209,10 @@ export default {
     async fetchItemsByIds(ids) {
       console.log('查询ID:', ids)
       if (!ids.length) return
-      
+
       try {
         const result = await getData(this.collection, {
-          query: JSON.stringify({ 
+          query: JSON.stringify({
             [this.valueKey]: { $in: ids },
             ...this.additionalQuery
           })
@@ -234,6 +249,19 @@ export default {
     margin-top: 4px;
     color: #909399;
     font-size: 12px;
+  }
+}
+
+.load-more-option {
+  .load-more {
+    text-align: center;
+    padding: 5px 0;
+    color: #409EFF;
+    cursor: pointer;
+    
+    &:hover {
+      background-color: #f5f7fa;
+    }
   }
 }
 </style>

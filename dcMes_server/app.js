@@ -54,14 +54,7 @@ app.use(
 // 为了获取 cookie
 app.use(cookieParser());
 
-// '/api/v1/user_login',
-// '/api/v1/addressbook',
-// '/api/v1/department',
-// '/api/v1/enterprise',
-// '/api/v1/message',
-// '/api/v1/Advertisement',
-// '/api/v1/label',
-// '/api/v1/new',
+
 // 设置静态文件托管
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -113,8 +106,10 @@ app.use("/", require("./routes/materialProcessFlowService"));
 app.use("/", require("./routes/materialBarcodeBatch"));
 const uploadAvatarRouter = require("./routes/uploadAvatar");
 app.use("/", uploadAvatarRouter);
+app.use("/", require("./routes/wsManage"));
+app.use("/", require("./routes/machineProgress"));
 
-require("./services/createMappings");
+// require("./services/createMappings");
 //方法
 // require("./routes/productLog")
 

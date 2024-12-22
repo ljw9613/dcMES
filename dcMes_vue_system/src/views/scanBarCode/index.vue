@@ -4,16 +4,26 @@
             <el-card class="init-card">
                 <!-- 标题部分 -->
                 <div class="card-header">
-                    <i class="el-icon-setting"></i>
-                    <span>工序初始化设置</span>
+                    <span>
+                        <i class="el-icon-setting"></i>
+                        工序设置</span>
+                    <el-switch v-model="autoInit" active-text="自动" inactive-text="手动" class="print-switch"
+                        @change="handleAutoInitChange">
+                    </el-switch>
                 </div>
-
                 <el-form :model="formData" label-width="100px">
                     <!-- 产品型号 -->
                     <div class="form-section">
+
+
                         <div class="section-header">
-                            <i class="el-icon-goods"></i>
-                            <span>基础信息</span>
+                            <el-tag :type="websocketConnected ? 'success' : 'danger'">
+                                <i class="el-icon-goods"></i>
+                                {{ websocketConnected ?
+                                    '已连接' : '未连接' }}</el-tag>
+                            <span>
+                                基础信息
+                            </span>
                         </div>
 
                         <el-form-item label="产品型号">
@@ -195,14 +205,12 @@
 // 1101103004-24120702
 // 1101103005-24120703
 // 1101103007-23920
-
 //FW300XXXK22UL309Z0Z100046MLQ6MLQ
-
 //FW300XXX1497909X150L30824120300064
-
 //1303203003-24120701
 //1305103003-24120702
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { getMachineProgress } from "@/api/machine";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import { createBatch } from "@/api/materialBarcodeBatch";
 import ZrSelect from '@/components/ZrSelect'
@@ -223,6 +231,7 @@ export default {
     },
     data() {
         return {
+            autoInit: true,
             formData: {
                 productModel: '',
                 productLine: '',
@@ -264,6 +273,11 @@ export default {
             currentBatchBarcode: '', // 当前要打印的批次条码
             autoPrint: false, // 添加自动打印开关状态
             isCollapsed: false, // 添加控制折叠状态的变量
+            websocketConnected: false, // 添加WebSocket连接状态
+            ws: null, // WebSocket实例
+            heartbeatTimer: null, // 心跳定时器
+            reconnectAttempts: 0, // 添加重连尝试次数计数
+            maxReconnectAttempts: 5, // 最大重连尝试次数
         }
     },
     computed: {
@@ -315,7 +329,14 @@ export default {
                 localStorage.setItem('productLineName', value)
             }
         },
-
+        autoInitMode: {
+            get() {
+                return localStorage.getItem('autoInit') === 'true'
+            },
+            set(value) {
+                localStorage.setItem('autoInit', value)
+            }
+        },
     },
     watch: {
         // 监听缓存ID变化，获取相关数据
@@ -328,6 +349,7 @@ export default {
         },
         async processStepId(newVal) {
             if (newVal) {
+                console.log(newVal, 'newVal=============')
                 await this.getProcessMaterials();
             } else {
                 this.processMaterials = [];
@@ -346,6 +368,69 @@ export default {
     },
 
     methods: {
+        handleAutoInitChange(value) {
+            this.autoInit = value;
+            this.autoInitMode = value; // 保存到本地存储
+            this.$message.success(`已${value ? '开启' : '关闭'}自动初始化模式`);
+
+            if (value) {
+                // 如果开启自动模式，立即获取机器进度
+                // this.getAutoInitConfig();
+                //刷新页面
+                window.location.reload();
+            }
+        },
+        async getAutoInitConfig() {
+            try {
+                this.processStepId = ''
+                const response = await getMachineProgress();
+                console.log("获取到的机器进度:", response.data);
+                if (response.code === 200 && response.data) {
+                    const { materialId, processStepId, lineId } = response.data;
+                    console.log("materialId:", materialId);
+                    console.log("processStepId:", processStepId.processName);
+                    console.log("lineId:", lineId);
+                    if (materialId && processStepId) {
+                        console.log("materialId:", materialId);
+                        console.log("processStepId:", processStepId.processName);
+                        console.log("lineId:", lineId);
+                        // 更新本地存储
+                        this.mainMaterialId = materialId._id;
+                        const processStepIdValue = processStepId._id;
+                        this.processStepId = processStepIdValue;
+
+                        // 更新表单数据
+                        this.formData.productModel = materialId._id;
+                        this.formData.processStep = processStepId._id;
+                        this.formData.productLine = lineId && lineId._id;
+
+                        
+
+                        // 更新名称信息
+                        this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
+                        this.processName = processStepId.processName;
+                        if (lineId) {
+                            this.productLineName = lineId.lineName;
+                            this.formData.lineName = lineId.lineName;
+                        }
+                        this.$message.success('自动初始化工序成功');
+
+                        // 对比当前设置的工序和缓存工序是否一致，不一致时调用handleSave()
+                        if (processStepIdValue !== this.processStepId) {
+                            this.handleSave()
+                        }
+
+                    } else {
+                        this.$message.warning('未获取到机器进度配置');
+                    }
+                } else {
+                    throw new Error(response.message || '获取机器进度失败');
+                }
+            } catch (error) {
+                console.error('自动初始化失败:', error);
+                this.$message.error('自动初始化失败: ' + error.message);
+            }
+        },
         async handlePrintBatch() {
             let loading = this.$loading({
                 lock: true,
@@ -371,7 +456,7 @@ export default {
                     if (this.autoPrint) {
                         if (this.currentBatchBarcode && this.mainMaterialCode) {
                             await this.$refs.tscPrinter.print();
-                            
+
                             // 打印完成后，自动填入条码并触发扫描
                             this.unifiedScanInput = this.currentBatchBarcode;
                             await this.handleUnifiedScan(this.currentBatchBarcode);
@@ -381,7 +466,7 @@ export default {
                     } else {
                         this.$refs.tscPrinter.dialogVisible = true;
                     }
-                    
+
                     this.$nextTick(() => {
                         this.$refs.scanInput.focus();
                     });
@@ -705,7 +790,7 @@ export default {
         },
         async validateDICode(diCode) {
             try {
-                // 获取DI码对应的所有物料信息
+                // ���取DI码对应的所有物料信息
                 const response = await getData('productDiNum', {
                     query: { diNum: diCode },
                     populate: JSON.stringify([{ path: 'productId', model: 'k3_BD_MATERIAL' }])
@@ -1176,7 +1261,7 @@ export default {
                 localStorage.removeItem('processStepId');
                 localStorage.removeItem('materialName');
                 localStorage.removeItem('processName');
-                
+
                 // 注意:不清除以下产线相关的缓存
                 // localStorage.removeItem('productLineId');
                 // localStorage.removeItem('productLineName');
@@ -1265,16 +1350,12 @@ export default {
                         barcode: this.scanForm.barcodes[material._id]
                     })
                 })
-                console.log("🚀 ~ handleConfirm ~ componentScans:", componentScans)
                 let scanReq = {
                     mainBarcode: this.scanForm.mainBarcode,
                     processStepId: this.processStepId,
                     componentScans: componentScans,
                     userId: this.$store.getters.id
                 }
-
-                console.log("🚀 ~ handleConfirm ~ scanReq:", scanReq)
-
                 const scanResponse = await scanComponents(scanReq);
 
                 if (scanResponse.code !== 200) {
@@ -1394,15 +1475,151 @@ export default {
         toggleCollapse() {
             this.isCollapsed = !this.isCollapsed;
         },
+
+        // 修改初始化WebSocket连接方法
+        initWebSocket() {
+            try {
+                // 关闭之前的连接
+                if (this.ws) {
+                    this.ws.close();
+                }
+
+                // 创建WebSocket连接
+                const token = 'DcMes_Server_Token'; // 使用配置的token
+                const VUE_APP_WS_ADDRESS = process.env.VUE_APP_WS_ADDRESS
+                console.log(VUE_APP_WS_ADDRESS, 'VUE_APP_WS_ADDRESS')
+                this.ws = new WebSocket(`${VUE_APP_WS_ADDRESS}?token=${token}`);
+
+                console.log(this.ws, 'this.ws')
+
+                // 连接成功
+                this.ws.onopen = () => {
+                    this.websocketConnected = true;
+                    this.$message.success('设备服务器连接成功');
+                    this.startHeartbeat();
+                    this.reconnectAttempts = 0; // 重置重连计数
+                };
+
+                // 连接关闭
+                this.ws.onclose = (event) => {
+                    this.websocketConnected = false;
+                    this.stopHeartbeat();
+
+                    console.log('WebSocket连接关闭:', event);
+
+                    // 检查是否达到最大重连次数
+                    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                        this.reconnectAttempts++;
+                        const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000); // 指数退避，最大10秒
+                        this.$message.warning(`设备连接已断开，${delay / 1000}秒后尝试第${this.reconnectAttempts}次重连...`);
+                        setTimeout(() => {
+                            this.initWebSocket();
+                        }, delay);
+                    } else {
+                        this.$message.error('重连次数已达上限，请检查网络连接或刷新页面');
+                    }
+                };
+
+                // 连接错误
+                this.ws.onerror = (error) => {
+                    this.websocketConnected = false;
+                    console.error('WebSocket连接错误:', error);
+
+                    // 记录详细的错误信息
+                    console.log('错误详情:', {
+                        readyState: this.ws.readyState,
+                        url: this.ws.url,
+                        protocol: this.ws.protocol,
+                        error: error
+                    });
+                };
+
+                // 接收消息
+                this.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('收到消息:', data);
+                        // 处理接收到的消息
+                        this.handleWebSocketMessage(data);
+                    } catch (error) {
+                        console.error('消息解析错误:', error);
+                    }
+                };
+
+            } catch (error) {
+                console.error('WebSocket初始化失败:', error);
+                this.$message.error(`设备连接初始化失败: ${error.message}`);
+            }
+        },
+
+        // 处理接收到的WebSocket消息
+        handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'connected':
+                    console.log('连接成功，用户ID:', data.userId);
+                    break;
+                case 'command':
+                    if (data.action === 'refresh') {
+                        window.location.reload();
+                    }
+                    break;
+                // 添加其他消息类型的处理...
+                default:
+                    console.log('未知消息类型:', data);
+            }
+        },
+
+        // 开始心跳检测
+        startHeartbeat() {
+            this.heartbeatTimer = setInterval(() => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({ type: 'heartbeat' }));
+                }
+            }, 10000); // 每10秒发送一次心跳
+        },
+
+        // 停止心跳检测
+        stopHeartbeat() {
+            if (this.heartbeatTimer) {
+                clearInterval(this.heartbeatTimer);
+                this.heartbeatTimer = null;
+            }
+        },
+
+        // 发送消息方法
+        sendWebSocketMessage(message) {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(message));
+            } else {
+                this.$message.warning('设备未连接');
+            }
+        },
     },
     async created() {
-        // 检查缓存并获取数据
+                // 从本地存储中恢复自动打印开关状态
+                const savedAutoPrint = localStorage.getItem('autoPrint');
+        if (savedAutoPrint !== null) {
+            this.autoPrint = savedAutoPrint === 'true';
+        }
+
+        this.initWebSocket(); // 初始化WebSocket连接
+        // 从本地存储获取自动初始化设置
+        const savedAutoInit = localStorage.getItem('autoInit');
+        this.autoInit = savedAutoInit === 'true';
+
+        // 如果开启了自动初始化，先尝试获取机器进度
+        if (this.autoInit) {
+            await this.getAutoInitConfig();
+        }
+
+        // 如果自动初始化失败或未开启自动初始化，使用原有的缓存逻辑
         if (this.mainMaterialId) {
             await this.getMainMaterialInfo();
         }
+
         if (this.processStepId) {
             await this.getProcessMaterials();
-            // 初始化时加载批次物料缓存
+            // 初始化批次物料缓存
             this.processMaterials.forEach(material => {
                 if (material.isBatch) {
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
@@ -1414,17 +1631,13 @@ export default {
                 }
             });
         }
+
         // 自动填充表单数据
         await this.fillFormData();
 
-        // 从本地存储中恢复自动打印开关状态
-        const savedAutoPrint = localStorage.getItem('autoPrint');
-        if (savedAutoPrint !== null) {
-            this.autoPrint = savedAutoPrint === 'true';
-        }
+
     },
     mounted() {
-        console.log("🚀 ~ mounted ~ this.$store.getters.id:", this.$store.getters)
         // 页面加载时自动获取焦点
         if (this.mainMaterialId && this.processStepId) {
             this.$refs.scanInput.focus();
@@ -1445,6 +1658,13 @@ export default {
         if (this.scanTimer) {
             clearTimeout(this.scanTimer);
         }
+
+        // 关闭WebSocket连接
+        if (this.ws) {
+            this.ws.close();
+        }
+        // 清除心跳定时器
+        this.stopHeartbeat();
     }
 }
 </script>
