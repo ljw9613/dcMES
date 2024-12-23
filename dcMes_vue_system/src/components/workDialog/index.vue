@@ -1,5 +1,5 @@
 <template>
-    <el-dialog title="生产工序设备确认" :visible.sync="dialogVisible" width="50%" @close="handleClose">
+    <el-dialog title="生产工序设备确认" append-to-body :visible.sync="dialogVisible" width="50%" @close="handleClose">
         <el-table :data="workTableData" style="width: 100%">
             <el-table-column v-for="item in workColumns" :key="item.prop" :prop="item.prop" :label="item.label">
                 <template slot-scope="scope">

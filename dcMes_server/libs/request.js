@@ -60,19 +60,43 @@ module.exports = function (app, biaoMing, schemaModel) {
     })
     .delete(async (req, res, next) => {
       try {
-        console.log(req.body);
-        if (!req.body.query) {
-          res.status(500).send("禁止参数为空的删除");
+        console.log('Delete request body:', req.body);
+        
+        // 验证查询条件
+        if (!req.body.query || Object.keys(req.body.query).length === 0) {
+          return res.status(400).json({
+            code: 400,
+            message: "删除操作必须指定查询条件"
+          });
         }
-        var model = schemaModel.deleteMany(req.body.query);
 
-        var result = await model.exec();
+        // 先查询匹配的记录数
+        const matchCount = await schemaModel.countDocuments(req.body.query);
+        
+        // 设置安全阈值，防止大规模删除
+        const SAFE_DELETE_LIMIT = 100; // 可以根据实际需求调整
+        if (matchCount > SAFE_DELETE_LIMIT) {
+          return res.status(400).json({
+            code: 400,
+            message: `删除操作超出安全限制：当前匹配 ${matchCount} 条记录，最大允许删除 ${SAFE_DELETE_LIMIT} 条`
+          });
+        }
+
+        // 执行删除操作
+        const result = await schemaModel.deleteMany(req.body.query);
+        
         res.json({
           code: 200,
           data: result,
+          deletedCount: result.deletedCount
         });
       } catch (e) {
-        res.status(500).send(e);
+        console.error('Delete operation error:', e);
+        res.status(500).json({
+          code: 500,
+          message: "删除操作失败",
+          error: e.message
+        });
       }
     })
     .post(async (req, res, next) => {

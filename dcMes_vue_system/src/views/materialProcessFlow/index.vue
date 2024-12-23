@@ -798,6 +798,10 @@ export default {
                     type: 'warning'
                 });
 
+                if (!row._id) {
+                    this.$message.error('请选择要初始化的记录');
+                    return;
+                }
                 // 调用成品初始化 API   
                 const result = await removeData('material_process_flow', {
                     query: { _id: row._id }

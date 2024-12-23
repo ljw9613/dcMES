@@ -11,7 +11,7 @@ import ElementUI from "element-ui";
 import dataV from "@jiaminghi/data-view";
 import "element-ui/lib/theme-chalk/index.css";
 // import locale from 'element-ui/lib/locale/lang/en' // lang i18n
-import "./styles/element-variables.scss";
+import "@/styles/element-variables.scss";
 import "@/styles/index.scss"; // global css
 import "babel-polyfill";
 import App from "./App";

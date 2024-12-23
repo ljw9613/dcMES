@@ -109,6 +109,11 @@ app.use("/", uploadAvatarRouter);
 app.use("/", require("./routes/wsManage"));
 app.use("/", require("./routes/machineProgress"));
 
+// 初始化定时任务
+const initSchedule = require("./config/schedule");
+// 初始化定时任务
+initSchedule();
+
 // require("./services/createMappings");
 //方法
 // require("./routes/productLog")

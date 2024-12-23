@@ -182,9 +182,9 @@
                 </div>
                 <div class="result-main" slot="reference">
                   <div class="process-info">
-                    <el-tag :type="result.error ? 'danger' : 'success'" size="small">{{
+                    <el-tag :type="result.error ? 'danger' : 'success'" size="small" v-if="result.processId">{{
                       result.processId.processName }}</el-tag>
-                    <span>({{ result.processId.processStage }})</span>
+                    <span v-if="result.processId">({{ result.processId.processStage }})</span>
                   </div>
                   <span :class="{
                     'success': result.error === false,
@@ -433,7 +433,6 @@ export default {
             .filter(barcode => barcode && barcode.trim())
 
           const allBarcodesData = [mainMaterial, ...processNodes]
-          console.log("🚀 ~ handler ~ allBarcodesData:", allBarcodesData)
 
           if (allBarcodes.length === 0) {
             this.displayData = [];
@@ -459,9 +458,12 @@ export default {
             const barcode = element.barcode
             const processNode = inspectionData.filter(inspection => inspection.scanCode == barcode)
             if (processNode.length > 0) {
+              console.log("🚀 ~ handler ~ processNode:", processNode)
               element.inspectionData = processNode
             }
           }
+
+          console.log("🚀 ~ handler ~ allBarcodesData:", allBarcodesData)
 
           //过滤allBarcodesData，只保留有inspectionData的元素
           this.displayData = allBarcodesData.filter(element => element.inspectionData)

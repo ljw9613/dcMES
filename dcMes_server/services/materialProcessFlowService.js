@@ -330,6 +330,49 @@ class MaterialProcessFlowService {
       throw new Error("存在重复扫描的条码");
     }
 
+    // 添加关键物料条码重复使用检查
+    for (const scan of componentScans) {
+      const matchingNode = materialNodes.find(
+        (node) => node.materialId.toString() === scan.materialId.toString()
+      );
+
+      if (matchingNode && matchingNode.isKeyMaterial) {
+        // 检查该条码是否已被其他流程使用
+        const existingFlows = await MaterialProcessFlow.find({
+          'processNodes': {
+            $elemMatch: {
+              'barcode': scan.barcode,
+              'isKeyMaterial': true,
+              'status': 'COMPLETED'
+            }
+          }
+        });
+
+        if (existingFlows.length > 0) {
+          // 排除当前流程记录
+          const otherFlows = existingFlows.filter(flow => 
+            flow.barcode !== mainBarcode
+          );
+
+          if (otherFlows.length > 0) {
+            // 获取使用该条码的流程信息
+            const usageDetails = otherFlows.map(flow => ({
+              mainBarcode: flow.barcode,
+              materialCode: flow.materialCode,
+              materialName: flow.materialName,
+              scanTime: flow.processNodes.find(n => n.barcode === scan.barcode)?.scanTime
+            }));
+
+            throw new Error(`关键物料条码 ${scan.barcode} 已被其他流程使用:\n${
+              usageDetails.map(detail => 
+                `- 主条码: ${detail.mainBarcode}\n  物料: ${detail.materialName}(${detail.materialCode})\n  使用时间: ${detail.scanTime?.toLocaleString()}`
+              ).join('\n')
+            }`);
+          }
+        }
+      }
+    }
+
     //检查该工序下的物料下是否对应绑定parentNodeId的工序、该工序下是否有需要扫码的物料,且该工序下的物料扫码是否完成
     for (const node of materialNodes) {
       const processNode = flowRecord.processNodes.find(
@@ -434,7 +477,7 @@ class MaterialProcessFlowService {
         const materialName = invalidMaterial
           ? invalidMaterial.FName
           : scan.materialId;
-        throw new Error(`物料 ${materialName} 不属于当前工序要求扫描的物���`);
+        throw new Error(`物料 ${materialName} 不属于当前工序要求扫描的物料`);
       }
     }
 

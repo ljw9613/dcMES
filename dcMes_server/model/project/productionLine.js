@@ -59,7 +59,10 @@ const productionLineSchema = new mongoose.Schema({
     lastMaintenance: { type: Date }, // 上次维护时间
     nextMaintenance: { type: Date }, // 下次维护时间
     maintenanceCycle: { type: Number }, // 维护周期(天)
-    
+
+    //当前生产物料
+    currentMaterial: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 当前生产物料
+
     // 基础字段
     remark: { type: String }, // 备注
     createBy: { type: String }, // 创建人 (对应 create_name)

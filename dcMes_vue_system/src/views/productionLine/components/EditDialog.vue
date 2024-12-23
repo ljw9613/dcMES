@@ -5,7 +5,7 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产线编码" prop="lineCode">
-                        <el-input v-model="form.lineCode" placeholder="请输入产线编码" 
+                        <el-input v-model="form.lineCode" placeholder="请输入产线编码"
                             :disabled="dialogStatus === 'edit'"></el-input>
                     </el-form-item>
                 </el-col>
@@ -55,20 +55,20 @@
             <el-row :gutter="20">
                 <el-col :span="8">
                     <el-form-item label="标准产能" prop="capacity">
-                        <el-input-number v-model="form.capacity" :min="0" controls-position="right"
-                            style="width: 100%" placeholder="件/小时"></el-input-number>
+                        <el-input-number v-model="form.capacity" :min="0" controls-position="right" style="width: 100%"
+                            placeholder="件/小时"></el-input-number>
                     </el-form-item>
                 </el-col>
                 <el-col :span="8">
                     <el-form-item label="节拍时间" prop="cycleTime">
-                        <el-input-number v-model="form.cycleTime" :min="0" controls-position="right"
-                            style="width: 100%" placeholder="秒"></el-input-number>
+                        <el-input-number v-model="form.cycleTime" :min="0" controls-position="right" style="width: 100%"
+                            placeholder="秒"></el-input-number>
                     </el-form-item>
                 </el-col>
                 <el-col :span="8">
                     <el-form-item label="标准人数" prop="workers">
-                        <el-input-number v-model="form.workers" :min="0" controls-position="right"
-                            style="width: 100%" placeholder="人"></el-input-number>
+                        <el-input-number v-model="form.workers" :min="0" controls-position="right" style="width: 100%"
+                            placeholder="人"></el-input-number>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -95,18 +95,54 @@
             <el-form-item label="备注" prop="remark">
                 <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息"></el-input>
             </el-form-item>
+            <!-- 当前生产工序 -->
+            <el-row :gutter="20">
+                <el-col :span="24">
+                    <div class="tip-box">
+                        <p>请勿随意修改当前设备的当前生产工序</p>
+                    </div>
+                </el-col>
+            </el-row>
+            <!-- 一键生产 -->
+            <el-form-item label="一键生产">
+                <zr-select v-model="form.currentMaterial" collection="k3_BD_MATERIAL"
+                    :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID" :multiple="false"
+                    placeholder="请输入物料编码/名称搜索">
+                    <template #option="{ item }">
+                        <div class="select-option">
+                            <div class="option-main">
+                                <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
+                                <el-tag size="mini" type="info" class="option-tag">
+                                    {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                </el-tag>
+                            </div>
+                            <div class="option-sub" v-if="item.FSpecification">
+                                <small>规格: {{ item.FSpecification }}</small>
+                            </div>
+                        </div>
+                    </template>
+                </zr-select>
+                <el-button type="primary" @click="handleOneKeyProduction()"
+                    :disabled="!form.currentMaterial">一键生产</el-button>
+            </el-form-item>
         </el-form>
+
 
         <div slot="footer" class="dialog-footer">
             <el-button @click="handleClose">取 消</el-button>
             <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确 定</el-button>
         </div>
+        <work-dialog v-if="workDialogVisible" :visible.sync="workDialogVisible" :material-id="form.currentMaterial"
+            :work-table-data="workTableData" />
     </el-dialog>
 </template>
 
 <script>
+import workDialog from '@/components/workDialog'
+import { getData } from '@/api/data'
 export default {
     name: 'EditDialog',
+    components: { workDialog },
     props: {
         visible: {
             type: Boolean,
@@ -137,7 +173,8 @@ export default {
                 workshop: '',
                 area: '',
                 location: '',
-                remark: ''
+                remark: '',
+                currentMaterial: null,
             },
             rules: {
                 lineCode: [{ required: true, message: '请输入产线编码', trigger: 'blur' }],
@@ -146,7 +183,10 @@ export default {
                 // workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
                 cardNum: [{ required: true, message: '请输入接收器卡号', trigger: 'blur' }]
             },
-            submitLoading: false
+            submitLoading: false,
+
+            workTableData: [],
+            workDialogVisible: false
         }
     },
     computed: {
@@ -162,6 +202,40 @@ export default {
         }
     },
     methods: {
+        async handleOneKeyProduction() {
+            try {
+                if (!this.form.currentMaterial) {
+                    this.$message.error('请先选择生产物料')
+                    return
+                }
+                let craft = await getData('craft', {
+                    query: { materialId: this.form.currentMaterial }
+                })
+
+                if (craft.data.length === 0) {
+                    this.$message.error('该物料没有对应的工艺')
+                    return
+                }
+                if (craft.data.length > 1) {
+                    this.$message.error('该物料有多个工艺，配置有误，请联系管理员！')
+                    return
+                }
+
+                let craftId = craft.data[0]._id
+
+                // 假设这是获取当前工艺所有工序的API
+                const result = await getData('processStep', {
+                    query: { craftId: craftId },
+                    sort: { sort: 1 },
+                    populate: JSON.stringify([{ path: 'machineId' }])
+                });
+                this.workTableData = result.data
+                console.log(this.workTableData, 'this.workTableData')
+                this.workDialogVisible = true
+            } catch (error) {
+                this.$message.error('获取工序数据失败')
+            }
+        },
         initFormData() {
             if (this.dialogStatus === 'edit') {
                 this.form = { ...this.rowData }
@@ -213,4 +287,26 @@ export default {
 .el-select {
     width: 100%;
 }
-</style> 
+
+.tip-box {
+    background-color: #fdf6ec;
+    border: 1px solid #faecd8;
+    border-radius: 4px;
+    padding: 8px 16px;
+    margin: 0 0 20px 0;
+
+    p {
+        color: #e6a23c;
+        font-size: 13px;
+        margin: 0;
+        line-height: 1.5;
+        display: flex;
+        align-items: center;
+
+        &::before {
+            content: "⚠️";
+            margin-right: 8px;
+        }
+    }
+}
+</style>

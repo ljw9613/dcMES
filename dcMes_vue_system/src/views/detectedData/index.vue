@@ -13,7 +13,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="设备ID">
+                        <el-form-item label="设备">
                             <zr-select v-model="searchForm.machineId" collection="machine"
                                 :search-fields="['machineName']" label-key="machineName" sub-key="_id" :multiple="false"
                                 placeholder="请输入设备名称搜索" clearable style="width: 100%">
@@ -32,7 +32,20 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="工序ID">
-                            <el-input v-model="searchForm.processId" placeholder="请输入工序ID" clearable></el-input>
+                            <zr-select v-model="searchForm.processId" collection="processStep"
+                                :search-fields="['processCode', 'processName']" label-key="processName" sub-key="_id"
+                                :multiple="false" placeholder="请输入工序名称/编码搜索" clearable style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.processName }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.processCode }}
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -241,24 +254,47 @@ export default {
                 }
             };
 
-            if (this.searchForm.scanCode) {
-                req.query.$and.push({ scanCode: { $regex: this.searchForm.scanCode, $options: 'i' } });
-            }
-            if (this.searchForm.machineId) {
-                req.query.$and.push({ machineId: { $regex: this.searchForm.machineId, $options: 'i' } });
-            }
-            if (this.searchForm.processId) {
-                req.query.$and.push({ processId: { $regex: this.searchForm.processId, $options: 'i' } });
-            }
-            if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
+            // 转义特殊字符的辅助函数
+            const escapeRegex = (string) => {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            };
+
+            // 处理扫描码
+            if (this.searchForm.scanCode && this.searchForm.scanCode.trim()) {
                 req.query.$and.push({
-                    createTime: {
-                        $gte: new Date(this.searchForm.dateRange[0]).toISOString(),
-                        $lte: new Date(this.searchForm.dateRange[1] + ' 23:59:59').toISOString()
+                    scanCode: {
+                        $regex: escapeRegex(this.searchForm.scanCode.trim()),
+                        $options: 'i'
                     }
                 });
             }
 
+            // 处理设备ID
+            if (this.searchForm.machineId) {
+                req.query.$and.push({
+                    machineId: this.searchForm.machineId  // 直接使用ID匹配，不需要模糊查询
+                });
+            }
+
+            // 处理工序ID
+            if (this.searchForm.processId) {
+                req.query.$and.push({
+                    processId: this.searchForm.processId
+                });
+            }
+
+            // 处理日期范围
+            if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
+                const [startDate, endDate] = this.searchForm.dateRange;
+                req.query.$and.push({
+                    createTime: {
+                        $gte: new Date(startDate).toISOString(),
+                        $lte: new Date(endDate + ' 23:59:59.999').toISOString()
+                    }
+                });
+            }
+
+            // 如果没有查询条件，则移除 $and 操作符
             if (!req.query.$and.length) {
                 delete req.query.$and;
             }
