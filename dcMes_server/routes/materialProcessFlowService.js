@@ -126,4 +126,32 @@ router.post('/api/v1/update-flow-nodes', async (req, res) => {
     }
 });
 
+// 获取物料相关的所有工序
+router.get('/api/v1/all-process-steps/:materialId', async (req, res) => {
+    try {
+        const { materialId } = req.params;
+        
+        if (!materialId) {
+            return res.status(200).json({
+                success: false,
+                message: '缺少物料ID参数'
+            });
+        }
+
+        const result = await MaterialProcessFlowService.getAllProcessSteps(materialId);
+        
+        res.json({
+            code: 200,
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        res.status(200).json({
+            code: 500,
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;

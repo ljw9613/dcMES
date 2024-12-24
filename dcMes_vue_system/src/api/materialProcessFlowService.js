@@ -35,3 +35,11 @@ export function updateFlowNodes(data) {
         data
     })
 }
+
+// /api/v1/all-process-steps/:materialId
+export function getAllProcessSteps(materialId) {
+    return request({
+        url: `/all-process-steps/${materialId}`,
+        method: 'get'
+    })
+}

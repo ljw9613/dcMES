@@ -96,15 +96,15 @@
                 <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息"></el-input>
             </el-form-item>
             <!-- 当前生产工序 -->
-            <el-row :gutter="20">
+            <el-row :gutter="20" v-if="dialogStatus == 'edit' && hasOneKeyProductionPermission">
                 <el-col :span="24">
                     <div class="tip-box">
-                        <p>请勿随意修改当前设备的当前生产工序</p>
+                        <p>请勿随意修改当前产线的生产主物料</p>
                     </div>
                 </el-col>
             </el-row>
             <!-- 一键生产 -->
-            <el-form-item label="一键生产">
+            <el-form-item label="一键生产" v-if="dialogStatus == 'edit' && hasOneKeyProductionPermission">
                 <zr-select v-model="form.currentMaterial" collection="k3_BD_MATERIAL"
                     :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID" :multiple="false"
                     placeholder="请输入物料编码/名称搜索">
@@ -140,6 +140,7 @@
 <script>
 import workDialog from '@/components/workDialog'
 import { getData } from '@/api/data'
+import { getAllProcessSteps } from '@/api/materialProcessFlowService'
 export default {
     name: 'EditDialog',
     components: { workDialog },
@@ -186,12 +187,22 @@ export default {
             submitLoading: false,
 
             workTableData: [],
-            workDialogVisible: false
+            workDialogVisible: false,
+            hasOneKeyProductionPermission: false
         }
     },
     computed: {
         dialogTitle() {
             return this.dialogStatus === 'create' ? '新增生产产线' : '编辑生产产线'
+        }
+    },
+    mounted() {
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        if (roles.buttonList.includes("one_click_production")) {
+            this.hasOneKeyProductionPermission = true;
         }
     },
     watch: {
@@ -208,28 +219,20 @@ export default {
                     this.$message.error('请先选择生产物料')
                     return
                 }
-                let craft = await getData('craft', {
-                    query: { materialId: this.form.currentMaterial }
-                })
 
-                if (craft.data.length === 0) {
+                const { data: processSteps } = await getAllProcessSteps(this.form.currentMaterial);
+                console.log("获取到的工序:", processSteps);
+
+                if (processSteps.length === 0) {
                     this.$message.error('该物料没有对应的工艺')
                     return
                 }
-                if (craft.data.length > 1) {
-                    this.$message.error('该物料有多个工艺，配置有误，请联系管理员！')
-                    return
-                }
 
-                let craftId = craft.data[0]._id
+                //过滤有绑定设备的工序 当前产线工序
+                // let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form._id)
+                let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form._id)
 
-                // 假设这是获取当前工艺所有工序的API
-                const result = await getData('processStep', {
-                    query: { craftId: craftId },
-                    sort: { sort: 1 },
-                    populate: JSON.stringify([{ path: 'machineId' }])
-                });
-                this.workTableData = result.data
+                this.workTableData = machineProcessSteps
                 console.log(this.workTableData, 'this.workTableData')
                 this.workDialogVisible = true
             } catch (error) {

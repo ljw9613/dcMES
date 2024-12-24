@@ -247,7 +247,7 @@
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">工序管理列表</i>
                     <div>
-                        <el-button type="warning" @click="handleWork">一键生产</el-button>
+                        <el-button type="warning" v-if="hasOneKeyProductionPermission" @click="handleWork">一键生产</el-button>
                         <el-button type="primary" @click="handleAddProcess">新增工序</el-button>
                     </div>
                 </div>
@@ -779,9 +779,11 @@ export default {
             processOperationType: 'create', // 新增: 'create', 编辑: 'edit'
 
             workTableData: [],
-            workDialogVisible: false
+            workDialogVisible: false,
+            hasOneKeyProductionPermission: false
         }
     },
+
     methods: {
         // ================ 工艺相关方法 ================
         async fetchCraftData() {
@@ -1913,6 +1915,14 @@ export default {
     },
     mounted() {
         this.initSortable()
+
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        if (roles.buttonList.includes("one_click_production")) {
+            this.hasOneKeyProductionPermission = true;
+        }
     }
 }
 </script>

@@ -539,62 +539,6 @@ export default {
             }
         },
 
-        // 递归获取所有相关工序
-        async getAllProcessSteps(materialId, processSteps = new Set(), processedMaterials = new Set(), level = 0) {
-            try {
-                if (processedMaterials.has(materialId)) {
-                    return processSteps;
-                }
-
-                processedMaterials.add(materialId);
-
-                const craftResponse = await getData('craft', {
-                    query: { materialId },
-                    page: 1,
-                    limit: 1
-                });
-
-                if (!craftResponse.data || craftResponse.data.length === 0) {
-                    return processSteps;
-                }
-
-                const craft = craftResponse.data[0];
-
-                const processStepResponse = await getData('processStep', {
-                    query: { craftId: craft._id },
-                    sort: { sort: 1 }
-                });
-
-                if (processStepResponse.data) {
-                    for (const step of processStepResponse.data) {
-                        // 添加层级前缀
-                        step.levelPrefix = '┗'.repeat(level);
-                        processSteps.add(step);
-
-                        const processMaterialsResponse = await getData('processMaterials', {
-                            query: { processStepId: step._id }
-                        });
-
-                        if (processMaterialsResponse.data) {
-                            for (const material of processMaterialsResponse.data) {
-                                await this.getAllProcessSteps(
-                                    material.materialId,
-                                    processSteps,
-                                    processedMaterials,
-                                    level + 1  // 增加层级
-                                );
-                            }
-                        }
-                    }
-                }
-
-                return processSteps;
-            } catch (error) {
-                console.error('获取工序失败:', error);
-                return processSteps;
-            }
-        },
-
         // 产品型号变化处理
         async handleProductChange(material) {
             const materialId = material._id;
@@ -606,9 +550,9 @@ export default {
 
             try {
                 // 只需要传入初始的 Set 集合
-                const processSteps = await this.getAllProcessSteps(materialId, new Set(), new Set());
+                const { data: processSteps } = await getAllProcessSteps(materialId);
                 console.log("获取到的工序:", processSteps);
-                this.processStepOptions = Array.from(processSteps);
+                this.processStepOptions = processSteps;
                 this.formData.productModel = materialId;
             } catch (error) {
                 console.error('获取工序列表失败:', error);

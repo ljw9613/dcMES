@@ -128,6 +128,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 export default {
     name: 'EditDialog',
     dicts: ['machine_type'],
@@ -212,9 +213,9 @@ export default {
                 background: 'rgba(0, 0, 0, 0.7)'
             });
             try {
-                const processSteps = await this.getAllProcessSteps(materialId, new Set(), new Set());
+                const { data: processSteps } = await getAllProcessSteps(materialId);
                 console.log("获取到的工序:", processSteps);
-                this.processStepOptions = Array.from(processSteps);
+                this.processStepOptions = processSteps;
                 this.form.materialId = materialId;
             } catch (error) {
                 console.error('获取工序列表失败:', error);
@@ -224,62 +225,6 @@ export default {
             }
         },
 
-
-        // 递归获取所有相关工序
-        async getAllProcessSteps(materialId, processSteps = new Set(), processedMaterials = new Set(), level = 0) {
-            try {
-                if (processedMaterials.has(materialId)) {
-                    return processSteps;
-                }
-
-                processedMaterials.add(materialId);
-
-                const craftResponse = await getData('craft', {
-                    query: { materialId },
-                    page: 1,
-                    limit: 1
-                });
-
-                if (!craftResponse.data || craftResponse.data.length === 0) {
-                    return processSteps;
-                }
-
-                const craft = craftResponse.data[0];
-
-                const processStepResponse = await getData('processStep', {
-                    query: { craftId: craft._id },
-                    sort: { sort: 1 }
-                });
-
-                if (processStepResponse.data) {
-                    for (const step of processStepResponse.data) {
-                        // 添加层级前缀
-                        step.levelPrefix = '┗'.repeat(level);
-                        processSteps.add(step);
-
-                        const processMaterialsResponse = await getData('processMaterials', {
-                            query: { processStepId: step._id }
-                        });
-
-                        if (processMaterialsResponse.data) {
-                            for (const material of processMaterialsResponse.data) {
-                                await this.getAllProcessSteps(
-                                    material.materialId,
-                                    processSteps,
-                                    processedMaterials,
-                                    level + 1  // 增加层级
-                                );
-                            }
-                        }
-                    }
-                }
-
-                return processSteps;
-            } catch (error) {
-                console.error('获取工序失败:', error);
-                return processSteps;
-            }
-        },
         handleSearchLineChange(val) {
             console.log(val)
             this.form.lineCode = val.lineCode
@@ -291,8 +236,9 @@ export default {
                 // 如果存在materialId，加载对应的工序选项
                 if (this.form.materialId) {
                     try {
-                        const processSteps = await this.getAllProcessSteps(this.form.materialId, new Set(), new Set());
-                        this.processStepOptions = Array.from(processSteps);
+                        const { data: processSteps } = await getAllProcessSteps(this.form.materialId);
+                        console.log("获取到的工序:", processSteps);
+                        this.processStepOptions = processSteps;
                     } catch (error) {
                         console.error('初始化工序列表失败:', error);
                         this.$message.error('初始化工序列表失败');

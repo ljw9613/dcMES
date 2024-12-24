@@ -847,6 +847,59 @@ class MaterialProcessFlowService {
       throw error;
     }
   }
+
+  static async getAllProcessSteps(materialId, level = 0, processedMaterials = new Set()) {
+    try {
+      // 防止循环引用
+      if (processedMaterials.has(materialId)) {
+        return [];
+      }
+      
+      processedMaterials.add(materialId);
+      
+      // 查询工艺路线
+      const craft = await Craft.findOne({ materialId });
+      if (!craft) {
+        return [];
+      }
+
+      // 查询工序步骤
+      const processSteps = await ProcessStep.find({ 
+        craftId: craft._id 
+      }).populate('machineId').sort({ sort: 1 });
+
+      const result = [];
+      
+      // 处理每个工序
+      for (const step of processSteps) {
+        const stepData = {
+          ...step.toObject(),
+          levelPrefix: '┗'.repeat(level)
+        };
+        result.push(stepData);
+
+        // 查询工序关联的物料
+        const processMaterials = await ProcessMaterials.find({
+          processStepId: step._id
+        });
+
+        // 递归处理子物料的工序
+        for (const material of processMaterials) {
+          const childSteps = await this.getAllProcessSteps(
+            material.materialId,
+            level + 1,
+            processedMaterials
+          );
+          result.push(...childSteps);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error('获取工序失败:', error);
+      throw new Error('获取工序失败: ' + error.message);
+    }
+  }
 }
 
 module.exports = MaterialProcessFlowService;

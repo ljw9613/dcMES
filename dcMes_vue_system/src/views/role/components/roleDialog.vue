@@ -19,7 +19,7 @@
         <!-- 按钮权限 -->
         <el-form-item label="按钮权限" label-width="100px" required>
           <el-select v-model="postList.buttonList" multiple placeholder="请选择按钮权限">
-            <el-option v-for="dict in dict.type.buttonPermissions" :key="dict.value" :label="dict.label"
+            <el-option v-for="dict in dict.type.button_permissions" :key="dict.value" :label="dict.label"
               :value="dict.value" />
           </el-select>
         </el-form-item>
@@ -47,10 +47,9 @@ import { addData, getData, updateData } from "@/api/data";
 import IconSelect from "@/components/IconSelect";
 import { formatMenu2Tree } from "@/utils/format2Tree";
 import CustomMenuTree from "./customMenuTree.vue";
-
 export default {
   components: { IconSelect, CustomMenuTree },
-  dicts: ['buttonPermissions'],
+  dicts: ['button_permissions'],
   porps: ["dialogFormVisible"],
   data() {
     return {
