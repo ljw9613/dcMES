@@ -15,14 +15,14 @@
                     <el-col :span="6">
                         <el-form-item label="设备">
                             <zr-select v-model="searchForm.machineId" collection="machine"
-                                :search-fields="['machineName']" label-key="machineName" sub-key="_id" :multiple="false"
+                                :search-fields="['machineName', 'machineCode']" label-key="machineName" sub-key="machineCode" :multiple="false"
                                 placeholder="请输入设备名称搜索" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
                                             <span class="option-label">{{ item.machineName }}</span>
                                             <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item._id }}
+                                                {{ item.machineCode }}
                                             </el-tag>
                                         </div>
                                     </div>
@@ -31,7 +31,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="工序ID">
+                        <el-form-item label="工序">
                             <zr-select v-model="searchForm.processId" collection="processStep"
                                 :search-fields="['processCode', 'processName']" label-key="processName" sub-key="_id"
                                 :multiple="false" placeholder="请输入工序名称/编码搜索" clearable style="width: 100%">
@@ -93,9 +93,6 @@
                         </el-form>
                     </template>
                 </el-table-column>
-
-                <el-table-column type="selection" width="55" />
-
                 <el-table-column label="扫描码" align="center" prop="scanCode">
                     <template slot-scope="scope">
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.scanCode }}</el-link>
@@ -353,7 +350,10 @@ export default {
             const year = dateObj.getFullYear();
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dateObj.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            const hours = String(dateObj.getHours()).padStart(2, '0');
+            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+            const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         },
 
         search() {

@@ -10,10 +10,11 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
     
     // 产品信息
     materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 关联物料表
-    productModel: { type: String, required: true }, // 产品型号
-    productName: { type: String, required: true }, // 产品名称
+    materialNumber: { type: String }, // 物料编码
+    materialName: { type: String }, // 物料名称
+    fSpecification: { type: String, required: true }, // 产品型号
     // 金蝶云物料信息
-    FMaterialId: { type: String }, // 物料编码
+    FMATERIALID: { type: String }, // 物料编码
 
     
     // 生产信息

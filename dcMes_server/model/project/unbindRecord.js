@@ -49,6 +49,18 @@ const UnbindRecordSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+    unbindSubsequent: {
+      type: Boolean,
+      default: false
+    },
+    affectedProcesses: [{
+      processStepId: {
+        type: Schema.Types.ObjectId,
+        ref: 'ProcessStep'
+      },
+      processName: String,
+      processCode: String
+    }]
   },
   {
     timestamps: true,

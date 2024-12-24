@@ -75,7 +75,8 @@ router.post('/api/v1/unbind-components', async (req, res) => {
             mainBarcode,    // 主条码
             processStepId,  // 工序ID
             userId,         // 用户ID
-            reason         // 解绑原因
+            reason,         // 解绑原因
+            unbindSubsequent // 是否解绑后续工序
         } = req.body;
 
         // 参数验证
@@ -90,7 +91,8 @@ router.post('/api/v1/unbind-components', async (req, res) => {
             mainBarcode,
             processStepId,
             userId,
-            reason
+            reason,
+            unbindSubsequent
         );
 
         res.json({

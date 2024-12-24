@@ -202,7 +202,7 @@
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="选择物料" prop="selectedMaterial">
-                            <zr-select  v-model="craftForm.materialId" collection="k3_BD_MATERIAL"
+                            <zr-select v-model="craftForm.materialId" collection="k3_BD_MATERIAL"
                                 :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
                                 :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleCraftMaterialChange">
                                 <template #option="{ item }">
@@ -247,7 +247,8 @@
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">工序管理列表</i>
                     <div>
-                        <el-button type="warning" v-if="hasOneKeyProductionPermission" @click="handleWork">一键生产</el-button>
+                        <el-button type="warning" v-if="hasOneKeyProductionPermission"
+                            @click="handleWork">一键生产</el-button>
                         <el-button type="primary" @click="handleAddProcess">新增工序</el-button>
                     </div>
                 </div>
@@ -378,6 +379,12 @@
                                     </div>
                                 </template>
                             </zr-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="绑定批次单" prop="batchDocRequired">
+                            <el-switch v-model="processForm.batchDocRequired" :active-value="true"
+                                :inactive-value="false" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -552,11 +559,8 @@
                 <el-button type="primary" :loading="materialDialog.loading" @click="submitMaterialForm">确 定</el-button>
             </div>
         </el-dialog>
-        <work-dialog
-          :visible.sync="workDialogVisible"
-          :material-id="craftForm.materialId"
-          :work-table-data="workTableData"
-        />
+        <work-dialog :visible.sync="workDialogVisible" :material-id="craftForm.materialId"
+            :work-table-data="workTableData" />
     </div>
 </template>
 
@@ -624,6 +628,7 @@ export default {
                 status: 'CREATE',  // 状态
                 materials: [],     // 工序物料清单
                 remark: '',        // 备注
+                batchDocRequired: false, // 是否需要批次单
                 sort: 1            // 工序次序
             },
 
@@ -1164,6 +1169,7 @@ export default {
                     processType: '',
                     businessType: '',
                     status: 'CREATE',
+                    batchDocRequired: false, // 是否需要批次单
                     materials: [],
                     remark: '',
                     sort: nextSort
@@ -1342,7 +1348,7 @@ export default {
                 this.materialTableData.tableList = result.data;
                 this.materialTableData.total = result.countnum;
             } catch (error) {
-                console.error('���取物料数据失败:', error);
+                console.error('获取物料数据失败:', error);
                 this.$message.error('获取物料数据失败');
             } finally {
                 this.materialTableData.listLoading = false;

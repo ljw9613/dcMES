@@ -426,15 +426,6 @@
                                 <div>规格：{{ scope.row.materialSpec }}</div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="所属主条码" min-width="150">
-                            <template slot-scope="scope">
-                                <el-button v-if="!scope.row.isMainBarcode" type="text"
-                                    @click="handleView(scope.row.mainBarcodeData)">
-                                    {{ scope.row.mainBarcode }}
-                                </el-button>
-                                <span v-else>-</span>
-                            </template>
-                        </el-table-column>
                         <el-table-column label="状态" width="100">
                             <template slot-scope="scope">
                                 <el-tag :type="getProcessStatusType(scope.row.status)">
@@ -442,17 +433,9 @@
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="所属工序" min-width="150">
+                        <el-table-column label="完成进度" width="200">
                             <template slot-scope="scope">
-                                <template v-if="!scope.row.isMainBarcode">
-                                    <el-tag size="medium" type="info">
-                                        {{ scope.row.processName }}
-                                        <el-tag size="mini" type="info" v-if="scope.row.processCode">
-                                            {{ scope.row.processCode }}
-                                        </el-tag>
-                                    </el-tag>
-                                </template>
-                                <span v-else>-</span>
+                                <el-progress :percentage="scope.row.progress || 0"></el-progress>
                             </template>
                         </el-table-column>
                         <el-table-column label="操作" width="120" fixed="right">
@@ -612,23 +595,18 @@ export default {
         // 修改 handleUnbind 方法
         async handleUnbind(row) {
             try {
-                // 显示确认弹窗
-                const { value: reason } = await this.$prompt('请输入解绑原因', '解绑确认', {
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消',
-                    inputType: 'textarea',
-                    inputPlaceholder: '请输入解绑原因(非必填)',
-                    inputValidator: (value) => {
-                        // if (!value) {
-                        //     return '解绑原因不能为空';
-                        // }
-                        return true;
+                const { value: reason } = await this.$confirm(
+                    '此操作将解绑当前工序及其后续所有工序的物料，是否继续？',
+                    '解绑确认', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning',
+                        showInput: true,
+                        inputPlaceholder: '请输入解绑原因(非必填)',
+                        inputValidator: (value) => true
                     }
-                });
+                );
 
-                // if (!reason) return;
-
-                // 显示loading
                 const loading = this.$loading({
                     lock: true,
                     text: '正在解绑...',
@@ -637,45 +615,44 @@ export default {
                 });
 
                 try {
-                    // 检查是否为工序节点
                     if (row.nodeType === 'PROCESS_STEP') {
                         const response = await unbindComponents({
                             mainBarcode: this.dataForm.barcode,
                             processStepId: row.processStepId,
                             userId: this.$store.state.user.id,
-                            reason: reason || '未填写解绑原因'
+                            reason: reason || '未填写解绑原因',
+                            unbindSubsequent: true
                         });
 
                         if (response.code === 200 && response.success) {
                             this.$message.success('解绑成功');
 
-                            // 更新主数据
-                            if (response.data && response.data.flowRecord) {
-                                // 更新当前展示的数据
-                                this.dataForm = response.data.flowRecord;
-
-                                // 重新处理流程图数据
-                                this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
-
-                                // 获取最新的解绑记录
-                                const unbindRecordResponse = await getData('unbindRecord', {
-                                    query: { flowRecordId: this.dataForm._id },
-                                    populate: JSON.stringify([{ path: 'operatorId' }])
-                                });
-
-                                if (unbindRecordResponse.code === 200) {
-                                    this.unbindRecord = unbindRecordResponse.data;
-                                }
-
-                                // 自动切换到解绑信息标签页
-                                this.activeTab = 'unbind';
-
-                                // 更新列表中对应的数据
-                                const index = this.tableList.findIndex(item => item._id === this.dataForm._id);
-                                if (index !== -1) {
-                                    this.$set(this.tableList, index, response.data.flowRecord);
+                            // 1. 更新主数据
+                            if (response.data) {
+                                this.dataForm = JSON.parse(JSON.stringify(response.data));
+                                
+                                // 2. 重新处理流程图数据
+                                if (this.dataForm.processNodes) {
+                                    this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
                                 }
                             }
+
+                            // 3. 刷新解绑记录
+                            await this.getUnbindRecords();
+
+                            // 4. 自动切换到解绑信息标签页
+                            this.activeTab = 'unbind';
+
+                            // 5. 更新表格数据
+                            const index = this.tableList.findIndex(item => item._id === this.dataForm._id);
+                            if (index !== -1) {
+                                this.$set(this.tableList, index, JSON.parse(JSON.stringify(response.data)));
+                            }
+
+                            // 6. 触发视图更新
+                            this.$nextTick(() => {
+                                this.$forceUpdate();
+                            });
                         } else {
                             throw new Error(response.message || '解绑失败');
                         }
@@ -688,10 +665,25 @@ export default {
                     loading.close();
                 }
             } catch (error) {
-                // 如果是用户取消操作，不显示错误提示
                 if (error !== 'cancel') {
                     this.$message.error(error.message || '解绑失败');
                 }
+            }
+        },
+        // 添加获取解绑记录的方法
+        async getUnbindRecords() {
+            try {
+                const unbindRecordResponse = await getData('unbindRecord', {
+                    query: { flowRecordId: this.dataForm._id },
+                    populate: JSON.stringify([{ path: 'operatorId' }]),
+                    sort: { createTime: -1 }  // 按创建时间倒序排序
+                });
+
+                if (unbindRecordResponse.code === 200) {
+                    this.unbindRecord = unbindRecordResponse.data;
+                }
+            } catch (error) {
+                console.error('获取解绑记录失败:', error);
             }
         },
         // ... 其他方法保持与 material 页面类似,修改相应的字段名和业务逻辑
@@ -791,6 +783,7 @@ export default {
         //成品初始化
         async handleInit(row) {
             try {
+                console.log(row, 'row')
                 // 显示确认对话框
                 await this.$confirm('确认要成品初始化吗?该操作无法撤回！请谨慎操作！', '提示', {
                     confirmButtonText: '确定',
@@ -1266,64 +1259,60 @@ export default {
 
             this.searchLoading = true;
             try {
-                // 使用 $or 查询主条码和子条码
+                // 查询主条码
                 const searchQuery = {
                     query: {
-                        $or: [
-                            { barcode: this.searchBarcode },
-                            { 'processNodes.barcode': this.searchBarcode }
-                        ]
+                        'processNodes.barcode': this.searchBarcode
                     }
                 };
 
-                const result = await getData('material_process_flow', searchQuery);
-
-                if (result.code === 200 && result.data) {
+                const mainBarcodeResult = await getData('material_process_flow', searchQuery);
+                if (mainBarcodeResult.code === 200 && mainBarcodeResult.data && mainBarcodeResult.data.length > 0) {
                     this.searchResults = [];
-
-                    result.data.forEach(record => {
-                        // 如果是主条码匹配
-                        if (record.barcode === this.searchBarcode.trim()) {
-                            this.searchResults.push({
-                                isMainBarcode: true,
-                                barcode: record.barcode,
-                                materialCode: record.materialCode,
-                                materialName: record.materialName,
-                                materialSpec: record.materialSpec,
-                                status: record.status,
-                                ...record
-                            });
-                        }
-
-                        // 查找匹配的子条码
-                        const matchedNodes = record.processNodes.filter(
-                            node => node.barcode === this.searchBarcode.trim()
-                        );
-
-                        matchedNodes.forEach(node => {
-                            this.searchResults.push({
-                                isMainBarcode: false,
-                                barcode: node.barcode,
-                                materialCode: node.materialCode,
-                                materialName: node.materialName,
-                                materialSpec: node.materialSpec,
-                                status: node.status,
-                                mainBarcode: record.barcode,
-                                mainBarcodeData: record,
-                                processName: node.processName,
-                                processCode: node.processCode,
-                                scanTime: node.scanTime,
-                                ...node
-                            });
+                    mainBarcodeResult.data.forEach(record => {
+                        this.searchResults.push({
+                            isMainBarcode: true,
+                            barcode: record.barcode,
+                            materialCode: record.materialCode,
+                            materialName: record.materialName,
+                            materialSpec: record.materialSpec,
+                            status: record.status,
+                            ...record
                         });
                     });
-                } else {
-                    this.$message.error(result.msg || '搜索失败');
+                    return;
                 }
+                // 查询当前条码
+                let currentSearchQuery = {
+                    query: {
+                        barcode: this.searchBarcode
+                    }
+                }
+                const currentBarcodeResult = await getData('material_process_flow', currentSearchQuery);
+
+                if (currentBarcodeResult.code === 200 && currentBarcodeResult.data && currentBarcodeResult.data.length > 0) {
+                    this.searchResults = [];
+                    currentBarcodeResult.data.forEach(record => {
+                        this.searchResults.push({
+                            isMainBarcode: false,
+                            barcode: record.barcode,
+                            materialCode: record.materialCode,
+                            materialName: record.materialName,
+                            materialSpec: record.materialSpec,
+                            status: record.status,
+                            ...record
+                        });
+                    });
+                    return;
+                }
+
+                this.$message.warning('未找到相关数据');
+
             } catch (error) {
                 console.error('搜索失败:', error);
                 this.$message.error('搜索失败: ' + error.message);
             } finally {
+                this.searchBarcode = ""
                 this.searchLoading = false;
             }
         },

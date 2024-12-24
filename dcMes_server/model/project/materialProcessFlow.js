@@ -24,6 +24,12 @@ const processNodeSchema = new mongoose.Schema(
     processCode: { type: String }, // 工序编码
     processSort: { type: Number }, // 工序顺序
 
+    // 批次单绑定工序
+    batchDocRequired: { type: Boolean, default: false }, // 是否需要批次单据
+    batchDocNumber: { type: String, default: "" }, // 批次单据号
+    batchDocType: { type: String }, // 批次单据类型
+
+
     // 节点通用属性
     craftId: { type: mongoose.Schema.ObjectId }, // 关联的工艺ID
     craftName: { type: String }, // 工艺名称

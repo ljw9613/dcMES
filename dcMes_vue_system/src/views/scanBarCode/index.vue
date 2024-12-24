@@ -222,6 +222,7 @@ import tmyw from "@/assets/tone/tmyw.mp3";
 import bdcg from "@/assets/tone/bdcg.mp3";
 import cfbd from "@/assets/tone/cfbd.mp3";
 import TscPrinter from '@/components/tscInput'
+import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
 export default {
     name: 'ScanBarCode',
