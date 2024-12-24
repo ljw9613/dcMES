@@ -8,7 +8,7 @@ router.get("/api/v1/machine/progress", async (req, res) => {
     const ip = req.socket.remoteAddress.replace(/^.*:/, "");
     const machineData = await machine
       .findOne({ machineIp: ip })
-      .populate("lineId materialId processStepId");
+      .populate("lineId materialId processStepId productionPlanWorkOrderId");
     if (!machineData) {
       return res.json({ code: 201, message: "设备不存在" });
     }

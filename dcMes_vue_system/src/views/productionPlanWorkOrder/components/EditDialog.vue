@@ -10,11 +10,9 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="工单状态" prop="status">
-                        <el-select v-model="form.status" placeholder="请选择工单状态" style="width: 100%">
-                            <el-option label="待生产" value="PENDING" />
-                            <el-option label="生产中" value="IN_PROGRESS" />
-                            <el-option label="已完成" value="COMPLETED" />
-                            <el-option label="已取消" value="CANCELLED" />
+                        <el-select v-model="form.status" disabled placeholder="请选择工单状态" style="width: 100%">
+                            <el-option v-for="dict in dict.type.work_order_status" :key="dict.value" :label="dict.label"
+                                :value="dict.value" />
                         </el-select>
                     </el-form-item>
                 </el-col>
@@ -42,8 +40,8 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="生产单号" prop="productionOrderId">
-                        <zr-select v-model="form.productionOrderId" collection="k3_PRD_MO" :search-fields="['FBillNo']"
-                            label-key="FBillNo" sub-key="FMaterialName" :multiple="false"
+                        <zr-select v-if="form.saleOrderId" v-model="form.productionOrderId" collection="k3_PRD_MO"
+                            :search-fields="['FBillNo']" label-key="FBillNo" sub-key="FMaterialName" :multiple="false"
                             :additional-query="productionOrderQuery" placeholder="请输入生产单号搜索"
                             @select="handleProductionOrderSelect">
                             <template #option="{ item }">
@@ -58,6 +56,7 @@
                                 </div>
                             </template>
                         </zr-select>
+                        <el-input v-else v-model="form.productionOrderNo" :disabled="true" placeholder="请先选择销售单号" />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -65,10 +64,26 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产品" prop="materialId">
-                        <zr-select v-model="form.materialId" collection="k3_BD_MATERIAL"
-                            :search-fields="['FNumber', 'FName', 'FSpecification']" label-key="FName" value-key="_id"
-                            tag-key="FNumber" sub-key="FSpecification" :multiple="false" placeholder="请输入产品信息搜索"
-                            @select="handleMaterialSelect" :additional-query="materialQuery" />
+
+                        <zr-select v-if="form.productionOrderId" v-model="form.materialId" collection="k3_BD_MATERIAL"
+                            :search-fields="['FNumber', 'FName', 'FSpecification']" label-key="FName"
+                            sub-key="FMATERIALID" :multiple="false" @select="handleMaterialSelect"
+                            :additional-query="materialQuery" placeholder="请输入物料编码/名称搜索">
+                            <template #option="{ item }">
+                                <div class="select-option">
+                                    <div class="option-main">
+                                        <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
+                                        <el-tag size="mini" type="info" class="option-tag">
+                                            {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                        </el-tag>
+                                    </div>
+                                    <div class="option-sub" v-if="item.FSpecification">
+                                        <small>规格: {{ item.FSpecification }}</small>
+                                    </div>
+                                </div>
+                            </template>
+                        </zr-select>
+                        <el-input v-else v-model="form.materialName" :disabled="true" placeholder="请先选择生产单号" />
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
@@ -125,20 +140,42 @@
         </el-form>
 
         <div slot="footer" class="dialog-footer">
+            <template v-if="dialogStatus === 'edit'">
+                <el-button type="info" @click="handleOneKeyProduction">
+                    一键生产
+                </el-button>
+                <el-button type="success" @click="handleStartProduction" :disabled="!canStart"
+                    v-if="form.status === 'PENDING' || form.status === 'PAUSED'">
+                    开始生产
+                </el-button>
+                <el-button type="warning" @click="handlePauseProduction" :disabled="form.status !== 'IN_PROGRESS'"
+                    v-if="form.status === 'IN_PROGRESS'">
+                    暂停生产
+                </el-button>
+                <el-button type="danger" @click="handleCancelProduction" :disabled="form.status !== 'IN_PROGRESS'"
+                    v-if="form.status === 'IN_PROGRESS'">
+                    取消生产
+                </el-button>
+            </template>
             <el-button @click="handleClose">取 消</el-button>
             <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确 定</el-button>
         </div>
+        <work-dialog v-if="workDialogVisible && dialogStatus === 'edit'" :visible.sync="workDialogVisible" :material-id="form.materialId" :productionPlanWorkOrderId="form._id"
+            :work-table-data="workTableData" />
     </el-dialog>
 </template>
 
 <script>
 import { getData } from '@/api/data';
 import ZrSelect from '@/components/ZrSelect'
-
+import workDialog from '@/components/workDialog'
+import { getAllProcessSteps } from '@/api/materialProcessFlowService'
 export default {
     name: 'EditDialog',
+    dicts: ['work_order_status'],
     components: {
-        ZrSelect
+        ZrSelect,
+        workDialog
     },
     props: {
         visible: {
@@ -188,7 +225,9 @@ export default {
                 planStartTime: [{ required: true, message: '请选择计划开始时间', trigger: 'change' }],
                 planEndTime: [{ required: true, message: '请选择计划结束时间', trigger: 'change' }]
             },
-            submitLoading: false
+            submitLoading: false,
+            workDialogVisible: false,
+            workTableData: []
         }
     },
     computed: {
@@ -205,6 +244,9 @@ export default {
             return this.form.materialId ? {
                 FMaterialId: this.form.materialId
             } : {}
+        },
+        canStart() {
+            return this.form.status === 'PENDING' || this.form.status === 'PAUSED'
         }
     },
     watch: {
@@ -223,6 +265,32 @@ export default {
         }
     },
     methods: {
+        async handleOneKeyProduction() {
+            try {
+                if (!this.form.productionLineId) {
+                    this.$message.error('请先选择产线')
+                    return
+                }
+
+                const { data: processSteps } = await getAllProcessSteps(this.form.materialId);
+                console.log("获取到的工序:", processSteps);
+
+                if (processSteps.length === 0) {
+                    this.$message.error('该物料没有对应的工艺')
+                    return
+                }
+
+                //过滤有绑定设备的工序 当前产线工序
+                // let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form._id)
+                let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form.productionLineId)
+
+                this.workTableData = machineProcessSteps
+                console.log(this.workTableData, 'this.workTableData')
+                this.workDialogVisible = true
+            } catch (error) {
+                this.$message.error('获取工序数据失败')
+            }
+        },
         initFormData() {
             if (this.dialogStatus === 'edit') {
                 this.form = { ...this.rowData }
@@ -252,33 +320,46 @@ export default {
             }
         },
         handleSaleOrderSelect(item) {
+            this.form.saleOrderId = null
+            this.form.productionOrderId = null
             if (item) {
                 console.log(item)
-                this.form.saleOrderId = item._id
-                this.form.saleOrderNo = item.FBillNo
-                // 清空相关联的生产订单信息
-                this.form.productionOrderId = ''
-                this.form.productionOrderNo = ''
+                this.$nextTick(() => {
+                    this.form.saleOrderId = item._id
+                    this.form.saleOrderNo = item.FBillNo
+                    // 清空相关联的生产订单信息
+                    this.form.productionOrderId = ''
+                    this.form.productionOrderNo = ''
+                })
             }
         },
-   
+
         async handleProductionOrderSelect(item) {
+            this.form.productionOrderId = null
+            this.form.materialId = null
             if (item) {
                 console.log(item)
-                this.form.productionOrderId = item._id
-                this.form.productionOrderNo = item.FBillNo
-                this.form.fSpecification = item.FSpecification || ''
-                this.form.materialName = item.FMaterialName || ''
-                this.form.planQuantity = item.FQty || 0
+                this.$nextTick(async () => {
+                    this.form.productionOrderId = item._id
+                    this.form.productionOrderNo = item.FBillNo
+                    this.form.fSpecification = item.FSpecification || ''
+                    this.form.materialName = item.FMaterialName || ''
+                    this.form.planQuantity = item.FQty || 0
+                    this.form.materialCode = item.FNumber || ''
 
-                //获取产品料号
-                const { data: material } = await getData('k3_BD_MATERIAL', {
-                    FMATERIALID: item.FMaterialId
+                    //获取产品料号
+                    const { data: material } = await getData('k3_BD_MATERIAL', {
+                        query: {
+                            FMATERIALID: item.FMaterialId
+                        }
+                    })
+
+                    console.log(material)
+
+                    if (material.length) {
+                        this.form.materialId = material[0]._id
+                    }
                 })
-
-                if (material.length) {
-                    this.form.materialId = material[0]._id
-                }
             }
         },
         handleMaterialSelect(item) {
@@ -315,6 +396,36 @@ export default {
                     }
                 }
             })
+        },
+        handleStartProduction() {
+            this.$confirm('确认开始生产该工单?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.form.status = 'IN_PROGRESS'
+                this.handleSubmit()
+            }).catch(() => { })
+        },
+        handlePauseProduction() {
+            this.$confirm('确认暂停生产该工单?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.form.status = 'PAUSED'
+                this.handleSubmit()
+            }).catch(() => { })
+        },
+        handleCancelProduction() {
+            this.$confirm('确认取消生产该工单?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.form.status = 'CANCELLED'
+                this.handleSubmit()
+            }).catch(() => { })
         }
     }
 }

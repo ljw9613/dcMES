@@ -53,6 +53,8 @@ var machineSchema = new mongoose.Schema(
       ref: "processStep",
       description: "当前工序ID",
     },
+    productionPlanWorkOrderId: { type: mongoose.Schema.ObjectId, ref: "production_plan_work_order", description: "工单ID" },
+
     status: { type: Boolean, default: false, description: "在线状态" },
 
     createTime: { type: Date, default: Date.now, description: "创建时间" },

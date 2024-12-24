@@ -98,6 +98,12 @@
                     </template>
                 </el-table-column>
 
+                <el-table-column label="销售单号" width="120">
+                    <template slot-scope="scope">
+                        <div type="primary">{{ scope.row.FSaleOrderNo }}</div>
+                    </template>
+                </el-table-column>
+
                 <el-table-column label="单据日期" width="120">
                     <template slot-scope="scope">
                         {{ formatDate(scope.row.FDate) }}

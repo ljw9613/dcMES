@@ -148,7 +148,6 @@ class MaterialProcessFlowService {
 
           // 如果工序不需要批次单，则获取工序关联的物料
           if (!processStep.batchDocRequired) {
-            
             // 获取工序关联的物料
             const processMaterials = await ProcessMaterials.find({
               processStepId: processStep._id,
@@ -294,18 +293,20 @@ class MaterialProcessFlowService {
    * @param {string} processStepId - 工序ID
    * @param {Array<{materialId: string, barcode: string}>} componentScans - 子物料扫描信息数组
    * @param {string} userId - 用户ID
+   * @param {string} productionPlanWorkOrderId - 工单ID
    */
   static async scanProcessComponents(
     mainBarcode,
     processStepId,
     componentScans,
-    userId
+    userId,
+    productionPlanWorkOrderId
   ) {
     // 查找主条码对应的流程记录
     const flowRecord = await MaterialProcessFlow.findOne({
       barcode: mainBarcode,
     });
-    
+
     if (!flowRecord) {
       throw new Error("未找到对应的主条码流程记录");
     }
@@ -518,6 +519,24 @@ class MaterialProcessFlowService {
       }
     }
 
+    // 在更新节点状态之前，检查是否为首道或末道工序
+    const processPosition = this.checkProcessPosition(
+      flowRecord.processNodes,
+      processNode
+    );
+
+    console.log(productionPlanWorkOrderId, " productionPlanWorkOrderId");
+
+    // 如果是首道工序，且物料ID匹配，更新工单投入量
+    if (processPosition.isFirst) {
+      console.log(flowRecord.materialId);
+      await this.updateWorkOrderQuantity(
+        productionPlanWorkOrderId,
+        flowRecord.materialId,
+        "input"
+      );
+    }
+
     // 更新 processNodes 中的物料节点信息
     flowRecord.processNodes = flowRecord.processNodes.map((node) => {
       // 如果是当前工序的物料节点
@@ -595,6 +614,15 @@ class MaterialProcessFlowService {
       materialNode.endTime = new Date();
     }
 
+    // 如果是末道工序且所有节点完成，更新工单产出量
+    if (processPosition.isLast && flowRecord.progress === 100) {
+      await this.updateWorkOrderQuantity(
+        productionPlanWorkOrderId,
+        flowRecord.materialId,
+        "output"
+      );
+    }
+
     // 保存更新
     await flowRecord.save();
 
@@ -664,7 +692,9 @@ class MaterialProcessFlowService {
       if (unbindSubsequent) {
         // 如果需要解绑后续工序，则获取当前工序及其后的所有工序
         processNodesToUnbind.push(
-          ...levelProcessSteps.slice(currentIndex).filter(node => node.status === "COMPLETED")
+          ...levelProcessSteps
+            .slice(currentIndex)
+            .filter((node) => node.status === "COMPLETED")
         );
       } else {
         // 否则只解绑当前工序
@@ -709,7 +739,8 @@ class MaterialProcessFlowService {
         })),
         operatorId: userId,
         reason,
-        unbindSubsequent: unbindSubsequent && processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
+        unbindSubsequent:
+          unbindSubsequent && processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
         affectedProcesses: [
           {
             processStepId: processNodeToUnbind.processStepId,
@@ -724,7 +755,7 @@ class MaterialProcessFlowService {
     // 更新流程节点状态
     flowRecord.processNodes = flowRecord.processNodes.map((node) => {
       // 处理需要解绑的工序节点
-      if (processNodesToUnbind.some(p => p.nodeId === node.nodeId)) {
+      if (processNodesToUnbind.some((p) => p.nodeId === node.nodeId)) {
         return {
           ...node,
           status: "PENDING",
@@ -943,7 +974,7 @@ class MaterialProcessFlowService {
       flowRecord.processNodes = updatedNodes;
       flowRecord.craftVersion = craft.craftVersion;
 
-      // 6. 重新计算进度
+      // 6. 新计算进度
       const completedNodes = flowRecord.processNodes.filter(
         (node) => node.status === "COMPLETED" && node.level !== 0
       ).length;
@@ -1116,6 +1147,79 @@ class MaterialProcessFlowService {
       console.error("扫描批次单据失败:", error);
       throw error;
     }
+  }
+
+  /**
+   * 更新工单数量
+   * @param {string} workOrderId - 工单ID
+   * @param {string} materialId - 物料ID
+   * @param {string} type - 更新类型 ('input' | 'output')
+   * @param {number} quantity - 更新数量
+   */
+  static async updateWorkOrderQuantity(
+    workOrderId,
+    materialId,
+    type,
+    quantity = 1
+  ) {
+    try {
+      const updateField = type === "input" ? "inputQuantity" : "outputQuantity";
+
+      console.log(workOrderId, " workOrderId");
+      console.log(materialId, " materialId");
+      const workOrder = await mongoose
+        .model("production_plan_work_order")
+        .findOneAndUpdate(
+          { _id: workOrderId, materialId: materialId },
+          { $inc: { [updateField]: quantity } },
+          { new: true }
+        );
+
+      if (!workOrder) {
+        // throw new Error("未找到对应的工单");
+        console.log("未找到对应的工单");
+      }
+
+      return workOrder;
+    } catch (error) {
+      console.error(
+        `更新工单${type === "input" ? "投入" : "产出"}数量失败:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 检查是否为首道或末道工序
+   * @param {Array} processNodes - 所有工序节点
+   * @param {Object} currentNode - 当前工序节点
+   * @returns {Object} { isFirst: boolean, isLast: boolean }
+   */
+  static checkProcessPosition(processNodes, currentNode) {
+    // 获取当前节点的父物料节点
+    const parentMaterialNode = processNodes.find(
+      (node) => node.nodeId === currentNode.parentNodeId
+    );
+    if (!parentMaterialNode) return { isFirst: false, isLast: false };
+
+    // 获取同级的所有工序节点并按顺序排序
+    const levelProcessSteps = processNodes
+      .filter(
+        (node) =>
+          node.nodeType === "PROCESS_STEP" &&
+          node.parentNodeId === parentMaterialNode.nodeId
+      )
+      .sort((a, b) => a.processSort - b.processSort);
+
+    const currentIndex = levelProcessSteps.findIndex(
+      (step) => step.nodeId === currentNode.nodeId
+    );
+
+    return {
+      isFirst: currentIndex === 0,
+      isLast: currentIndex === levelProcessSteps.length - 1,
+    };
   }
 }
 

@@ -79,10 +79,7 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
-                <el-table-column type="selection" width="55" />
-
                 <el-table-column label="产线名称" prop="lineName" />
-
                 <el-table-column label="设备类型">
                     <template slot-scope="scope">
                         <el-tag>{{ scope.row.machineType }}</el-tag>
@@ -95,6 +92,18 @@
                             :content="scope.row.processStepId ? (scope.row.processStepId.processName + '-' + scope.row.processStepId.processCode) : '-'">
                             <el-tag type="warning">{{ scope.row.processStepId ? (scope.row.processStepId.processName +
                                 '-' + scope.row.processStepId.processCode).substring(0, 10) + '...' : '-' }}</el-tag>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="当前工单" prop="productionPlanWorkOrderId">
+                    <template slot-scope="scope">
+                        <el-tooltip
+                            :content="scope.row.productionPlanWorkOrderId ? (scope.row.productionPlanWorkOrderId.workOrderNo + '-' + scope.row.productionPlanWorkOrderId.planQuantity) : '-'">
+                            <el-tag type="warning">{{ scope.row.productionPlanWorkOrderId ?
+                                (scope.row.productionPlanWorkOrderId.workOrderNo +
+                                    '-' + scope.row.productionPlanWorkOrderId.planQuantity).substring(0, 10) + '...' : '-'
+                                }}</el-tag>
                         </el-tooltip>
                     </template>
                 </el-table-column>
@@ -212,7 +221,7 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.count = true;
-                req.populate = JSON.stringify([{ path: 'processStepId', select: 'processName processCode' }]);
+                req.populate = JSON.stringify([{ path: 'processStepId', select: 'processName processCode' }, { path: 'productionPlanWorkOrderId', select: 'workOrderNo planQuantity' }]);
                 const result = await getData("machine", req);
                 this.tableList = result.data;
                 this.total = result.countnum;

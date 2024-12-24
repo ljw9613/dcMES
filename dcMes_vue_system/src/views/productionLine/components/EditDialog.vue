@@ -122,8 +122,8 @@
                         </div>
                     </template>
                 </zr-select>
-                <el-button type="primary" @click="handleOneKeyProduction()"
-                    :disabled="!form.currentMaterial">一键生产</el-button>
+                <!-- <el-button type="primary" @click="handleOneKeyProduction()"
+                    :disabled="!form.currentMaterial">一键生产</el-button> -->
             </el-form-item>
         </el-form>
 

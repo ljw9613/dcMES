@@ -69,6 +69,15 @@
                             <el-input v-else v-model="formData.lineName" placeholder="请输入产线信息搜索"
                                 :disabled="!!mainMaterialId && !!processStepId" />
                         </el-form-item>
+
+                        <el-form-item label="当前工单">
+                            <zr-select v-if="!mainMaterialId" :disabled="!!mainMaterialId && !!processStepId"
+                                v-model="formData.workProductionPlanWorkOrderId" collection="production_plan_work_order"
+                                :search-fields="['workOrderNo']" label-key="workOrderNo" sub-key="planQuantity"
+                                :multiple="false" placeholder="请输入工单编号/名称搜索" @select="handleWorkOrderSelect" />
+                            <el-input v-else v-model="formData.workProductionPlanWorkOrderNo" placeholder="请输入工单编号"
+                                :disabled="!!mainMaterialId && !!processStepId" />
+                        </el-form-item>
                     </div>
 
                     <!-- 按钮部分 -->
@@ -237,7 +246,10 @@ export default {
                 productModel: '',
                 productLine: '',
                 processStep: '',
-                componentName: ''
+                componentName: '',
+                productionPlanWorkOrderId: '',
+                workProductionPlanWorkOrderNo: '',
+                workProductionPlanWorkOrderId: '',
             },
             productOptions: [],
             processStepOptions: [],
@@ -314,6 +326,14 @@ export default {
                 localStorage.setItem('processName', value)
             }
         },
+        workProductionPlanWorkOrderId: {
+            get() {
+                return localStorage.getItem('workProductionPlanWorkOrderId') || ''
+            },
+            set(value) {
+                localStorage.setItem('workProductionPlanWorkOrderId', value)
+            }
+        },
         productLineId: {
             get() {
                 return localStorage.getItem('productLineId') || ''
@@ -336,6 +356,14 @@ export default {
             },
             set(value) {
                 localStorage.setItem('autoInit', value)
+            }
+        },
+        workProductionPlanWorkOrderNo: {
+            get() {
+                return localStorage.getItem('workProductionPlanWorkOrderNo') || ''
+            },
+            set(value) {
+                localStorage.setItem('workProductionPlanWorkOrderNo', value)
             }
         },
     },
@@ -387,10 +415,11 @@ export default {
                 const response = await getMachineProgress();
                 console.log("获取到的机器进度:", response.data);
                 if (response.code === 200 && response.data) {
-                    const { materialId, processStepId, lineId } = response.data;
+                    const { materialId, processStepId, lineId, productionPlanWorkOrderId } = response.data;
                     console.log("materialId:", materialId);
                     console.log("processStepId:", processStepId.processName);
                     console.log("lineId:", lineId);
+                    console.log("workProductionPlanWorkOrderId:", productionPlanWorkOrderId);
                     if (materialId && processStepId) {
                         console.log("materialId:", materialId);
                         console.log("processStepId:", processStepId.processName);
@@ -404,9 +433,10 @@ export default {
                         this.formData.productModel = materialId._id;
                         this.formData.processStep = processStepId._id;
                         this.formData.productLine = lineId && lineId._id;
-
-                        
-
+                        this.formData.workProductionPlanWorkOrderId = productionPlanWorkOrderId && productionPlanWorkOrderId._id;
+                        this.formData.workProductionPlanWorkOrderNo = productionPlanWorkOrderId && productionPlanWorkOrderId.workOrderNo;
+                        this.workProductionPlanWorkOrderId = productionPlanWorkOrderId && productionPlanWorkOrderId._id;
+                        this.workProductionPlanWorkOrderNo = productionPlanWorkOrderId && productionPlanWorkOrderId.workOrderNo;
                         // 更新名称信息
                         this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
                         this.processName = processStepId.processName;
@@ -483,6 +513,16 @@ export default {
                 });
             }
         },
+        handleWorkOrderSelect(item) {
+            if (item) {
+                this.formData.workProductionPlanWorkOrderNo = item.workOrderNo;
+                this.formData.workProductionPlanWorkOrderId = item._id;
+
+                // 使用计算属性设置缓存
+                this.workProductionPlanWorkOrderNo = item.workOrderNo;
+                this.workProductionPlanWorkOrderId = item._id;
+            }
+        },
         handleProductionLineSelect(item) {
             if (item) {
                 this.formData.lineName = item.lineName;
@@ -505,6 +545,11 @@ export default {
 
         async getProcessStepById(id) {
             const response = await getData('processStep', { query: { _id: id }, sort: { sort: 1 } });
+            return response.data[0];
+        },
+
+        async getWorkProductionPlanWorkOrderById(id) {
+            const response = await getData('production_plan_work_order', { query: { _id: id }, sort: { _id: 1 } });
             return response.data[0];
         },
 
@@ -573,8 +618,8 @@ export default {
 
         // 保存按钮处理
         async handleSave() {
-            if (!this.formData.productModel || !this.formData.processStep || !this.formData.productLine) {
-                this.$message.warning('请选择产品型号、工序和产线');
+            if (!this.formData.productModel || !this.formData.processStep || !this.formData.productLine || !this.formData.workProductionPlanWorkOrderId) {
+                this.$message.warning('请选择产品型号、工序、产线和工单');
                 return;
             }
 
@@ -594,6 +639,8 @@ export default {
                 this.mainMaterialId = this.formData.productModel;
                 this.processStepId = this.formData.processStep;
                 this.productLineId = this.formData.productLine;
+                this.workProductionPlanWorkOrderId = this.formData.workProductionPlanWorkOrderId;
+                this.workProductionPlanWorkOrderNo = this.formData.workProductionPlanWorkOrderNo;
 
                 // 获取并保存物料名称
                 const material = await this.getMaterialById(this.formData.productModel);
@@ -605,6 +652,12 @@ export default {
                 const processStep = await this.getProcessStepById(this.formData.processStep);
                 if (processStep) {
                     this.processName = processStep.processName;
+                }
+
+                // 获取并保存工单名称
+                const workProductionPlanWorkOrder = await this.getWorkProductionPlanWorkOrderById(this.formData.workProductionPlanWorkOrderId);
+                if (workProductionPlanWorkOrder) {
+                    this.workProductionPlanWorkOrderNo = workProductionPlanWorkOrder.workOrderNo;
                 }
 
                 this.$message.success('保存成功');
@@ -735,7 +788,7 @@ export default {
         },
         async validateDICode(diCode) {
             try {
-                // ���取DI码对应的所有物料信息
+                // 取DI码对应的所有物料信息
                 const response = await getData('productDiNum', {
                     query: { diNum: diCode },
                     populate: JSON.stringify([{ path: 'productId', model: 'k3_BD_MATERIAL' }])
@@ -983,6 +1036,12 @@ export default {
             if (this.productLineId && this.productLineName) {
                 this.formData.productLine = this.productLineId;
                 this.formData.lineName = this.productLineName;
+            }
+
+            // 添加工单信息的填充
+            if (this.workProductionPlanWorkOrderId && this.workProductionPlanWorkOrderNo) {
+                this.formData.workProductionPlanWorkOrderId = this.workProductionPlanWorkOrderId;
+                this.formData.workProductionPlanWorkOrderNo = this.workProductionPlanWorkOrderNo;
             }
         },
 
@@ -1299,7 +1358,8 @@ export default {
                     mainBarcode: this.scanForm.mainBarcode,
                     processStepId: this.processStepId,
                     componentScans: componentScans,
-                    userId: this.$store.getters.id
+                    userId: this.$store.getters.id,
+                    productionPlanWorkOrderId: this.workProductionPlanWorkOrderId
                 }
                 const scanResponse = await scanComponents(scanReq);
 
@@ -1541,8 +1601,8 @@ export default {
         },
     },
     async created() {
-                // 从本地存储中恢复自动打印开关状态
-                const savedAutoPrint = localStorage.getItem('autoPrint');
+        // 从本地存储中恢复自动打印开关状态
+        const savedAutoPrint = localStorage.getItem('autoPrint');
         if (savedAutoPrint !== null) {
             this.autoPrint = savedAutoPrint === 'true';
         }

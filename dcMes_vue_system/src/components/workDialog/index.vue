@@ -56,6 +56,10 @@ export default {
             type: String,
             default: ''
         },
+        productionPlanWorkOrderId: {
+            type: String,
+            default: ''
+        },
         visible: {
             type: Boolean,
             default: false
@@ -125,6 +129,7 @@ export default {
                             update: {
                                 processStepId: element._id,
                                 materialId: this.materialId,
+                                productionPlanWorkOrderId: this.productionPlanWorkOrderId
                             }
                         })
                     }

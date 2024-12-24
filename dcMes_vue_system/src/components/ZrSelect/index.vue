@@ -97,7 +97,7 @@ export default {
     lazyLoad: {
       type: Boolean,
       default: false
-    }
+    },// 是否懒加载
   },
 
   data() {
@@ -120,7 +120,6 @@ export default {
   watch: {
     value: {
       handler(newVal) {
-        console.log('值变化:', newVal)
         this.selectedItems = this.multiple ? (Array.isArray(newVal) ? newVal : []) : newVal
         if (newVal && (this.multiple ? newVal.length : newVal) && !this.items.length) {
           this.fetchItemsByIds(this.multiple ? newVal : [newVal])
@@ -133,6 +132,7 @@ export default {
   created() {
     console.log('初始值:', this.value)
     if (!this.lazyLoad) {
+      console.log('懒加载')
       this.remoteSearch('')
     }
   },

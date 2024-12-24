@@ -35,11 +35,12 @@ router.post('/api/v1/scan-components', async (req, res) => {
             mainBarcode,        // 主条码
             processStepId,      // 工序ID
             componentScans,      // 子物料条码数组
-            userId              // 用户ID
+            userId ,            // 用户ID
+            productionPlanWorkOrderId // 工单ID
         } = req.body;
 
         // 参数验证
-        if (!mainBarcode || !processStepId || !Array.isArray(componentScans)) {
+        if (!mainBarcode || !processStepId || !Array.isArray(componentScans) || !productionPlanWorkOrderId) {
             return res.status(200).json({
                 success: false,
                 message: '缺少必要参数或参数格式错误'
@@ -51,7 +52,8 @@ router.post('/api/v1/scan-components', async (req, res) => {
             mainBarcode,
             processStepId,
             componentScans,
-            userId
+            userId,
+            productionPlanWorkOrderId
         );
 
         res.json({

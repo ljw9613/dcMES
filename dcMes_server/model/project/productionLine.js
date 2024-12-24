@@ -62,6 +62,7 @@ const productionLineSchema = new mongoose.Schema({
 
     //当前生产物料
     currentMaterial: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 当前生产物料
+    productionPlanWorkOrderId: { type: mongoose.Schema.ObjectId, ref: "production_plan_work_order", description: "工单ID" },
 
     // 基础字段
     remark: { type: String }, // 备注
