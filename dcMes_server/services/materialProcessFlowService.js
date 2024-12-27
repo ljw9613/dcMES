@@ -3,6 +3,7 @@ const Craft = require("../model/project/craft");
 const ProcessStep = require("../model/project/processStep");
 const ProcessMaterials = require("../model/project/processMaterials");
 const UnbindRecord = require("../model/project/unbindRecord");
+const ProductionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
 const mongoose = require("mongoose");
 const Material = mongoose.model("k3_BD_MATERIAL");
 
@@ -50,13 +51,19 @@ class MaterialProcessFlowService {
         new Set()
       );
 
-      // 4. 创建流程记录
-      const flowRecord = new MaterialProcessFlow({
+      console.log(
+        "🚀 ~ MaterialProcessFlowService ~ processNodes:",
+        processNodes
+      );
+
+      // 4. 创建流程记录，只在存在工单ID时添加相关字段
+      const flowRecordData = {
         barcode,
         materialId: material._id,
         materialCode: material.FNumber,
         materialName: material.FName,
         materialSpec: material.FSpecification,
+        isProduct: craft.isProduct,
         craftId: craft._id,
         craftVersion: craft.craftVersion,
         processNodes,
@@ -64,7 +71,21 @@ class MaterialProcessFlowService {
         status: "PENDING",
         productLineId,
         productLineName,
+      };
+
+      // 根据产线ID获取对应的工单
+      const planWorkOrder = await ProductionPlanWorkOrder.findOne({
+        productionLineId: productLineId,
+        materialId: material._id,
+        status: "IN_PROGRESS",
       });
+
+      // 只有在工单ID存在时才添加到记录中
+      if (planWorkOrder) {
+        flowRecordData.productionPlanWorkOrderId = planWorkOrder._id;
+      }
+
+      const flowRecord = new MaterialProcessFlow(flowRecordData);
 
       // 5. 保存记录
       await flowRecord.save();
@@ -135,6 +156,7 @@ class MaterialProcessFlowService {
             processName: processStep.processName,
             processCode: processStep.processCode,
             processSort: processStep.sort,
+            processType: processStep.processType,
             level: 1,
             parentNodeId: rootNode.nodeId,
             craftId: craft._id,
@@ -170,6 +192,7 @@ class MaterialProcessFlowService {
                 materialSpec: material.FSpecification,
                 materialQuantity: processMaterial.quantity,
                 materialUnit: processMaterial.unit,
+                isPackingBox: processMaterial.isPackingBox,
                 level: 2,
                 barcode: "",
                 parentNodeId: processNode.nodeId,
@@ -179,6 +202,8 @@ class MaterialProcessFlowService {
                 isKeyMaterial: processMaterial.isKey,
                 scanOperation: processMaterial.scanOperation,
                 requireScan: processMaterial.scanOperation,
+                isBatch: processMaterial.isBatch,
+                batchQuantity: processMaterial.batchQuantity,
                 status: "PENDING",
               };
               nodes.push(materialNode);
@@ -293,14 +318,14 @@ class MaterialProcessFlowService {
    * @param {string} processStepId - 工序ID
    * @param {Array<{materialId: string, barcode: string}>} componentScans - 子物料扫描信息数组
    * @param {string} userId - 用户ID
-   * @param {string} productionPlanWorkOrderId - 工单ID
+   * @param {string} lineId - 产线ID
    */
   static async scanProcessComponents(
     mainBarcode,
     processStepId,
     componentScans,
     userId,
-    productionPlanWorkOrderId
+    lineId
   ) {
     // 查找主条码对应的流程记录
     const flowRecord = await MaterialProcessFlow.findOne({
@@ -329,6 +354,7 @@ class MaterialProcessFlowService {
       throw new Error("该主物料条码对应工序节点已完成或处于异常状态");
     }
 
+    //TODO
     // 检查前置工序完成状态
     const checkResult = this.checkPreviousProcessSteps(
       flowRecord.processNodes,
@@ -365,53 +391,79 @@ class MaterialProcessFlowService {
       throw new Error("存在重复扫描的条码");
     }
 
-    // 添加关键物料条码重复使用检查
+    // 添加关键物料条码重复使用和批次用量检查
     for (const scan of componentScans) {
       const matchingNode = materialNodes.find(
         (node) => node.materialId.toString() === scan.materialId.toString()
       );
 
-      if (matchingNode && matchingNode.isKeyMaterial) {
-        // 检查该条码是否已被其他流程使用
-        const existingFlows = await MaterialProcessFlow.find({
-          processNodes: {
-            $elemMatch: {
-              barcode: scan.barcode,
-              isKeyMaterial: true,
-              status: "COMPLETED",
+      if (matchingNode) {
+        // 检查批次用量限制
+        if (matchingNode.isBatch && matchingNode.batchQuantity > 0) {
+          // 查找所有使用该批次条码的记录
+          const batchUsageFlows = await MaterialProcessFlow.find({
+            processNodes: {
+              $elemMatch: {
+                barcode: scan.barcode,
+                status: "COMPLETED",
+              },
             },
-          },
-        });
+          });
 
-        if (existingFlows.length > 0) {
-          // 排除当前流程记录
-          const otherFlows = existingFlows.filter(
-            (flow) => flow.barcode !== mainBarcode
-          );
+          // 计算当前批次已使用的次数
+          const usageCount = batchUsageFlows.length;
 
-          if (otherFlows.length > 0) {
-            // 获取使用该条码的流程信息
-            const usageDetails = otherFlows.map((flow) => ({
-              mainBarcode: flow.barcode,
-              materialCode: flow.materialCode,
-              materialName: flow.materialName,
-              scanTime: flow.processNodes.find(
-                (n) => n.barcode === scan.barcode
-              )?.scanTime,
-            }));
-
+          // 如果使用次数已达到或超过批次用量限制，抛出错误
+          if (usageCount >= matchingNode.batchQuantity) {
             throw new Error(
-              `关键物料条码 ${scan.barcode} 已被其他流程使用:\n${usageDetails
-                .map(
-                  (detail) =>
-                    `- 主条码: ${detail.mainBarcode}\n  物料: ${
-                      detail.materialName
-                    }(${
-                      detail.materialCode
-                    })\n  使用时间: ${detail.scanTime?.toLocaleString()}`
-                )
-                .join("\n")}`
+              `批次物料条码 ${scan.barcode} 已达到使用次数限制(${matchingNode.batchQuantity}次)`
             );
+          }
+        }
+
+        // 原有的关键物料检查逻辑
+        if (matchingNode.isKeyMaterial) {
+          // 检查该条码是否已被其他流程使用
+          const existingFlows = await MaterialProcessFlow.find({
+            processNodes: {
+              $elemMatch: {
+                barcode: scan.barcode,
+                isKeyMaterial: true,
+                status: "COMPLETED",
+              },
+            },
+          });
+
+          if (existingFlows.length > 0) {
+            // 排除当前流程记录
+            const otherFlows = existingFlows.filter(
+              (flow) => flow.barcode !== mainBarcode
+            );
+
+            if (otherFlows.length > 0) {
+              // 获取使用该条码的流程信息
+              const usageDetails = otherFlows.map((flow) => ({
+                mainBarcode: flow.barcode,
+                materialCode: flow.materialCode,
+                materialName: flow.materialName,
+                scanTime: flow.processNodes.find(
+                  (n) => n.barcode === scan.barcode
+                )?.scanTime,
+              }));
+
+              throw new Error(
+                `关键物料条码 ${scan.barcode} 已被其他流程使用:\n${usageDetails
+                  .map(
+                    (detail) =>
+                      `- 主条码: ${detail.mainBarcode}\n  物料: ${
+                        detail.materialName
+                      }(${
+                        detail.materialCode
+                      })\n  使用时间: ${detail.scanTime?.toLocaleString()}`
+                  )
+                  .join("\n")}`
+              );
+            }
           }
         }
       }
@@ -525,16 +577,28 @@ class MaterialProcessFlowService {
       processNode
     );
 
-    console.log(productionPlanWorkOrderId, " productionPlanWorkOrderId");
+    //根据产线获取对应的工单
+    const planWorkOrder = await ProductionPlanWorkOrder.findOne({
+      productionLineId: lineId,
+      materialId: flowRecord.materialId,
+      status: "IN_PROGRESS",
+    });
+
+    //成品条码必须有生产计划
+    if (flowRecord.isProduct && !planWorkOrder) {
+      throw new Error("未查询到生产工单");
+    }
 
     // 如果是首道工序，且物料ID匹配，更新工单投入量
-    if (processPosition.isFirst) {
-      console.log(flowRecord.materialId);
-      await this.updateWorkOrderQuantity(
-        productionPlanWorkOrderId,
-        flowRecord.materialId,
-        "input"
-      );
+    if (planWorkOrder) {
+      if (processPosition.isFirst) {
+        try {
+          await this.updateWorkOrderQuantity(planWorkOrder._id, "input");
+        } catch (error) {
+          // 这里可以选择继续执行或者其他处理方式
+          throw new Error("更新工单投入量失败");
+        }
+      }
     }
 
     // 更新 processNodes 中的物料节点信息
@@ -613,16 +677,17 @@ class MaterialProcessFlowService {
       materialNode.status = "COMPLETED";
       materialNode.endTime = new Date();
     }
-
-    // 如果是末道工序且所有节点完成，更新工单产出量
-    if (processPosition.isLast && flowRecord.progress === 100) {
-      await this.updateWorkOrderQuantity(
-        productionPlanWorkOrderId,
-        flowRecord.materialId,
-        "output"
-      );
+    if (planWorkOrder) {
+      // 如果是末道工序且所有节点完成，更新工单产出量
+      if (processPosition.isLast && flowRecord.progress === 100) {
+        try {
+          await this.updateWorkOrderQuantity(planWorkOrder._id, "output");
+        } catch (error) {
+          console.warn("更新工单产出量失败:", error.message);
+          // 这里可以选择继续执行或者其他处理方式
+        }
+      }
     }
-
     // 保存更新
     await flowRecord.save();
 
@@ -1057,12 +1122,14 @@ class MaterialProcessFlowService {
    * @param {string} processStepId - 工序ID
    * @param {string} batchDocNumber - 批次单据号
    * @param {string} userId - 用户ID
+   * @param {string} lineId - 产线ID
    */
   static async scanBatchDocument(
     mainBarcode,
     processStepId,
     batchDocNumber,
-    userId
+    userId,
+    lineId
   ) {
     try {
       // 查找主条码对应的流程记录
@@ -1078,13 +1145,11 @@ class MaterialProcessFlowService {
         (node) =>
           node.processStepId &&
           node.processStepId.toString() === processStepId.toString() &&
-          node.nodeType === "PROCESS_STEP" &&
-          node.isSpecialProcess &&
-          node.batchDocRequired
+          node.nodeType === "PROCESS_STEP"
       );
 
       if (!processNode) {
-        throw new Error("未找到对应的特殊工序节点");
+        throw new Error("未找到对应的工序节点");
       }
 
       // 验证工序节点状态
@@ -1092,7 +1157,7 @@ class MaterialProcessFlowService {
         throw new Error("该工序节点已完成或处于异常状态");
       }
 
-      // 检查前置工序完成状态
+      //TODO 检查前置工序完成状态
       const checkResult = this.checkPreviousProcessSteps(
         flowRecord.processNodes,
         processNode
@@ -1105,6 +1170,36 @@ class MaterialProcessFlowService {
         throw new Error(
           `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
         );
+      }
+
+      // 在更新节点状态之前，检查是否为首道或末道工序
+      const processPosition = this.checkProcessPosition(
+        flowRecord.processNodes,
+        processNode
+      );
+
+      //根据产线获取对应的工单
+      const planWorkOrder = await ProductionPlanWorkOrder.findOne({
+        productionLineId: lineId,
+        materialId: flowRecord.materialId,
+        status: "IN_PROGRESS",
+      });
+
+      //成品条码必须有生产计划
+      if (flowRecord.isProduct && !planWorkOrder) {
+        throw new Error("未查询到生产工单");
+      }
+
+      // 如果是首道工序，且物料ID匹配，更新工单投入量
+      if (planWorkOrder) {
+        if (processPosition.isFirst) {
+          try {
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "input");
+          } catch (error) {
+            // 这里可以选择继续执行或者其他处理方式
+            throw new Error("更新工单投入量失败");
+          }
+        }
       }
 
       // 更新工序节点信息
@@ -1139,6 +1234,20 @@ class MaterialProcessFlowService {
         materialNode.endTime = new Date();
       }
 
+      //TODO && flowRecord.progress === 100
+      if (planWorkOrder && flowRecord.progress === 100) {
+        // 如果是末道工序且所有节点完成，更新工单产出量
+        // TODO
+        if (processPosition.isLast) {
+          try {
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "output");
+          } catch (error) {
+            console.warn("更新工单产出量失败:", error.message);
+            // 这里可以选择继续执行或者其他处理方式
+          }
+        }
+      }
+
       // 保存更新
       await flowRecord.save();
 
@@ -1152,33 +1261,64 @@ class MaterialProcessFlowService {
   /**
    * 更新工单数量
    * @param {string} workOrderId - 工单ID
-   * @param {string} materialId - 物料ID
    * @param {string} type - 更新类型 ('input' | 'output')
    * @param {number} quantity - 更新数量
    */
-  static async updateWorkOrderQuantity(
-    workOrderId,
-    materialId,
-    type,
-    quantity = 1
-  ) {
+  static async updateWorkOrderQuantity(workOrderId, type, quantity = 1) {
     try {
+      if (!workOrderId) {
+        console.log("未提供工单ID，跳过更新工单数量");
+        return null;
+      }
+
       const updateField = type === "input" ? "inputQuantity" : "outputQuantity";
 
-      console.log(workOrderId, " workOrderId");
-      console.log(materialId, " materialId");
       const workOrder = await mongoose
         .model("production_plan_work_order")
         .findOneAndUpdate(
-          { _id: workOrderId, materialId: materialId },
-          { $inc: { [updateField]: quantity } },
+          { _id: workOrderId },
+          {
+            $inc: { [updateField]: quantity },
+            $set: {
+              updateTime: new Date(),
+            },
+          },
           { new: true }
         );
 
       if (!workOrder) {
-        // throw new Error("未找到对应的工单");
-        console.log("未找到对应的工单");
+        console.log(`未找到工单(ID: ${workOrderId})或物料不匹配`);
+        return null;
       }
+      // 计算进度百分比
+      workOrder.progress =
+        type === "output"
+          ? Math.floor(
+              ((quantity + (workOrder?.outputQuantity || 0)) /
+                workOrder?.planQuantity) *
+                100
+            )
+          : undefined; // 投入量不影响进度
+
+      // 检查工单状态
+      if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
+        // 更新工单完成状态和时间
+        workOrder.status = "COMPLETED";
+        workOrder.endTime = new Date();
+        workOrder.progress = 100;
+        //自动开启下一个工单计划
+        const nextWorkOrders = await ProductionPlanWorkOrder.find({
+          productionLineId: workOrder.productionLineId,
+          materialId: workOrder.materialId,
+          status: "PENDING",
+        }).sort({ planStartTime: 1 });
+        if (nextWorkOrders.length > 0) {
+          nextWorkOrders[0].status = "IN_PROGRESS";
+          await nextWorkOrders[0].save();
+        }
+      }
+
+      await workOrder.save();
 
       return workOrder;
     } catch (error) {
@@ -1186,7 +1326,7 @@ class MaterialProcessFlowService {
         `更新工单${type === "input" ? "投入" : "产出"}数量失败:`,
         error
       );
-      throw error;
+      return null;
     }
   }
 

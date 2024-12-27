@@ -22,6 +22,7 @@ var processStepSchema = new mongoose.Schema({
 
     // 批次单相关
     batchDocRequired: { type: Boolean, default: false }, // 是否需要批次单据
+    batchDocType: { type: String }, // 批次单据类型
 
     remark: { type: String }, // 备注
     createBy: { type: String }, // 创建人pp

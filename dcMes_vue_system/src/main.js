@@ -40,6 +40,11 @@ import {resetForm, parseTime} from "@/utils/tool"; // global filters
 
 import { requestK3Data } from "@/api/K3Data";
 
+import HiPrint from 'vue-plugin-hiprint'
+
+Vue.use(HiPrint)
+
+
 // 将自动注册所有组件为全局组件
 
 DictData.install()

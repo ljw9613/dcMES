@@ -129,8 +129,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" width="180" fixed="right">
+                <el-table-column label="操作" width="200" fixed="right">
                     <template slot-scope="scope">
+                        <el-button type="text" size="small" @click="handleRefresh(scope.row)">
+                            <i class="el-icon-refresh"></i> 刷新
+                        </el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
@@ -151,6 +154,7 @@
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
+import { refreshMachine } from "@/api/machine";
 
 export default {
     name: 'machine',
@@ -266,6 +270,13 @@ export default {
             this.dialogStatus = 'create'
             this.dataForm = {}  // 清空表单数据
             this.dialogFormVisible = true  // 显示对话框
+        },
+        handleRefresh(row) {
+            console.log(row);
+            refreshMachine({ machineIds: [row._id] }).then(res => {
+                console.log(res);
+                this.$message.success('设备在线状态刷新成功');
+            });
         },
 
         async handleEdit(row) {

@@ -122,8 +122,8 @@
                         </div>
                     </template>
                 </zr-select>
-                <!-- <el-button type="primary" @click="handleOneKeyProduction()"
-                    :disabled="!form.currentMaterial">一键生产</el-button> -->
+                <el-button type="primary" @click="handleOneKeyProduction()"
+                    :disabled="!form.currentMaterial">一键生产</el-button>
             </el-form-item>
         </el-form>
 
@@ -132,8 +132,8 @@
             <el-button @click="handleClose">取 消</el-button>
             <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确 定</el-button>
         </div>
-        <work-dialog v-if="workDialogVisible" :visible.sync="workDialogVisible" :material-id="form.currentMaterial"
-            :work-table-data="workTableData" />
+        <work-dialog v-if="workDialogVisible" :line-id="form._id" :visible.sync="workDialogVisible"
+            :material-id="form.currentMaterial" :work-table-data="workTableData" />
     </el-dialog>
 </template>
 
@@ -230,9 +230,9 @@ export default {
 
                 //过滤有绑定设备的工序 当前产线工序
                 // let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form._id)
-                let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form._id)
+                // let machineProcessSteps = processSteps.filter(item => item.machineId )
 
-                this.workTableData = machineProcessSteps
+                this.workTableData = processSteps
                 console.log(this.workTableData, 'this.workTableData')
                 this.workDialogVisible = true
             } catch (error) {

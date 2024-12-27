@@ -156,7 +156,7 @@ export default {
     methods: {
         async initWebSocket() {
             try {
-                this.websocket = new WebSocket(this.wsUrl)
+                this.websocket = new WebSocket(process.env.VUE_APP_TSC_WS_ADDRESS)
                 this.websocket.onopen = this.handleWsOpen
                 this.websocket.onclose = this.handleWsClose
                 this.websocket.onmessage = this.handleWsMessage

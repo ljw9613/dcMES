@@ -17,6 +17,9 @@ var craftSchema = new mongoose.Schema({
     componentName: { type: String }, // 组件名称
     productName: { type: String }, // 产品型号
     materialCode: { type: String }, // 产品编码
+
+    //是否成品工艺
+    isProduct: { type: Boolean },//是否成品工艺
     // 工艺参数
     craftParams: [{
         paramName: { type: String }, // 参数名称

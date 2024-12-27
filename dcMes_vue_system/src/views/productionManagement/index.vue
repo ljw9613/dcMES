@@ -344,6 +344,9 @@ export default {
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.sort = {
+                    FDate: -1
+                };
                 req.count = true;
                 const result = await getData("k3_PRD_MO", req);
                 this.tableList = result.data;
@@ -624,7 +627,7 @@ export default {
                                 "Logic": 0
                             },
                             {
-                                "FieldName": "FApproveDate",
+                                "FieldName": "FCreateDate",
                                 "Compare": ">",
                                 "Value": `${startDate} 00:00:00`,
                                 "Left": "",
@@ -632,7 +635,7 @@ export default {
                                 "Logic": 0
                             },
                             {
-                                "FieldName": "FApproveDate",
+                                "FieldName": "FCreateDate",
                                 "Compare": "<",
                                 "Value": `${endDate} 23:59:59`,
                                 "Left": "",
@@ -702,12 +705,12 @@ export default {
                                     });
                                     break;
                                 case 'completed':
-                                    this.$message.success(`销售订单同步完成！`);
+                                    this.$message.success(`生产订单同步完成！`);
                                     this.stopSyncProgressCheck();
                                     this.fetchData();
                                     break;
                                 case 'no_task':
-                                    this.$message.success(`同步完成！`);
+                                    this.$message.success(`生产订单同步完成！`);
                                     this.stopSyncProgressCheck();
                                     this.fetchData();
                                     break;

@@ -1,6 +1,10 @@
 <template>
     <el-dialog title="生产工序设备确认" append-to-body :visible.sync="dialogVisible" width="50%" @close="handleClose">
-        <el-table :data="workTableData" style="width: 100%">
+        <div class="filter-container">
+            <el-checkbox v-model="filterHasMachine">已绑定设备</el-checkbox>
+            <el-checkbox v-model="filterCurrentLine">当前产线设备</el-checkbox>
+        </div>
+        <el-table :data="filteredTableData" style="width: 100%">
             <el-table-column v-for="item in workColumns" :key="item.prop" :prop="item.prop" :label="item.label">
                 <template slot-scope="scope">
                     <span>
@@ -8,7 +12,7 @@
                     </span>
                 </template>
             </el-table-column>
-            <el-table-column prop="machineId" label="设备信息">
+            <el-table-column prop="machineId" label="设备信息" width="200">
                 <template slot-scope="scope">
                     <span :class="{ 'error-row': !scope.row.machineId }">
                         <template v-if="scope.row.machineId">
@@ -22,7 +26,7 @@
                     </span>
                 </template>
             </el-table-column>
-            <el-table-column prop="machineId.status" label="设备在线状态">
+            <el-table-column prop="machineId.status" label="在线状态">
                 <template slot-scope="scope">
                     <span :class="{ 'error-row': !scope.row.machineId }">
                         <template v-if="scope.row.machineId">
@@ -56,7 +60,7 @@ export default {
             type: String,
             default: ''
         },
-        productionPlanWorkOrderId: {
+        lineId: {
             type: String,
             default: ''
         },
@@ -71,6 +75,8 @@ export default {
     },
     data() {
         return {
+            filterCurrentLine: true,
+            filterHasMachine: true,
             workColumns: [
                 { prop: 'processName', label: '工序名称' },
                 { prop: 'processCode', label: '工序编号' },
@@ -86,6 +92,19 @@ export default {
             set(value) {
                 this.$emit('update:visible', value)
             }
+        },
+        filteredTableData() {
+            let data = [...this.workTableData];
+            
+            if (this.filterCurrentLine && this.lineId) {
+                data = data.filter(item => (item.machineId && item.machineId.lineId) === this.lineId);
+            }
+            
+            if (this.filterHasMachine) {
+                data = data.filter(item => item.machineId);
+            }
+            
+            return data;
         }
     },
     watch: {
@@ -99,11 +118,11 @@ export default {
             this.dialogVisible = false
         },
         refreshMachineStatus() {
-            if (!this.workTableData.length) {
+            if (!this.filteredTableData.length) {
                 this.$message.warning('请先选择工序')
                 return
             }
-            let machineIds = this.workTableData.map(item => item.machineId && item.machineId._id)
+            let machineIds = this.filteredTableData.map(item => item.machineId && item.machineId._id)
 
             if (!machineIds.length) {
                 this.$message.warning('当前无可刷新设备')
@@ -117,9 +136,15 @@ export default {
         },
         async confirmWork() {
             try {
+                //当工序有重复设备时，提醒报错让他重新编辑工艺
+                let machineIds = this.filteredTableData.map(item => item.machineId && item.machineId._id)
+                if (machineIds.length !== new Set(machineIds).size) {
+                    this.$message.error('工序有重复设备，请重新编辑工艺')
+                    return
+                }
 
-                for (let index = 0; index < this.workTableData.length; index++) {
-                    const element = this.workTableData[index];
+                for (let index = 0; index < this.filteredTableData.length; index++) {
+                    const element = this.filteredTableData[index];
                     console.log(element)
                     if (element.machineId && element.machineId._id) {
                         await updateData('machine', {
@@ -129,7 +154,6 @@ export default {
                             update: {
                                 processStepId: element._id,
                                 materialId: this.materialId,
-                                productionPlanWorkOrderId: this.productionPlanWorkOrderId
                             }
                         })
                     }
@@ -148,5 +172,11 @@ export default {
 <style lang="scss" scoped>
 .error-row {
     color: #F56C6C;
+}
+.filter-container {
+    margin-bottom: 15px;
+    .el-checkbox {
+        margin-right: 20px;
+    }
 }
 </style>

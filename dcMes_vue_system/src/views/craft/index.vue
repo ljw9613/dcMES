@@ -240,6 +240,16 @@
                         </el-form-item>
                     </el-col>
                 </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-form-item label="成品工艺" prop="isProduct">
+                            <el-select v-model="craftForm.isProduct" placeholder="请选择是否成品工艺" style="width: 100%">
+                                <el-option label="是" :value="true" />
+                                <el-option label="否" :value="false" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
             </el-form>
 
             <!-- 工序列表 -->
@@ -247,8 +257,8 @@
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">工序管理列表</i>
                     <div>
-                        <!-- <el-button type="warning" v-if="hasOneKeyProductionPermission"
-                            @click="handleWork">一键生产</el-button> -->
+                        <el-button type="warning" v-if="hasOneKeyProductionPermission"
+                            @click="handleWork">一键生产</el-button>
                         <el-button type="primary" @click="handleAddProcess">新增工序</el-button>
                     </div>
                 </div>
@@ -364,29 +374,21 @@
                     <el-col :span="12">
                         <el-form-item label="选择设备" prop="machineId">
                             <zr-select v-model="processForm.machineId" collection="machine"
-                                :search-fields="['machineCode', 'machineName']" label-key="machineName"
+                                :search-fields="['machineCode', 'machineName', 'machineIp']" label-key="machineName"
                                 sub-key="machineCode" :multiple="false" placeholder="请输入设备编号/名称搜索"
                                 @select="handleMachineSelect">
                                 <template #option="{ item }">
                                     <div class="item-option">
                                         <div class="item-info">
                                             <span class="name">{{ item.machineName }}</span>
-                                            <el-tag size="mini" type="info">{{ item.machineCode || '--' }}</el-tag>
-                                        </div>
-                                        <div class="sub-info">
-                                            <small>{{ item.principal }}</small>
+                                            <el-tag size="mini" type="info">{{ item.machineIp || '--' }}</el-tag>
                                         </div>
                                     </div>
                                 </template>
                             </zr-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="绑定批次单" prop="batchDocRequired">
-                            <el-switch v-model="processForm.batchDocRequired" :active-value="true"
-                                :inactive-value="false" />
-                        </el-form-item>
-                    </el-col>
+
                 </el-row>
             </el-form>
 
@@ -429,9 +431,19 @@
                             </el-switch>
                         </template>
                     </el-table-column>
+
+                    <el-table-column label="是否组件" prop="isComponent"></el-table-column>
                     <el-table-column label="是否组件" prop="isComponent">
                         <template slot-scope="scope">
                             <el-switch v-model="scope.row.isComponent" :active-value="true" :inactive-value="false"
+                                disabled>
+                            </el-switch>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column label="是否包装箱" prop="isPackingBox">
+                        <template slot-scope="scope">
+                            <el-switch v-model="scope.row.isPackingBox" :active-value="true" :inactive-value="false"
                                 disabled>
                             </el-switch>
                         </template>
@@ -543,15 +555,30 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="批次物料">
-                            <el-switch v-model="materialForm.isBatch" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
                         <el-form-item label="关键物料">
                             <el-switch v-model="materialForm.isKey" />
                         </el-form-item>
                     </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="是否包装箱">
+                            <el-switch v-model="materialForm.isPackingBox" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="批次物料">
+                            <el-switch v-model="materialForm.isBatch" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12" v-if="materialForm.isBatch">
+                        <el-form-item label="批次用量" prop="batchQuantity">
+                            <el-input-number v-model="materialForm.batchQuantity" :min="0" :precision="2" :step="1"
+                                style="width: 100%" />
+                            <template v-if="materialForm.batchQuantity === 0">
+                                <p style="color: #999;">批次用量为0时无限制</p>
+                            </template>
+                        </el-form-item>
+                    </el-col>
+                    
                 </el-row>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -601,6 +628,7 @@ export default {
                 componentName: '', // 组件名称
                 productName: '',   // 产品型号
                 materialCode: '',  // 物料代码
+                isProduct: '',    // 是否成品工艺
             },
             // 工艺表单验证规则
             rules: {
@@ -612,6 +640,9 @@ export default {
                 ],
                 craftType: [
                     { required: true, message: '请选择工艺类型', trigger: 'change' }
+                ],
+                isProduct: [
+                    { required: true, message: '请选择是否成品工艺', trigger: 'change' }
                 ]
             },
             // 工序表单数据
@@ -628,7 +659,6 @@ export default {
                 status: 'CREATE',  // 状态
                 materials: [],     // 工序物料清单
                 remark: '',        // 备注
-                batchDocRequired: false, // 是否需要批次单
                 sort: 1            // 工序次序
             },
 
@@ -976,6 +1006,29 @@ export default {
                             processSteps: processSteps
                         };
 
+                        //如果是成品工艺 检查工序里是否有装箱工序 工序类型为E  是否有托盘工序 工序类型为F
+                        if (this.craftForm.isProduct) {
+                            const hasPackingProcess = processTableData.data.some(process => process.processType === 'E');
+                            const hasTrayProcess = processTableData.data.some(process => process.processType === 'F');
+                            if (!hasTrayProcess) {
+                                this.$notify({
+                                    title: '警告',
+                                    message: '当前成品工艺未包含托盘工序',
+                                    type: 'error'
+                                });
+                            }
+                            if (!hasPackingProcess) {
+                                this.$nextTick(() => {
+                                    this.$notify({
+                                        title: '警告',
+                                        message: '当前成品工艺未包含装箱工序',
+                                        type: 'warning'
+                                    });
+                                });
+                            }
+                        }
+
+
                         // 删除不需要的字段
                         delete craftData.selectedMaterial;
 
@@ -1169,7 +1222,6 @@ export default {
                     processType: '',
                     businessType: '',
                     status: 'CREATE',
-                    batchDocRequired: false, // 是否需要批次单
                     materials: [],
                     remark: '',
                     sort: nextSort
@@ -1281,7 +1333,7 @@ export default {
 
                         // 获取当前物料列表的ID数组
                         const materialIds = this.materialTableData.tableList.map(material => material._id.toString());
-                        if (this.processForm.processType !== 'P_INSPECTION' && materialIds.length === 0) {
+                        if (this.processForm.processType !== 'P_INSPECTION' && this.processForm.processType !== 'F' && materialIds.length === 0) {
                             this.$message.warning('请先添加物料');
                             return;
                         }
@@ -1397,6 +1449,8 @@ export default {
                     scanOperation: Boolean(currentMaterial.scanOperation),
                     isComponent: Boolean(currentMaterial.isComponent),
                     isBatch: Boolean(currentMaterial.isBatch),
+                    isPackingBox: Boolean(currentMaterial.isPackingBox),
+                    batchQuantity: currentMaterial.batchQuantity || 0,
                     isKey: Boolean(currentMaterial.isKey)
                 };
 
@@ -1485,7 +1539,9 @@ export default {
                             unit: this.materialForm.unit,
                             scanOperation: this.materialForm.scanOperation,
                             isComponent: this.materialForm.isComponent,
+                            isPackingBox: this.materialForm.isPackingBox,
                             isBatch: this.materialForm.isBatch,
+                            batchQuantity: this.materialForm.batchQuantity,
                             isKey: this.materialForm.isKey,
                             createBy: this.$store.getters.name
                         };

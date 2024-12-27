@@ -130,7 +130,7 @@ class WebSocketManager {
   _handleMessage(userId, message) {
     try {
       const data = JSON.parse(message);
-      console.log(`收到来自 ${userId} 的消息:`, data);
+      // console.log(`收到来自 ${userId} 的消息:`, data);
 
       // 这里可以添加消息处理逻辑
     } catch (error) {

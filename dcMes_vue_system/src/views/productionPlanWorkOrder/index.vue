@@ -139,7 +139,6 @@
                     <i class="el-icon-tickets">生产管理列表</i>
                 </div>
             </div>
-
         </div>
 
         <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
@@ -211,6 +210,12 @@
                     </template>
                 </el-table-column>
 
+                <el-table-column label="计划生产数量" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.planProductionQuantity }}
+                    </template>
+                </el-table-column>
+
                 <el-table-column label="投入数量" width="100">
                     <template slot-scope="scope">
                         {{ scope.row.inputQuantity }}
@@ -220,6 +225,13 @@
                 <el-table-column label="产出数量" width="100">
                     <template slot-scope="scope">
                         {{ scope.row.outputQuantity }}
+                    </template>
+                </el-table-column>
+
+                <!-- 计划状态 -->
+                <el-table-column label="计划状态" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.status }}
                     </template>
                 </el-table-column>
 
@@ -386,6 +398,7 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.count = true;
+
                 const result = await getData("production_plan_work_order", req);
                 this.tableList = result.data;
                 this.total = result.countnum;

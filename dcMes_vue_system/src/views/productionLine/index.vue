@@ -55,9 +55,8 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
-                <el-table-column type="selection" width="55" />
 
-                <el-table-column label="产线编码" align="center" prop="lineCode" width="120">
+                <el-table-column label="产线编码" align="center" prop="lineCode">
                     <template slot-scope="scope">
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.lineCode }}</el-link>
                     </template>
@@ -85,11 +84,6 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="节拍时间" width="100">
-                    <template slot-scope="scope">
-                        {{ scope.row.cycleTime || '-' }} 秒
-                    </template>
-                </el-table-column>
 
                 <el-table-column label="所属车间" align="center" prop="workshop" width="120" />
 
@@ -101,8 +95,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" width="180" fixed="right">
+                <el-table-column label="操作" width="250" fixed="right">
                     <template slot-scope="scope">
+                        <el-button type="text" size="small" @click="handleRefresh(scope.row)">
+                            <i class="el-icon-refresh"></i> 设备刷新
+                        </el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
@@ -123,6 +120,8 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
 import { query } from "quill";
+import { refreshMachine } from "@/api/machine";
+
 
 export default {
     name: 'ProductionLine',
@@ -273,6 +272,25 @@ export default {
             this.dataForm = JSON.parse(JSON.stringify(row));
             this.dialogStatus = 'view';
             this.dialogFormVisible = true;
+        },
+        async handleRefresh(row) {
+            this.$confirm('确认要刷新设备吗?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(async () => {
+                console.log(row);
+                let machineData = await getData("machine", { query: { lineId: row._id } });
+                let machineIds = machineData.data.map(item => item._id)
+                if (!machineIds.length) {
+                    this.$message.warning('当前产线无可刷新设备');
+                    return;
+                }
+                await refreshMachine({ machineIds: machineIds })
+                this.$message.success('设备在线状态刷新成功');
+            }).catch(() => {
+                this.$message.info('已取消刷新');
+            });
         },
 
         handleEdit(row) {

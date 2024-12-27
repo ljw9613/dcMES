@@ -32,7 +32,9 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
     }, // 业务类型
     
     // 数量信息
-    planQuantity: { type: Number, required: true }, // 计划数量
+    planQuantity: { type: Number, required: true, default: 0 }, // 计划数量
+    //计划生产数量
+    planProductionQuantity: { type: Number, default: 0 },
     inputQuantity: { type: Number, default: 0 }, // 投入数量
     outputQuantity: { type: Number, default: 0 }, // 产出数量
     

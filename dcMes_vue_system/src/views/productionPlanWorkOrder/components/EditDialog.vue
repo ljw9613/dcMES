@@ -97,19 +97,27 @@
             </el-row>
 
             <el-row :gutter="20">
-                <el-col :span="8">
-                    <el-form-item label="计划数量" prop="planQuantity">
+                <el-col :span="12">
+                    <el-form-item label="生产数量" prop="planQuantity">
                         <el-input-number v-model="form.planQuantity" :min="0" controls-position="right"
                             style="width: 100%"></el-input-number>
                     </el-form-item>
                 </el-col>
-                <el-col :span="8">
+                <el-col :span="12">
+                    <el-form-item label="工单数量" prop="planProductionQuantity">
+                        <el-input-number v-model="form.planProductionQuantity" :min="0" controls-position="right"
+                            style="width: 100%"></el-input-number>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row :gutter="20">
+                <el-col :span="12">
                     <el-form-item label="投入数量" prop="inputQuantity">
                         <el-input-number v-model="form.inputQuantity" :min="0" controls-position="right"
                             style="width: 100%"></el-input-number>
                     </el-form-item>
                 </el-col>
-                <el-col :span="8">
+                <el-col :span="12">
                     <el-form-item label="产出数量" prop="outputQuantity">
                         <el-input-number v-model="form.outputQuantity" :min="0" controls-position="right"
                             style="width: 100%"></el-input-number>
@@ -160,7 +168,8 @@
             <el-button @click="handleClose">取 消</el-button>
             <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确 定</el-button>
         </div>
-        <work-dialog v-if="workDialogVisible && dialogStatus === 'edit'" :visible.sync="workDialogVisible" :material-id="form.materialId" :productionPlanWorkOrderId="form._id"
+        <work-dialog v-if="workDialogVisible && dialogStatus === 'edit'" :line-id="form.productionLineId"
+            :visible.sync="workDialogVisible" :material-id="form.materialId" :productionPlanWorkOrderId="form._id"
             :work-table-data="workTableData" />
     </el-dialog>
 </template>
@@ -207,6 +216,7 @@ export default {
                 lineName: '',
                 businessType: 'NORMAL',
                 planQuantity: 0,
+                planProductionQuantity: 0,
                 inputQuantity: 0,
                 outputQuantity: 0,
                 planStartTime: '',
@@ -222,6 +232,7 @@ export default {
                 productionLineId: [{ required: true, message: '请选择产线', trigger: 'change' }],
                 businessType: [{ required: true, message: '请选择业务类型', trigger: 'change' }],
                 planQuantity: [{ required: true, message: '请输入计划数量', trigger: 'blur' }],
+                planProductionQuantity: [{ required: true, message: '请输入计划生产数量', trigger: 'blur' }],
                 planStartTime: [{ required: true, message: '请选择计划开始时间', trigger: 'change' }],
                 planEndTime: [{ required: true, message: '请选择计划结束时间', trigger: 'change' }]
             },
@@ -282,9 +293,9 @@ export default {
 
                 //过滤有绑定设备的工序 当前产线工序
                 // let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form._id)
-                let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form.productionLineId)
+                // let machineProcessSteps = processSteps.filter(item => item.machineId && item.machineId.lineId == this.form.productionLineId)
 
-                this.workTableData = machineProcessSteps
+                this.workTableData = processSteps
                 console.log(this.workTableData, 'this.workTableData')
                 this.workDialogVisible = true
             } catch (error) {
@@ -311,6 +322,7 @@ export default {
                     lineName: '',
                     businessType: 'NORMAL',
                     planQuantity: 0,
+                    planProductionQuantity: 0,
                     inputQuantity: 0,
                     outputQuantity: 0,
                     planStartTime: '',
@@ -381,6 +393,7 @@ export default {
             this.$refs.form && this.$refs.form.resetFields()
         },
         handleSubmit() {
+
             this.$refs.form.validate(async valid => {
                 if (valid) {
                     this.submitLoading = true
@@ -397,7 +410,32 @@ export default {
                 }
             })
         },
-        handleStartProduction() {
+        async handleStartProduction() {
+
+            // 工单数量 大于 0 小于等于 计划生产数量
+            if (this.form.planProductionQuantity <= 0 || this.form.planProductionQuantity > this.form.planQuantity) {
+                this.$message.error('计划生产数量不正确')
+                return
+            }
+
+            const { data: inProgressWorkOrders } = await getData('production_plan_work_order', {
+                query: {
+                    productionLineId: this.form.productionLineId,
+                    status: 'IN_PROGRESS'
+                }
+            })
+
+            // 工单数量 大于 0 小于等于 计划生产数量
+            if (this.form.planProductionQuantity <= 0 || this.form.planProductionQuantity > this.form.planQuantity) {
+                this.$message.error('计划生产数量不正确')
+                return
+            }
+
+            if (inProgressWorkOrders.length) {
+                this.$message.error('当前产线存在进行中的工单，无法开始新的工单')
+                return
+            }
+
             this.$confirm('确认开始生产该工单?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',

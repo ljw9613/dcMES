@@ -81,22 +81,6 @@
 
             <el-row :gutter="20" v-if="dialogStatus === 'edit'">
                 <el-col :span="12">
-
-                    <!-- 当前生成工单 -->
-                    <el-form-item label="当前生产工单">
-                        <zr-select disabled v-model="form.productionPlanWorkOrderId"
-                            collection="production_plan_work_order" :search-fields="['workOrderNo', 'workOrderName']"
-                            label-key="workOrderNo" sub-key="planQuantity" :multiple="false" placeholder="请输入工单编号/名称搜索"
-                            @select="handleProductChange">
-                            <template #option="{ item }">
-                                <div class="item-option">
-                                    <div class="item-info">
-                                        <span>{{ item.workOrderNo }} - {{ item.planQuantity }}</span>
-                                    </div>
-                                </div>
-                            </template>
-                        </zr-select>
-                    </el-form-item>
                     <el-form-item label="产品型号">
                         <zr-select disabled v-model="form.materialId" collection="k3_BD_MATERIAL"
                             :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"

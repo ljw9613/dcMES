@@ -11,6 +11,7 @@ let config = require("./libs/config");
 var expressJwt = require("express-jwt");
 
 let app = express();
+app.set('trust proxy', true);
 app.use(
   bodyParser.json({
     limit: "100mb",
@@ -108,7 +109,7 @@ const uploadAvatarRouter = require("./routes/uploadAvatar");
 app.use("/", uploadAvatarRouter);
 app.use("/", require("./routes/wsManage"));
 app.use("/", require("./routes/machineProgress"));
-
+app.use('/', require('./routes/materialPalletizing'));
 // 初始化定时任务
 const initSchedule = require("./config/schedule");
 // 初始化定时任务

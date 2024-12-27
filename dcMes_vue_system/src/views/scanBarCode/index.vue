@@ -69,15 +69,6 @@
                             <el-input v-else v-model="formData.lineName" placeholder="请输入产线信息搜索"
                                 :disabled="!!mainMaterialId && !!processStepId" />
                         </el-form-item>
-
-                        <el-form-item label="当前工单">
-                            <zr-select v-if="!mainMaterialId" :disabled="!!mainMaterialId && !!processStepId"
-                                v-model="formData.workProductionPlanWorkOrderId" collection="production_plan_work_order"
-                                :search-fields="['workOrderNo']" label-key="workOrderNo" sub-key="planQuantity"
-                                :multiple="false" placeholder="请输入工单编号/名称搜索" @select="handleWorkOrderSelect" />
-                            <el-input v-else v-model="formData.workProductionPlanWorkOrderNo" placeholder="请输入工单编号"
-                                :disabled="!!mainMaterialId && !!processStepId" />
-                        </el-form-item>
                     </div>
 
                     <!-- 按钮部分 -->
@@ -172,7 +163,10 @@
                                                     <i class="el-icon-full-screen"></i>
                                                 </template>
                                                 <template slot="suffix" v-if="material.isBatch">
-                                                    <el-tag type="warning">批次物料</el-tag>
+                                                    <el-tag type="warning" v-if="material.batchQuantity">
+                                                        {{ getBatchUsageText(material._id) }}
+                                                    </el-tag>
+                                                    <el-tag type="warning" v-else>批次物料</el-tag>
                                                 </template>
                                             </el-input>
                                             <div class="status-indicator"
@@ -230,6 +224,8 @@ import smcg from "@/assets/tone/smcg.mp3";
 import tmyw from "@/assets/tone/tmyw.mp3";
 import bdcg from "@/assets/tone/bdcg.mp3";
 import cfbd from "@/assets/tone/cfbd.mp3";
+import pcwlxz from "@/assets/tone/pcwlxz.mp3";
+import cxwgd from "@/assets/tone/cxwgd.mp3";
 import TscPrinter from '@/components/tscInput'
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
@@ -285,12 +281,13 @@ export default {
             printDialogVisible: false,
             currentBatchBarcode: '', // 当前要打印的批次条码
             autoPrint: false, // 添加自动打印开关状态
-            isCollapsed: false, // 添加控制折叠状态的变量
+            isCollapsed: false, // 添加控���折叠状态的变量
             websocketConnected: false, // 添加WebSocket连接状态
             ws: null, // WebSocket实例
             heartbeatTimer: null, // 心跳定时器
             reconnectAttempts: 0, // 添加重连尝试次数计数
             maxReconnectAttempts: 5, // 最大重连尝试次数
+            batchUsageCount: {}, // 新增：用于记录批次物料的使用次数
         }
     },
     computed: {
@@ -437,10 +434,11 @@ export default {
                         this.formData.workProductionPlanWorkOrderNo = productionPlanWorkOrderId && productionPlanWorkOrderId.workOrderNo;
                         this.workProductionPlanWorkOrderId = productionPlanWorkOrderId && productionPlanWorkOrderId._id;
                         this.workProductionPlanWorkOrderNo = productionPlanWorkOrderId && productionPlanWorkOrderId.workOrderNo;
-                        // 更新名称信息
+                        // 更新���称信息
                         this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
                         this.processName = processStepId.processName;
                         if (lineId) {
+                            this.productLineId = lineId._id;
                             this.productLineName = lineId.lineName;
                             this.formData.lineName = lineId.lineName;
                         }
@@ -618,20 +616,21 @@ export default {
 
         // 保存按钮处理
         async handleSave() {
-            if (!this.formData.productModel || !this.formData.processStep || !this.formData.productLine || !this.formData.workProductionPlanWorkOrderId) {
-                this.$message.warning('请选择产品型号、工序、产线和工单');
+            if (!this.formData.productModel || !this.formData.processStep || !this.formData.productLine) {
+                this.$message.warning('请选择产品型号、工序和产线');
                 return;
             }
 
-            // 创建全屏加载
-            const loading = this.$loading({
-                lock: true,
-                text: '保存中...',
-                spinner: 'el-icon-loading',
-                background: 'rgba(0, 0, 0, 0.7)'
-            });
-
+            // 工单可以为空，不强制验证
             try {
+                // 创建全屏加载
+                const loading = this.$loading({
+                    lock: true,
+                    text: '保存中...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
                 // 重置之前的数据
                 this.resetScanForm();
 
@@ -639,8 +638,6 @@ export default {
                 this.mainMaterialId = this.formData.productModel;
                 this.processStepId = this.formData.processStep;
                 this.productLineId = this.formData.productLine;
-                this.workProductionPlanWorkOrderId = this.formData.workProductionPlanWorkOrderId;
-                this.workProductionPlanWorkOrderNo = this.formData.workProductionPlanWorkOrderNo;
 
                 // 获取并保存物料名称
                 const material = await this.getMaterialById(this.formData.productModel);
@@ -654,11 +651,6 @@ export default {
                     this.processName = processStep.processName;
                 }
 
-                // 获取并保存工单名称
-                const workProductionPlanWorkOrder = await this.getWorkProductionPlanWorkOrderById(this.formData.workProductionPlanWorkOrderId);
-                if (workProductionPlanWorkOrder) {
-                    this.workProductionPlanWorkOrderNo = workProductionPlanWorkOrder.workOrderNo;
-                }
 
                 this.$message.success('保存成功');
 
@@ -709,7 +701,7 @@ export default {
             try {
                 console.log('正在获取工序信息，ID:', this.processStepId);
 
-                // 获取工序信息
+                // 获��工序信息
                 const stepResponse = await getData('processStep', {
                     query: { _id: this.processStepId },
                     page: 1,
@@ -977,7 +969,7 @@ export default {
                         materialCode: this.workmainMaterialCode,  // 使用工序对应的主物料编码
                         barcode,
                         productLineId: this.productLineId,
-                        productLineName: this.productLineName
+                        productLineName: this.productLineName,
                     });
 
                     if (createResponse.code === 200) {
@@ -1038,11 +1030,7 @@ export default {
                 this.formData.lineName = this.productLineName;
             }
 
-            // 添加工单信息的填充
-            if (this.workProductionPlanWorkOrderId && this.workProductionPlanWorkOrderNo) {
-                this.formData.workProductionPlanWorkOrderId = this.workProductionPlanWorkOrderId;
-                this.formData.workProductionPlanWorkOrderNo = this.workProductionPlanWorkOrderNo;
-            }
+
         },
 
         // 修改重置扫码表单方法
@@ -1052,13 +1040,19 @@ export default {
 
             this.processMaterials.forEach(material => {
                 if (material.isBatch) {
-                    // 从缓存中获取批次物料的条码
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                    const usageKey = `${cacheKey}_usage`;
                     const cachedBarcode = localStorage.getItem(cacheKey);
-                    if (cachedBarcode) {
+                    const currentUsage = parseInt(localStorage.getItem(usageKey) || '0');
+
+                    // 只有当设置了 batchQuantity 且超过限制时才清除缓存
+                    if (!material.batchQuantity || (cachedBarcode && currentUsage < material.batchQuantity)) {
                         newBarcodes[material._id] = cachedBarcode;
                         this.$set(this.validateStatus, material._id, true);
                     } else {
+                        // 如果使用次数已达到限制，清除缓存
+                        localStorage.removeItem(cacheKey);
+                        localStorage.removeItem(usageKey);
                         newBarcodes[material._id] = '';
                         this.$set(this.validateStatus, material._id, false);
                     }
@@ -1134,16 +1128,49 @@ export default {
                     if (!matched) {
                         for (const material of this.processMaterials) {
                             if (material.materialCode === materialCode) {
+                                // 如果是批次物料
+                                if (material.isBatch) {
+                                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                                    const usageKey = `${cacheKey}_usage`;
+                                    const cachedBarcode = localStorage.getItem(cacheKey);
+
+                                    // 如果扫描的是新的批次条码
+                                    if (cachedBarcode !== value) {
+                                        // 查询新批次条码的使用次数
+                                        const count = await this.queryBatchUsageCount(value, material._id);
+
+                                        // 如果设置了使用次数限制且已达到限制
+                                        if (material.batchQuantity && count >= material.batchQuantity) {
+                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
+                                            tone(pcwlxz);
+                                            return;
+                                        }
+
+                                        // 更新缓存和使用次数
+                                        localStorage.setItem(cacheKey, value);
+                                        localStorage.setItem(usageKey, count.toString());
+                                        this.$set(this.batchUsageCount, material._id, count);
+                                    } else {
+                                        // 使用现有批次条码
+                                        const currentUsage = parseInt(localStorage.getItem(usageKey) || '0');
+
+                                        // 只有当达到使用限制时才清除
+                                        if (material.batchQuantity && currentUsage >= material.batchQuantity) {
+                                            localStorage.removeItem(cacheKey);
+                                            localStorage.removeItem(usageKey);
+                                            this.$set(this.scanForm.barcodes, material._id, '');
+                                            this.$set(this.validateStatus, material._id, false);
+                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
+                                            tone(pcwlxz);
+                                            return;
+                                        }
+                                    }
+                                }
+
                                 this.$set(this.scanForm.barcodes, material._id, value);
                                 this.$set(this.validateStatus, material._id, true);
 
-                                // 如果是批次物料,保存到缓存
-                                if (material.isBatch) {
-                                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                                    localStorage.setItem(cacheKey, value);
-                                }
-
-                                // 再处理子物料条码
+                                // 处理子物料条码
                                 await this.handleSubBarcode(material._id, materialCode);
 
                                 tone(smcg);
@@ -1260,7 +1287,7 @@ export default {
                     }
                 });
 
-                // 只清除工序相关的localStorage,保留产线相关的缓存
+                // 只清除工序相关��localStorage,保留产线相关的缓存
                 localStorage.removeItem('mainMaterialId');
                 localStorage.removeItem('processStepId');
                 localStorage.removeItem('materialName');
@@ -1324,11 +1351,11 @@ export default {
                 if (!response.data || response.data.length === 0) {
                     try {
                         const createResponse = await createFlow({
-                            mainMaterialId: this.workmainMaterialId,  // 使用工序对应的主物料ID
-                            materialCode: this.workmainMaterialCode,  // 使用工序对应的主物料编码
+                            mainMaterialId: this.workmainMaterialId,
+                            materialCode: this.workmainMaterialCode,
                             barcode: this.scanForm.mainBarcode,
                             productLineId: this.productLineId,
-                            productLineName: this.productLineName
+                            productLineName: this.productLineName,
                         });
 
                         if (createResponse.code !== 200) {
@@ -1359,19 +1386,43 @@ export default {
                     processStepId: this.processStepId,
                     componentScans: componentScans,
                     userId: this.$store.getters.id,
-                    productionPlanWorkOrderId: this.workProductionPlanWorkOrderId
+                    lineId: this.formData.productLine
                 }
                 const scanResponse = await scanComponents(scanReq);
 
                 if (scanResponse.code !== 200) {
                     // this.resetScanForm();
+
                     throw new Error(scanResponse.message || '扫码失败');
+
                 }
 
                 if (scanResponse.code == 200) {
-                    //TODO成功后播放提示音
+                    // 提交成功后，更新批次物料的使用次数
+                    for (const material of this.processMaterials) {
+                        if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                            const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                            const usageKey = `${cacheKey}_usage`;
+                            const currentUsage = parseInt(localStorage.getItem(usageKey) || '0');
+
+                            // 更新使用次数
+                            const newUsage = currentUsage + 1;
+                            localStorage.setItem(usageKey, newUsage.toString());
+                            this.$set(this.batchUsageCount, material._id, newUsage);
+
+                            // 如果达到使用限制，清除缓存
+                            if (material.batchQuantity && newUsage >= material.batchQuantity) {
+                                localStorage.removeItem(cacheKey);
+                                localStorage.removeItem(usageKey);
+                                this.$set(this.scanForm.barcodes, material._id, '');
+                                this.$set(this.validateStatus, material._id, false);
+                            }
+                        }
+                    }
+
+                    //播放成功提示音
                     setTimeout(() => {
-                        tone(bdcg); // 延迟播放绑定成功提示音
+                        tone(bdcg);
                     }, 1000);
                 }
 
@@ -1382,11 +1433,36 @@ export default {
                 // 6. 重置表单
                 this.resetScanForm();
                 console.error('确认失败:', error);
-                // tone(tmyw)
-                if (error.message.includes("该主物料条码对应工序节点已完成或处于异常状态")) {
+                if (error.message.includes("批次物料条码")) {
+                    this.$message.warning(error.message);
+                    setTimeout(() => {
+                        tone(pcwlxz);
+                        // 播放批次物料条码已达到使用次数限制提示音
+                        //清空批次物料缓存
+                        const keys = Object.keys(localStorage);
+                        keys.forEach(key => {
+                            if (key.startsWith('batch_')) {
+                                localStorage.removeItem(key);
+                            }
+                        });
+                        //页面批次物料条码清空
+                        this.processMaterials.forEach(material => {
+                            if (material.isBatch) {
+                                this.$set(this.scanForm.barcodes, material._id, '');
+                                this.$set(this.validateStatus, material._id, false);
+                            }
+                        });
+                    }, 1000);
+                } else if (error.message.includes("该主物料条码对应工序节点已完成或处于异常状态")) {
                     this.$message.warning(error.message);
                     setTimeout(() => {
                         tone(cfbd); // 延迟播放绑定成功提示音
+                    }, 1000);
+                }
+                else if (error.message == '未查询到生产工单') {
+                    this.$message.error(error.message);
+                    setTimeout(() => {
+                        tone(cxwgd); // 延迟播放绑定成功提示音
                     }, 1000);
                 } else {
                     this.$message.error('确认失败:' + error.message);
@@ -1441,23 +1517,11 @@ export default {
                 // 清除所有相关的localStorage
                 const keys = Object.keys(localStorage);
                 keys.forEach(key => {
-                    // 清除批次物料缓存
+                    // 清除批次物料缓存和使用次数
                     if (key.startsWith('batch_')) {
                         localStorage.removeItem(key);
+                        localStorage.removeItem(`${key}_usage`); // 同时清除使用次数记录
                     }
-                    // // 清除其他页面相关缓存
-                    // const pageKeys = [
-                    //     'mainMaterialId',
-                    //     'processStepId',
-                    //     'materialName',
-                    //     'processName',
-                    //     'productLineId',
-                    //     'productLineName',
-                    //     'autoPrint'
-                    // ];
-                    // if (pageKeys.includes(key)) {
-                    //     localStorage.removeItem(key);
-                    // }
                 });
 
                 this.$message.success('缓存清除成功');
@@ -1599,6 +1663,35 @@ export default {
                 this.$message.warning('设备未连接');
             }
         },
+
+        // 新增：获取批次使用次数显示文本
+        getBatchUsageText(materialId) {
+            const material = this.processMaterials.find(m => m._id === materialId);
+            if (!material || !material.isBatch) return '';
+
+            const currentCount = this.batchUsageCount[materialId] || 0;
+            return `${currentCount}/${material.batchQuantity}`;
+        },
+
+        // 新增：查询批次条码使用记录
+        async queryBatchUsageCount(barcode, materialId) {
+            try {
+                const response = await getData('material_process_flow', {
+                    query: {
+                        'processNodes': {
+                            $elemMatch: {
+                                'barcode': barcode,
+                            }
+                        }
+                    }
+                });
+
+                return response.data ? response.data.length : 0;
+            } catch (error) {
+                console.error('查询批次使用记录失败:', error);
+                return 0;
+            }
+        },
     },
     async created() {
         // 从本地存储中恢复自动打印开关状态
@@ -1640,14 +1733,32 @@ export default {
         // 自动填充表单数据
         await this.fillFormData();
 
+        // 初始化批次物料使用次数
+        if (this.processMaterials) {
+            for (const material of this.processMaterials) {
+                if (material.isBatch) {
+                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                    const cachedBarcode = localStorage.getItem(cacheKey);
 
+                    if (cachedBarcode) {
+                        const count = await this.queryBatchUsageCount(cachedBarcode, material.materialId);
+                        console.log(count, 'count')
+                        // 如果count等于批次用量，则清除缓存
+                        if (count === material.batchQuantity) {
+                            this.$message.warning('批次条码使用次数已达到上限');
+                            tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音
+                            localStorage.removeItem(cacheKey);
+                            this.$set(this.scanForm.barcodes, material._id, '');
+                            this.$set(this.validateStatus, material._id, false);
+                        } else {
+                            this.$set(this.batchUsageCount, material._id, count);
+                        }
+                    }
+                }
+            }
+        }
     },
     mounted() {
-        // 页面加载时自动获取焦点
-        if (this.mainMaterialId && this.processStepId) {
-            this.$refs.scanInput.focus();
-        }
-
 
         console.log("Complete roles data:", this.$store.getters.roles);
         const roles = this.$store.getters.roles;
@@ -1656,6 +1767,11 @@ export default {
         }
         if (roles.buttonList.includes("scan_edit_configuration")) {
             this.hasEditPermission = true;
+        }
+
+        // 页面加载时自动获取焦点
+        if (this.mainMaterialId && this.processStepId) {
+            this.$refs.scanInput.focus();
         }
     },
     // 组件销毁时清除定时器
@@ -2050,5 +2166,19 @@ export default {
 
 .print-switch>>>.el-switch__label.is-active {
     color: #409EFF;
+}
+
+.el-tag {
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+.input-with-status .el-input {
+    flex: 1;
+}
+
+.batch-usage-tag {
+    min-width: 60px;
+    text-align: center;
 }
 </style>
