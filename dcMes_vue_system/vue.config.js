@@ -68,6 +68,13 @@ module.exports = {
         "@": resolve("src")
       }
     },
+    module:{
+      rules:[{
+          test:/\.mjs$/,
+          include: /node_modules/,
+          type: "javascript/auto"
+      }]
+  },
     optimization: {
       minimizer: [
         new TerserPlugin({

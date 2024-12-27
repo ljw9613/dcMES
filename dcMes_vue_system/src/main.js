@@ -40,9 +40,10 @@ import {resetForm, parseTime} from "@/utils/tool"; // global filters
 
 import { requestK3Data } from "@/api/K3Data";
 
-import HiPrint from 'vue-plugin-hiprint'
+// import HiPrint from 'vue-plugin-hiprint'
+import "sv-print/dist/style.css";
 
-Vue.use(HiPrint)
+// Vue.use(HiPrint)
 
 
 // 将自动注册所有组件为全局组件

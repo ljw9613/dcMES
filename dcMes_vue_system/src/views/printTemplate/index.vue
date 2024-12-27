@@ -58,6 +58,7 @@
                         @click="handleBatchDelete">
                         批量删除
                     </el-button>
+                    <el-button @click="dayinForm">打印模板</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -125,18 +126,23 @@
 
         <edit-dialog :visible.sync="dialogFormVisible" :dialog-status="dialogStatus" :row-data="dataForm"
             @submit="handleSubmit" />
-
+    <el-dialog title="打印模板" :visible="dialogVisible1" fullscreen >
+    <Designer :template="template" @onDesigned="onDesigned" style="height: 80vh;"/>
+        </el-dialog>
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
+import { Designer } from "@sv-print/vue";
+
 export default {
     name: 'printTemplate',
     dicts: ['templateType', 'businessType'],
     components: {
-        EditDialog
+        EditDialog,
+        Designer
     },
     data() {
         return {
@@ -154,12 +160,17 @@ export default {
             listLoading: true,
             showAdvanced: false,
             dialogFormVisible: false,
+            dialogVisible1:false,
             dialogStatus: '',
             selection: [],
-            dataForm: {}
+            dataForm: {},
+            template: {}
         }
     },
     methods: {
+        dayinForm(){
+            this.dialogVisible1 = true;
+        },
         getStatusType(status) {
             const statusMap = {
                 '运行中': 'success',
@@ -366,7 +377,13 @@ export default {
                     bookType: 'xlsx'
                 });
             });
-        }
+        },
+
+        onDesigned(e) {
+            console.log(e);
+        },
+
+       
     },
     created() {
         this.fetchData();
