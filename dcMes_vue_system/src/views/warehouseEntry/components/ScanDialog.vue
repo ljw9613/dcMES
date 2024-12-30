@@ -6,9 +6,9 @@
         <el-form-item prop="barcode">
           <el-input v-model="scanForm.barcode" :placeholder="placeholder" @keyup.enter.native="handleScanInput"
             ref="scanInput" clearable>
-            <template slot="append">
+            <!-- <template slot="append">
               <el-button @click="handleScanInput">确认</el-button>
-            </template>
+            </template> -->
           </el-input>
         </el-form-item>
       </el-form>

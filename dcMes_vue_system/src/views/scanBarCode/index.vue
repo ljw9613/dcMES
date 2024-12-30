@@ -198,6 +198,7 @@
                 </div>
             </template>
         </div>
+        <status-popup :visible.sync="showPopup" :type="popupType" :duration="1500" />
         <tsc-printer ref="tscPrinter" :materialCode="mainMaterialCode" :barcode="currentBatchBarcode" />
     </div>
 </template>
@@ -228,13 +229,15 @@ import cfbd from "@/assets/tone/cfbd.mp3";
 import pcwlxz from "@/assets/tone/pcwlxz.mp3";
 import cxwgd from "@/assets/tone/cxwgd.mp3";
 import TscPrinter from '@/components/tscInput'
+import StatusPopup from '@/components/StatusPopup/index.vue'
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
 export default {
     name: 'ScanBarCode',
     components: {
         ZrSelect,
-        TscPrinter
+        TscPrinter,
+        StatusPopup
     },
     data() {
         return {
@@ -293,6 +296,9 @@ export default {
 
             barcodeRules: [], // 存储条码规则
             materialBarcodeRules: [], // 存储所有相关物料的条码规则
+
+            showPopup: false,
+            popupType: 'ok',
         }
     },
     computed: {
@@ -1033,6 +1039,8 @@ export default {
                 }
             } catch (error) {
                 console.error('处理主条码失败:', error);
+                this.popupType = 'ng';
+                this.showPopup = true;
                 tone(tmyw)
                 throw error;
             }
@@ -1062,6 +1070,8 @@ export default {
 
             } catch (error) {
                 console.error('处理子物料条码失败:', error);
+                this.popupType = 'ng';
+                this.showPopup = true;
                 tone(tmyw)
                 throw error;
             }
@@ -1135,6 +1145,8 @@ export default {
 
                     const isValidResult = await this.validateBarcode(cleanValue);
                     if (!isValidResult.isValid) {
+                        this.popupType = 'ng';
+                        this.showPopup = true;
                         setTimeout(() => {
                             tone(tmyw); // 延迟播放错误提示音
                         }, 300);
@@ -1196,6 +1208,8 @@ export default {
                                         if (material.batchQuantity && count >= material.batchQuantity) {
                                             this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
+                                            this.popupType = 'ng';
+                                            this.showPopup = true;
                                             return;
                                         }
 
@@ -1472,8 +1486,9 @@ export default {
                             }
                         }
                     }
-
-                    //播放成功提示音
+                    this.popupType = 'ok';
+                    this.showPopup = true;
+                    // 在播放bdcg的地方添加成功弹窗
                     setTimeout(() => {
                         tone(bdcg);
                     }, 1000);
@@ -1490,6 +1505,8 @@ export default {
                     this.$message.warning(error.message);
                     setTimeout(() => {
                         tone(pcwlxz);
+                        this.popupType = 'ng';
+                        this.showPopup = true;
                         // 播放批次物料条码已达到使用次数限制提示音
                         //清空批次物料缓存
                         const keys = Object.keys(localStorage);
@@ -1508,12 +1525,16 @@ export default {
                     }, 1000);
                 } else if (error.message.includes("该主物料条码对应工序节点已完成或处于异常状态")) {
                     this.$message.warning(error.message);
+                    this.popupType = 'ng';
+                    this.showPopup = true;
                     setTimeout(() => {
                         tone(cfbd); // 延迟播放绑定成功提示音
                     }, 1000);
                 }
                 else if (error.message == '未查询到生产工单') {
                     this.$message.error(error.message);
+                    this.popupType = 'ng';
+                    this.showPopup = true;
                     setTimeout(() => {
                         tone(cxwgd); // 延迟播放绑定成功提示音
                     }, 1000);
@@ -1799,6 +1820,8 @@ export default {
                         // 如果count等于批次用量，则清除缓存
                         if (count === material.batchQuantity) {
                             this.$message.warning('批次条码使用次数已达到上限');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
                             tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音
                             localStorage.removeItem(cacheKey);
                             this.$set(this.scanForm.barcodes, material._id, '');
