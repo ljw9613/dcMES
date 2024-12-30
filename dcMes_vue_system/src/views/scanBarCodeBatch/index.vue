@@ -236,10 +236,13 @@
                 </div>
             </template>
         </div>
+        <status-popup :visible.sync="showPopup" :type="popupType" :duration="1500" />
+
     </div>
 </template>
 
 <script>
+import StatusPopup from '@/components/StatusPopup/index.vue'
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { getMachineProgress } from "@/api/machine";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
@@ -260,7 +263,8 @@ export default {
     name: 'ScanBarCode',
     components: {
         ZrSelect,
-        hirInput
+        hirInput,
+        StatusPopup
     },
     data() {
         return {
@@ -1059,6 +1063,8 @@ export default {
                 }
             } catch (error) {
                 console.error('处理主条码失败:', error);
+                this.popupType = 'ng';
+                this.showPopup = true;
                 tone(tmyw)
                 throw error;
             }
@@ -1088,6 +1094,8 @@ export default {
 
             } catch (error) {
                 console.error('处理子物料条码失败:', error);
+                this.popupType = 'ng';
+                this.showPopup = true;
                 tone(tmyw)
                 throw error;
             }
@@ -1164,6 +1172,8 @@ export default {
                     // 检查是否已扫描
                     if (this.scannedList.some(item => item.barcode === cleanValue)) {
                         this.$message.warning('该条码已扫描');
+                        this.popupType = 'ng';
+                        this.showPopup = true;
                         tone(cfbd);
                         return;
                     }
@@ -1187,12 +1197,16 @@ export default {
                         console.log('isValid', isValid)
                         if (!isValid.isValid) {
                             this.$message.error('条码格式不正确，未在系统中注册');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
                             tone(tmyw);
                             return;
                         }
                         // 检查主物料是否匹配
                         if (isValid.materialCode !== this.mainMaterialCode) {
                             this.$message.error('条码对应物料与当前工序所需物料不匹配');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
                             tone(tmyw);
                             return;
                         }
@@ -1204,12 +1218,16 @@ export default {
                         const isValidResult = await this.validateBarcode(cleanValue);
                         if (!isValidResult.isValid) {
                             this.$message.error('条码对应物料与当前工序所需物料不匹配');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
                             tone(tmyw);
                             return;
                         }
                         // 检查主物料是否匹配
                         if (isValidResult.materialCode !== this.mainMaterialCode) {
                             this.$message.error('条码对应物料与当前工序所需物料不匹配');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
                             tone(tmyw);
                             return;
                         }
@@ -1222,6 +1240,8 @@ export default {
                 } catch (error) {
                     console.error('扫描处理失败:', error);
                     this.$message.error(error.message || '扫描处理失败');
+                    this.popupType = 'ng';
+                    this.showPopup = true;
                     tone(tmyw);
                 } finally {
                     this.unifiedScanInput = '';
@@ -1288,6 +1308,8 @@ export default {
                         }
                     } else {
                         this.$message.error(res.message);
+                        this.popupType = 'ng';
+                        this.showPopup = true;
                         if (res.message == '该工序节点已完成或处于异常状态') {
                             tone(cfbd);
                         } else if (res.message == '未查询到生产工单') {
@@ -1301,6 +1323,8 @@ export default {
                     }
                 }
                 tone(smcg);
+                this.popupType = 'ok';
+                this.showPopup = true;
                 this.$message.success(`包装箱扫描成功，新增${boxData.length}个条码`);
             } catch (error) {
                 console.error('处理包装箱条码失败:', error);
@@ -1363,9 +1387,13 @@ export default {
                     }
 
                     tone(smcg);
+                    this.popupType = 'ok';
+                    this.showPopup = true;
                     this.$message.success('条码扫描成功');
                 } else {
                     this.$message.error(res.message);
+                    this.popupType = 'ng';
+                    this.showPopup = true;
                     if (res.message == '该工序节点已完成或处于异常状态') {
                         tone(cfbd);
                     } else if (res.message == '未查询到生产工单') {

@@ -113,13 +113,13 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="投入数量" prop="inputQuantity">
-                        <el-input-number v-model="form.inputQuantity" :min="0" controls-position="right"
+                        <el-input-number disabled v-model="form.inputQuantity" :min="0" controls-position="right"
                             style="width: 100%"></el-input-number>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="产出数量" prop="outputQuantity">
-                        <el-input-number v-model="form.outputQuantity" :min="0" controls-position="right"
+                        <el-input-number disabled v-model="form.outputQuantity" :min="0" controls-position="right"
                             style="width: 100%"></el-input-number>
                     </el-form-item>
                 </el-col>
