@@ -88,7 +88,7 @@
         <div class="screen1">
             <div class="screen_content">
                 <div class="screen_content_first">
-                    <i class="el-icon-tickets">销售订单列表</i>
+                    <i class="el-icon-tickets">仓库列表</i>
                     <!-- <el-button type="primary" @click="handleAdd">新增订单</el-button> -->
                 </div>
             </div>

@@ -3,10 +3,73 @@ const router = express.Router();
 const k3Models = require("../model/k3/k3Model");
 const { k3cMethod } = require("./k3cMethod");
 const K3Material = require("../model/k3/k3_BD_MATERIAL");
+
+const modelConfig = require("../model/k3/model.json");
 const Craft = require("../model/project/craft");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const ProductDiNum = require("../model/project/ProductDiNum");
 const processMaterials = require("../model/project/processMaterials");
+
+const schedule = require("node-schedule");
+// 配置定时任务
+const asyncK3Schedule = () => {
+  console.log("定时同步金蝶云数据开启");
+  // 每天凌晨2点执行备份
+  schedule.scheduleJob("0 3 * * *", async () => {
+    try {
+      // 计算6个月前的日期
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 6);
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      const filterString = [
+        {
+          FieldName: "FDocumentStatus",
+          Compare: "StatusEqualto",
+          Value: "C",
+          Left: "",
+          Right: "",
+          Logic: 0,
+        },
+        {
+          FieldName: "FCreateDate",
+          Compare: ">",
+          Value: `${startDate.toISOString().split("T")[0]} 00:00:00`,
+          Left: "",
+          Right: "",
+          Logic: 0,
+        },
+        {
+          FieldName: "FCreateDate",
+          Compare: "<",
+          Value: `${endDate.toISOString().split("T")[0]} 23:59:59`,
+          Left: "",
+          Right: "",
+          Logic: "0",
+        },
+      ];
+      await syncK3Data("k3_PRD_MO", "PRD_MO", "FID", filterString);
+      await syncK3Data(
+        "k3_SAL_SaleOrder",
+        "SAL_SaleOrder",
+        "FID",
+        filterString
+      );
+      await syncK3Data(
+        "k3_BD_MATERIAL",
+        "BD_MATERIAL",
+        "FMATERIALID",
+        filterString
+      );
+      console.log("同步金蝶云数据完成");
+    } catch (error) {
+      console.error("执行 MaterialProcessFlow 备份任务失败:", error);
+    }
+  });
+};
+
+asyncK3Schedule()
 
 // 添加在文件顶部
 const syncTasks = new Map(); // 存储同步任务的状态
@@ -53,146 +116,6 @@ class SyncTask {
   }
 }
 
-// 添加模型配置对象
-const modelFieldsConfig = {
-  PRD_MO: {
-    model: k3Models.k3_PRD_MO,
-    fields: [
-      "FID",
-      "FBillNo",
-      "FDocumentStatus",
-      "FSaleOrderId",
-      "FSaleOrderEntryId",
-      "FSaleOrderNo",
-      "FApproverId",
-      "FApproveDate",
-      "FDate",
-      "FWorkShopID.FName",
-      "FMaterialId",
-      "FMaterialName",
-      "FSpecification",
-      "FProductType",
-      "FUnitId",
-      "FQty",
-      "FPlanStartDate",
-      "FPlanFinishDate",
-      "FBillType",
-      "FPrdOrgId",
-      "FOwnerTypeId",
-      "FPPBOMType",
-      "FModifierId",
-      "FCreatorId",
-      "FCanceler",
-      "FPlannerID",
-      "FCreateDate",
-      "FModifyDate",
-      "FCancelDate",
-      "FCancelStatus",
-      "FDescription",
-      "FTrustteed",
-      "FWorkShopID0",
-      "FWorkGroupId",
-      "FBusinessType",
-      "FIsRework",
-      "FIsEntrust",
-      "FEnTrustOrgId",
-      "FIssueMtrl",
-      "FIsQCMO",
-      "FOwnerId",
-      "F_TFQJ_rjh",
-      "F_TFQJ_sfwwzzz",
-    ],
-  },
-  SAL_SaleOrder: {
-    model: k3Models.k3_SAL_SaleOrder,
-    fields: [
-      "FID",
-      "FBillNo",
-      "FDocumentStatus",
-      "FSaleOrgId",
-      "FDate",
-      "FCustId",
-      "FSaleDeptId",
-      "FSaleGroupId",
-      "FSalerId",
-      "FReceiveId",
-      "FSettleId",
-      "FSettleAddress",
-      "FChargeId",
-      "FCreatorId",
-      "FCreateDate",
-      "F_TFQJ_khpo",
-      "F_TFQJ_Text1",
-      "FModifierId",
-      "FModifyDate",
-      "FApproverId",
-      "FApproveDate",
-      "FCloseStatus",
-      "FCloserId",
-      "FCloseDate",
-      "FCancelStatus",
-      "FCancellerId",
-      "FCancelDate",
-      "FVersionNo",
-      "FChangerId",
-      "FChangeDate",
-      "FChangeReason",
-      "FBillTypeID",
-      "FCorrespondOrgId",
-    ],
-  },
-  BD_MATERIAL: {
-    model: k3Models.k3_BD_MATERIAL,
-    fields: [
-      "FMATERIALID",
-      "FDocumentStatus",
-      "FForbidStatus",
-      "FName",
-      "FNumber",
-      "FDescription",
-      "FCreateOrgId",
-      "FUseOrgId",
-      "FCreatorId",
-      "FModifierId",
-      "FCreateDate",
-      "FModifyDate",
-      "FForbidderId",
-      "FApproverId",
-      "FForbidDate",
-      "FApproveDate",
-      "FOldNumber",
-      "FMnemonicCode",
-      "FSpecification",
-      "FImage1",
-      "FMaterialGroup",
-      "FBaseProperty",
-      "FPLMMaterialId",
-      "FMaterialSRC",
-      "FImageFileServer",
-      "FImgStorageType",
-      "FIsSalseByNet",
-      "FIsAutoAllocate",
-      "FSPUID",
-      "FPinYin",
-      "FDSMatchByLot",
-      "FRefStatus",
-      "FForbidReson",
-      "F_TFQJ_TZBM1",
-      "F_TFQJ_LLCJ",
-      "F_TFQJ_SFZDKZ",
-      "F_TFQJ_SFZDLL",
-      "FBaseUnitId.FName",
-      "FBaseUnitId.FNumber",
-      "FStockId.FNumber",
-      "FStockId.FName",
-      "FPickStockId.FNumber",
-      "FPickStockId.FName",
-      "F_TFQJ_CheckBox",
-      "FNameEn",
-    ],
-  },
-};
-
 // 同步K3数据到本地数据库的通用函数
 async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
   // 检查是否已有同步任务在进行
@@ -213,14 +136,21 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
     if (!Model) {
       throw new Error(`未找到模型: ${modelName}`);
     }
-
-    // 使用新的配置对象获取字段
-    const modelConfig = modelFieldsConfig[formId];
-    if (!modelConfig) {
+    // 获取字段
+    const k3Model = modelConfig.find((item) => item.modelName === formId);
+    if (!k3Model) {
       throw new Error(`未找到模型配置: ${formId}`);
     }
+    let fieldKeys = k3Model.header
+      .map((item) =>
+        item.entityNameconvert
+          ? item.name.includes("_")
+            ? item.name.replace(/_/g, ".")
+            : item.name
+          : item.name
+      )
+      .join(",");
 
-    const fieldKeys = modelConfig.fields.join(",");
     let allResults = [];
     let startRow = 0;
     const pageSize = 10000;
@@ -277,14 +207,14 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
       // 修改这里：将数组数据转换为对象格式
       let transformedData = k3Data.map((item) => {
         const transformedItem = {};
-        modelConfig.fields.forEach((field, index) => {
-          transformedItem[field] = item[index];
+        k3Model.header.forEach((field, index) => {
+          transformedItem[field.name] = item[index];
         });
         return transformedItem;
       });
 
       // 截取transformedData前10条数据
-      //   transformedData = transformedData.slice(0, 1000);
+      // transformedData = transformedData.slice(0, 10);
 
       // 批量更新逻辑
       const batchSize = 100;
@@ -294,7 +224,6 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
         const batch = transformedData.slice(i, i + batchSize);
         const currentBatch = Math.floor(i / batchSize) + 1;
         let retries = 3;
-
         while (retries > 0) {
           try {
             const updatePromises = batch.map((item) => {

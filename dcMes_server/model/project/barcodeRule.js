@@ -9,39 +9,75 @@ var mongoose = require("mongoose");
 var barcodeRuleSchema = new mongoose.Schema({
   name: { type: String, required: true }, // 规则名称
   description: { type: String }, // 规则描述
-  priority: { type: Number }, // 规则优先级，数字越小优先级越高
+  priority: { type: Number }, // 规则优先级
   enabled: { type: Boolean, default: true }, // 是否启用
-  conditions: {
-    type: { type: String }, // 匹配类型: "separator", "length", "regex"
-    separator: { type: String }, // 分隔符(当type为separator时使用)
-    length: { type: Number }, // 条码长度(当type为length时使用)
-    regex: { type: String }, // 正则表达式(当type为regex时使用)
-    enableRegex: { type: Boolean, default: false }, // 新增：是否启用附加正则校验
-    additionalRegex: { type: String }, // 新增：附加正则表达式
-  },
-  extraction: {
-    materialCode: {
-      // 物料编码提取规则
-      type: { type: String }, // 提取方式: "split", "substring", "di"
-      index: { type: Number }, // split时使用的索引
-      start: { type: Number }, // substring时使用的起始位置
-      end: { type: Number }, // substring时使用的结束位置
-      diPosition: {
-        // DI码位置(当type为di时使用)
-        start: { type: Number },
-        end: { type: Number },
-      },
-    },
-    relatedBill: {
-      // 关联单据提取规则(可选)
-      type: { type: String },
-      index: { type: Number },
-      start: { type: Number },
-      end: { type: Number },
-    },
-  },
-  createAt: { type: Date, default: Date.now }, // 创建时间
-  updateAt: { type: Date, default: Date.now }, // 更新时间
+
+  // 校验规则列表 - 按顺序执行，全部通过才算校验成功
+  validationRules: [{
+    order: { type: Number, required: true }, // 执行顺序
+    name: { type: String }, // 规则名称
+    description: { type: String }, // 规则描述
+    enabled: { type: Boolean, default: true }, // 是否启用
+    
+    type: { 
+      type: String, 
+      enum: ['length', 'substring', 'regex'], 
+      required: true 
+    }, // 校验类型
+    
+    params: {
+      // 长度校验参数
+      length: { type: Number }, // 指定长度
+      
+      // 截取校验参数
+      start: { type: Number }, // 起始位置
+      end: { type: Number }, // 结束位置
+      expectedValue: { type: String }, // 截取后期望的值
+      
+      // 正则校验参数
+      pattern: { type: String }, // 正则表达式
+    }
+  }],
+
+  // 提取配置 - 按目标字段分组
+  extractionConfigs: [{
+    target: { 
+      type: String, 
+      enum: ['materialCode', 'DI', 'relatedBill'], 
+      required: true 
+    }, // 提取目标字段
+    
+    // 提取步骤 - 按顺序执行，前一个步骤的结果作为后一个步骤的输入
+    steps: [{
+      order: { type: Number, required: true }, // 执行顺序
+      name: { type: String }, // 步骤名称
+      description: { type: String }, // 步骤描述
+      enabled: { type: Boolean, default: true }, // 是否启用
+      
+      type: { 
+        type: String, 
+        enum: ['split', 'substring', 'regex'], 
+        required: true 
+      }, // 提取类型
+      
+      params: {
+        // split 参数
+        separator: { type: String }, // 分隔符
+        index: { type: Number }, // 分割后取第几个元素
+        
+        // substring 参数
+        start: { type: Number }, // 起始位置
+        end: { type: Number }, // 结束位置
+        
+        // regex 参数
+        pattern: { type: String }, // 正则表达式
+        group: { type: Number }, // 捕获组索引
+      }
+    }]
+  }],
+
+  createAt: { type: Date, default: Date.now },
+  updateAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model("barcodeRule", barcodeRuleSchema);

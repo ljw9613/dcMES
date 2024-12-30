@@ -1,10 +1,10 @@
 <template>
     <div class="app-container">
+        <!-- 搜索表单 -->
         <el-card class="filter-container">
             <div slot="header" class="clearfix">
                 <span>筛选搜索</span>
             </div>
-
             <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
                 <el-row :gutter="20">
                     <el-col :span="6">
@@ -21,7 +21,6 @@
                         </el-form-item>
                     </el-col>
                 </el-row>
-
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
@@ -32,168 +31,266 @@
             </el-form>
         </el-card>
 
-        <div class="screen1">
-            <div class="screen_content">
-                <div class="screen_content_first">
-                    <i class="el-icon-tickets">条码规则列表</i>
-                </div>
+        <!-- 规则列表 -->
+        <el-card class="list-container">
+            <div slot="header" class="clearfix">
+                <span>条码规则列表</span>
             </div>
-        </div>
+            <el-table v-loading="listLoading" :data="rulesList" border style="width: 100%"
+                @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" />
+                <el-table-column label="规则名称" prop="name">
+                    <template slot-scope="scope">
+                        <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.name }}</el-link>
+                    </template>
+                </el-table-column>
+                <el-table-column label="描述" prop="description" />
+                <el-table-column label="优先级" prop="priority" width="100" />
+                <el-table-column label="状态" width="100">
+                    <template slot-scope="{row}">
+                        <el-tag :type="row.enabled ? 'success' : 'info'">
+                            {{ row.enabled ? '启用' : '禁用' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="创建时间" align="center" width="160">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.createAt) }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" width="200" align="center">
+                    <template slot-scope="{row}">
+                        <el-button type="text" size="small" @click="handleEdit(row)">
+                            <i class="el-icon-edit"></i> 编辑
+                        </el-button>
+                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
+                            <i class="el-icon-delete"></i> 删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
 
-        <el-table v-loading="listLoading" :data="rulesList" border style="width: 100%"
-            @selection-change="handleSelectionChange">
-            <el-table-column type="selection" width="55" />
-            <el-table-column label="规则名称" prop="name">
-                <template slot-scope="scope">
-                    <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.name }}</el-link>
-                </template>
-            </el-table-column>
-            <el-table-column label="描述" prop="description" />
-            <el-table-column label="优先级" prop="priority" width="100" />
-            <el-table-column label="状态" width="100">
-                <template slot-scope="{row}">
-                    <el-tag :type="row.enabled ? 'success' : 'info'">
-                        {{ row.enabled ? '启用' : '禁用' }}
-                    </el-tag>
-                </template>
-            </el-table-column>
-            <el-table-column label="创建时间" align="center" width="160">
-                <template slot-scope="scope">
-                    {{ formatDate(scope.row.createAt) }}
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200" align="center">
-                <template slot-scope="{row}">
-                    <el-button type="text" size="small" @click="handleEdit(row)">
-                        <i class="el-icon-edit"></i> 编辑
-                    </el-button>
-                    <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
-                        <i class="el-icon-delete"></i> 删除
-                    </el-button>
-                </template>
-            </el-table-column>
-        </el-table>
-
-        <pagination v-show="total > 0" :total="total" :page.sync="currentPage" :limit.sync="pageSize"
-            @pagination="fetchRules" />
+            <pagination v-show="total > 0" :total="total" :page.sync="currentPage" :limit.sync="pageSize"
+                @pagination="fetchRules" />
+        </el-card>
 
         <!-- 规则编辑对话框 -->
-        <el-dialog :title="dialogTitle" :visible.sync="dialogVisible" width="60%">
+        <el-dialog :title="dialogTitle" :visible.sync="dialogVisible" width="70%" :close-on-click-modal="false">
             <el-form ref="form" :model="currentRule" :rules="rules" label-width="120px">
+                <!-- 基本信息 -->
+                <el-divider content-position="left">基本信息</el-divider>
                 <el-form-item label="规则名称" prop="name">
                     <el-input v-model="currentRule.name" />
                 </el-form-item>
-
                 <el-form-item label="描述" prop="description">
                     <el-input v-model="currentRule.description" type="textarea" />
                 </el-form-item>
-
                 <el-form-item label="优先级" prop="priority">
                     <el-input-number v-model="currentRule.priority" :min="1" />
                 </el-form-item>
-
                 <el-form-item label="启用状态">
                     <el-switch v-model="currentRule.enabled" />
                 </el-form-item>
 
-                <el-form-item label="匹配类型" prop="conditions.type">
-                    <el-select v-model="currentRule.conditions.type">
-                        <el-option label="分隔符匹配" value="separator" />
-                        <el-option label="长度匹配" value="length" />
-                        <el-option label="正则匹配" value="regex" />
-                    </el-select>
-                </el-form-item>
+                <!-- 校验规则配置 -->
+                <el-divider content-position="left">校验规则配置</el-divider>
+                <div v-for="(rule, index) in currentRule.validationRules" :key="'validation-'+index" class="rule-item">
+                    <el-card class="rule-card">
+                        <div slot="header" class="clearfix">
+                            <span>校验规则 #{{index + 1}}</span>
+                            <el-button style="float: right; padding: 3px 0" type="text" 
+                                @click="removeValidationRule(index)">删除</el-button>
+                        </div>
 
-                <!-- 根据匹配类型显示不同的配置项 -->
-                <el-form-item v-if="currentRule.conditions.type === 'separator'" label="分隔符"
-                    prop="conditions.separator">
-                    <el-input v-model="currentRule.conditions.separator" />
-                </el-form-item>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item :label="'规则名称'" :prop="'validationRules.' + index + '.name'">
+                                    <el-input v-model="rule.name" placeholder="请输入规则名称"/>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item :label="'执行顺序'" :prop="'validationRules.' + index + '.order'">
+                                    <el-input-number v-model="rule.order" :min="1" />
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="启用状态">
+                                    <el-switch v-model="rule.enabled" />
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
 
-                <el-form-item v-if="currentRule.conditions.type === 'length'" label="条码长度" prop="conditions.length">
-                    <el-input-number v-model="currentRule.conditions.length" :min="1" />
-                </el-form-item>
-
-                <el-form-item v-if="currentRule.conditions.type === 'length'" label="附加正则校验">
-                    <el-switch v-model="currentRule.conditions.enableRegex" />
-                </el-form-item>
-
-                <el-form-item v-if="currentRule.conditions.type === 'length' && currentRule.conditions.enableRegex" 
-                    label="正则表达式" prop="conditions.additionalRegex">
-                    <el-input v-model="currentRule.conditions.additionalRegex" />
-                    <div class="el-form-item__description">在长度匹配的基础上进行额外的正则校验</div>
-                </el-form-item>
-
-                <el-form-item v-if="currentRule.conditions.type === 'regex'" label="正则表达式" prop="conditions.regex">
-                    <el-input v-model="currentRule.conditions.regex" />
-                </el-form-item>
-
-                <!-- 物料编码提取规则 -->
-                <el-divider content-position="left">物料编码提取规则</el-divider>
-
-                <el-form-item label="提取方式" prop="extraction.materialCode.type">
-                    <el-select v-model="currentRule.extraction.materialCode.type">
-                        <el-option label="分割提取" value="split" />
-                        <el-option label="截取提取" value="substring" />
-                        <el-option label="DI码提取" value="di" />
-                    </el-select>
-                </el-form-item>
-
-                <!-- 根据提取方式显示不同的配置项 -->
-                <el-form-item v-if="currentRule.extraction.materialCode.type === 'split'" label="分割索引"
-                    prop="extraction.materialCode.index">
-                    <el-input-number v-model="currentRule.extraction.materialCode.index" :min="0" />
-                </el-form-item>
-
-                <template v-if="currentRule.extraction.materialCode.type === 'substring'">
-                    <el-form-item label="起始位置" prop="extraction.materialCode.start">
-                        <el-input-number v-model="currentRule.extraction.materialCode.start" :min="0" />
-                    </el-form-item>
-                    <el-form-item label="结束位置" prop="extraction.materialCode.end">
-                        <el-input-number v-model="currentRule.extraction.materialCode.end" :min="0" />
-                    </el-form-item>
-                </template>
-
-                <template v-if="currentRule.extraction.materialCode.type === 'di'">
-                    <el-form-item label="DI码起始位置" prop="extraction.materialCode.diPosition.start">
-                        <el-input-number v-model="currentRule.extraction.materialCode.diPosition.start" :min="0" />
-                    </el-form-item>
-                    <el-form-item label="DI码结束位置" prop="extraction.materialCode.diPosition.end">
-                        <el-input-number v-model="currentRule.extraction.materialCode.diPosition.end" :min="0" />
-                    </el-form-item>
-                </template>
-
-                <!-- 关联单据提取规则 -->
-                <el-divider content-position="left">关联单据提取规则</el-divider>
-
-                <el-form-item label="提取方式" prop="extraction.relatedBill.type">
-                    <el-select v-model="currentRule.extraction.relatedBill.type">
-                        <el-option label="不提取" value="" />
-                        <el-option label="分割提取" value="split" />
-                        <el-option label="截取提取" value="substring" />
-                    </el-select>
-                </el-form-item>
-
-                <!-- 根据提取方式显示不同的配置项 -->
-                <template v-if="currentRule.extraction.relatedBill.type">
-                    <el-form-item v-if="currentRule.extraction.relatedBill.type === 'split'" label="分割索引"
-                        prop="extraction.relatedBill.index">
-                        <el-input-number v-model="currentRule.extraction.relatedBill.index" :min="0" />
-                    </el-form-item>
-
-                    <template v-if="currentRule.extraction.relatedBill.type === 'substring'">
-                        <el-form-item label="起始位置" prop="extraction.relatedBill.start">
-                            <el-input-number v-model="currentRule.extraction.relatedBill.start" :min="0" />
+                        <el-form-item :label="'校验类型'" :prop="'validationRules.' + index + '.type'">
+                            <el-select v-model="rule.type" placeholder="请选择校验类型" style="width: 100%">
+                                <el-option label="长度校验" value="length" />
+                                <el-option label="截取校验" value="substring" />
+                                <el-option label="正则校验" value="regex" />
+                            </el-select>
                         </el-form-item>
-                        <el-form-item label="结束位置" prop="extraction.relatedBill.end">
-                            <el-input-number v-model="currentRule.extraction.relatedBill.end" :min="0" />
+
+                        <!-- 根据校验类型显示不同的参数配置 -->
+                        <template v-if="rule.type === 'length'">
+                            <el-form-item :label="'长度'" :prop="'validationRules.' + index + '.params.length'">
+                                <el-input-number v-model="rule.params.length" :min="1" />
+                            </el-form-item>
+                        </template>
+
+                        <template v-if="rule.type === 'substring'">
+                            <el-row :gutter="20">
+                                <el-col :span="8">
+                                    <el-form-item :label="'起始位置'" :prop="'validationRules.' + index + '.params.start'">
+                                        <el-input-number v-model="rule.params.start" :min="0" />
+                                    </el-form-item>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-form-item :label="'结束位置'" :prop="'validationRules.' + index + '.params.end'">
+                                        <el-input-number v-model="rule.params.end" :min="0" />
+                                    </el-form-item>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-form-item :label="'期望值'" :prop="'validationRules.' + index + '.params.expectedValue'">
+                                        <el-input v-model="rule.params.expectedValue" />
+                                    </el-form-item>
+                                </el-col>
+                            </el-row>
+                        </template>
+
+                        <template v-if="rule.type === 'regex'">
+                            <el-form-item :label="'正则表达式'" :prop="'validationRules.' + index + '.params.pattern'">
+                                <el-input v-model="rule.params.pattern" />
+                            </el-form-item>
+                        </template>
+                    </el-card>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <el-button type="primary" @click="addValidationRule">添加校验规则</el-button>
+                </div>
+
+                <!-- 提取配置 -->
+                <el-divider content-position="left">提取配置</el-divider>
+                <div v-for="(config, configIndex) in currentRule.extractionConfigs" :key="'config-'+configIndex" 
+                    class="extraction-config">
+                    <el-card class="config-card">
+                        <div slot="header" class="clearfix">
+                            <span>提取配置 #{{configIndex + 1}}</span>
+                            <el-button style="float: right; padding: 3px 0" type="text" 
+                                @click="removeExtractionConfig(configIndex)">删除</el-button>
+                        </div>
+
+                        <el-form-item :label="'提取目标'" :prop="'extractionConfigs.' + configIndex + '.target'">
+                            <el-select v-model="config.target" placeholder="请选择提取目标" style="width: 100%">
+                                <el-option label="物料编码" value="materialCode" />
+                                <el-option label="DI码" value="DI" />
+                                <el-option label="关联单据" value="relatedBill" />
+                            </el-select>
                         </el-form-item>
-                    </template>
-                </template>
+
+                        <!-- 提取步骤配置 -->
+                        <div v-for="(step, stepIndex) in config.steps" :key="'step-'+configIndex+'-'+stepIndex" 
+                            class="step-item">
+                            <el-card class="step-card" shadow="hover">
+                                <div slot="header" class="clearfix">
+                                    <span>步骤 #{{stepIndex + 1}}</span>
+                                    <el-button style="float: right; padding: 3px 0" type="text" 
+                                        @click="removeExtractionStep(configIndex, stepIndex)">删除</el-button>
+                                </div>
+
+                                <el-row :gutter="20">
+                                    <el-col :span="8">
+                                        <el-form-item :label="'步骤名称'" 
+                                            :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.name'">
+                                            <el-input v-model="step.name" placeholder="请输入步骤名称"/>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="8">
+                                        <el-form-item :label="'执行顺序'" 
+                                            :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.order'">
+                                            <el-input-number v-model="step.order" :min="1" />
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="8">
+                                        <el-form-item label="启用状态">
+                                            <el-switch v-model="step.enabled" />
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-form-item :label="'提取类型'" 
+                                    :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.type'">
+                                    <el-select v-model="step.type" placeholder="请选择提取类型" style="width: 100%">
+                                        <el-option label="分割提取" value="split" />
+                                        <el-option label="截取提取" value="substring" />
+                                        <el-option label="正则提取" value="regex" />
+                                    </el-select>
+                                </el-form-item>
+
+                                <!-- 根据提取类型显示不同的参数配置 -->
+                                <template v-if="step.type === 'split'">
+                                    <el-row :gutter="20">
+                                        <el-col :span="12">
+                                            <el-form-item :label="'分隔符'" 
+                                                :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.separator'">
+                                                <el-input v-model="step.params.separator" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :span="12">
+                                            <el-form-item :label="'索引'" 
+                                                :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.index'">
+                                                <el-input-number v-model="step.params.index" :min="0" />
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                </template>
+
+                                <template v-if="step.type === 'substring'">
+                                    <el-row :gutter="20">
+                                        <el-col :span="12">
+                                            <el-form-item :label="'起始位置'" 
+                                                :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.start'">
+                                                <el-input-number v-model="step.params.start" :min="0" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :span="12">
+                                            <el-form-item :label="'结束位置'" 
+                                                :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.end'">
+                                                <el-input-number v-model="step.params.end" :min="0" />
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                </template>
+
+                                <template v-if="step.type === 'regex'">
+                                    <el-row :gutter="20">
+                                        <el-col :span="12">
+                                            <el-form-item :label="'正则表达式'" 
+                                                :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.pattern'">
+                                                <el-input v-model="step.params.pattern" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :span="12">
+                                            <el-form-item :label="'捕获组索引'" 
+                                                :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.group'">
+                                                <el-input-number v-model="step.params.group" :min="0" />
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                </template>
+                            </el-card>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <el-button type="primary" @click="addExtractionStep(configIndex)">添加提取步骤</el-button>
+                        </div>
+                    </el-card>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <el-button type="primary" @click="addExtractionConfig">添加提取配置</el-button>
+                </div>
 
                 <!-- 规则测试部分 -->
                 <el-divider content-position="left">规则测试</el-divider>
-
                 <el-form-item label="测试条码">
                     <div class="test-input-group">
                         <el-input v-model="testBarcode" placeholder="请输入要测试的条码" style="width: calc(100% - 90px)" />
@@ -206,40 +303,46 @@
                 <!-- 测试结果展示 -->
                 <el-form-item v-if="testResult" label="测试结果">
                     <el-card class="test-result-card">
-                        <div class="test-result-item">
-                            <span class="label">条件匹配：</span>
-                            <span :class="['value', testResult.matched ? 'success' : 'error']">
-                                {{ testResult.matched ? '匹配成功' : '匹配失败' }}
-                            </span>
-                        </div>
-
-                        <!-- 当使用DI码提取时显示DI码信息 -->
-                        <template v-if="currentRule.extraction.materialCode.type === 'di'">
-                            <div class="test-result-item">
-                                <span class="label">提取的DI码：</span>
-                                <span class="value">{{ testResult.diCode }}</span>
+                        <!-- 校验结果 -->
+                        <div class="test-section">
+                            <h4>校验结果</h4>
+                            <div v-for="(step, index) in testResult.validationSteps" :key="'validation-'+index"
+                                :class="['step-result', step.matched ? 'success' : 'error']">
+                                <div class="step-header">
+                                    步骤 {{index + 1}}: {{step.ruleName}}
+                                </div>
+                                <div class="step-content">
+                                    <template v-if="step.matched">
+                                        <i class="el-icon-success"></i> 校验通过
+                                    </template>
+                                    <template v-else>
+                                        <i class="el-icon-error"></i> {{step.message}}
+                                    </template>
+                                </div>
                             </div>
-                            <div class="test-result-item">
-                                <span class="label">DI码验证：</span>
-                                <span :class="['value', testResult.diValid ? 'success' : 'error']">
-                                    {{ testResult.diValid ? 'DI码有效' : 'DI码无效' }}
-                                </span>
+                        </div>
+
+                        <!-- 提取结果 -->
+                        <div v-if="testResult.validationPassed" class="test-section">
+                            <h4>提取结果</h4>
+                            <div v-for="(config, index) in testResult.extractionResults" :key="'extraction-'+index"
+                                class="extraction-result">
+                                <div class="result-header">
+                                    {{config.target}}
+                                </div>
+                                <div v-for="(step, stepIndex) in config.steps" :key="'step-'+stepIndex"
+                                    class="step-result">
+                                    <div class="step-header">
+                                        步骤 {{stepIndex + 1}}: {{step.name}}
+                                    </div>
+                                    <div class="step-content">
+                                        中间结果: {{step.intermediateValue}}
+                                    </div>
+                                </div>
+                                <div class="final-result">
+                                    最终结果: {{config.finalValue}}
+                                </div>
                             </div>
-                        </template>
-
-                        <div v-if="testResult.matched" class="test-result-item">
-                            <span class="label">物料编码：</span>
-                            <span class="value">{{ testResult.materialCode || '未提取' }}</span>
-                        </div>
-
-                        <div v-if="testResult.matched && testResult.relatedBill" class="test-result-item">
-                            <span class="label">关联单据：</span>
-                            <span class="value">{{ testResult.relatedBill }}</span>
-                        </div>
-
-                        <div v-if="!testResult.matched" class="test-result-item">
-                            <span class="label">失败原因：</span>
-                            <span class="value error">{{ testResult.message }}</span>
                         </div>
                     </el-card>
                 </el-form-item>
@@ -250,11 +353,6 @@
                 </div>
             </el-form>
         </el-dialog>
-
-        <!-- 添加分页组件 -->
-        <pagination v-show="listQuery.total > 0" :total="listQuery.total" :page.sync="listQuery.page"
-            :limit.sync="listQuery.limit" @pagination="fetchRules" />
-
     </div>
 </template>
 
@@ -288,36 +386,14 @@ export default {
                 description: '',
                 priority: 1,
                 enabled: true,
-                conditions: {
-                    type: 'separator',
-                    separator: '',
-                    length: 0,
-                    regex: ''
-                },
-                extraction: {
-                    materialCode: {
-                        type: 'split',
-                        index: 0,
-                        start: 0,
-                        end: 0,
-                        diPosition: {
-                            start: 0,
-                            end: 0
-                        }
-                    },
-                    relatedBill: {
-                        type: '',
-                        index: 0,
-                        start: 0,
-                        end: 0
-                    }
-                }
+                validationRules: [],
+                extractionConfigs: []
             },
             rules: {
                 name: [{ required: true, message: '请输入规则名称', trigger: 'blur' }],
                 priority: [{ required: true, message: '请输入优先级', trigger: 'blur' }],
-                'conditions.type': [{ required: true, message: '请选择匹配类型', trigger: 'change' }],
-                'extraction.materialCode.type': [{ required: true, message: '请选择提取方式', trigger: 'change' }]
+                'validationRules': [{ required: true, type: 'array', message: '至少添加一条校验规则', trigger: 'change' }],
+                'extractionConfigs': [{ required: true, type: 'array', message: '至少添加一个提取配置', trigger: 'change' }]
             },
             listQuery: {
                 page: 1,
@@ -526,7 +602,7 @@ export default {
                     type: 'warning'
                 })
 
-                await removeData('barcodeRule', row._id)
+                await removeData('barcodeRule', { query: { _id: row._id } })
                 this.$message.success('删除成功')
                 this.fetchRules()
             } catch (error) {
@@ -534,21 +610,6 @@ export default {
                     console.error('删除失败:', error)
                     this.$message.error('删除失败')
                 }
-            }
-        },
-
-        // 更新规则状态
-        async handleStatusChange(row) {
-            try {
-                await updateData('barcodeRule', row._id, {
-                    enabled: row.enabled
-                })
-                this.$message.success('状态更新成功')
-            } catch (error) {
-                console.error('状态更新失败:', error)
-                this.$message.error('状态更新失败')
-                // 恢复原状态
-                row.enabled = !row.enabled
             }
         },
 
@@ -593,35 +654,48 @@ export default {
                 description: '',
                 priority: 1,
                 enabled: true,
-                conditions: {
-                    type: 'separator',
-                    separator: '',
-                    length: 0,
-                    regex: '',
-                    enableRegex: false,
-                    additionalRegex: ''
-                },
-                extraction: {
-                    materialCode: {
-                        type: 'split',
-                        index: 0,
-                        start: 0,
-                        end: 0,
-                        diPosition: {
-                            start: 0,
-                            end: 0
-                        }
-                    },
-                    relatedBill: {
-                        type: '',
-                        index: 0,
-                        start: 0,
-                        end: 0
-                    }
-                }
+                validationRules: [],
+                extractionConfigs: []
             };
         },
 
+        // 添加新规则
+        addRule() {
+            this.currentRule.rules.push({
+                order: this.currentRule.rules.length + 1,
+                name: '',
+                description: '',
+                enabled: true,
+                match: {
+                    type: 'length',
+                    value: '',
+                    length: 0
+                },
+                extraction: {
+                    target: 'materialCode',
+                    method: 'split',
+                    params: {
+                        separator: '',
+                        index: 0,
+                        start: 0,
+                        end: 0,
+                        pattern: '',
+                        group: 0
+                    }
+                }
+            });
+        },
+
+        // 删除规则
+        removeRule(index) {
+            this.currentRule.rules.splice(index, 1);
+            // 重新排序
+            this.currentRule.rules.forEach((rule, idx) => {
+                rule.order = idx + 1;
+            });
+        },
+
+        // 测试规则
         async handleTestCurrentRule() {
             if (!this.testBarcode) {
                 this.$message.warning('请输入测试条码');
@@ -629,110 +703,116 @@ export default {
             }
 
             try {
-                const result = { matched: false };
-                const barcode = this.testBarcode;
+                let barcode = this.testBarcode;
+                const result = {
+                    validationPassed: true,
+                    validationSteps: [],
+                    extractionResults: []
+                };
 
-                // 条件匹配测试
-                switch (this.currentRule.conditions.type) {
-                    case 'separator':
-                        if (!barcode.includes(this.currentRule.conditions.separator)) {
-                            result.message = '条码中未包含指定的分隔符';
-                            break;
-                        }
-                        result.matched = true;
-                        break;
+                // 执行校验规则
+                for (const rule of this.currentRule.validationRules) {
+                    if (!rule.enabled) continue;
 
-                    case 'length':
-                        if (barcode.length !== this.currentRule.conditions.length) {
-                            result.message = `条码长度不符合要求，应为${this.currentRule.conditions.length}位`;
-                            break;
-                        }
-                        
-                        if (this.currentRule.conditions.enableRegex && this.currentRule.conditions.additionalRegex) {
-                            try {
-                                const regex = new RegExp(this.currentRule.conditions.additionalRegex);
-                                if (!regex.test(barcode)) {
-                                    result.message = '条码不符合附加的正则表达式规则';
-                                    break;
-                                }
-                            } catch (e) {
-                                result.message = '附加正则表达式格式错误';
-                                break;
+                    const stepResult = {
+                        ruleName: rule.name,
+                        matched: false
+                    };
+
+                    switch (rule.type) {
+                        case 'length':
+                            if (barcode.length !== rule.params.length) {
+                                stepResult.message = `长度不符合要求，应为${rule.params.length}位`;
+                                result.validationPassed = false;
+                            } else {
+                                stepResult.matched = true;
                             }
-                        }
-                        
-                        result.matched = true;
-                        break;
-
-                    case 'regex':
-                        try {
-                            const regex = new RegExp(this.currentRule.conditions.regex);
-                            if (!regex.test(barcode)) {
-                                result.message = '条码不符合正则表达式规则';
-                                break;
-                            }
-                            result.matched = true;
-                        } catch (e) {
-                            result.message = '正则表达式格式错误';
-                            break;
-                        }
-                        break;
-                }
-
-                // 如果条件匹配成功，尝试提取信息
-                if (result.matched) {
-                    // 提取物料编码
-                    const extraction = this.currentRule.extraction.materialCode;
-                    switch (extraction.type) {
-                        case 'split':
-                            const parts = barcode.split(this.currentRule.conditions.separator);
-                            result.materialCode = parts[extraction.index];
                             break;
 
                         case 'substring':
-                            result.materialCode = barcode.substring(extraction.start, extraction.end);
+                            const value = barcode.substring(rule.params.start, rule.params.end);
+                            if (value !== rule.params.expectedValue) {
+                                stepResult.message = `截取值 "${value}" 与期望值 "${rule.params.expectedValue}" 不符`;
+                                result.validationPassed = false;
+                            } else {
+                                stepResult.matched = true;
+                            }
                             break;
 
-                        case 'di':
-                            const diCode = barcode.substring(
-                                extraction.diPosition.start,
-                                extraction.diPosition.end
-                            );
-                            // 保存提取的DI码
-                            result.diCode = diCode;
-
-                            // 注意：这里需要实际的DI码验证逻辑
-                            const diResult = await this.validateDICode(diCode);
-                            if (diResult.isValid) {
-                                result.materialCode = diResult.materialCode;
-                            } else {
-                                result.matched = false;
-                                result.message = 'DI码验证失败';
+                        case 'regex':
+                            try {
+                                const regex = new RegExp(rule.params.pattern);
+                                if (!regex.test(barcode)) {
+                                    stepResult.message = '不符合正则表达式规则';
+                                    result.validationPassed = false;
+                                } else {
+                                    stepResult.matched = true;
+                                }
+                            } catch (e) {
+                                stepResult.message = '正则表达式格式错误';
+                                result.validationPassed = false;
                             }
                             break;
                     }
 
-                    // 提取关联单据
-                    const billExtraction = this.currentRule.extraction.relatedBill;
-                    if (billExtraction.type) {
-                        switch (billExtraction.type) {
-                            case 'split':
-                                const parts = barcode.split(this.currentRule.conditions.separator);
-                                result.relatedBill = parts[billExtraction.index];
-                                break;
-
-                            case 'substring':
-                                result.relatedBill = barcode.substring(
-                                    billExtraction.start,
-                                    billExtraction.end
-                                );
-                                break;
-                        }
-                    }
+                    result.validationSteps.push(stepResult);
+                    if (!result.validationPassed) break;
                 }
 
-                console.log(result)
+                // 如果校验通过，执行提取规则
+                if (result.validationPassed) {
+                    for (const config of this.currentRule.extractionConfigs) {
+                        let currentValue = barcode;
+                        const extractionResult = {
+                            target: config.target,
+                            steps: [],
+                            finalValue: null
+                        };
 
+                        for (const step of config.steps) {
+                            if (!step.enabled) continue;
+
+                            const stepResult = {
+                                name: step.name,
+                                intermediateValue: null
+                            };
+
+                            switch (step.type) {
+                                case 'split':
+                                    const parts = currentValue.split(step.params.separator);
+                                    currentValue = parts[step.params.index] || '';
+                                    break;
+
+                                case 'substring':
+                                    currentValue = currentValue.substring(
+                                        step.params.start,
+                                        step.params.end
+                                    );
+                                    break;
+
+                                case 'regex':
+                                    try {
+                                        const regex = new RegExp(step.params.pattern);
+                                        const matches = currentValue.match(regex);
+                                        if (matches && matches[step.params.group]) {
+                                            currentValue = matches[step.params.group];
+                                        } else {
+                                            currentValue = '';
+                                        }
+                                    } catch (e) {
+                                        currentValue = '';
+                                    }
+                                    break;
+                            }
+
+                            stepResult.intermediateValue = currentValue;
+                            extractionResult.steps.push(stepResult);
+                        }
+
+                        extractionResult.finalValue = currentValue;
+                        result.extractionResults.push(extractionResult);
+                    }
+                }
 
                 this.testResult = result;
 
@@ -740,27 +820,156 @@ export default {
                 console.error('测试失败:', error);
                 this.$message.error('测试执行失败');
             }
+        },
+
+        // 添加校验规则
+        addValidationRule() {
+            this.currentRule.validationRules.push({
+                order: this.currentRule.validationRules.length + 1,
+                name: '',
+                description: '',
+                enabled: true,
+                type: 'length',
+                params: {
+                    length: 0,
+                    start: 0,
+                    end: 0,
+                    expectedValue: '',
+                    pattern: ''
+                }
+            });
+        },
+
+        // 删除校验规则
+        removeValidationRule(index) {
+            this.currentRule.validationRules.splice(index, 1);
+            // 重新排序
+            this.currentRule.validationRules.forEach((rule, idx) => {
+                rule.order = idx + 1;
+            });
+        },
+
+        // 添加提取配置
+        addExtractionConfig() {
+            this.currentRule.extractionConfigs.push({
+                target: '',
+                steps: []
+            });
+        },
+
+        // 删除提取配置
+        removeExtractionConfig(index) {
+            this.currentRule.extractionConfigs.splice(index, 1);
+        },
+
+        // 添加提取步骤
+        addExtractionStep(configIndex) {
+            const config = this.currentRule.extractionConfigs[configIndex];
+            config.steps.push({
+                order: config.steps.length + 1,
+                name: '',
+                description: '',
+                enabled: true,
+                type: 'split',
+                params: {
+                    separator: '',
+                    index: 0,
+                    start: 0,
+                    end: 0,
+                    pattern: '',
+                    group: 0
+                }
+            });
+        },
+
+        // 删除提取步骤
+        removeExtractionStep(configIndex, stepIndex) {
+            const config = this.currentRule.extractionConfigs[configIndex];
+            config.steps.splice(stepIndex, 1);
+            // 重新排序
+            config.steps.forEach((step, idx) => {
+                step.order = idx + 1;
+            });
         }
     }
 }
 </script>
 
 <style lang="scss" scoped>
-.screen1 {
-    height: auto;
-    margin: 2vw 0;
-    width: 100%;
-    border: 1px solid #ebeef5;
-    border-radius: 5px;
+.app-container {
+    padding: 20px;
+
+    .filter-container {
+        margin-bottom: 20px;
+    }
+
+    .list-container {
+        margin-bottom: 20px;
+    }
 }
 
-.screen_content_first {
-    width: 100%;
-    padding: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
+.rule-item, .extraction-config {
+    margin-bottom: 20px;
+}
+
+.step-item {
+    margin-bottom: 15px;
+}
+
+.test-result-card {
+    .test-section {
+        margin-bottom: 20px;
+
+        h4 {
+            margin-bottom: 10px;
+            color: #606266;
+        }
+
+        .step-result {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+
+            &.success {
+                background-color: #f0f9eb;
+                border: 1px solid #e1f3d8;
+            }
+
+            &.error {
+                background-color: #fef0f0;
+                border: 1px solid #fde2e2;
+            }
+
+            .step-header {
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+
+            .step-content {
+                color: #606266;
+            }
+        }
+    }
+
+    .extraction-result {
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #EBEEF5;
+        border-radius: 4px;
+
+        .result-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #409EFF;
+        }
+
+        .final-result {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #EBEEF5;
+            font-weight: bold;
+        }
+    }
 }
 
 .delete-btn {
@@ -768,45 +977,6 @@ export default {
 
     &:hover {
         color: #f78989;
-    }
-}
-
-.app-container {
-    padding: 20px;
-
-    .filter-container {
-        margin-bottom: 20px;
-    }
-}
-
-.test-result-card {
-    margin-top: 10px;
-}
-
-.test-result-item {
-    margin-bottom: 8px;
-    line-height: 20px;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
-
-    .label {
-        color: #606266;
-        margin-right: 8px;
-        font-weight: bold;
-    }
-
-    .value {
-        color: #333;
-
-        &.success {
-            color: #67C23A;
-        }
-
-        &.error {
-            color: #F56C6C;
-        }
     }
 }
 </style>

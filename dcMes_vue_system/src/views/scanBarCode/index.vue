@@ -288,6 +288,10 @@ export default {
             reconnectAttempts: 0, // 添加重连尝试次数计数
             maxReconnectAttempts: 5, // 最大重连尝试次数
             batchUsageCount: {}, // 新增：用于记录批次物料的使用次数
+
+
+            barcodeRules: [], // 存储条码规则
+            materialBarcodeRules: [], // 存储所有相关物料的条码规则
         }
     },
     computed: {
@@ -460,6 +464,30 @@ export default {
                 this.$message.error('自动初始化失败: ' + error.message);
             }
         },
+        // 获取产品关联的条码规则
+        async getProductBarcodeRules(materialIds) {
+            try {
+                // 查询所有相关物料的条码规则关联
+                const response = await getData('product_barcode_rule', {
+                    query: {
+                        productId: { $in: materialIds }
+                    },
+                    populate: JSON.stringify([
+                        { path: 'barcodeRule', match: { enabled: true } },
+                    ])
+                });
+
+                this.materialBarcodeRules = []
+                if (response.data) {
+                    // 按物料ID分组存储规则
+                    this.materialBarcodeRules = response.data.map(item => item.barcodeRule)
+                }
+            } catch (error) {
+                console.error('获取条码规则失败:', error);
+                this.$message.error('获取条码规则失败');
+            }
+        },
+
         async handlePrintBatch() {
             let loading = this.$loading({
                 lock: true,
@@ -701,7 +729,7 @@ export default {
             try {
                 console.log('正在获取工序信息，ID:', this.processStepId);
 
-                // 获��工序信息
+                // 获取工序信息
                 const stepResponse = await getData('processStep', {
                     query: { _id: this.processStepId },
                     page: 1,
@@ -740,7 +768,6 @@ export default {
                 this.mainMaterialName = material.FName;
                 this.mainMaterialCode = material.FNumber;
 
-                console.log('processStep', processStep);
                 // 获取工序关联的物料
                 try {
                     const processMaterialsResponse = await getData('processMaterials', {
@@ -749,6 +776,15 @@ export default {
 
                     if (processMaterialsResponse.data) {
                         this.processMaterials = processMaterialsResponse.data;
+
+                        // 收集所有物料ID（包括主物料和子物料）
+                        const allMaterialIds = [
+                            material._id, // 主物料ID
+                            ...this.processMaterials.map(m => m.materialId) // 子物料IDs
+                        ];
+
+                        // 获取所有相关物料的条码规则
+                        await this.getProductBarcodeRules(allMaterialIds);
 
                         // 重置并初始化验证状态
                         this.validateStatus = { mainBarcode: false };
@@ -831,110 +867,136 @@ export default {
             console.log('validateBarcode', barcode);
             if (!barcode) return false;
 
-            let materialCode;
-            let relatedBill = "";
-            let valid = false;
+            try {
+                let rules = this.materialBarcodeRules
+                // 遍历规则进行匹配
+                for (const rule of rules) {
+                    let isValid = true;
+                    let materialCode = null;
+                    let relatedBill = null;
+                    let currentValue = barcode;
 
-            // 检查是否为自制生产二维码格式 (使用#分隔)
-            if (barcode.includes('#')) {
-                const parts = barcode.split('#');
-                if (parts.length === 4) {
-                    materialCode = parts[2];
-                    relatedBill = parts[1];
-                    valid = true;
-                }
-            }
+                    // 1. 执行校验规则
+                    for (const validationRule of rule.validationRules) {
+                        if (!validationRule.enabled) continue;
 
-            if (!valid) {
-                //检测条码是否包含-
-                if (barcode.includes('-') && barcode.length != 34 && barcode.length != 35) {
-                    materialCode = barcode.split('-')[0];
-                    relatedBill = barcode.split('-')[1];
-                    valid = true;
-                }
-            }
+                        switch (validationRule.type) {
+                            case 'length':
+                                if (currentValue.length !== validationRule.params.length) {
+                                    isValid = false;
+                                }
+                                break;
 
-            if (!valid) {
-                //检测条码是否包含-
-                if (barcode.includes('(')) {
-                    const productDI = barcode.substring(4, 18);
-                    console.log('productDI', productDI);
-                    const productResult = await this.validateDICode(productDI);
-                    if (!productResult.isValid) return false;
-                    materialCode = productResult.materialCode;
-                    valid = true;
-                }
-            }
+                            case 'substring':
+                                const subValue = currentValue.substring(
+                                    validationRule.params.start,
+                                    validationRule.params.end
+                                );
+                                if (subValue !== validationRule.params.expectedValue) {
+                                    isValid = false;
+                                }
+                                break;
 
-            if (!valid) {
-                console.log('barcode', barcode.length);
-                // 根据不同长度判断不同类型的条码
-                switch (barcode.length) {
-                    case 35:
-                        if (barcode.includes('-')) {
-                            // 电风扇与制冷片组件
-                            const middlePart = barcode.split('-')[1];
-                            console.log('middlePart', middlePart);
-                            const middlePartResult = await this.validateDICode(middlePart);
-                            if (!middlePartResult.isValid) return false;
-                            materialCode = middlePartResult.materialCode;
+                            case 'regex':
+                                try {
+                                    const regex = new RegExp(validationRule.params.pattern);
+                                    if (!regex.test(currentValue)) {
+                                        isValid = false;
+                                    }
+                                } catch (e) {
+                                    console.error('正则表达式错误:', e);
+                                    isValid = false;
+                                }
+                                break;
                         }
-                        break;
-                    case 34:
-                        if (barcode.includes('-')) {
-                            // 电风扇与制冷片组件
-                            const fanDI = barcode.substring(7, 19);
-                            console.log('fanDI', fanDI);
-                            const fanResult = await this.validateDICode(fanDI);
-                            if (!fanResult.isValid) return false;
-                            materialCode = fanResult.materialCode;
-                        } else {
-                            // 关键物料 取前16位
-                            // FW300XXX1497909X150L30824120300064
-                            const materialDI = barcode.substring(0, 16);
-                            console.log('materialDI', materialDI);
-                            const materialResult = await this.validateDICode(materialDI);
-                            if (!materialResult.isValid) return false;
-                            materialCode = materialResult.materialCode;
-                        }
-                        break;
-                    case 48: // 灯板组件 1-12位
-                        const lightDI = barcode.substring(0, 12);
-                        console.log('lightDI', lightDI);
-                        const lightResult = await this.validateDICode(lightDI);
-                        if (!lightResult.isValid) return false;
-                        materialCode = lightResult.materialCode;
-                        break;
-                    case 32: // 遥控器组件
-                        const remoteDI = barcode.substring(0, 8);
-                        console.log('remoteDI', remoteDI);
-                        const remoteResult = await this.validateDICode(remoteDI);
-                        if (!remoteResult.isValid) return false;
-                        materialCode = remoteResult.materialCode;
-                        break;
-                    case 20: // 批次虚拟条码
-                        const batchDI = barcode.substring(0, 11);
-                        console.log('batchDI', batchDI);
-                        const batchResult = await this.validateDICode(batchDI);
-                        if (!batchResult.isValid) return false;
-                        materialCode = batchResult.materialCode;
-                        break;
 
-                    default:
-                        // 处理普通条码格式
-                        this.$message.error('条码格式不正确，应为：物料编号-序号');
-                        return false;
+                        if (!isValid) break;
+                    }
+
+                    // 如果校验规则通过，执行提取规则
+                    if (isValid) {
+                        // 2. 执行提取规则
+                        for (const config of rule.extractionConfigs) {
+                            let extractValue = barcode;
+
+                            // 按顺序执行提取步骤
+                            for (const step of config.steps) {
+                                if (!step.enabled) continue;
+
+                                switch (step.type) {
+                                    case 'split':
+                                        const parts = extractValue.split(step.params.separator);
+                                        extractValue = parts[step.params.index] || '';
+                                        break;
+
+                                    case 'substring':
+                                        extractValue = extractValue.substring(
+                                            step.params.start,
+                                            step.params.end
+                                        );
+                                        break;
+
+                                    case 'regex':
+                                        try {
+                                            const regex = new RegExp(step.params.pattern);
+                                            const matches = extractValue.match(regex);
+                                            if (matches && matches[step.params.group]) {
+                                                extractValue = matches[step.params.group];
+                                            } else {
+                                                extractValue = '';
+                                            }
+                                        } catch (e) {
+                                            console.error('正则提取错误:', e);
+                                            extractValue = '';
+                                        }
+                                        break;
+                                }
+                            }
+
+                            // 根据目标字段存储提取结果
+                            switch (config.target) {
+                                case 'materialCode':
+                                    materialCode = extractValue;
+                                    break;
+                                case 'DI':
+                                    // 如果提取到DI，需要验证并获取对应的物料编码
+                                    const diResult = await this.validateDICode(extractValue);
+                                    if (diResult.isValid) {
+                                        materialCode = diResult.materialCode;
+                                    } else {
+                                        isValid = false;
+                                    }
+                                    break;
+                                case 'relatedBill':
+                                    relatedBill = extractValue;
+                                    break;
+                            }
+                        }
+
+                        // 如果成功提取到物料编码，验证是否匹配当前工序
+                        if (isValid && materialCode) {
+                            if (materialCode === this.mainMaterialCode) {
+                                console.log('条码匹配成功:', rule.name);
+                                return {
+                                    materialCode,
+                                    isValid: true,
+                                    relatedBill,
+                                    ruleName: rule.name
+                                };
+                            }
+                        }
+                    }
                 }
 
-            }
+                // 所有规则都未匹配成功
+                this.$message.error('该条码不符合任何已配置的规则或物料不匹配');
+                return { materialCode: null, isValid: false };
 
-            // 验证物料编码是否匹配当前工序需求
-            if (materialCode === this.mainMaterialCode) {
-                return { materialCode: materialCode, isValid: true, relatedBill: relatedBill };
+            } catch (error) {
+                console.error('条码验证失败:', error);
+                this.$message.error('条码验证过程发生错误');
+                return { materialCode: null, isValid: false };
             }
-
-            this.$message.error('该条码对应的物料与当前工序所需物料不匹配');
-            return { materialCode: materialCode, isValid: false };
         },
 
         // 处理主条码

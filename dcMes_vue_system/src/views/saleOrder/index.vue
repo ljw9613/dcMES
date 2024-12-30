@@ -66,6 +66,24 @@
                     </el-row>
                 </div>
 
+                <el-row :gutter="20" v-show="showAdvanced">
+                    <el-col :span="6">
+                        <el-form-item label="物料编码">
+                            <el-input v-model="searchForm.FMaterialId" placeholder="请输入物料编码" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="客户PO">
+                            <el-input v-model="searchForm.F_TFQJ_khpo" placeholder="请输入客户PO" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="客户PO行号">
+                            <el-input v-model="searchForm.F_TFQJ_Text1" placeholder="请输入客户PO行号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
@@ -119,8 +137,6 @@
                     </template>
                 </el-table-column>
 
-
-
                 <el-table-column label="修改日期" prop="FModifyDate" width="160">
                     <template slot-scope="scope">
                         {{ formatDate(scope.row.FModifyDate) }}
@@ -165,6 +181,52 @@
                         <el-tag size="mini" :type="scope.row.FCancelStatus === 'B' ? 'danger' : 'success'">
                             {{ scope.row.FCancelStatus === 'B' ? '是' : '否' }}
                         </el-tag>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="物料编码" prop="FMaterialId" width="120">
+                    <template slot-scope="scope">
+                        <el-tooltip :content="scope.row.FMaterialName" placement="top">
+                            <span>{{ scope.row.FMaterialId || '-' }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="物料名称" prop="FMaterialName" width="180">
+                    <template slot-scope="scope">
+                        <el-tooltip :content="scope.row.FMaterialModel" placement="top">
+                            <span>{{ scope.row.FMaterialName || '-' }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="规格型号" prop="FMaterialModel" width="120">
+                    <template slot-scope="scope">
+                        {{ scope.row.FMaterialModel || '-' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="销售数量" prop="FQty" width="100">
+                    <template slot-scope="scope">
+                        <span>{{ scope.row.FQty || '0' }}</span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="单位" prop="FUnitID" width="80">
+                    <template slot-scope="scope">
+                        {{ scope.row.FUnitID || '-' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="客户PO" prop="F_TFQJ_khpo" width="120">
+                    <template slot-scope="scope">
+                        {{ scope.row.F_TFQJ_khpo || '-' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="客户PO行号" prop="F_TFQJ_Text1" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.F_TFQJ_Text1 || '-' }}
                     </template>
                 </el-table-column>
 
@@ -236,7 +298,10 @@ export default {
                 FCloseStatus: '',
                 FSaleDeptId: '',
                 FSalerId: '',
-                dateRange: []
+                dateRange: [],
+                FMaterialId: '',
+                F_TFQJ_khpo: '',
+                F_TFQJ_Text1: '',
             },
             tableList: [],
             total: 0,
@@ -456,6 +521,13 @@ export default {
                                 });
                             }
                             break;
+                        case 'FMaterialId':
+                        case 'F_TFQJ_khpo':
+                        case 'F_TFQJ_Text1':
+                            if (value.trim()) {
+                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                            }
+                            break;
                     }
                 }
             });
@@ -531,7 +603,10 @@ export default {
                 FCloseStatus: '',
                 FSaleDeptId: '',
                 FSalerId: '',
-                dateRange: []
+                dateRange: [],
+                FMaterialId: '',
+                F_TFQJ_khpo: '',
+                F_TFQJ_Text1: '',
             };
             this.currentPage = 1;
             this.fetchData();
@@ -766,7 +841,7 @@ export default {
                                     "Logic": 0
                                 },
                                 {
-                                    "FieldName": "FApproveDate",
+                                    "FieldName": "FCreateDate",
                                     "Compare": ">",
                                     "Value": `${startDate} 00:00:00`,
                                     "Left": "",
@@ -774,7 +849,7 @@ export default {
                                     "Logic": 0
                                 },
                                 {
-                                    "FieldName": "FApproveDate",
+                                    "FieldName": "FCreateDate",
                                     "Compare": "<",
                                     "Value": `${endDate} 23:59:59`,
                                     "Left": "",

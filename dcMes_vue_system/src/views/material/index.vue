@@ -147,7 +147,7 @@
                 </el-table-column>
                 <el-table-column label="物料名称" prop="FName" />
                 <el-table-column label="规格型号" prop="FSpecification" width="120" />
-                <el-table-column label="基本单位" prop="FBaseUnitId_FName" width="100" />
+                <el-table-column label="基本单位" prop="FBaseUnitId.FName" width="100" />
                 <el-table-column label="仓库" prop="FStockId_FName" width="120" />
                 <el-table-column label="英文名称" prop="FNameEn" width="150" />
 
@@ -167,10 +167,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="150">
+                <el-table-column label="操作" fixed="right" width="200">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleViewFlowChart(scope.row)">查看流程图</el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">DI码管理</el-button>
+                        <el-button type="text" size="small" @click="handleBarcodeRule(scope.row)">条码规则</el-button>
                         <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
                     </template>
                 </el-table-column>
@@ -285,6 +286,56 @@
                 <el-button type="primary" @click="confirmSync">确 定</el-button>
             </div>
         </el-dialog>
+
+        <!-- 条码规则管理弹窗 -->
+        <el-dialog title="条码规则管理" :visible.sync="barcodeRuleDialogVisible" width="60%">
+            <div class="barcode-rule-container">
+                <div class="barcode-rule-header">
+                    <el-button type="primary" size="small" @click="handleAddBarcodeRule">新增规则绑定</el-button>
+                </div>
+
+                <el-table :data="barcodeRuleList" border style="width: 100%">
+                    <el-table-column prop="barcodeRule.name" label="规则名称" />
+                    <el-table-column prop="barcodeRule.description" label="规则描述" />
+                    <el-table-column prop="createTime" label="创建时间" width="180">
+                        <template slot-scope="scope">
+                            {{ formatDate(scope.row.createTime) }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="150" align="center">
+                        <template slot-scope="scope">
+                            <el-button type="danger" size="mini" @click="deleteBarcodeRule(scope.row)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+
+            <!-- 新增规则绑定弹窗 -->
+            <el-dialog title="新增规则绑定" :visible.sync="addBarcodeRuleDialogVisible" width="40%" append-to-body>
+                <el-form :model="barcodeRuleForm" ref="barcodeRuleForm" label-width="100px">
+                    <el-form-item label="规则选择" prop="barcodeRule">
+                        <zr-select v-model="barcodeRuleForm.barcodeRule" collection="barcodeRule"
+                            :search-fields="['name', 'description']" label-key="name" sub-key="_id"
+                            :multiple="false" placeholder="请输入规则名称/描述搜索" @select="handleBarcodeRuleChange">
+                            <template #option="{ item }">
+                                <div class="select-option">
+                                    <div class="option-main">
+                                        <span class="option-label">{{ item.name }}</span>
+                                        <el-tag size="mini" type="info" class="option-tag">
+                                            {{ item.description }}
+                                        </el-tag>
+                                    </div>
+                                </div>
+                            </template>
+                        </zr-select>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="addBarcodeRuleDialogVisible = false">取 消</el-button>
+                    <el-button type="primary" @click="saveBarcodeRule">确 定</el-button>
+                </div>
+            </el-dialog>
+        </el-dialog>
     </div>
 </template>
 
@@ -380,6 +431,14 @@ export default {
             },
             diNumList: [], // DI码列表
             diNumTemp: {}, // 临时存储编辑前的DI码数据
+            barcodeRuleDialogVisible: false,
+            addBarcodeRuleDialogVisible: false,
+            barcodeRuleList: [],
+            barcodeRuleOptions: [],
+            barcodeRuleForm: {
+                barcodeRule: ''
+            },
+            currentMaterialId: null,
         }
     },
     methods: {
@@ -1349,6 +1408,101 @@ export default {
                 if (error !== 'cancel') {
                     console.error('删除DI码失败:', error);
                     this.$message.error('删除DI码失败');
+                }
+            }
+        },
+
+        // 打开条码规则管理弹窗
+        async handleBarcodeRule(row) {
+            this.currentMaterialId = row._id;
+            await this.fetchBarcodeRuleList(row._id);
+            await this.fetchBarcodeRuleOptions();
+            this.barcodeRuleDialogVisible = true;
+        },
+
+        // 获取条码规则列表
+        async fetchBarcodeRuleList(productId) {
+            try {
+                const result = await getData('productBarcodeRule', {
+                    query: { productId },
+                    populate: JSON.stringify([{ path: 'barcodeRule', select: 'name description' }])
+                });
+                if (result.data) {
+                    this.barcodeRuleList = result.data;
+                }
+            } catch (error) {
+                console.error('获取条码规则列表失败:', error);
+                this.$message.error('获取条码规则列表失败');
+            }
+        },
+
+        // 获取可选的条码规则
+        async fetchBarcodeRuleOptions() {
+            try {
+                const result = await getData('barcodeRule', {});
+                if (result.data) {
+                    this.barcodeRuleOptions = result.data;
+                }
+            } catch (error) {
+                console.error('获取条码规则选项失败:', error);
+                this.$message.error('获取条码规则选项失败');
+            }
+        },
+
+        // 打开新增规则绑定弹窗
+        handleAddBarcodeRule() {
+            this.barcodeRuleForm = {
+                barcodeRule: ''
+            };
+            this.addBarcodeRuleDialogVisible = true;
+        },
+
+        // 保存条码规则绑定
+        async saveBarcodeRule() {
+            try {
+                if (!this.barcodeRuleForm.barcodeRule) {
+                    this.$message.warning('请选择条码规则');
+                    return;
+                }
+
+                // 检查是否已存在相同规则绑定
+                const existingRule = this.barcodeRuleList.find(
+                    rule => rule.barcodeRule._id === this.barcodeRuleForm.barcodeRule
+                );
+                if (existingRule) {
+                    this.$message.warning('该规则已绑定，请勿重复添加');
+                    return;
+                }
+
+                await addData('productBarcodeRule', {
+                    productId: this.currentMaterialId,
+                    barcodeRule: this.barcodeRuleForm.barcodeRule,
+                    createBy: this.$store.state.user.id
+                });
+
+                this.$message.success('规则绑定成功');
+                this.addBarcodeRuleDialogVisible = false;
+                await this.fetchBarcodeRuleList(this.currentMaterialId);
+            } catch (error) {
+                console.error('保存条码规则失败:', error);
+                this.$message.error('保存条码规则失败');
+            }
+        },
+
+        // 删除条码规则绑定
+        async deleteBarcodeRule(row) {
+            try {
+                await this.$confirm('确认解除该规则绑定吗?', '提示', {
+                    type: 'warning'
+                });
+
+                await removeData('productBarcodeRule', { query: { _id: row._id } });
+                this.$message.success('解除绑定成功');
+                await this.fetchBarcodeRuleList(this.currentMaterialId);
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('删除条码规则失败:', error);
+                    this.$message.error('删除条码规则失败');
                 }
             }
         },

@@ -71,7 +71,7 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">托盘组托列表</i>
-                    <hir-input ref="hirInput"  :printData="printData" />
+                    <hir-input ref="hirInput" :printData="printData" />
                 </div>
             </div>
         </div>
@@ -165,7 +165,7 @@
                         {{ scope.row.productLineName }}
                         <el-tag size="mini" v-if="scope.row.productLineId && scope.row.productLineId.workshop">{{
                             scope.row.productLineId.workshop
-                            }}</el-tag>
+                        }}</el-tag>
                         <el-tag v-else>未记录生产车间</el-tag>
                     </template>
                 </el-table-column>
@@ -427,7 +427,7 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.sort = { _id: -1 };
-                req.populate = JSON.stringify([{ path: 'productLineId' }]);
+                req.populate = JSON.stringify([{ path: 'productLineId' }, { path: "productionOrderId" }]);
                 req.count = true;
                 const result = await getData("material_palletizing", req);
                 this.tableList = result.data;
