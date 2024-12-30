@@ -8,7 +8,13 @@ export function scanPallet(data) {
         data
     })
 }
-
+export function scanPalletOn(data) {
+    return request({
+        url: '/warehouse_entry/scan_on',
+        method: 'post',
+        data
+    })
+}
 // MES入库单同步至金蝶云
 export function syncWarehouseEntry(data) {
     return request({

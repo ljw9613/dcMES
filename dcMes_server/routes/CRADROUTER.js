@@ -32,6 +32,7 @@ const barcodeRule = require("../model/project/barcodeRule");
 const productBarcodeRule = require("../model/project/productBarcodeRule");
 //wms模型
 const warehouseEntry = require("../model/warehouse/warehouseEntry");
+const warehouseOntry = require("../model/warehouse/warehouseOntry");
 
 // 引入 k3 模型
 const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
@@ -86,6 +87,6 @@ ADDROUTER(router, "unbindRecord", unbindRecord);
 
 //wms模型
 ADDROUTER(router, "warehouse_entry", warehouseEntry);
-
+ADDROUTER(router, "warehouse_ontry", warehouseOntry);
 
 module.exports = router;

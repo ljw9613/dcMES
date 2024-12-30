@@ -111,6 +111,7 @@ app.use("/", require("./routes/wsManage"));
 app.use("/", require("./routes/machineProgress"));
 app.use('/', require('./routes/materialPalletizing'));
 app.use('/', require('./routes/wareHouseEntry.js'));
+app.use('/', require('./routes/wareHouseOntry.js'));
 // 更新工艺编码
 // require("./routes/caftNum")
 // 初始化定时任务
