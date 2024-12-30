@@ -147,7 +147,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
 
     // 获取入库单相关的生产订单
     const productionOrder = await K3ProductionOrder.findOne({
-      FBillNo: entry.productionOrderNo
+      FBillNo: entry.productionOrderNo,
     });
 
     if (!productionOrder) {
@@ -159,75 +159,91 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
 
     // 2. 转换为金蝶云格式
     const k3Data = {
-      FID: 0,
+      // FID: 0,
       FBillType: {
-        FNUMBER: "SCRKD02_SYS"
+        FNUMBER: "SCRKD02_SYS",
       },
       FBillNo: entry.entryNo,
       FDate: new Date().toISOString().split("T")[0],
-      
+
       // 使用生产订单的组织信息
       FPrdOrgId: {
-        FNumber: productionOrder.FPrdOrgId
+        FNumber: productionOrder.FPrdOrgId,
       },
       FStockOrgId: {
-        FNumber: productionOrder.FPrdOrgId
+        FNumber: productionOrder.FPrdOrgId,
       },
-      
+
       FStockId0: {
-        FNumber: "CK001"
+        FNumber: "CK001",
       },
-      
+
       // 使用生产订单的车间信息
       FWorkShopId: {
-        FNumber: productionOrder.FWorkShopID0 || productionOrder.FWorkShopID_FName
+        FNumber:
+          productionOrder.FWorkShopID_FNumber ||
+          productionOrder.FWorkShopID_FName,
       },
-      
+
       // 使用生产订单的货主信息
       FOwnerTypeId0: productionOrder.FOwnerTypeId,
       FOwnerId0: {
-        FNumber: productionOrder.FOwnerId
+        FNumber: productionOrder.FOwnerId,
       },
-      
+
       FDescription: entry.remark || "",
-      
-      FEntity: [{
-        FEntryID: 0,
-        // 使用生产订单的物料信息
-        FMaterialId: {
-          FNumber: productionOrder.FMaterialId
+
+      FEntity: [
+        {
+          FEntryID: 0,
+          // 使用生产订单的物料信息
+          FMaterialId: {
+            FNumber: productionOrder.FMaterialId,
+          },
+          FUnitID: {
+            FNumber: productionOrder.FUnitId,
+          },
+          FBaseUnitId: {
+            FNumber: productionOrder.FUnitId,
+          },
+          FRealQty: entry.actualQuantity,
+          FBaseRealQty: entry.actualQuantity,
+
+          // 使用生产订单的货主信息
+          FOwnerTypeId: productionOrder.FOwnerTypeId,
+          FOwnerId: {
+            FNumber: productionOrder.FOwnerId,
+          },
+
+          FStockId: {
+            FNumber: "CK001",
+          },
+
+          FKeeperTypeId: "BD_KeeperOrg",
+          FKeeperId_Id: productionOrder.FPrdOrgId,
+
+          FMoBillNo: productionOrder.FBillNo,
+
+          FStockStatusId: {
+            FNumber: "KCZT01_SYS",
+          },
+          // FStockStatusId: {
+          //   Id: 10000,
+          //   msterID: 10000,
+          //   MultiLanguageText: [{ PkId: 1, LocaleId: 2052, Name: "可用" }],
+          //   Name: [{ Key: 2052, Value: "可用" }],
+          //   Number: "KCZT01_SYS",
+          //   Type: "0",
+          // },
+
+          FInStockType: "1",
+
+          FProduceDate: new Date().toISOString().split("T")[0],
+          FExpiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
         },
-        FUnitID: {
-          FNumber: productionOrder.FUnitId
-        },
-        FBaseUnitId: {
-          FNumber: productionOrder.FUnitId
-        },
-        FRealQty: entry.actualQuantity,
-        FBaseRealQty: entry.actualQuantity,
-        
-        // 使用生产订单的货主信息
-        FOwnerTypeId: productionOrder.FOwnerTypeId,
-        FOwnerId: {
-          FNumber: productionOrder.FOwnerId
-        },
-        
-        FStockId: {
-          FNumber: "CK001"
-        },
-        
-        FMoBillNo: productionOrder.FBillNo,
-        
-        FStockStatusId: {
-          FNumber: "KCZT01_SYS"
-        },
-        
-        
-        FInStockType: "1",
-        
-        FProduceDate: new Date().toISOString().split("T")[0],
-        FExpiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      }]
+      ],
     };
 
     let k3Response = await k3cMethod("Save", "PRD_INSTOCK", {
@@ -254,7 +270,9 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
         data: k3Response.data,
       });
     } else {
-      throw new Error(JSON.stringify(k3Response.Result.ResponseStatus.Errors) || "同步失败");
+      throw new Error(
+        JSON.stringify(k3Response.Result.ResponseStatus.Errors) || "同步失败"
+      );
     }
   } catch (error) {
     res.status(500).json({

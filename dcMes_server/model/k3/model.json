@@ -43,8 +43,12 @@
         "description": "单据日期"
       },
       {
+        "name": "FWorkShopID_FNumber",
+        "description": "生产车间编码",
+        "entityNameconvert": true
+      },
+      {
         "name": "FWorkShopID_FName",
-
         "description": "生产车间",
         "entityNameconvert": true
       },

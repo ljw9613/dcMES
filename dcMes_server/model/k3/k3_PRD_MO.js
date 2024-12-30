@@ -18,6 +18,7 @@ var productionOrderSchema = new mongoose.Schema({
     FPlanFinishDate: { type: Date, required: true }, // 计划完工时间
     
     // 生产信息
+    FWorkShopID_FNumber: { type: String }, // 生产车间
     FWorkShopID_FName: { type: String }, // 生产车间
     FMaterialId: { type: String, required: true }, // 物料编码
     FMaterialName: { type: String }, // 物料名称

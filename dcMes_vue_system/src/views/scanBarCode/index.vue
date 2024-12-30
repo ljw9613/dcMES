@@ -109,8 +109,9 @@
                             <span>统一扫描区域</span>
                         </div>
                         <div class="scan-input-section">
-                            <el-input v-model="unifiedScanInput" placeholder="请扫描条码" @input="handleUnifiedScan"
-                                ref="scanInput" clearable @clear="focusInput">
+                            <el-input v-model="unifiedScanInput" placeholder="请扫描条码"
+                                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)" ref="scanInput" clearable
+                                @clear="focusInput">
                             </el-input>
                         </div>
                         <!-- 主物料部分 -->
@@ -468,7 +469,7 @@ export default {
         async getProductBarcodeRules(materialIds) {
             try {
                 // 查询所有相关物料的条码规则关联
-                const response = await getData('product_barcode_rule', {
+                const response = await getData('productBarcodeRule', {
                     query: {
                         productId: { $in: materialIds }
                     },
@@ -869,6 +870,10 @@ export default {
 
             try {
                 let rules = this.materialBarcodeRules
+                if (rules.length == 0) {
+                    this.$message.error('物料未配置条码规则');
+                    return { materialCode: null, isValid: false };
+                }
                 // 遍历规则进行匹配
                 for (const rule of rules) {
                     let isValid = true;
