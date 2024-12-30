@@ -51,3 +51,13 @@ export function getSyncStatusAll() {
     method: "get"
   });
 }
+
+
+// 同步仓库数据
+export function syncBD_STOCK(data) {
+  return request({
+    url: "/K3/sync/BD_STOCK",
+    method: "post",
+    data
+  });
+}

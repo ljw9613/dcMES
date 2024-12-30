@@ -143,11 +143,12 @@ class MaterialProcessFlowService {
       //     const processStep = await ProcessStep.findById(stepId);
 
       // 新的查询方式:
-      const processSteps = await ProcessStep.find({ craftId: craft._id }).sort({
+      const processSteps = await ProcessStep.find({ craftId: craft._id, isMES: true }).sort({
         sort: 1,
       });
       if (processSteps && processSteps.length > 0) {
         for (const processStep of processSteps) {
+          let processSort = 1
           // 创建工序节点
           const processNode = {
             nodeId: uuidv4(),
@@ -155,7 +156,7 @@ class MaterialProcessFlowService {
             processStepId: processStep._id,
             processName: processStep.processName,
             processCode: processStep.processCode,
-            processSort: processStep.sort,
+            processSort: processSort,
             processType: processStep.processType,
             level: 1,
             parentNodeId: rootNode.nodeId,
@@ -168,67 +169,65 @@ class MaterialProcessFlowService {
           };
           nodes.push(processNode);
 
-          // 如果工序不需要批次单，则获取工序关联的物料
-          if (!processStep.batchDocRequired) {
-            // 获取工序关联的物料
-            const processMaterials = await ProcessMaterials.find({
-              processStepId: processStep._id,
+          // 获取工序关联的物料
+          const processMaterials = await ProcessMaterials.find({
+            processStepId: processStep._id,
+          });
+
+          // 处理工序物料节点
+          for (const processMaterial of processMaterials) {
+            const material = await Material.findById(
+              processMaterial.materialId
+            );
+            if (!material) continue;
+
+            // 创建物料节点
+            const materialNode = {
+              nodeId: uuidv4(),
+              nodeType: "MATERIAL",
+              materialId: material._id,
+              materialCode: material.FNumber,
+              materialName: material.FName,
+              materialSpec: material.FSpecification,
+              materialQuantity: processMaterial.quantity,
+              materialUnit: processMaterial.unit,
+              isPackingBox: processMaterial.isPackingBox,
+              level: 2,
+              barcode: "",
+              parentNodeId: processNode.nodeId,
+              craftId: craft._id,
+              craftName: craft.craftName,
+              isComponent: processMaterial.isComponent,
+              isKeyMaterial: processMaterial.isKey,
+              scanOperation: processMaterial.scanOperation,
+              requireScan: processMaterial.scanOperation,
+              isBatch: processMaterial.isBatch,
+              batchQuantity: processMaterial.batchQuantity,
+              status: "PENDING",
+            };
+            nodes.push(materialNode);
+
+            // 递归处理子物料的工艺，传入已处理的物料集合
+            const subCraft = await Craft.findOne({
+              materialId: material._id,
             });
-
-            // 处理工序物料节点
-            for (const processMaterial of processMaterials) {
-              const material = await Material.findById(
-                processMaterial.materialId
+            if (subCraft) {
+              const subNodes = await this.buildProcessNodes(
+                material._id,
+                subCraft,
+                processedMaterials // 传入已处理的物料集合
               );
-              if (!material) continue;
-
-              // 创建物料节点
-              const materialNode = {
-                nodeId: uuidv4(),
-                nodeType: "MATERIAL",
-                materialId: material._id,
-                materialCode: material.FNumber,
-                materialName: material.FName,
-                materialSpec: material.FSpecification,
-                materialQuantity: processMaterial.quantity,
-                materialUnit: processMaterial.unit,
-                isPackingBox: processMaterial.isPackingBox,
-                level: 2,
-                barcode: "",
-                parentNodeId: processNode.nodeId,
-                craftId: craft._id,
-                craftName: craft.craftName,
-                isComponent: processMaterial.isComponent,
-                isKeyMaterial: processMaterial.isKey,
-                scanOperation: processMaterial.scanOperation,
-                requireScan: processMaterial.scanOperation,
-                isBatch: processMaterial.isBatch,
-                batchQuantity: processMaterial.batchQuantity,
-                status: "PENDING",
-              };
-              nodes.push(materialNode);
-
-              // 递归处理子物料的工艺，传入已处理的物料集合
-              const subCraft = await Craft.findOne({
-                materialId: material._id,
+              // 调整子节点的层级和父节点
+              subNodes.forEach((node) => {
+                node.level += materialNode.level;
+                if (node.level === materialNode.level + 1) {
+                  node.parentNodeId = materialNode.nodeId;
+                }
               });
-              if (subCraft) {
-                const subNodes = await this.buildProcessNodes(
-                  material._id,
-                  subCraft,
-                  processedMaterials // 传入已处理的物料集合
-                );
-                // 调整子节点的层级和父节点
-                subNodes.forEach((node) => {
-                  node.level += materialNode.level;
-                  if (node.level === materialNode.level + 1) {
-                    node.parentNodeId = materialNode.nodeId;
-                  }
-                });
-                nodes.push(...subNodes);
-              }
+              nodes.push(...subNodes);
             }
           }
+          processSort++
         }
       }
 
@@ -1158,19 +1157,19 @@ class MaterialProcessFlowService {
       }
 
       //TODO 检查前置工序完成状态
-      const checkResult = this.checkPreviousProcessSteps(
-        flowRecord.processNodes,
-        processNode
-      );
+      // const checkResult = this.checkPreviousProcessSteps(
+      //   flowRecord.processNodes,
+      //   processNode
+      // );
 
-      if (!checkResult.isValid) {
-        const unfinishedList = checkResult.unfinishedSteps
-          .map((step) => `${step.processName}(${step.processCode})`)
-          .join("、");
-        throw new Error(
-          `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
-        );
-      }
+      // if (!checkResult.isValid) {
+      //   const unfinishedList = checkResult.unfinishedSteps
+      //     .map((step) => `${step.processName}(${step.processCode})`)
+      //     .join("、");
+      //   throw new Error(
+      //     `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
+      //   );
+      // }
 
       // 在更新节点状态之前，检查是否为首道或末道工序
       const processPosition = this.checkProcessPosition(

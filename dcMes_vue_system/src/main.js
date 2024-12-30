@@ -8,7 +8,7 @@ import Vue from "vue";
 
 import "normalize.css/normalize.css"; // A modern alternative to CSS resets 一个现代的替代CSS重置
 import ElementUI from "element-ui";
-import dataV from "@jiaminghi/data-view";
+// import dataV from "@jiaminghi/data-view";
 import "element-ui/lib/theme-chalk/index.css";
 // import locale from 'element-ui/lib/locale/lang/en' // lang i18n
 import "@/styles/element-variables.scss";
@@ -43,6 +43,7 @@ import { requestK3Data } from "@/api/K3Data";
 // import HiPrint from 'vue-plugin-hiprint'
 import "sv-print/dist/style.css";
 
+
 // Vue.use(HiPrint)
 
 
@@ -55,16 +56,15 @@ DictData.install()
  *目前MockJs将在生产环境中使用，
  *请在上线前删除!!!
  */
-if (process.env.NODE_ENV === "production") {
-  const {mockXHR} = require("../mock");
-  mockXHR();
-}
+// if (process.env.NODE_ENV === "production") {
+//   const {mockXHR} = require("../mock");
+//   mockXHR();
+// }
 
 // set ElementUI lang to EN
 // Vue.use(ElementUI, { locale })
 // 如果想要中文版 element-ui，按如下方式声明
 Vue.use(ElementUI);
-Vue.use(dataV);
 Vue.use(plugins);
 Vue.use(VideoPlayer);
 
@@ -91,6 +91,9 @@ Vue.config.productionTip = false;
 Object.keys(filters).forEach(key => {
   Vue.filter(key, filters[key]);
 });
+
+// 注册全局过滤器
+
 
 new Vue({
   el: "#app", router, store, render: h => h(App)

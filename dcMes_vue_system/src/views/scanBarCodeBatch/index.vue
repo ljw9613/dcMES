@@ -99,7 +99,7 @@
                             </el-button>
                         </div>
                         <el-form :model="batchForm" label-width="100px" v-if="hasEditPermission">
-                            <el-form-item label="批次数量">
+                            <el-form-item label="产品数量">
                                 <div class="batch-size-control">
                                     <el-input-number size="mini" v-model="batchForm.batchSize" :min="1" :max="999"
                                         @change="handleBatchSizeChange" :disabled="batchSizeLocked">
@@ -127,14 +127,8 @@
                                 <i class="el-icon-camera"></i>
                                 <span>统一扫描区域</span>
                             </div>
-                            <div class="print-batch-btn">
-                                <el-switch size="small" v-model="autoPrint" active-text="自动" inactive-text="手动"
-                                    class="print-switch" @change="handleAutoPrintChange">
-                                </el-switch>
-                                <el-button type="text" class="print-batch-btn" size="mini">
-                                    打印
-                                </el-button>
-                            </div>
+                            <hir-input ref="hirInput" :enable-template-cache="true" :show-preview="true"
+                                :show-browser-print="true" :show-silent-print="true" :printData="printData" />
                         </div>
                         <div class="scan-input-section">
                             <el-input v-model="unifiedScanInput" placeholder="请扫描条码" @input="handleUnifiedScan"
@@ -173,8 +167,8 @@
                                                     <span class="value">{{ palletForm.workOrderNo }}</span>
                                                 </div>
                                                 <div class="info-item">
-                                                    <span class="label">托盘数量：</span>
-                                                    <span class="value">{{ batchForm.batchSize }}</span>
+                                                    <span class="label">托盘单据数量：</span>
+                                                    <span class="value">{{ palletForm.totalQuantity }}</span>
                                                 </div>
                                             </el-card>
                                         </el-col>
@@ -210,8 +204,7 @@
                                     <div class="progress-text">
                                         当前进度: {{ scannedList.length }}/{{ batchForm.batchSize }}
                                     </div>
-                                    <el-progress :percentage="progressPercentage"
-                                        :status="progressPercentage >= 100 ? 'success' : ''">
+                                    <el-progress :percentage="progressPercentage">
                                     </el-progress>
                                 </div>
                             </div>
@@ -259,14 +252,14 @@ import smcg from "@/assets/tone/smcg.mp3";
 import tmyw from "@/assets/tone/tmyw.mp3";
 import cxwgd from "@/assets/tone/cxwgd.mp3";
 import cfbd from "@/assets/tone/cfbd.mp3";
-import TscPrinter from '@/components/tscInput'
+import hirInput from '@/components/hirInput'
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
 export default {
     name: 'ScanBarCode',
     components: {
         ZrSelect,
-        TscPrinter
+        hirInput
     },
     data() {
         return {
@@ -333,12 +326,14 @@ export default {
                 saleOrderNo: '',
                 productionOrderId: '',
                 workOrderNo: '',
+                totalQuantity: 0,
             },
             salesOrderOptions: [],
             currentPalletId: '', // 当前托盘ID
             currentPalletCode: '', // 当前托盘编号
 
             processStepData: {},
+            printData: {},
         }
     },
     computed: {
@@ -1091,6 +1086,14 @@ export default {
                 clearTimeout(this.scanTimer);
             }
 
+            //当打印模板未选择时提醒
+            if (!this.$refs.hirInput.selectedTemplate) {
+                this.unifiedScanInput = '';
+                this.$refs.scanInput.focus();
+                this.$message.warning('请先选择打印模板');
+                return;
+            }
+
             this.scanTimer = setTimeout(async () => {
                 try {
                     const cleanValue = value.trim().replace(/[\r\n]/g, '');
@@ -1190,6 +1193,7 @@ export default {
                         this.palletForm.workOrderNo = res.data.workOrderNo
                         this.palletForm.saleOrderId = res.data.saleOrderId
                         this.palletForm.saleOrderNo = res.data.saleOrderNo
+                        this.palletForm.totalQuantity = res.data.totalQuantity
 
                         this.scannedList.push({
                             barcode: item.barcode,
@@ -1197,10 +1201,24 @@ export default {
                             boxBarcode: boxBarcode,
                             scanTime: new Date()
                         });
+                        // 打印托盘条码     
+                        let materialPalletizingPrintData = await getData('material_palletizing', { query: { _id: res.data._id }, populate: JSON.stringify([{ path: 'productLineId', select: 'workshop' }, { path: 'productLineId', select: 'lineCode' }]) });
+                        let printData = materialPalletizingPrintData.data[0];
+                        printData.createAt = this.formatDate(printData.createAt);
+                        printData.workshop = printData.productLineId.workshop || '未记录生产车间';
+                        printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${printData.productLineId.lineCode}`;
+                        this.printData = printData;
+
                         // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
                         if (res.data.status == 'STACKED') {
                             this.palletForm.palletCode = ''
+                            this.palletForm.totalQuantity = 0
                             this.scannedList = []
+
+
+                            this.$nextTick(() => {
+                                this.$refs.hirInput.handlePrints2();
+                            });
                         }
                     } else {
                         this.$message.error(res.message);
@@ -1242,12 +1260,14 @@ export default {
                 })
 
                 if (res.code === 200) {
+
                     //更新当前托盘编码
                     this.palletForm.palletCode = res.data.palletCode
                     this.palletForm.productionOrderId = res.data.productionOrderId
                     this.palletForm.workOrderNo = res.data.workOrderNo
                     this.palletForm.saleOrderId = res.data.saleOrderId
                     this.palletForm.saleOrderNo = res.data.saleOrderNo
+                    this.palletForm.totalQuantity = res.data.totalQuantity
                     // 添加到已扫描列表
                     this.scannedList.push({
                         barcode,
@@ -1255,8 +1275,23 @@ export default {
                         boxBarcode: '',
                         scanTime: new Date()
                     });
+
+                    let materialPalletizingPrintData = await getData('material_palletizing', { query: { _id: res.data._id }, populate: JSON.stringify([{ path: 'productLineId', select: 'workshop' }, { path: 'productLineId', select: 'lineCode' }]) });
+                    let printData = materialPalletizingPrintData.data[0];
+                    printData.createAt = this.formatDate(printData.createAt);
+                    printData.workshop = printData.productLineId.workshop || '未记录生产车间';
+                    printData.palletBarcodes = printData.palletBarcodes.map(item => {
+                        item.scanTime = this.formatDate(item.scanTime);
+                        return item;
+                    });
+                    printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${printData.productLineId.lineCode}`;
+                    this.printData = printData;
+
                     // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
                     if (res.data.status == 'STACKED') {
+                        this.$nextTick(() => {
+                            this.$refs.hirInput.handlePrints2();
+                        });
                         this.palletForm.palletCode = ''
                         this.scannedList = []
                     }
@@ -1648,6 +1683,7 @@ export default {
                     this.palletForm.saleOrderNo = response.data[0].saleOrderNo
                     this.palletForm.productionOrderId = response.data[0].productionOrderId._id
                     this.palletForm.workOrderNo = response.data[0].workOrderNo
+                    this.palletForm.totalQuantity = response.data[0].totalQuantity
                 } else {
                     this.$message.warning('当前产线没有在生产中的工单');
                 }
@@ -1655,17 +1691,30 @@ export default {
                 // 更新当前托盘编码
                 // 获取当前托盘的已扫描条码
                 const palletResponse = await getData('material_palletizing', {
-                    query: { lineId: this.productLineId, status: 'STACKING' }
+                    query: { productLineId: this.productLineId, status: 'STACKING', materialId: this.mainMaterialId },
+                    populate: JSON.stringify([{ path: 'productLineId', select: 'workshop' }, { path: 'productLineId', select: 'lineCode' }])
                 });
 
                 if (palletResponse.data && palletResponse.data[0]) {
                     const palletData = palletResponse.data[0];
                     this.palletForm.palletCode = palletData.palletCode
+                    this.palletForm.totalQuantity = palletData.totalQuantity
                     this.scannedList = palletData.palletBarcodes.map(item => ({
                         barcode: item.barcode,
                         type: item.barcodeType,
                         scanTime: item.scanTime
                     }));
+
+                    // 打印数据
+                    let printData = palletData;
+                    printData.createAt = this.formatDate(printData.createAt);
+                    printData.workshop = printData.productLineId.workshop || '未记录生产车间';
+                    printData.palletBarcodes = printData.palletBarcodes.map(item => {
+                        item.scanTime = this.formatDate(item.scanTime);
+                        return item;
+                    });
+                    printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${printData.productLineId.lineCode}`;
+                    this.printData = printData;
                 }
             } catch (error) {
                 console.error('获取销售单号失败:', error);

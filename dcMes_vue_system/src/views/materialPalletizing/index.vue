@@ -59,6 +59,10 @@
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
+                    <el-button type="primary" @click="handleExport" :loading="exportLoading">
+                        <i class="el-icon-download"></i>
+                        {{ exportLoading ? `正在导出(${exportProgress}%)` : '导出数据' }}
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -66,11 +70,8 @@
         <div class="screen1">
             <div class="screen_content">
                 <div class="screen_content_first">
-                    <i class="el-icon-tickets">检测数据列表</i>
-                    <el-button type="primary" @click="handleExport" :loading="exportLoading">
-                        <i class="el-icon-download"></i>
-                        {{ exportLoading ? `正在导出(${exportProgress}%)` : '导出数据' }}
-                    </el-button>
+                    <i class="el-icon-tickets">托盘组托列表</i>
+                    <hir-input ref="hirInput"  :printData="printData" />
                 </div>
             </div>
         </div>
@@ -149,7 +150,7 @@
                 </el-table-column>
                 <el-table-column label="托盘编号" align="center" prop="palletCode">
                     <template slot-scope="scope">
-                        <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.palletCode }}</el-link>
+                        <el-link type="primary">{{ scope.row.palletCode }}</el-link>
                     </template>
                 </el-table-column>
                 <el-table-column label="订单信息" align="center">
@@ -159,7 +160,15 @@
                         <div>工单号: {{ scope.row.workOrderNo || '--' }}</div>
                     </template>
                 </el-table-column>
-                <el-table-column label="产线名称" prop="productLineName" align="center"></el-table-column>
+                <el-table-column label="产线名称" prop="productLineName" align="center">
+                    <template slot-scope="scope">
+                        {{ scope.row.productLineName }}
+                        <el-tag size="mini" v-if="scope.row.productLineId && scope.row.productLineId.workshop">{{
+                            scope.row.productLineId.workshop
+                            }}</el-tag>
+                        <el-tag v-else>未记录生产车间</el-tag>
+                    </template>
+                </el-table-column>
                 <el-table-column label="物料信息" align="center">
                     <template slot-scope="scope">
                         {{ scope.row.materialName }}
@@ -176,7 +185,7 @@
                 <el-table-column label="数量信息" align="center">
                     <template slot-scope="scope">
                         <div>总数量: {{ scope.row.totalQuantity }}</div>
-                        <div>箱数: {{ scope.row.boxCount }}</div>
+                        <div v-if="scope.row.boxCount">箱数: {{ scope.row.boxCount }}</div>
                     </template>
                 </el-table-column>
                 <el-table-column label="创建时间" align="center">
@@ -199,14 +208,9 @@
 
         <!-- 添加历史数据弹窗 -->
         <el-dialog title="解绑记录" :visible.sync="historyDialogVisible" width="80%">
-            <base-table ref="historyTable" 
-                :currentPage="historyCurrentPage" 
-                :highlight-current-row="true"
-                :pageSize="historyPageSize" 
-                :tableData="historyTableList" 
-                :tableDataloading="historyListLoading"
-                :total="historyTotal" 
-                @handleCurrentChange="historyTableHandleCurrentChange"
+            <base-table ref="historyTable" :currentPage="historyCurrentPage" :highlight-current-row="true"
+                :pageSize="historyPageSize" :tableData="historyTableList" :tableDataloading="historyListLoading"
+                :total="historyTotal" @handleCurrentChange="historyTableHandleCurrentChange"
                 @handleSizeChange="historyTableHandleSizeChange">
                 <template slot="law">
                     <el-table-column type="expand">
@@ -220,12 +224,14 @@
                                         <el-table-column label="条码" prop="barcode" align="center"></el-table-column>
                                         <el-table-column label="条码类型" align="center">
                                             <template slot-scope="barcodeScope">
-                                                <el-tag :type="barcodeScope.row.barcodeType === 'MAIN' ? 'primary' : 'success'">
+                                                <el-tag
+                                                    :type="barcodeScope.row.barcodeType === 'MAIN' ? 'primary' : 'success'">
                                                     {{ barcodeScope.row.barcodeType === 'MAIN' ? '主条码' : '箱条码' }}
                                                 </el-tag>
                                             </template>
                                         </el-table-column>
-                                        <el-table-column label="所属箱码" prop="boxBarcode" align="center"></el-table-column>
+                                        <el-table-column label="所属箱码" prop="boxBarcode"
+                                            align="center"></el-table-column>
                                     </el-table>
                                 </el-card>
                             </el-form>
@@ -269,11 +275,12 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { unbindPalletBarcode, unbindPalletAllBarcode } from "@/api/materialPalletizing";
 import EditDialog from './components/EditDialog'
-
+import HirInput from '@/components/hirInput'
 export default {
     name: 'MaterialPalletizing',
     components: {
-        EditDialog
+        EditDialog,
+        HirInput
     },
     data() {
         return {
@@ -304,6 +311,8 @@ export default {
             exportLoading: false,
             exportProgress: 0,
             exportDialogVisible: false,
+            printDialogVisible: false,
+            printData: {},
         }
     },
     methods: {
@@ -418,6 +427,7 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.sort = { _id: -1 };
+                req.populate = JSON.stringify([{ path: 'productLineId' }]);
                 req.count = true;
                 const result = await getData("material_palletizing", req);
                 this.tableList = result.data;
@@ -573,7 +583,20 @@ export default {
                 this.$message.error('操作失败');
             }
         },
-
+        handlePrint(row) {
+            let printData = row;
+            printData.createAt = this.formatDate(row.createAt);
+            printData.workshop = row.productLineId.workshop || '未记录生产车间';
+            printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${row.materialCode}#${row.totalQuantity}#${row.productLineId.lineCode}`;
+            printData.palletBarcodes = row.palletBarcodes.map(item => {
+                item.scanTime = this.formatDate(item.scanTime);
+                return item;
+            });
+            this.printData = printData;
+            this.$nextTick(() => {
+                this.$refs.hirInput.handlePrints();
+            });
+        },
         showHistory(row) {
             this.historyCurrentPage = 1;
             this.dataForm = row;
@@ -612,7 +635,7 @@ export default {
                     sort: { createAt: -1 },
                     count: true
                 };
-                
+
                 const result = await getData("material_palletizing_unbind_log", req);
                 this.historyTableList = result.data;
                 this.historyTotal = result.countnum;

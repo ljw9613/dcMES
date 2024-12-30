@@ -267,7 +267,7 @@ export default {
     getList() {
       this.loading = true;
       console.log()
-      getData('dictData', {query: this.queryParams, skip: this.skip, limit: this.limit}).then(response => {
+      getData('dictData', {query: this.queryParams, sort: { dictSort: 1 }, skip: this.skip, limit: this.limit}).then(response => {
         this.dataList = response.data;
         this.total = response.total;
         this.loading = false;

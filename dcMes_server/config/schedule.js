@@ -6,6 +6,8 @@ const initSchedule = () => {
   schedule.scheduleJob("0 2 * * *", async () => {
     try {
       await BackupService.backupMaterialProcessFlow();
+      //拉取金蝶云数据
+      
     } catch (error) {
       console.error("执行 MaterialProcessFlow 备份任务失败:", error);
     }

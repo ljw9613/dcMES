@@ -177,6 +177,7 @@
                 <el-form-item label="同步方式">
                     <el-radio-group v-model="syncForm.syncType">
                         <el-radio label="date">按日期同步</el-radio>
+                        <el-radio label="billNo">按单号同步</el-radio>
                         <el-radio label="all">同步全部</el-radio>
                     </el-radio-group>
                 </el-form-item>
@@ -184,6 +185,9 @@
                     <el-date-picker v-model="syncForm.dateRange" type="daterange" range-separator="至"
                         start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
                     </el-date-picker>
+                </el-form-item>
+                <el-form-item label="单据编号" required v-if="syncForm.syncType === 'billNo'">
+                    <el-input v-model="syncForm.billNo" placeholder="请输入单据编号"></el-input>
                 </el-form-item>
                 <el-form-item label="单据状态">
                     <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
@@ -250,7 +254,8 @@ export default {
             syncForm: {
                 syncType: 'date',
                 dateRange: [],
-                documentStatus: 'C'
+                documentStatus: 'C',
+                billNo: ''
             }
         }
     },
@@ -581,7 +586,8 @@ export default {
             this.syncForm = {
                 syncType: 'date',
                 dateRange: [],
-                documentStatus: 'C'
+                documentStatus: 'C',
+                billNo: ''
             };
         },
 
@@ -589,6 +595,10 @@ export default {
         async confirmSync() {
             if (this.syncForm.syncType === 'date' && (!this.syncForm.dateRange || this.syncForm.dateRange.length !== 2)) {
                 this.$message.warning('请选择审核日期范围');
+                return;
+            }
+            if (this.syncForm.syncType === 'billNo' && !this.syncForm.billNo) {
+                this.$message.warning('请输入单据编号');
                 return;
             }
 
@@ -641,6 +651,17 @@ export default {
                                 "Left": "",
                                 "Right": "",
                                 "Logic": "0"
+                            }
+                        ];
+                    } else if (this.syncForm.syncType === 'billNo') {
+                        req.FilterString = [
+                            {
+                                "FieldName": "FBillNo",
+                                "Compare": "=",
+                                "Value": this.syncForm.billNo,
+                                "Left": "",
+                                "Right": "",
+                                "Logic": 0
                             }
                         ];
                     } else {

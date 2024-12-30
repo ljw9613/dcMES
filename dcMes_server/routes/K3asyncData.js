@@ -1,14 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const k3Models = require("../model/k3/k3Model");
-const modelConfig = require("../model/k3/model.json");
 const { k3cMethod } = require("./k3cMethod");
 const K3Material = require("../model/k3/k3_BD_MATERIAL");
 const Craft = require("../model/project/craft");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const ProductDiNum = require("../model/project/ProductDiNum");
 const processMaterials = require("../model/project/processMaterials");
-
 
 // 添加在文件顶部
 const syncTasks = new Map(); // 存储同步任务的状态
@@ -55,6 +53,146 @@ class SyncTask {
   }
 }
 
+// 添加模型配置对象
+const modelFieldsConfig = {
+  PRD_MO: {
+    model: k3Models.k3_PRD_MO,
+    fields: [
+      "FID",
+      "FBillNo",
+      "FDocumentStatus",
+      "FSaleOrderId",
+      "FSaleOrderEntryId",
+      "FSaleOrderNo",
+      "FApproverId",
+      "FApproveDate",
+      "FDate",
+      "FWorkShopID.FName",
+      "FMaterialId",
+      "FMaterialName",
+      "FSpecification",
+      "FProductType",
+      "FUnitId",
+      "FQty",
+      "FPlanStartDate",
+      "FPlanFinishDate",
+      "FBillType",
+      "FPrdOrgId",
+      "FOwnerTypeId",
+      "FPPBOMType",
+      "FModifierId",
+      "FCreatorId",
+      "FCanceler",
+      "FPlannerID",
+      "FCreateDate",
+      "FModifyDate",
+      "FCancelDate",
+      "FCancelStatus",
+      "FDescription",
+      "FTrustteed",
+      "FWorkShopID0",
+      "FWorkGroupId",
+      "FBusinessType",
+      "FIsRework",
+      "FIsEntrust",
+      "FEnTrustOrgId",
+      "FIssueMtrl",
+      "FIsQCMO",
+      "FOwnerId",
+      "F_TFQJ_rjh",
+      "F_TFQJ_sfwwzzz",
+    ],
+  },
+  SAL_SaleOrder: {
+    model: k3Models.k3_SAL_SaleOrder,
+    fields: [
+      "FID",
+      "FBillNo",
+      "FDocumentStatus",
+      "FSaleOrgId",
+      "FDate",
+      "FCustId",
+      "FSaleDeptId",
+      "FSaleGroupId",
+      "FSalerId",
+      "FReceiveId",
+      "FSettleId",
+      "FSettleAddress",
+      "FChargeId",
+      "FCreatorId",
+      "FCreateDate",
+      "F_TFQJ_khpo",
+      "F_TFQJ_Text1",
+      "FModifierId",
+      "FModifyDate",
+      "FApproverId",
+      "FApproveDate",
+      "FCloseStatus",
+      "FCloserId",
+      "FCloseDate",
+      "FCancelStatus",
+      "FCancellerId",
+      "FCancelDate",
+      "FVersionNo",
+      "FChangerId",
+      "FChangeDate",
+      "FChangeReason",
+      "FBillTypeID",
+      "FCorrespondOrgId",
+    ],
+  },
+  BD_MATERIAL: {
+    model: k3Models.k3_BD_MATERIAL,
+    fields: [
+      "FMATERIALID",
+      "FDocumentStatus",
+      "FForbidStatus",
+      "FName",
+      "FNumber",
+      "FDescription",
+      "FCreateOrgId",
+      "FUseOrgId",
+      "FCreatorId",
+      "FModifierId",
+      "FCreateDate",
+      "FModifyDate",
+      "FForbidderId",
+      "FApproverId",
+      "FForbidDate",
+      "FApproveDate",
+      "FOldNumber",
+      "FMnemonicCode",
+      "FSpecification",
+      "FImage1",
+      "FMaterialGroup",
+      "FBaseProperty",
+      "FPLMMaterialId",
+      "FMaterialSRC",
+      "FImageFileServer",
+      "FImgStorageType",
+      "FIsSalseByNet",
+      "FIsAutoAllocate",
+      "FSPUID",
+      "FPinYin",
+      "FDSMatchByLot",
+      "FRefStatus",
+      "FForbidReson",
+      "F_TFQJ_TZBM1",
+      "F_TFQJ_LLCJ",
+      "F_TFQJ_SFZDKZ",
+      "F_TFQJ_SFZDLL",
+      "FBaseUnitId.FName",
+      "FBaseUnitId.FNumber",
+      "FStockId.FNumber",
+      "FStockId.FName",
+      "FPickStockId.FNumber",
+      "FPickStockId.FName",
+      "F_TFQJ_CheckBox",
+      "FNameEn",
+    ],
+  },
+};
+
 // 同步K3数据到本地数据库的通用函数
 async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
   // 检查是否已有同步任务在进行
@@ -76,20 +214,13 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
       throw new Error(`未找到模型: ${modelName}`);
     }
 
-    // 获取字段
-    const k3Model = modelConfig.find((item) => item.modelName === formId);
-    if (!k3Model) {
-      throw new Error(`未找到模型: ${formId}`);
+    // 使用新的配置对象获取字段
+    const modelConfig = modelFieldsConfig[formId];
+    if (!modelConfig) {
+      throw new Error(`未找到模型配置: ${formId}`);
     }
-    let fieldKeys = k3Model.header
-      .map((item) =>
-        item.entityNameconvert
-          ? item.name.includes("_")
-            ? item.name.replace(/_/g, ".")
-            : item.name
-          : item.name
-      )
-      .join(",");
+
+    const fieldKeys = modelConfig.fields.join(",");
     let allResults = [];
     let startRow = 0;
     const pageSize = 10000;
@@ -146,8 +277,8 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
       // 修改这里：将数组数据转换为对象格式
       let transformedData = k3Data.map((item) => {
         const transformedItem = {};
-        k3Model.header.forEach((field, index) => {
-          transformedItem[field.name] = item[index];
+        modelConfig.fields.forEach((field, index) => {
+          transformedItem[field] = item[index];
         });
         return transformedItem;
       });
@@ -795,5 +926,190 @@ router.post("/handle-duplicate-materials", async (req, res) => {
     });
   }
 });
+
+// 同步仓库数据
+router.post("/sync/BD_STOCK", async (req, res) => {
+  try {
+    const modelName = "K3_BD_STOCK";
+    const FilterString = req.body.FilterString || "";
+
+    // 检查是否有正在进行的任务
+    if (syncTasks.has(modelName)) {
+      const existingTask = syncTasks.get(modelName);
+      if (existingTask.status === "running") {
+        return res.json({
+          code: 200,
+          success: true,
+          message: "同步任务正在进行中",
+          taskStatus: existingTask.getStatus(),
+        });
+      }
+    }
+
+    // 创建新的同步任务
+    const syncTask = new SyncTask(modelName);
+    syncTasks.set(modelName, syncTask);
+
+    // 启动异步同步过程
+    syncStockData(modelName, FilterString, syncTask);
+
+    res.json({
+      code: 200,
+      success: true,
+      message: "同步任务已启动",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// 仓库数据同步的具体实现
+async function syncStockData(modelName, filterString, syncTask) {
+  try {
+    const K3Stock = require("../model/k3/k3_BD_STOCK");
+    let startRow = 0;
+    const pageSize = 100;
+    let hasMoreData = true;
+    let allStockNumbers = [];
+
+    // 第一步：获取所有仓库的基本信息（主要是编号）
+    console.log("\n开始获取仓库列表...");
+    while (hasMoreData) {
+      const response = await k3cMethod("BillQuery", "BD_STOCK", {
+        FormId: "BD_STOCK",
+        FieldKeys: "FNumber",
+        FilterString: filterString,
+        OrderString: "",
+        TopRowCount: 0,
+        StartRow: startRow,
+        Limit: pageSize,
+      });
+
+      if (!response || !Array.isArray(response) || response.length === 0) {
+        hasMoreData = false;
+        break;
+      }
+
+      // 提取仓库编号
+      const numbers = response.map((item) => item[0]);
+      allStockNumbers.push(...numbers);
+
+      startRow += pageSize;
+      console.log(`已获取 ${allStockNumbers.length} 个仓库编号`);
+    }
+
+    console.log(`\n共找到 ${allStockNumbers.length} 个仓库`);
+    syncTask.updateProgress(0, allStockNumbers.length);
+
+    // 第二步：逐个获取详细数据
+    let processedCount = 0;
+    const startTime = Date.now();
+
+    for (const stockNumber of allStockNumbers) {
+      try {
+        // 获取详细数据
+        const viewResponse = await k3cMethod("View", "BD_STOCK", {
+          CreateOrgId: 0,
+          Number: stockNumber,
+          Id: "",
+          IsSortBySeq: "false",
+        });
+
+        if (!viewResponse?.Result?.Result) {
+          console.log(`警告: 仓库 ${stockNumber} 未返回有效数据`);
+          continue;
+        }
+
+        const stockData = viewResponse.Result.Result;
+        console.log(JSON.stringify(stockData));
+        console.log(stockData.StockFlexItem.length);
+        // 转换数据格式
+        const transformedData = {
+          FStockId: stockData.Id.toString(),
+          FDocumentStatus: stockData.DocumentStatus,
+          FForbidStatus: stockData.ForbidStatus,
+          FName: stockData.Name.find((n) => n.Key === 2052)?.Value || "",
+          FNumber: stockData.Number,
+          FDescription:
+            stockData.Description.find((d) => d.Key === 2052)?.Value || "",
+          FCreateOrgId: stockData.CreateOrgId?.Number || "",
+          FUseOrgId: stockData.UseOrgId?.Number || "",
+          FCreatorId: stockData.CreatorId?.UserAccount || "",
+          FModifierId: stockData.ModifierId?.UserAccount || "",
+          FCreateDate: stockData.CreateDate,
+          FModifyDate: stockData.FModifyDate,
+          FPrincipal: stockData.Principal,
+          FTel: stockData.Tel,
+          FAllowATPCheck: stockData.AllowATPCheck,
+          FAllowMRPPlan: stockData.AllowMRPPlan,
+          FIsOpenLocation: stockData.IsOpenLocation,
+          FAllowLock: stockData.AllowLock,
+          FAllowMinusQty: stockData.AllowMinusQty,
+          FAddress: stockData.Address,
+          FForbiderId: stockData.FForbiderId?.UserAccount || "",
+          FForbidDate: stockData.FForbidDate,
+          FSysDefault: stockData.FSysDefault,
+          FAuditorId: stockData.AuditorId?.UserAccount || "",
+          FAuditDate: stockData.FAuditDate,
+          FGroup: stockData.FGroup,
+          FStockProperty: stockData.StockProperty,
+          FSupplierId: stockData.SupplierId?.Number || "",
+          FCustomerId: stockData.CustomerId?.Number || "",
+          FStockStatusType: stockData.StockStatusType,
+          FDefStockStatusId: stockData.DefStockStatusId?.Number || "",
+          FDefReceiveStatusId: stockData.DefReceiveStatusId?.Number || "",
+          FTHIRDSTOCKNO: stockData.THIRDSTOCKNO,
+          FAvailableAlert: stockData.AvailableAlert,
+          FThirdStockType: stockData.ThirdStockType,
+          FAvailablePicking: stockData.AvailablePicking,
+          FSortingPriority: stockData.SortingPriority,
+          FIsGYStock: stockData.IsGYStock,
+          FGYStockNumber: stockData.GYStockNumber,
+          FGYSynStatus: stockData.GYSynStatus,
+          FNotExpQty: stockData.NotExpQty,
+          FLocListFormatter: stockData.LocListFormatter,
+          FDeptId: stockData.DeptId?.Number || "",
+          FIsZYStock: stockData.FIsZYStock,
+
+          // 处理仓位值集
+          FStockFlexItem: stockData.StockFlexItem,
+        };
+
+        // 更新或插入数据
+        await K3Stock.findOneAndUpdate(
+          { FStockId: transformedData.FStockId },
+          transformedData,
+          { upsert: true, new: true }
+        );
+
+        processedCount++;
+        syncTask.updateProgress(processedCount, allStockNumbers.length);
+
+        // 打印进度
+        const progress = (
+          (processedCount / allStockNumbers.length) *
+          100
+        ).toFixed(2);
+        const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(
+          `处理进度: ${progress}% (${processedCount}/${allStockNumbers.length}) | 已用时: ${timeElapsed}秒`
+        );
+      } catch (error) {
+        console.error(`处理仓库 ${stockNumber} 时出错:`, error);
+        continue; // 继续处理下一个仓库
+      }
+    }
+
+    syncTask.complete();
+    console.log("\n同步完成!");
+  } catch (error) {
+    console.error("同步仓库数据失败:", error);
+    syncTask.fail(error);
+    throw error;
+  }
+}
 
 module.exports = router;

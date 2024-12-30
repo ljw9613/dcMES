@@ -13,7 +13,10 @@ var salesOrderSchema = new mongoose.Schema({
     FSettleId: { type: String }, // 结算方
     FSettleAddress: { type: String }, // 结算方地址
     FChargeId: { type: String }, // 付款方（作废）
-    
+    // 客户PO：F_TFQJ_khpo 
+    F_TFQJ_khpo: { type: String }, // 客户PO
+    F_TFQJ_Text1: { type: String }, // 客户PO行号
+
     // 销售部门信息
     FSaleDeptId: { type: String }, // 销售部门
     FSaleGroupId: { type: String }, // 销售组
@@ -45,6 +48,8 @@ var salesOrderSchema = new mongoose.Schema({
     FChangeDate: { type: Date }, // 变更日期
     FChangeReason: { type: String }, // 变更原因
     
+    // 关联组织
+    FCorrespondOrgId: { type: String }, // 关联组织
     // 单据类型
     FBillTypeID: { type: String, required: true } // 单据类型
 });

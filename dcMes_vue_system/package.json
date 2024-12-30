@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@jiaminghi/data-view": "^2.10.0",
+    "@sv-print/hiprint": "^0.2.8",
     "@sv-print/vue": "^0.1.18",
     "@tinymce/tinymce-vue": "^3.2.0",
     "@wangeditor/editor": "^5.1.23",

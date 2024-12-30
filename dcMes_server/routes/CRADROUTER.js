@@ -29,11 +29,14 @@ const printTemplate = require("../model/project/printTemplate");
 const materialPalletizing = require("../model/project/materialPalletizing");
 const materialPalletizingUnbindLog = require("../model/project/materialPalletizingUnbindLog");
 
+//wms模型
+const warehouseEntry = require("../model/warehouse/warehouseEntry");
 
 // 引入 k3 模型
 const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
 const k3_PRD_MO = require("../model/k3/k3_PRD_MO");
 const k3_SAL_SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
+const k3_BD_STOCK = require("../model/k3/k3_BD_STOCK");
 
 //检测模块
 const InspectionLastData = require("../model/project/InspectionLastData");
@@ -71,11 +74,16 @@ ADDROUTER(router, "material_palletizing_unbind_log", materialPalletizingUnbindLo
 ADDROUTER(router, "k3_BD_MATERIAL", k3_BD_MATERIAL);
 ADDROUTER(router, "k3_PRD_MO", k3_PRD_MO);
 ADDROUTER(router, "k3_SAL_SaleOrder", k3_SAL_SaleOrder);
+ADDROUTER(router, "k3_BD_STOCK", k3_BD_STOCK);
 ADDROUTER(router, "productDiNum", productDiNum);
 
 //检测模块
 ADDROUTER(router, "InspectionLastData", InspectionLastData);
 ADDROUTER(router, "InspectionData", InspectionData);
 ADDROUTER(router, "unbindRecord", unbindRecord);
+
+//wms模型
+ADDROUTER(router, "warehouse_entry", warehouseEntry);
+
 
 module.exports = router;

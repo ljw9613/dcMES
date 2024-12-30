@@ -35,6 +35,7 @@ class MaterialPalletizingService {
       // 查找托盘记录
       let pallet = await MaterialPalletizing.findOne({
         productLineId: lineId,
+        materialId: materialId,
         status: "STACKING",
       });
 
@@ -54,6 +55,7 @@ class MaterialPalletizingService {
 
         let palletCode = "YDC-SN-" + new Date().getTime();
 
+        console.log("workOrderNo", productionPlan.workOrderNo);
         //获取产线计划对应的销售订单和生产订单
         let saleOrderId = productionPlan.saleOrderId;
         let saleOrderNo = productionPlan.saleOrderNo;

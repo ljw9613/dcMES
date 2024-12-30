@@ -117,7 +117,15 @@
                 <el-table-column label="工艺名称" prop="craftName" />
                 <el-table-column label="工艺编码" prop="craftCode" />
                 <el-table-column label="工艺描述" prop="craftDesc" />
-                <el-table-column label="工艺类型" prop="craftType" />
+                <el-table-column label="工艺类型" prop="craftType">
+                    <template slot-scope="scope">
+                        <template v-for="dict in dict.type.craftType">
+                            <template v-if="dict.value === scope.row.craftType">
+                                {{ dict.label }}
+                            </template>
+                        </template>
+                    </template>
+                </el-table-column>
                 <el-table-column label="产品型号" prop="productName" />
                 <el-table-column label="物料编号" prop="materialCode">
                     <template slot-scope="scope">
@@ -126,7 +134,11 @@
                 </el-table-column>
                 <!-- <el-table-column label="产品编号" prop="materialCode" /> -->
                 <el-table-column label="创建人" prop="createBy" />
-                <el-table-column label="创建时间" prop="createAt" />
+                <el-table-column label="创建时间" prop="createAt">
+                    <template slot-scope="scope">
+                        {{ scope.row.createAt | formatDate }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="状态">
                     <template slot-scope="scope">
                         <el-tag :type="getStatusType(scope.row.status)">
@@ -160,8 +172,8 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="工艺类型" prop="craftType">
-                            <el-select v-model="craftForm.craftType" placeholder="请选择工艺类型" clearable
-                                style="width: 100%">
+                            <el-select v-model="craftForm.craftType" placeholder="请选择工艺类型" clearable style="width: 100%"
+                                @change="handleCraftTypeChange">
                                 <el-option v-for="dict in dict.type.craftType" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
@@ -177,7 +189,7 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="工艺编码" prop="craftCode">
-                            <el-input v-model="craftForm.craftCode" placeholder="请输入工艺编码"></el-input>
+                            <el-input v-model="craftForm.craftCode" placeholder="系统自动生成" disabled></el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -186,7 +198,7 @@
                     <el-col :span="12">
                         <el-form-item label="业务类型" prop="businessType">
                             <el-select v-model="craftForm.businessType" placeholder="请选择业务类型" clearable
-                                style="width: 100%">
+                                style="width: 100%" @change="handleBusinessTypeChange">
                                 <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
@@ -272,7 +284,12 @@
                     <el-table-column label="工序名称" prop="processName" align="center" />
                     <el-table-column label="工序描述" prop="processDesc" align="center" />
                     <el-table-column label="工序次序" prop="sort" width="150" align="center" />
-                    <el-table-column label="工序类型" prop="processType" width="150" align="center" />
+                    <el-table-column label="工序类型" prop="processType" width="150" align="center">
+                        <template slot-scope="scope">
+                            <!-- 带样式的用法 -->
+                            <dict-tag :options="dict.type.processType" :value="scope.row.processType" />
+                        </template>
+                    </el-table-column>
                     <el-table-column label="状态" align="center">
                         <template slot-scope="scope">
                             <el-tag :type="getStatusType(scope.row.status)">
@@ -347,7 +364,7 @@
                     <el-col :span="12">
                         <el-form-item label="业务类型" prop="businessType">
                             <el-select v-model="processForm.businessType" placeholder="请选择业务类型" clearable
-                                style="width: 100%" @change="handleBusinessTypeChange">
+                                style="width: 100%" @change="handleBusinessTypeChange" disabled> <!-- 添加disabled属性 -->
                                 <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
@@ -386,6 +403,12 @@
                                     </div>
                                 </template>
                             </zr-select>
+                        </el-form-item>
+                    </el-col>
+
+                    <el-col :span="12">
+                        <el-form-item label="是否录入MES" prop="isMES">
+                            <el-switch v-model="processForm.isMES" :active-value="true" :inactive-value="false" />
                         </el-form-item>
                     </el-col>
 
@@ -555,18 +578,20 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="关键物料">
-                            <el-switch v-model="materialForm.isKey" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
                         <el-form-item label="是否包装箱">
                             <el-switch v-model="materialForm.isPackingBox" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="批次物料">
-                            <el-switch v-model="materialForm.isBatch" />
+                            <el-switch v-model="materialForm.isBatch" @change="handleBatchChange"
+                                :disabled="materialForm.isKey" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="关键物料">
+                            <el-switch v-model="materialForm.isKey" @change="handleKeyChange"
+                                :disabled="materialForm.isBatch" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12" v-if="materialForm.isBatch">
@@ -578,7 +603,7 @@
                             </template>
                         </el-form-item>
                     </el-col>
-                    
+
                 </el-row>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -659,7 +684,8 @@ export default {
                 status: 'CREATE',  // 状态
                 materials: [],     // 工序物料清单
                 remark: '',        // 备注
-                sort: 1            // 工序次序
+                sort: 1,           // 工序次序
+                isMES: true,      // 是否录入MES
             },
 
             // 工序表单验证规则
@@ -694,7 +720,7 @@ export default {
                 unit: '',          // 单位
                 isKey: '0',      // 是否关键物料
                 remark: '',        // 备注
-                scanOperation: false, // 扫码操作
+                scanOperation: true, // 扫码操作
                 isComponent: '0' // 是否组件
             },
             //物料表单验证规则
@@ -778,7 +804,7 @@ export default {
                         specification: '',
                         quantity: 1,
                         unit: '个',
-                        scanOperation: false,
+                        scanOperation: true,
                         isComponent: false
                     };
                     // 清空物料选项
@@ -797,7 +823,7 @@ export default {
                 specification: '',
                 quantity: 1,
                 unit: '个',
-                scanOperation: false,
+                scanOperation: true,
                 isComponent: false
             },
             materialOptions: [],
@@ -849,7 +875,7 @@ export default {
             this.craftForm = {
                 _id: this.tempCraftId,
                 businessType: '',
-                craftCode: '',
+                craftCode: '',  // 将在类型选择后自动生成
                 craftName: '',
                 craftVersion: '',
                 productId: '',
@@ -860,6 +886,7 @@ export default {
                 processSteps: [],
                 productStage: '',
                 attachments: [],
+                isProduct: '',
                 remark: '',
                 status: 'CREATE',
                 isStandard: '0',
@@ -1220,7 +1247,8 @@ export default {
                     processDesc: '',
                     processStage: '',
                     processType: '',
-                    businessType: '',
+                    // 设置默认业务类型为当前工艺的业务类型
+                    businessType: this.craftForm.businessType,
                     status: 'CREATE',
                     materials: [],
                     remark: '',
@@ -1246,6 +1274,8 @@ export default {
             this.processDialogVisible = true;
             this.tempProcessId = row._id;
             this.processForm = JSON.parse(JSON.stringify(row));
+            // 确保工序的业务类型与工艺保持一致
+            this.processForm.businessType = this.craftForm.businessType;
             this.fetchMaterialData(); // 加载关联的物料数据
         },
 
@@ -1333,8 +1363,18 @@ export default {
 
                         // 获取当前物料列表的ID数组
                         const materialIds = this.materialTableData.tableList.map(material => material._id.toString());
-                        if (this.processForm.processType !== 'P_INSPECTION' && this.processForm.processType !== 'F' && materialIds.length === 0) {
+
+                        // 修改验证逻辑，检测工序（C）,托盘工序(F)不需要验证物料
+                        if (this.processForm.processType !== 'C' &&
+                            this.processForm.processType !== 'F' &&
+                            materialIds.length === 0) {
                             this.$message.warning('请先添加物料');
+                            return;
+                        }
+
+                        // 如果是托盘工序且有物料，给出警告
+                        if (this.processForm.processType === 'F' && materialIds.length > 0) {
+                            this.$message.warning('托盘工序不应包含物料，请手动清除物料数据');
                             return;
                         }
 
@@ -1408,6 +1448,12 @@ export default {
         },
 
         handleAddMaterial() {
+            // 检查工序类型是否为 F
+            if (this.processForm.processType === 'F') {
+                this.$message.warning('托盘工序不能添加物料');
+                return;
+            }
+
             this.materialDialog.title = '新增物料'
             this.materialDialog.visible = true
             this.$nextTick(() => {
@@ -1509,6 +1555,12 @@ export default {
                 console.log("valid", valid);
                 if (valid) {
                     try {
+                        // 添加双向验证
+                        if (this.materialForm.isBatch && this.materialForm.isKey) {
+                            this.$message.error('批次物料与关键物料不能同时设置');
+                            return;
+                        }
+
                         // 修改重复判断逻辑，排除当前正在编辑的物料
                         const isDuplicate = this.materialTableData.tableList.some(
                             item => item.materialId === this.materialForm.materialId &&
@@ -1568,6 +1620,22 @@ export default {
                     }
                 }
             });
+        },
+
+        handleBatchChange(value) {
+            // 如果切换为批次物料,则关闭关键物料开关
+            if (value) {
+                this.materialForm.isKey = false;
+                this.$message.info('批次物料不能设置为关键物料');
+            }
+        },
+
+        handleKeyChange(value) {
+            // 如果切换为关键物料,则关闭批次物料开关
+            if (value) {
+                this.materialForm.isBatch = false;
+                this.$message.info('关键物料不能设置为批次物料');
+            }
         },
 
         // ================ 其他通用方法 ================
@@ -1799,7 +1867,7 @@ export default {
                 this.search(); // 触发搜索
             }
         },
-        // ��加工��重新排序方法
+        // 加工重新排序方法
         async reorderProcessSteps() {
             try {
                 // 获取当前工艺的所有工序，按照sort字段排序
@@ -1927,7 +1995,7 @@ export default {
                 ]);
 
                 this.$message.success('上移成功');
-                await this.fetchProcessData(); // 重新获��数据
+                await this.fetchProcessData(); // 重新获数据
             } catch (error) {
                 console.error('上移失败:', error);
                 this.$message.error('上移失败');
@@ -1970,7 +2038,30 @@ export default {
                 console.error('下移失败:', error);
                 this.$message.error('下移失败');
             }
-        }
+        },
+
+        // 生成工艺编码
+        async generateCraftCode() {
+            try {
+                // 生成新的编码
+                const craftType = '0' + this.craftForm.craftType || '';
+                const businessType = parseInt(this.craftForm.businessType) < 10 ? '0' + this.craftForm.businessType : this.craftForm.businessType;
+                this.craftForm.craftCode = `${craftType}${businessType ? businessType : ''}`;
+            } catch (error) {
+                console.error('生成工艺编码失败:', error);
+                this.$message.error('生成工艺编码失败');
+            }
+        },
+
+        // 监听工艺类型变化
+        async handleCraftTypeChange(value) {
+            await this.generateCraftCode();
+        },
+
+        // 监听业务类型变化
+        async handleBusinessTypeChange(value) {
+            await this.generateCraftCode();
+        },
     },
     created() {
         this.fetchCraftData();

@@ -209,6 +209,18 @@
         "required": false
       },
       {
+        "name": "F_TFQJ_khpo",
+        "type": "string",
+        "description": "客户PO",
+        "required": false
+      },
+      {
+        "name": "F_TFQJ_Text1",
+        "type": "string",
+        "description": "客户PO行号",
+        "required": false
+      },
+      {
         "name": "FModifierId",
         "type": "string",
         "description": "最后修改人",
@@ -297,6 +309,12 @@
         "type": "string",
         "description": "单据类型",
         "required": true
+      },
+      {
+        "name": "FCorrespondOrgId",
+        "type": "string",
+        "description": "关联组织",
+        "required": false
       }
     ]
   },

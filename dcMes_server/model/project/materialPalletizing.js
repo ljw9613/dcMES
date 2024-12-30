@@ -45,7 +45,7 @@ const materialPalletizingSchema = new mongoose.Schema({
     description: "工单ID",
   },
 
-  productLineId: { type: mongoose.Schema.ObjectId, ref: "product_line" }, // 产线ID
+  productLineId: { type: mongoose.Schema.ObjectId, ref: "production_line" }, // 产线ID
   productLineName: { type: String }, // 产线名称
 
   // 托盘物料基本信息

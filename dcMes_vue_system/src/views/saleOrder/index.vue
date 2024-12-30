@@ -192,6 +192,7 @@
                 <el-form-item label="同步方式">
                     <el-radio-group v-model="syncForm.syncType">
                         <el-radio label="date">按日期同步</el-radio>
+                        <el-radio label="billNo">按单号同步</el-radio>
                         <el-radio label="all">同步全部</el-radio>
                     </el-radio-group>
                 </el-form-item>
@@ -199,6 +200,9 @@
                     <el-date-picker v-model="syncForm.dateRange" type="daterange" range-separator="至"
                         start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
                     </el-date-picker>
+                </el-form-item>
+                <el-form-item label="销售单号" required v-if="syncForm.syncType === 'billNo'">
+                    <el-input v-model="syncForm.billNo" placeholder="请输入销售单号"></el-input>
                 </el-form-item>
                 <el-form-item label="单据状态">
                     <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
@@ -263,7 +267,8 @@ export default {
             syncForm: {
                 syncType: 'date',
                 dateRange: [],
-                documentStatus: 'C'
+                documentStatus: 'C',
+                billNo: ''
             }
         }
     },
@@ -699,21 +704,36 @@ export default {
             this.syncForm = {
                 syncType: 'date',
                 dateRange: [],
-                documentStatus: 'C'
+                documentStatus: 'C',
+                billNo: ''
             };
         },
 
         // 添加确认同步方法
         async confirmSync() {
+            // 验证表单
             if (this.syncForm.syncType === 'date' && (!this.syncForm.dateRange || this.syncForm.dateRange.length !== 2)) {
                 this.$message.warning('请选择审核日期范围');
                 return;
             }
+            if (this.syncForm.syncType === 'billNo' && !this.syncForm.billNo) {
+                this.$message.warning('请输入销售单号');
+                return;
+            }
 
             try {
-                const confirmMessage = this.syncForm.syncType === 'all'
-                    ? '确认要同步所有销售订单数据吗？此操作可能需要较长时间'
-                    : '确认要同步选定日期范围的销售订单数据吗？此操作可能需要一些时间';
+                let confirmMessage = '';
+                switch(this.syncForm.syncType) {
+                    case 'all':
+                        confirmMessage = '确认要同步所有销售订单数据吗？此操作可能需要较长时间';
+                        break;
+                    case 'date':
+                        confirmMessage = '确认要同步选定日期范围的销售订单数据吗？此操作可能需要一些时间';
+                        break;
+                    case 'billNo':
+                        confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的销售订单数据吗？`;
+                        break;
+                }
 
                 await this.$confirm(confirmMessage, '提示', {
                     confirmButtonText: '确定',
@@ -733,46 +753,60 @@ export default {
                         "FilterString": []
                     };
 
-                    if (this.syncForm.syncType === 'date') {
-                        const [startDate, endDate] = this.syncForm.dateRange;
-                        req.FilterString = [
-                            {
-                                "FieldName": "FDocumentStatus",
-                                "Compare": "StatusEqualto",
-                                "Value": this.syncForm.documentStatus,
-                                "Left": "",
-                                "Right": "",
-                                "Logic": 0
-                            },
-                            {
-                                "FieldName": "FApproveDate",
-                                "Compare": ">",
-                                "Value": `${startDate} 00:00:00`,
-                                "Left": "",
-                                "Right": "",
-                                "Logic": 0
-                            },
-                            {
-                                "FieldName": "FApproveDate",
-                                "Compare": "<",
-                                "Value": `${endDate} 23:59:59`,
-                                "Left": "",
-                                "Right": "",
-                                "Logic": "0"
-                            }
-                        ];
-                    } else {
-                        // 同步全部数据时，只需要单据状态条件
-                        req.FilterString = [
-                            {
-                                "FieldName": "FDocumentStatus",
-                                "Compare": "StatusEqualto",
-                                "Value": "C", // 全量同步时默认只同步已审核的数据
-                                "Left": "",
-                                "Right": "",
-                                "Logic": 0
-                            }
-                        ];
+                    switch(this.syncForm.syncType) {
+                        case 'date':
+                            const [startDate, endDate] = this.syncForm.dateRange;
+                            req.FilterString = [
+                                {
+                                    "FieldName": "FDocumentStatus",
+                                    "Compare": "StatusEqualto",
+                                    "Value": this.syncForm.documentStatus,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                },
+                                {
+                                    "FieldName": "FApproveDate",
+                                    "Compare": ">",
+                                    "Value": `${startDate} 00:00:00`,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                },
+                                {
+                                    "FieldName": "FApproveDate",
+                                    "Compare": "<",
+                                    "Value": `${endDate} 23:59:59`,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": "0"
+                                }
+                            ];
+                            break;
+                        case 'billNo':
+                            req.FilterString = [
+                                {
+                                    "FieldName": "FBillNo",
+                                    "Compare": "=",
+                                    "Value": this.syncForm.billNo,
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                }
+                            ];
+                            break;
+                        case 'all':
+                            req.FilterString = [
+                                {
+                                    "FieldName": "FDocumentStatus",
+                                    "Compare": "StatusEqualto",
+                                    "Value": "C",
+                                    "Left": "",
+                                    "Right": "",
+                                    "Logic": 0
+                                }
+                            ];
+                            break;
                     }
 
                     const response = await syncSAL_SaleOrder(req);

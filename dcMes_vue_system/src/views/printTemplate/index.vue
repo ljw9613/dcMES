@@ -22,7 +22,8 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="模板类型">
-                            <el-select v-model="searchForm.templateType" placeholder="请选择模板类型" clearable style="width: 100%">
+                            <el-select v-model="searchForm.templateType" placeholder="请选择模板类型" clearable
+                                style="width: 100%">
                                 <el-option v-for="dict in dict.type.templateType" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
@@ -33,7 +34,8 @@
                 <el-row :gutter="20" v-show="showAdvanced">
                     <el-col :span="6">
                         <el-form-item label="业务类型">
-                            <el-select v-model="searchForm.businessType" placeholder="请选择业务类型" clearable style="width: 100%">
+                            <el-select v-model="searchForm.businessType" placeholder="请选择业务类型" clearable
+                                style="width: 100%">
                                 <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
@@ -58,10 +60,11 @@
                         @click="handleBatchDelete">
                         批量删除
                     </el-button>
-                    <el-button @click="dayinForm">打印模板</el-button>
+                    <!-- <el-button @click="dayinForm">ZRMES打印模板</el-button> -->
                 </el-form-item>
             </el-form>
         </el-card>
+
 
         <div class="screen1">
             <div class="screen_content">
@@ -70,8 +73,6 @@
                 </div>
             </div>
         </div>
-
-
         <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
             :tableData="tableList" :tableDataloading="listLoading" :total="total"
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
@@ -126,8 +127,8 @@
 
         <edit-dialog :visible.sync="dialogFormVisible" :dialog-status="dialogStatus" :row-data="dataForm"
             @submit="handleSubmit" />
-    <el-dialog title="打印模板" :visible="dialogVisible1" fullscreen >
-    <Designer :template="template" @onDesigned="onDesigned" style="height: 80vh;"/>
+        <el-dialog title="打印模板" :visible="dialogVisible1" fullscreen @close="closeDialog">
+            <Designer autoConnect :template="template" @onDesigned="onDesigned" style="height: 80vh;" />
         </el-dialog>
     </div>
 </template>
@@ -160,7 +161,7 @@ export default {
             listLoading: true,
             showAdvanced: false,
             dialogFormVisible: false,
-            dialogVisible1:false,
+            dialogVisible1: false,
             dialogStatus: '',
             selection: [],
             dataForm: {},
@@ -168,8 +169,11 @@ export default {
         }
     },
     methods: {
-        dayinForm(){
+        dayinForm() {
             this.dialogVisible1 = true;
+        },
+        closeDialog() {
+            this.dialogVisible1 = false;
         },
         getStatusType(status) {
             const statusMap = {
@@ -383,7 +387,7 @@ export default {
             console.log(e);
         },
 
-       
+
     },
     created() {
         this.fetchData();

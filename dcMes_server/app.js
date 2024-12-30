@@ -110,6 +110,9 @@ app.use("/", uploadAvatarRouter);
 app.use("/", require("./routes/wsManage"));
 app.use("/", require("./routes/machineProgress"));
 app.use('/', require('./routes/materialPalletizing'));
+app.use('/', require('./routes/wareHouseEntry.js'));
+// 更新工艺编码
+// require("./routes/caftNum")
 // 初始化定时任务
 const initSchedule = require("./config/schedule");
 // 初始化定时任务
