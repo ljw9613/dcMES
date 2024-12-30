@@ -31,21 +31,12 @@
         </el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button :disabled="single" icon="el-icon-edit" plain size="mini" type="success" @click="handleUpdate">修改
-        </el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button :disabled="multiple" icon="el-icon-delete" plain size="mini" type="danger" @click="handleDelete">删除
-        </el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button icon="el-icon-refresh" plain size="mini" type="warning" @click="handleRefreshCache">刷新缓存</el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="typeList" @selection-change="handleSelectionChange">
-      <el-table-column align="center" type="selection" width="55" />
       <el-table-column :show-overflow-tooltip="true" align="center" label="字典名称" prop="dictName" />
       <el-table-column :show-overflow-tooltip="true" align="center" label="字典类型">
         <template slot-scope="scope">
@@ -67,6 +58,7 @@
       </el-table-column>
       <el-table-column align="center" class-name="small-padding fixed-width" label="操作">
         <template slot-scope="scope">
+          <el-button type="primary" @click="handleView(scope.row)">查看字典</el-button>
           <el-button icon="el-icon-edit" size="mini" type="text" @click="handleUpdate(scope.row)">修改
           </el-button>
           <el-button icon="el-icon-delete" size="mini" style="color: red" type="text"
@@ -214,6 +206,13 @@ export default {
       this.ids = selection.map(item => item.dictId)
       this.single = selection.length != 1
       this.multiple = !selection.length
+    },
+    /** 查看按钮操作 */
+    handleView(row) {
+      this.reset();
+      this.open = true;
+      this.title = "查看字典类型";
+      this.form = row;
     },
     /** 修改按钮操作 */
     handleUpdate(row) {

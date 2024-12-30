@@ -15,8 +15,9 @@
                     <el-col :span="6">
                         <el-form-item label="设备">
                             <zr-select v-model="searchForm.machineId" collection="machine"
-                                :search-fields="['machineName', 'machineCode']" label-key="machineName" sub-key="machineCode" :multiple="false"
-                                placeholder="请输入设备名称搜索" clearable style="width: 100%">
+                                :search-fields="['machineName', 'machineCode']" label-key="machineName"
+                                sub-key="machineCode" :multiple="false" placeholder="请输入设备名称搜索" clearable
+                                style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
@@ -95,7 +96,7 @@
                 </el-table-column>
                 <el-table-column label="扫描码" align="center" prop="scanCode">
                     <template slot-scope="scope">
-                        <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.scanCode }}</el-link>
+                        <el-link type="primary">{{ scope.row.scanCode }}</el-link>
                         <el-link type="primary" style="margin-left: 10px" @click="showHistory(scope.row)">历史记录</el-link>
                     </template>
                 </el-table-column>
@@ -318,6 +319,7 @@ export default {
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.sort = { _id: -1 };
                 req.count = true;
                 req.populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]);
                 const result = await getData("InspectionLastData", req);

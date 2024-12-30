@@ -24,6 +24,7 @@ const processNodeSchema = new mongoose.Schema(
     processName: { type: String }, // 工序名称
     processCode: { type: String }, // 工序编码
     processSort: { type: Number }, // 工序顺序
+    originalSort: { type: Number }, // 原始sort值
     processType: { type: String }, // 工序类型
 
     // 批次单绑定工序
@@ -86,14 +87,7 @@ const materialProcessFlowSchema = new mongoose.Schema({
   // 流程状态
   status: {
     type: String,
-    enum: [
-      "PENDING",
-      "IN_PROGRESS",
-      "PAUSED",
-      "COMPLETED",
-      "CANCELLED",
-      "ABNORMAL",
-    ],
+    enum: ["PENDING", "IN_PROCESS", "COMPLETED", "ABNORMAL"],
     default: "PENDING",
   },
   progress: { type: Number, default: 0 }, // 完成进度(0-100)

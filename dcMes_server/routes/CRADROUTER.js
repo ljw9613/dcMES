@@ -28,7 +28,7 @@ const machine = require("../model/project/machine");
 const printTemplate = require("../model/project/printTemplate");
 const materialPalletizing = require("../model/project/materialPalletizing");
 const materialPalletizingUnbindLog = require("../model/project/materialPalletizingUnbindLog");
-
+const barcodeRule = require("../model/project/barcodeRule");
 //wms模型
 const warehouseEntry = require("../model/warehouse/warehouseEntry");
 
@@ -76,7 +76,7 @@ ADDROUTER(router, "k3_PRD_MO", k3_PRD_MO);
 ADDROUTER(router, "k3_SAL_SaleOrder", k3_SAL_SaleOrder);
 ADDROUTER(router, "k3_BD_STOCK", k3_BD_STOCK);
 ADDROUTER(router, "productDiNum", productDiNum);
-
+ADDROUTER(router, "barcodeRule", barcodeRule);
 //检测模块
 ADDROUTER(router, "InspectionLastData", InspectionLastData);
 ADDROUTER(router, "InspectionData", InspectionData);

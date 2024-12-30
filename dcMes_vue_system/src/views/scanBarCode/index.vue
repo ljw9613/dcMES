@@ -827,7 +827,6 @@ export default {
             }
         },
 
-        // 修改验证条码的方法
         async validateBarcode(barcode) {
             console.log('validateBarcode', barcode);
             if (!barcode) return false;
@@ -840,10 +839,6 @@ export default {
             if (barcode.includes('#')) {
                 const parts = barcode.split('#');
                 if (parts.length === 4) {
-                    // parts[0]: 条码编号 (241207M0185347283251715C1)
-                    // parts[1]: 生产单号 (M01853472)
-                    // parts[2]: 物料码 (1487123044X3)
-                    // parts[3]: 数量 (107)
                     materialCode = parts[2];
                     relatedBill = parts[1];
                     valid = true;
@@ -928,7 +923,6 @@ export default {
                     default:
                         // 处理普通条码格式
                         this.$message.error('条码格式不正确，应为：物料编号-序号');
-                        tone(tmyw)
                         return false;
                 }
 
@@ -939,17 +933,9 @@ export default {
                 return { materialCode: materialCode, isValid: true, relatedBill: relatedBill };
             }
 
-            // 检查是否为子物料
-            const matchedMaterial = this.processMaterials.find(m => m.materialCode === materialCode);
-            if (matchedMaterial) {
-                return { materialCode: materialCode, isValid: true, relatedBill: relatedBill };
-            }
-
             this.$message.error('该条码对应的物料与当前工序所需物料不匹配');
             return { materialCode: materialCode, isValid: false };
         },
-
-
 
         // 处理主条码
         async handleMainBarcode(barcode) {

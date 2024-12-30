@@ -204,163 +204,43 @@
     <el-dialog title="检测历史记录" append-to-body :visible.sync="historyDialogVisible" width="80%"
       :before-close="handleClose">
       <el-table :data="historyData" border stripe height="500" v-loading="historyLoading">
+        :header-cell-style="{
+        background: '#f5f7fa',
+        color: '#606266',
+        fontWeight: 'bold',
+        textAlign: 'center'
+        }"
+        :cell-style="{ textAlign: 'center' }"
+        >
+        <el-table-column type="expand">
+          <template slot-scope="scope">
+            <el-form label-position="left" inline class="table-expand">
+              <div v-if="inspectionDataHandle(scope.row).length">
+                <el-tag style="margin: 3px" v-for="tag in inspectionDataHandle(scope.row)" :key="tag">
+                  {{ tag }}
+                </el-tag>
+              </div>
+            </el-form>
+          </template>
+        </el-table-column>
+
         <el-table-column label="检测时间" prop="testTime" width="180">
           <template slot-scope="scope">
             {{ formatDate(scope.row.testTime || scope.row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="检测结果" prop="allTestEnd" width="100">
+
+        <el-table-column label="检测结果" prop="error" width="100">
           <template slot-scope="scope">
-            <span :class="{
-              'success': scope.row.allTestEnd === 'PASS',
-              'error': scope.row.allTestEnd === 'FAIL'
-            }">
-              {{ scope.row.allTestEnd }}
-            </span>
+            <el-tag :type="!scope.row.error ? 'success' : 'danger'">
+              {{ !scope.row.error ? '合格' : '不合格' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="电池包电压" prop="readPackVol" width="120">
+
+        <el-table-column label="工序名称" align="center">
           <template slot-scope="scope">
-            <div class="result-info">
-              <el-popover placement="right" width="500" trigger="hover">
-                <div class="test-details">
-                  <!-- 通用信息 -->
-                  <div class="detail-section">
-                    <div class="section-title">基础信息</div>
-                    <div v-if="scope.row.startDate">日期：{{ scope.row.startDate }}</div>
-                    <div v-if="scope.row.workstation">工位号：{{ scope.row.workstation }}</div>
-                    <div v-if="scope.row.productModel">产品型号：{{ scope.row.productModel }}</div>
-                  </div>
-
-                  <!-- 面罩灯板测试 -->
-                  <div class="detail-section" v-if="scope.row.red">
-                    <div class="section-title">面罩灯板测试</div>
-                    <div v-if="scope.row.red">红色：{{ scope.row.red }}</div>
-                    <div v-if="scope.row.blue">蓝色：{{ scope.row.blue }}</div>
-                    <div v-if="scope.row.infrared">红外：{{ scope.row.infrared }}</div>
-                    <div v-if="scope.row.red2">红色2：{{ scope.row.red2 }}</div>
-                    <div v-if="scope.row.blue2">蓝色2：{{ scope.row.blue2 }}</div>
-                    <div v-if="scope.row.infrared2">红外2：{{ scope.row.infrared2 }}</div>
-                  </div>
-
-                  <!-- 面罩半成品测试 -->
-                  <div class="detail-section" v-if="scope.row.udiCode">
-                    <div class="section-title">面罩半成品测试</div>
-                    <div v-if="scope.row.udiCode">UDI码：{{ scope.row.udiCode }}</div>
-                    <div v-if="scope.row.lampBoardQrCode">灯板二维码：{{ scope.row.lampBoardQrCode }}</div>
-                    <div v-if="scope.row.batteryCellCode">电芯码：{{ scope.row.batteryCellCode }}</div>
-                    <div v-if="scope.row.chargingBoardPcbaCode">充电板PCBA码：{{ scope.row.chargingBoardPcbaCode }}</div>
-                    <div v-if="scope.row.maskPcbaCode">面罩PCBA码：{{ scope.row.maskPcbaCode }}</div>
-                    <div v-if="scope.row.controllerPcbaCode">手控器PCBA码：{{ scope.row.controllerPcbaCode }}</div>
-                    <div v-if="scope.row.controllerSoftwareVersion">手控器软件版本：{{ scope.row.controllerSoftwareVersion }}
-                    </div>
-                    <div v-if="scope.row.maskSoftwareVersion">面罩软件版本：{{ scope.row.maskSoftwareVersion }}</div>
-                    <div v-if="scope.row.controllerFactoryQrCode">手控器出厂二维码：{{ scope.row.controllerFactoryQrCode }}</div>
-                    <div v-if="scope.row.faceDetectionProgramVersion">面部探测程序版本：{{ scope.row.faceDetectionProgramVersion
-                      }}</div>
-                    <div v-if="scope.row.circuitFaultCode">电路故障码：{{ scope.row.circuitFaultCode }}</div>
-
-                    <!-- 光波参数 -->
-                    <div class="sub-section">
-                      <div class="sub-title">光波参数</div>
-                      <div v-if="scope.row.redLightWavelength">红灯波长：{{ scope.row.redLightWavelength }}</div>
-                      <div v-if="scope.row.blueLightWavelength">蓝灯波长：{{ scope.row.blueLightWavelength }}</div>
-                      <div v-if="scope.row.infraredLightWavelength">红外灯波长：{{ scope.row.infraredLightWavelength }}</div>
-                      <div v-if="scope.row.redLightCurrent">红灯电流：{{ scope.row.redLightCurrent }}</div>
-                      <div v-if="scope.row.blueLightCurrent">蓝灯电流：{{ scope.row.blueLightCurrent }}</div>
-                      <div v-if="scope.row.infraredLightCurrent">红外灯电流：{{ scope.row.infraredLightCurrent }}</div>
-                      <div v-if="scope.row.msiLightCurrent">MSI灯电流：{{ scope.row.msiLightCurrent }}</div>
-                    </div>
-
-                    <!-- 电池参数 -->
-                    <div class="sub-section">
-                      <div class="sub-title">电池参数</div>
-                      <div v-if="scope.row.batteryVoltage">电池电压：{{ scope.row.batteryVoltage }}</div>
-                      <div v-if="scope.row.dischargeCurrent">放电电流：{{ scope.row.dischargeCurrent }}</div>
-                      <div v-if="scope.row.batteryPower">电池电量：{{ scope.row.batteryPower }}</div>
-                      <div v-if="scope.row.batteryCell1Voltage">电芯1电压：{{ scope.row.batteryCell1Voltage }}</div>
-                      <div v-if="scope.row.batteryCell2Voltage">电芯2电压：{{ scope.row.batteryCell2Voltage }}</div>
-                    </div>
-
-                    <!-- 传感器参数 -->
-                    <div class="sub-section">
-                      <div class="sub-title">传感器参数</div>
-                      <div v-if="scope.row.faceSensorStatus">面部传感器状态：{{ scope.row.faceSensorStatus }}</div>
-                      <div v-if="scope.row.faceSensorValue">面部传感器值：{{ scope.row.faceSensorValue }}</div>
-                      <div v-if="scope.row.fanCurrent">风扇电流：{{ scope.row.fanCurrent }}</div>
-                    </div>
-                  </div>
-
-                  <!-- 面罩温度测试 -->
-                  <div class="detail-section" v-if="scope.row.instrumentNtcDifferenceBeforeCooling">
-                    <div class="section-title">面罩温度测试</div>
-                    <div v-if="scope.row.instrumentNtcDifferenceBeforeCooling">制冷前NTC差值：{{
-                      scope.row.instrumentNtcDifferenceBeforeCooling }}</div>
-                    <div v-if="scope.row.productAndInstrumentNtc1Difference">产品NTC1和仪器NTC1差值：{{
-                      scope.row.productAndInstrumentNtc1Difference }}</div>
-                    <div v-if="scope.row.productAndInstrumentNtc2Difference">产品NTC2和仪器NTC2差值：{{
-                      scope.row.productAndInstrumentNtc2Difference }}</div>
-                    <div v-if="scope.row.coolingStatus">制冷状态：{{ scope.row.coolingStatus }}</div>
-                    <div v-if="scope.row.coolingSetTemperature">制冷设置温度：{{ scope.row.coolingSetTemperature }}</div>
-                  </div>
-
-                  <!-- 耐压测试 -->
-                  <div class="detail-section" v-if="scope.row.chargingTest">
-                    <div class="section-title">耐压测试</div>
-                    <div v-if="scope.row.chargingTest">充电测试：{{ scope.row.chargingTest }}</div>
-                    <div v-if="scope.row.withstandVoltageTest">耐压测试：{{ scope.row.withstandVoltageTest }}</div>
-                  </div>
-
-                  <!-- 模板整机灯光 -->
-                  <div class="detail-section" v-if="scope.row.cellCode">
-                    <div class="section-title">整机灯光测试</div>
-                    <div v-if="scope.row.cellCode">电芯码：{{ scope.row.cellCode }}</div>
-                    <div v-if="scope.row.handheldControllerPcbaCode">手控器PCBA码：{{ scope.row.handheldControllerPcbaCode }}
-                    </div>
-                    <div v-if="scope.row.handheldSoftwareVersion">手控器软件版本：{{ scope.row.handheldSoftwareVersion }}</div>
-                    <div v-if="scope.row.handheldFactoryQrCode">手控器出厂二维码：{{ scope.row.handheldFactoryQrCode }}</div>
-                    <div v-if="scope.row.batteryCapacity">电池电量：{{ scope.row.batteryCapacity }}</div>
-                    <div v-if="scope.row.cell1Voltage">电芯1电压：{{ scope.row.cell1Voltage }}</div>
-                    <div v-if="scope.row.cell2Voltage">电芯2电压：{{ scope.row.cell2Voltage }}</div>
-                    <div v-if="scope.row.meterChargingCurrent">仪表充电电流：{{ scope.row.meterChargingCurrent }}</div>
-                  </div>
-
-                  <!-- 电子秤重量 -->
-                  <div class="detail-section" v-if="scope.row.weight">
-                    <div class="section-title">电子秤重量</div>
-                    <div v-if="scope.row.weight">称重重量：{{ scope.row.weight }}</div>
-                  </div>
-
-                  <!-- 遥控测试 -->
-                  <div class="detail-section" v-if="scope.row.showSerialNo">
-                    <div class="section-title">遥控测试</div>
-                    <div v-if="scope.row.showSerialNo">显示序列号：{{ scope.row.showSerialNo }}</div>
-                    <div v-if="scope.row.chkPowerOn">上电开机：{{ scope.row.chkPowerOn }}</div>
-                    <div v-if="scope.row.enterDebugMode">进入调试模式：{{ scope.row.enterDebugMode }}</div>
-                    <div v-if="scope.row.readAllKeyOff">按键关闭状态：{{ scope.row.readAllKeyOff }}</div>
-                    <div v-if="scope.row.readK4K5">左右键状态：{{ scope.row.readK4K5 }}</div>
-                    <div v-if="scope.row.readPotentiometer">编码开关：{{ scope.row.readPotentiometer }}</div>
-                    <div v-if="scope.row.chkUiVersion">软件版本：{{ scope.row.chkUiVersion }}</div>
-                    <div v-if="scope.row.chkUiTx">通讯口校验：{{ scope.row.chkUiTx }}</div>
-                  </div>
-
-                  <!-- 测试结果 -->
-                  <div class="detail-section">
-                    <div class="section-title">测试结果</div>
-                    <div v-if="scope.row.passFail">测试结果：{{ scope.row.passFail }}</div>
-                    <div v-if="scope.row.testTime">测试耗时：{{ scope.row.testTime }}秒</div>
-                    <div v-if="scope.row.startTime">开始时间：{{ scope.row.startTime }}</div>
-                  </div>
-                </div>
-                <div class="result-main">
-                  <span :class="{
-                    'success': !scope.row.error,
-                    'error': scope.row.error
-                  }">{{ scope.row.error ? '不合格' : '合格' }}</span>
-                  <span class="time">{{ formatDate(scope.row.testTime || scope.row.createTime) }}</span>
-                </div>
-              </el-popover>
-            </div>
+            {{ scope.row.processId ? scope.row.processId.processName : '--' }}
           </template>
         </el-table-column>
       </el-table>
@@ -379,6 +259,7 @@
 
 <script>
 import { getData } from '@/api/data';
+import inspectionFieldEnum from './map.json';
 export default {
   name: 'InspectionList',
   props: {
@@ -506,7 +387,6 @@ export default {
           scanCode: this.currentBarcode
         }
 
-        // 如果有工序信息,添加工序查询条件
         if (this.currentProcessStep) {
           query.processId = this.currentProcessStep._id
         }
@@ -515,7 +395,9 @@ export default {
           query,
           page: this.currentPage,
           limit: this.pageSize,
+          skip: (this.currentPage - 1) * this.pageSize,
           sort: { createTime: -1 },
+          count: true,
           populate: JSON.stringify([
             {
               path: 'processId',
@@ -525,7 +407,7 @@ export default {
         })
 
         this.historyData = res.data
-        this.total = res.total
+        this.total = res.countnum
       } catch (error) {
         console.error('获取历史数据失败:', error)
         this.$message.error('获取历史数据失败')
@@ -577,6 +459,24 @@ export default {
     },
     hasRemoteControlTestData(testDetails) {
       return testDetails.showSerialNo || testDetails.chkPowerOn || testDetails.enterDebugMode;
+    },
+
+    // 新增方法
+    inspectionDataHandle(row) {
+      let data = []
+      for (let inspectionFieldEnumKey in inspectionFieldEnum) {
+        inspectionFieldEnumKey !== "error" && !this.isBlank(row[inspectionFieldEnumKey]) && (data.push(`${inspectionFieldEnum[inspectionFieldEnumKey]}：${row[inspectionFieldEnumKey]}`))
+      }
+      return data
+    },
+    isBlank(value) {
+      return (
+        value === null ||
+        value === undefined ||
+        value === '' ||
+        (Array.isArray(value) && value.length === 0) ||
+        (typeof value === 'object' && Object.keys(value).length === 0)
+      )
     }
 
   },
@@ -704,5 +604,10 @@ export default {
       color: #909399;
     }
   }
+}
+
+// 新增样式
+.table-expand {
+  padding: 20px;
 }
 </style>
