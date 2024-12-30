@@ -165,7 +165,7 @@
                         {{ scope.row.productLineName }}
                         <el-tag size="mini" v-if="scope.row.productLineId && scope.row.productLineId.workshop">{{
                             scope.row.productLineId.workshop
-                        }}</el-tag>
+                            }}</el-tag>
                         <el-tag v-else>未记录生产车间</el-tag>
                     </template>
                 </el-table-column>
@@ -585,9 +585,10 @@ export default {
         },
         handlePrint(row) {
             let printData = row;
+            console.log(row);
             printData.createAt = this.formatDate(row.createAt);
-            printData.workshop = row.productLineId.workshop || '未记录生产车间';
-            printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${row.materialCode}#${row.totalQuantity}#${row.productLineId.lineCode}`;
+            printData.workshop = (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
+            printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${row.materialCode}#${row.totalQuantity}#${(row.productLineId && row.productLineId.lineCode) || '未记录生产线'}`;
             printData.palletBarcodes = row.palletBarcodes.map(item => {
                 item.scanTime = this.formatDate(item.scanTime);
                 return item;
