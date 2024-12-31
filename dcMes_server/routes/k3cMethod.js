@@ -12,7 +12,7 @@ async function k3cMethod(method_Name, method_FormId, method_Query) {
 
         // 指定Python脚本、方法和参数
         // 指定Python脚本、方法和参数
-        const pythonProcess = spawn("python3", [
+        const pythonProcess = spawn("python", [
           pythonScript,
           method_Name,
           method_FormId,
