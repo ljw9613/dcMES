@@ -4,6 +4,7 @@ const WarehouseEntry = require("../model/warehouse/warehouseEntry");
 const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
 const { k3cMethod } = require("./k3cMethod");
+const K3Stock = require("../model/k3/k3_BD_STOCK");
 // 扫码入库（包含自动创建入库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
   try {
@@ -301,11 +302,53 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
           },
           FKeeperTypeId: "BD_KeeperOrg", //待核对!!!!
           // ... rest of the entity fields
+        FProductType: productionOrder.FProductType,
+        FInStockType: '1',//待核对!!!!
+        
+        // 数量相关
+        FUnitID: {
+          FNumber: productionOrder.FUnitId,
         },
-      ],
+        FMustQty: entry.actualQuantity,
+        FRealQty: entry.actualQuantity,
+        FCostRate: entry.actualQuantity,
+        
+        // 基本单位信息
+        FBaseUnitId: {
+          FNumber: productionOrder.FUnitId,
+        },
+        FBaseMustQty: entry.actualQuantity,
+        FBaseRealQty: entry.actualQuantity,
+        
+        // 货主信息
+        FOwnerTypeId: productionOrder.FOwnerTypeId,
+        FOwnerId: {
+          FNumber: productionOrder.FOwnerId,
+        },
+        
+        // 仓库信息
+        FStockId: {
+          FNumber: stockData.FStockId // 更新为实际的仓库编码
+        },
+        
+        // 库存单位
+        FStockUnitId: {
+          FNumber: productionOrder.FUnitId,
+        },
+        FStockRealQty: entry.actualQuantity,
+        FBasePrdRealQty: entry.actualQuantity,
+        
+        FStockStatusId: {
+          FNumber: stockData.FNumber
+        },
+        FKeeperTypeId: "BD_KeeperOrg",//待核对!!!!
+        FKeeperId: {
+              FNumber: "100"
+                }
+        // ... rest of the entity fields
+      }]
     };
-
-    console.log(JSON.stringify(k3Data));
+    console.log(k3Data,'k3Data');
     let k3Response = await k3cMethod("Save", "PRD_INSTOCK", {
       NeedUpDateFields: [],
       NeedReturnFields: [],
