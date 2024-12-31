@@ -29,6 +29,12 @@ const warehouseEntrySchema = new mongoose.Schema({
   saleOrderNo: { type: String }, // 销售订单号
   saleOrderEntryId: { type: String }, // 销售订单分录内码
   
+  // 仓库信息
+  stockId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_STOCK" }, // 仓库ID
+  FStockId:  { type: String }, // 仓库ID
+  stockCode: { type: String }, // 仓库编码
+  stockName: { type: String }, // 仓库名称
+
   // 物料信息
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID
   materialCode: { type: String }, // 物料编码
