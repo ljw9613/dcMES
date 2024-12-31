@@ -216,7 +216,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
           },
 
           FStockId: {
-            FNumber: "CK001",
+            FNumber: 0,
           },
 
           FKeeperTypeId: "BD_KeeperOrg",
@@ -227,6 +227,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
           FStockStatusId: {
             FNumber: "KCZT01_SYS",
           },
+          
           // FStockStatusId: {
           //   Id: 10000,
           //   msterID: 10000,
@@ -246,6 +247,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
       ],
     };
 
+    console.log(JSON.stringify(k3Data));
     let k3Response = await k3cMethod("Save", "PRD_INSTOCK", {
       NeedUpDateFields: [],
       NeedReturnFields: [],

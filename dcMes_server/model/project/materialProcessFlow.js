@@ -112,7 +112,7 @@ const materialProcessFlowSchema = new mongoose.Schema({
   },
 
   // 天科数据上传
-  tianKeDataUpload: { type: Number, required: false },
+  dataUpload: { type: Number, required: false },
 
   // 基础字段
   remark: { type: String }, // 备注
