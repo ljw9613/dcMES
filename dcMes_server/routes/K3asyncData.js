@@ -214,8 +214,8 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
       });
 
       // 截取transformedData前10条数据
-      transformedData = transformedData.slice(0, 10);
-      console.log(transformedData[0])
+      // transformedData = transformedData.slice(0, 10);
+      // console.log(transformedData[0])
       // 批量更新逻辑
       const batchSize = 100;
       const totalBatches = Math.ceil(transformedData.length / batchSize);
