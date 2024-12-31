@@ -269,8 +269,8 @@
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">工序管理列表</i>
                     <div>
-                        <el-button type="warning" v-if="hasOneKeyProductionPermission"
-                            @click="handleWork">一键生产</el-button>
+                        <!-- <el-button type="warning" v-if="hasOneKeyProductionPermission"
+                            @click="handleWork">一键生产</el-button> -->
                         <el-button type="primary" @click="handleAddProcess">新增工序</el-button>
                     </div>
                 </div>

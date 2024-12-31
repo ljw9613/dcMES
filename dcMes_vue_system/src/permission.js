@@ -43,7 +43,7 @@ router.beforeEach((to, from, next) => {
           isRelogin.show = false
           store.dispatch('GenerateRoutes').then(async accessRoutes => {
             // 根据roles权限生成可访问的路由表
-            // console.log('accessRoutes: ', store.getters.router);
+            console.log('accessRoutes: ',accessRoutes);
             if (accessRoutes.length > 0) {
               router.addRoutes(accessRoutes) // 动态添加可访问路由表
               console.log('router: ', router);
