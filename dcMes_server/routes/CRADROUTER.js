@@ -38,7 +38,7 @@ const warehouseOntry = require("../model/warehouse/warehouseOntry");
 const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
 const k3_PRD_MO = require("../model/k3/k3_PRD_MO");
 const k3_SAL_SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
-const k3_BD_STOCK = require("../model/k3/k3_BD_STOCK");
+const k3_BD_STOCK = require("../model/k3/K3_BD_STOCK");
 
 //检测模块
 const InspectionLastData = require("../model/project/InspectionLastData");

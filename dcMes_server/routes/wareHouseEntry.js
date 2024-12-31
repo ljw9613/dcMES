@@ -8,7 +8,7 @@ const { k3cMethod } = require("./k3cMethod");
 // 扫码入库（包含自动创建入库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
   try {
-    const { palletCode, userId } = req.body;
+    const { palletCode, userId,stockId } = req.body;
 
     // 1. 获取托盘信息
     const pallet = await MaterialPallet.findOne({ palletCode });
@@ -46,12 +46,25 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         });
       }
 
+      const stock = await K3Stock.findOne({ FStockId: stockId });
+      console.log(stock,'仓库');
+      if (!stock) {
+        return res.status(200).json({
+          code: 404,
+          message: "仓库不存在",
+        });
+      }
+
       entry = await WarehouseEntry.create({
         entryNo: "SCRK-" + order.FBillNo,
         productionOrderNo: order.FBillNo,
         saleOrderId: order.FSaleOrderId,
         saleOrderNo: order.FSaleOrderNo,
         saleOrderEntryId: order.FSaleOrderEntryId,
+        stockId: stock._id,
+        FStockId: stock.FStockId,
+        stockCode: stock.FNumber,
+        stockName: stock.FName,
         materialId: pallet.materialId,
         materialCode: pallet.materialCode,
         materialName: pallet.materialName,
@@ -153,7 +166,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
 
     // 获取入库单相关的仓库信息
     const stockData = await K3Stock.findOne({
-      FBillNo: entry.productionOrderNo,
+      FStockId: entry.FStockId,
     });
     if (!productionOrder) {
       return res.status(200).json({
@@ -230,7 +243,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
         
         // 仓库信息
         FStockId: {
-          FNumber: stockData.FStockId0 // 更新为实际的仓库编码
+          FNumber: stockData.FStockId // 更新为实际的仓库编码
         },
         
         // 库存单位
@@ -241,7 +254,7 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
         FBasePrdRealQty: entry.actualQuantity,
         
         FStockStatusId: {
-          FNumber: "KCZT01_SYS"//待核对!!!!
+          FNumber: stockData.FNumber
         },
         FKeeperTypeId: "BD_KeeperOrg"//待核对!!!!
         // ... rest of the entity fields

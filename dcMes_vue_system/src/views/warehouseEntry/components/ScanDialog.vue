@@ -4,6 +4,23 @@
       <!-- 扫码输入区域 -->
       <el-form :model="scanForm" ref="scanForm" :rules="rules">
         <el-form-item prop="barcode">
+          <zr-select v-model="stockId" collection="k3_BD_STOCK" :search-fields="['FName','FNumber']"
+            label-key="FName" sub-key="FStockId" :multiple="false" placeholder="请选择仓库"
+            @select="handleTemplateChange">
+            <template #option="{ item }">
+                <div class="item-option">
+                    <div class="item-info">
+                        <span class="name">{{ item.FName }}</span>
+                        <el-tag size="mini" type="info">{{ item.FNumber }}</el-tag>
+                    </div>
+                    <div class="sub-info">FName
+                        <small>{{ item.FName }}</small>
+                    </div>
+                </div>
+            </template>
+        </zr-select>
+        </el-form-item>
+        <el-form-item prop="barcode">
           <el-input v-model="scanForm.barcode" :placeholder="placeholder" @keyup.enter.native="handleScanInput"
             ref="scanInput" clearable>
             <!-- <template slot="append">
@@ -128,6 +145,7 @@ export default {
   },
   data() {
     return {
+      stockId:null,
       dialogVisible: false,
       scanForm: {
         barcode: ''
@@ -158,6 +176,17 @@ export default {
     }
   },
   methods: {
+     // 处理模板选择变化
+     handleTemplateChange(val) {
+      console.log(val,'val');
+      console.log(this.scanForm);
+      
+            // if (!val) {
+            //     return;
+            // }
+            
+            this.scanForm.stockId = val.FStockId;
+        },
     async handleScanInput() {
       try {
         await this.$refs.scanForm.validate()
@@ -170,13 +199,16 @@ export default {
           // 解析条码信息
           const [palletCode, saleOrderNo, materialCode, quantity, lineCode] = barcode.split('#')
 
-          if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
-            throw new Error('无效的托盘条码格式');
-          }
-
+          // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
+          //   throw new Error('无效的托盘条码格式');
+          // }
+          // if(!this.scanForm.stockId){
+          //   throw new Error('请先选择仓库后再扫描二维码');
+          // }
           // 调用托盘入库API
           const response = await scanPallet({
             palletCode,
+            stockId:this.scanForm.stockId,
             userId: this.$store.state.user.id
           });
 
@@ -204,6 +236,7 @@ export default {
 
           // 清空输入框
           this.scanForm.barcode = ''
+          this.scanForm.stockId = ''
         }
       } catch (error) {
         console.error('扫描失败:', error)
@@ -225,6 +258,7 @@ export default {
 
     resetForm() {
       this.scanForm.barcode = ''
+      this.scanForm.stockId = ''
       this.scanRecords = []
       this.entryInfo = null
       if (this.$refs.scanForm) {
