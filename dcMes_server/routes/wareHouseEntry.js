@@ -256,11 +256,14 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
         FStockStatusId: {
           FNumber: stockData.FNumber
         },
-        FKeeperTypeId: "BD_KeeperOrg"//待核对!!!!
+        FKeeperTypeId: "BD_KeeperOrg",//待核对!!!!
+        FKeeperId: {
+              FNumber: "100"
+                }
         // ... rest of the entity fields
       }]
     };
-
+    console.log(k3Data,'k3Data');
     let k3Response = await k3cMethod("Save", "PRD_INSTOCK", {
       NeedUpDateFields: [],
       NeedReturnFields: [],
