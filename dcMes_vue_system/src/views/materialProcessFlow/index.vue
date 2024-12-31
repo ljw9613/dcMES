@@ -411,13 +411,13 @@
                             fontWeight: 'bold',
                             textAlign: 'center'
                         }" :cell-style="{ textAlign: 'center' }">
-                        <el-table-column label="条码类型" width="120">
+                        <!-- <el-table-column label="条码类型" width="120">
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.isMainBarcode ? 'primary' : 'success'">
                                     {{ scope.row.isMainBarcode ? '主条码' : '子条码' }}
                                 </el-tag>
                             </template>
-                        </el-table-column>
+                        </el-table-column> -->
                         <el-table-column label="条码" prop="barcode" min-width="150"></el-table-column>
                         <el-table-column label="物料信息" min-width="200">
                             <template slot-scope="scope">
@@ -441,7 +441,7 @@
                         <el-table-column label="操作" width="120" fixed="right">
                             <template slot-scope="scope">
                                 <el-button type="text"
-                                    @click="handleView(scope.row.isMainBarcode ? scope.row : scope.row.mainBarcodeData)">
+                                    @click="handleView(scope.row)">
                                     查看详情
                                 </el-button>
 
@@ -839,6 +839,7 @@ export default {
         // 查看详情
         async handleView(row) {
             try {
+                console.log(row, 'row');
                 this.listLoading = true;
                 const result = await getData('material_process_flow', {
                     query: { _id: row._id }
