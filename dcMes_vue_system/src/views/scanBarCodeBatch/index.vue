@@ -35,7 +35,8 @@
                                     <div class="item-option">
                                         <div class="item-info">
                                             <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId
+                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{
+                                                item.FUseOrgId_FName
                                                 }}</el-tag>
                                         </div>
                                     </div>
@@ -339,6 +340,9 @@ export default {
 
             processStepData: {},
             printData: {},
+
+            showPopup: false,
+            popupType: '',
         }
     },
     computed: {
@@ -1286,10 +1290,10 @@ export default {
                         // 打印托盘条码     
                         let materialPalletizingPrintData = await getData('material_palletizing', { query: { _id: res.data._id }, populate: JSON.stringify([{ path: 'productLineId', select: 'lineCode' }, { path: 'productionOrderId', select: 'FWorkShopID_FName' }]) });
                         let printData = materialPalletizingPrintData.data[0];
-                        printData.createAt = this.formatDate(row.createAt);
-                        printData.workshop = (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
-                        printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${row.materialCode}#${row.totalQuantity}#${(row.productLineId && row.productLineId.lineCode) || '未记录生产线'}`;
-                        printData.palletBarcodes = row.palletBarcodes.map(item => {
+                        printData.createAt = this.formatDate(printData.createAt);
+                        printData.workshop = (printData.productionOrderId && printData.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
+                        printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${(printData.productLineId && printData.productLineId.lineCode) || '未记录生产线'}`;
+                        printData.palletBarcodes = printData.palletBarcodes.map(item => {
                             item.scanTime = this.formatDate(item.scanTime);
                             return item;
                         });
@@ -1368,10 +1372,10 @@ export default {
 
                     let materialPalletizingPrintData = await getData('material_palletizing', { query: { _id: res.data._id }, populate: JSON.stringify([{ path: 'productLineId', select: 'lineCode' }, { path: 'productionOrderId', select: 'FWorkShopID_FName' }]) });
                     let printData = materialPalletizingPrintData.data[0];
-                    printData.createAt = this.formatDate(row.createAt);
-                    printData.workshop = (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
-                    printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${row.materialCode}#${row.totalQuantity}#${(row.productLineId && row.productLineId.lineCode) || '未记录生产线'}`;
-                    printData.palletBarcodes = row.palletBarcodes.map(item => {
+                    printData.createAt = this.formatDate(printData.createAt);
+                    printData.workshop = (printData.productionOrderId && printData.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
+                    printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${(printData.productLineId && printData.productLineId.lineCode) || '未记录生产线'}`;
+                    printData.palletBarcodes = printData.palletBarcodes.map(item => {
                         item.scanTime = this.formatDate(item.scanTime);
                         return item;
                     });
@@ -1784,31 +1788,33 @@ export default {
 
                 // 更新当前托盘编码
                 // 获取当前托盘的已扫描条码
-                const palletResponse = await getData('material_palletizing', {
-                    query: { productLineId: this.productLineId, status: 'STACKING', materialId: this.mainMaterialId },
-                    populate: JSON.stringify([{ path: 'productLineId', select: 'lineCode' }, { path: 'productionOrderId', select: 'FWorkShopID_FName' }])
-                });
-
-                if (palletResponse.data && palletResponse.data[0]) {
-                    const palletData = palletResponse.data[0];
-                    this.palletForm.palletCode = palletData.palletCode
-                    this.palletForm.totalQuantity = palletData.totalQuantity
-                    this.scannedList = palletData.palletBarcodes.map(item => ({
-                        barcode: item.barcode,
-                        type: item.barcodeType,
-                        scanTime: item.scanTime
-                    }));
-
-                    // 打印数据
-                    let printData = palletData;
-                    printData.createAt = this.formatDate(printData.createAt);
-                    printData.workshop = (printData.productionOrderId && printData.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
-                    printData.palletBarcodes = printData.palletBarcodes.map(item => {
-                        item.scanTime = this.formatDate(item.scanTime);
-                        return item;
+                if (this.mainMaterialId) {
+                    const palletResponse = await getData('material_palletizing', {
+                        query: { productLineId: this.productLineId, status: 'STACKING', materialId: this.mainMaterialId },
+                        populate: JSON.stringify([{ path: 'productLineId', select: 'lineCode' }, { path: 'productionOrderId', select: 'FWorkShopID_FName' }])
                     });
-                    printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${(printData.productLineId && printData.productLineId.lineCode) || '未记录生产线'}`;
-                    this.printData = printData;
+
+                    if (palletResponse.data && palletResponse.data[0]) {
+                        const palletData = palletResponse.data[0];
+                        this.palletForm.palletCode = palletData.palletCode
+                        this.palletForm.totalQuantity = palletData.totalQuantity
+                        this.scannedList = palletData.palletBarcodes.map(item => ({
+                            barcode: item.barcode,
+                            type: item.barcodeType,
+                            scanTime: item.scanTime
+                        }));
+
+                        // 打印数据
+                        let printData = palletData;
+                        printData.createAt = this.formatDate(printData.createAt);
+                        printData.workshop = (printData.productionOrderId && printData.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
+                        printData.palletBarcodes = printData.palletBarcodes.map(item => {
+                            item.scanTime = this.formatDate(item.scanTime);
+                            return item;
+                        });
+                        printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${printData.materialCode}#${printData.totalQuantity}#${(printData.productLineId && printData.productLineId.lineCode) || '未记录生产线'}`;
+                        this.printData = printData;
+                    }
                 }
             } catch (error) {
                 console.error('获取销售单号失败:', error);

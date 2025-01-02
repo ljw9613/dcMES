@@ -51,7 +51,7 @@
                                         <div class="option-main">
                                             <span class="option-label">{{ item.FBillNo }}</span>
                                             <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.FBillNo }} - {{ item.FUseOrgId }}
+                                                {{ item.FBillNo }} - {{ item.FUseOrgId_FName }}
                                             </el-tag>
                                         </div>
                                     </div>
@@ -72,7 +72,7 @@
                                         <div class="option-main">
                                             <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
                                             <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                                {{ item.FMATERIALID }} - {{ item.FUseOrgId_FName }}
                                             </el-tag>
                                         </div>
                                         <div class="option-sub" v-if="item.FSpecification">
@@ -186,9 +186,9 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="产品编码" width="200">
+                <el-table-column label="产品编码" width="200" align="center">
                     <template slot-scope="scope">
-                        {{ scope.row.materialCode }}
+                        {{ scope.row.materialNumber }}
                     </template>
                 </el-table-column>
 

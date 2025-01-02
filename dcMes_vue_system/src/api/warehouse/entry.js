@@ -23,3 +23,12 @@ export function syncWarehouseEntry(data) {
         data
     })
 }
+
+// 出库单同步至金蝶云
+export function syncWarehouseOn(data) {
+    return request({
+        url: '/k3/sync_warehouse_ontry',
+        method: 'post',
+        data
+    })
+}

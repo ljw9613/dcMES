@@ -89,7 +89,7 @@
                                 <div class="item-option">
                                     <div class="item-info">
                                         <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                        <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId
+                                        <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId_FName
                                             }}</el-tag>
                                     </div>
                                 </div>

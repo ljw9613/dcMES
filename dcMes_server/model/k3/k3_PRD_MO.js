@@ -18,6 +18,7 @@ var productionOrderSchema = new mongoose.Schema({
     FPlanFinishDate: { type: Date, required: true }, // 计划完工时间
     
     // 生产信息
+    FWorkShopID: { type: String }, // 生产车间
     FWorkShopID_FNumber: { type: String }, // 生产车间
     FWorkShopID_FName: { type: String }, // 生产车间
     FMaterialId: { type: String, required: true }, // 物料编码
@@ -28,11 +29,15 @@ var productionOrderSchema = new mongoose.Schema({
 
     // 数量和单位
     FUnitId: { type: String, required: true }, // 单位
+    FUnitId_FName: { type: String, required: true }, // 单位
+    FUnitId_FNumber: { type: String, required: true }, // 单位
     FQty: { type: Number, required: true }, // 数量
 
     // 新增必填字段
     FBillType: { type: String, required: true }, // 单据类型
     FPrdOrgId: { type: String, required: true }, // 生产组织
+    FPrdOrgId_FNumber: { type: String, required: true }, // 生产组织编码
+    FPrdOrgId_FName: { type: String, required: true }, // 生产组织名称
     FOwnerTypeId: { type: String, required: true }, // 货主类型
     FPPBOMType: { type: String, required: true }, // 用料清单展开
 
@@ -62,7 +67,14 @@ var productionOrderSchema = new mongoose.Schema({
     FIssueMtrl: { type: String }, // 生产发料
     FIsQCMO: { type: Boolean }, // 期初生产订单
     FOwnerId: { type: String }, // 货主
-    
+    FOwnerId_FNumber: { type: String }, // 货主编码
+    FOwnerId_FName: { type: String }, // 货主名称
+
+    // StockId
+    FStockId: { type: String }, // 库存ID
+    FStockId_FName: { type: String }, // 库存名称
+    FStockId_FNumber: { type: String }, // 库存编码
+
     // 新增自定义字段
     F_TFQJ_rjh: { type: String }, // 日计划
     F_TFQJ_sfwwzzz: { type: Boolean }, // 是否委外转自制

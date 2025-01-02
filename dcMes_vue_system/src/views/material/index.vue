@@ -136,8 +136,8 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             :cell-style="{ textAlign: 'center' }" @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
-                <!-- FUseOrgId 使用组织 -->
-                <el-table-column label="使用组织" prop="FUseOrgId" width="150" />
+                <!-- FUseOrgId_FName 使用组织 -->
+                <el-table-column label="使用组织" prop="FUseOrgId_FName" width="150" />
                 <!-- FMATERIALID 物料ID -->
                 <el-table-column label="物料ID" prop="FMATERIALID" width="150" />
                 <el-table-column label="物料编码" prop="FNumber" width="120">
@@ -365,7 +365,7 @@ export default {
                 F_TFQJ_CheckBox: '',
                 FNameEn: '',
                 FCreateOrgId: '',
-                FUseOrgId: ''
+                FUseOrgId_FName: ''
             },
             tableList: [],
             total: 0,
@@ -391,7 +391,7 @@ export default {
                 F_TFQJ_CheckBox: '',
                 FNameEn: '',
                 FCreateOrgId: '',
-                FUseOrgId: '',
+                FUseOrgId_FName: '',
                 FDescription: '',
                 FMnemonicCode: '',
                 FMaterialGroup: '',
@@ -407,7 +407,7 @@ export default {
                 FBaseUnitId_FNumber: [{ required: true, message: '请选择基本单位', trigger: 'change' }],
                 FStockId_FNumber: [{ required: true, message: '请选择仓库', trigger: 'change' }],
                 FCreateOrgId: [{ required: true, message: '请选择创建组织', trigger: 'change' }],
-                FUseOrgId: [{ required: true, message: '请选择使用组织', trigger: 'change' }],
+                FUseOrgId_FName: [{ required: true, message: '请选择使用组织', trigger: 'change' }],
                 diNum: [
                     { max: 100, message: 'DI码长度不能超过100个字符', trigger: 'blur' }
                 ],
@@ -524,7 +524,7 @@ export default {
                 F_TFQJ_CheckBox: '',     // 是否长新物料
                 FNameEn: '',             // 英文名称
                 FCreateOrgId: '',        // 创建组织
-                FUseOrgId: '',          // 使用组织
+                FUseOrgId_FName: '',          // 使用组织
                 // 高级搜索字段
                 FBOMCATEGORY: '',        // BOM分类
                 FBOMUSE: '',            // BOM用途

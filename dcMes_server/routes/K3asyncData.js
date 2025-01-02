@@ -12,8 +12,9 @@ const processMaterials = require("../model/project/processMaterials");
 
 const schedule = require("node-schedule");
 // 配置定时任务
-const asyncK3Schedule = () => {
+const asyncK3Schedule = async () => {
   console.log("定时同步金蝶云数据开启");
+
   // 每天凌晨2点执行备份
   schedule.scheduleJob("0 3 * * *", async () => {
     try {
@@ -69,7 +70,9 @@ const asyncK3Schedule = () => {
   });
 };
 
-asyncK3Schedule()
+setTimeout(() => {
+  asyncK3Schedule();
+}, 10000);
 
 // 添加在文件顶部
 const syncTasks = new Map(); // 存储同步任务的状态

@@ -43,6 +43,10 @@
         "description": "单据日期"
       },
       {
+        "name": "FWorkShopID",
+        "description": "生产车间"
+      },
+      {
         "name": "FWorkShopID_FNumber",
         "description": "生产车间编码",
         "entityNameconvert": true
@@ -69,13 +73,30 @@
       },
       {
         "name": "FProductType",
-
         "description": "产品类型"
       },
       {
         "name": "FUnitId",
-
         "description": "单位"
+      },
+      {
+        "name": "FUnitId_FName",
+        "description": "单位名称",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FStockId",
+        "description": "库存ID"
+      },
+      {
+        "name": "FStockId_FName",
+        "description": "库存名称",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FStockId_FNumber",
+        "description": "库存编码",
+        "entityNameconvert": true
       },
       {
         "name": "FQty",
@@ -99,12 +120,20 @@
       },
       {
         "name": "FPrdOrgId",
-
         "description": "生产组织"
       },
       {
+        "name": "FPrdOrgId_FNumber",
+        "description": "生产组织编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FPrdOrgId_FName",
+        "description": "生产组织名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FOwnerTypeId",
-
         "description": "物料类型"
       },
       {
@@ -160,6 +189,20 @@
       {
         "name": "F_TFQJ_sfwwzzz",
         "description": "是否外委转自产"
+      },
+      {
+        "name": "FOwnerId",
+        "description": "货主"
+      },
+      {
+        "name": "FOwnerId_FNumber",
+        "description": "货主编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FOwnerId_FName",
+        "description": "货主名称",
+        "entityNameconvert": true
       }
     ]
   },
@@ -185,6 +228,16 @@
         "description": "销售组织"
       },
       {
+        "name": "FSaleOrgId_FNumber",
+        "description": "销售组织编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FSaleOrgId_FName",
+        "description": "销售组织名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FDate",
         "description": "业务日期"
       },
@@ -193,24 +246,84 @@
         "description": "客户"
       },
       {
+        "name": "FCustId_FNumber",
+        "description": "客户编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FCustId_FName",
+        "description": "客户名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FSaleDeptId",
         "description": "销售部门"
+      },
+      {
+        "name": "FSaleDeptId_FNumber",
+        "description": "销售部门编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FSaleDeptId_FName",
+        "description": "销售部门名称",
+        "entityNameconvert": true
       },
       {
         "name": "FSaleGroupId",
         "description": "销售组"
       },
       {
+        "name": "FSaleGroupId_FNumber",
+        "description": "销售组编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FSaleGroupId_FName",
+        "description": "销售组名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FSalerId",
         "description": "销售员"
+      },
+      {
+        "name": "FSalerId_FNumber",
+        "description": "销售员编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FSalerId_FName",
+        "description": "销售员名称",
+        "entityNameconvert": true
       },
       {
         "name": "FReceiveId",
         "description": "收货方（作废）"
       },
       {
+        "name": "FReceiveId_FNumber",
+        "description": "收货方编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FReceiveId_FName",
+        "description": "收货方名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FSettleId",
         "description": "结算方"
+      },
+      {
+        "name": "FSettleId_FNumber",
+        "description": "结算方编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FSettleId_FName",
+        "description": "结算方名称",
+        "entityNameconvert": true
       },
       {
         "name": "FSettleAddress",
@@ -219,6 +332,16 @@
       {
         "name": "FChargeId",
         "description": "付款方（作废）"
+      },
+      {
+        "name": "FChargeId_FNumber",
+        "description": "付款方编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FChargeId_FName",
+        "description": "付款方名称",
+        "entityNameconvert": true
       },
       {
         "name": "FCreatorId",
@@ -233,9 +356,8 @@
         "description": "客户PO"
       },
       {
-        "name": "F_TFQJ_Text1",
-
-        "description": "客户PO行号"
+        "name": "F_TFQJ_cgdh",
+        "description": "采购订单号"
       },
       {
         "name": "FModifierId",
@@ -313,9 +435,29 @@
         "description": "单据类型"
       },
       {
+        "name": "FBillTypeID_FNumber",
+        "description": "单据类型编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FBillTypeID_FName",
+        "description": "单据类型名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FCorrespondOrgId",
 
         "description": "关联组织"
+      },
+      {
+        "name": "FCorrespondOrgId_FNumber",
+        "description": "关联组织编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FCorrespondOrgId_FName",
+        "description": "关联组织名称",
+        "entityNameconvert": true
       },
       {
         "name": "FMaterialId",
@@ -339,13 +481,58 @@
       },
       {
         "name": "FUnitID",
-
         "description": "单位"
+      },
+      {
+        "name": "FUnitID_FName",
+        "description": "单位名称",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FUnitID_FNumber",
+        "description": "单位编码",
+        "entityNameconvert": true
       },
       {
         "name": "FQty",
         "type": "number",
         "description": "数量"
+      },
+      {
+        "name": "FPlanUnitId",
+        "description": "销售单位"
+      },
+      {
+        "name": "FPlanQty",
+        "description": "数量"
+      },
+      {
+        "name": "FDeliCommitQty",
+        "description": "已出库数量"
+      },
+      {
+        "name": "FDeliRemainQty",
+        "description": "剩余未出数量"
+      },
+      {
+        "name": "FDetailLocId",
+        "description": "交货地点"
+      },
+      {
+        "name": "FDetailLocAddress",
+        "description": "交货地址"
+      },
+      {
+        "name": "FPlanDate",
+        "description": "要货日期"
+      },
+      {
+        "name": "FPlanDeliveryDate",
+        "description": "计划发货日期"
+      },
+      {
+        "name": "F_TFQJ_Text1",
+        "description": "客户PO行号"
       }
     ]
   },
@@ -385,13 +572,31 @@
       },
       {
         "name": "FCreateOrgId",
-
         "description": "创建组织"
       },
       {
+        "name": "FCreateOrgId_FNumber",
+        "description": "创建组织编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FCreateOrgId_FName",
+        "description": "创建组织名称",
+        "entityNameconvert": true
+      },
+      {
         "name": "FUseOrgId",
-
         "description": "使用组织"
+      },
+      {
+        "name": "FUseOrgId_FNumber",
+        "description": "使用组织编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FUseOrgId_FName",
+        "description": "使用组织名称",
+        "entityNameconvert": true
       },
       {
         "name": "FCreatorId",
@@ -435,7 +640,6 @@
       },
       {
         "name": "FOldNumber",
-
         "description": "旧物料编码"
       },
       {
@@ -510,12 +714,10 @@
       },
       {
         "name": "FRefStatus",
-
         "description": "已使用"
       },
       {
         "name": "FForbidReson",
-
         "description": "禁用原因"
       },
       {
@@ -525,7 +727,6 @@
       },
       {
         "name": "F_TFQJ_LLCJ",
-
         "description": "领料车间"
       },
       {
@@ -539,6 +740,24 @@
         "description": "是否自动领料"
       },
       {
+        "name": "FStoreUnitID",
+        "description": "库存单位"
+      },
+      {
+        "name": "FStoreUnitID_FName",
+        "description": "库存单位名称",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FStoreUnitID_FNumber",
+        "description": "库存单位编码",
+        "entityNameconvert": true
+      },
+      {
+        "name": "FBaseUnitId",
+        "description": "基本单位"
+      },
+      {
         "name": "FBaseUnitId_FName",
 
         "entityNameconvert": true,
@@ -549,6 +768,10 @@
 
         "entityNameconvert": true,
         "description": "基本单位编码"
+      },
+      {
+        "name": "FStockId",
+        "description": "库存ID"
       },
       {
         "name": "FStockId_FNumber",
@@ -591,4 +814,3 @@
     ]
   }
 ]
-

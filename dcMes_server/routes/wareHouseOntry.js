@@ -26,6 +26,14 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    // 判断托盘是否已经入库
+    if (pallet.inWarehouseStatus !== "IN_WAREHOUSE") {
+      return res.status(200).json({
+        code: 404,
+        message: "此托盘未入库",
+      });
+    }
+
     // 2. 获取或创建出库单
     let entry = await wareHouseOntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
@@ -46,9 +54,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       }
 
       entry = await wareHouseOntry.create({
-        HuoGuiCode: entryInfo.HuoGuiCode,      // 货柜号
-        FaQIaoNo: entryInfo.FaQIaoNo,      // 发票号
-        outboundQuantity: entryInfo.outboundQuantity,//应收数量
+        HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
+        FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
+        outboundQuantity: entryInfo.outboundQuantity, //应收数量
         entryNo: "SCCK-" + order.FBillNo,
         productionOrderNo: order.FBillNo,
         saleOrderId: order.FSaleOrderId,
@@ -116,6 +124,13 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       entry.status = "IN_PROGRESS";
     }
 
+    // 8. 更新托盘的出库状态
+    await MaterialPallet.findByIdAndUpdate(pallet._id, {
+      inWarehouseStatus: "OUT_WAREHOUSE",
+      outWarehouseTime: new Date(),
+      updateAt: new Date(),
+    });
+
     await entry.save();
 
     // 重新查询以获取最新数据
@@ -160,103 +175,130 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       });
     }
 
+    //查询金蝶云是否已经拥有订单
+    let k3Stock = await k3cMethod("BillQuery", "SAL_OUTSTOCK", {
+      FormId: "SAL_OUTSTOCK",
+      FieldKeys: "FID",
+      FilterString: [
+        {
+          FieldName: "FBillNo",
+          Compare: "=",
+          Value: entry.entryNo,
+          Left: "",
+          Right: "",
+          Logic: 0,
+        },
+      ],
+      OrderString: "",
+      TopRowCount: 0,
+      StartRow: 0,
+      Limit: 2000,
+      SubSystemId: "",
+    });
+
     // 2. 转换为金蝶云格式
     const k3Data = {
-      // FID: 0,
+      FID: k3Stock.length > 0 ? k3Stock[0][0] : 0,
+      FDate: new Date().toISOString().split("T")[0],
+      FPrdOrgId: {
+        FNumber: productionOrder.FPrdOrgId_FNumber,
+      },
       FBillType: {
-        FNUMBER: "SCRKD02_SYS",
+        FNUMBER: "XSCKD01_SYS",
       },
       FBillNo: entry.entryNo,
-      FDate: new Date().toISOString().split("T")[0],
-
-      // 使用生产订单的组织信息
-      FPrdOrgId: {
-        FNumber: productionOrder.FPrdOrgId,
-      },
       FStockOrgId: {
-        FNumber: productionOrder.FPrdOrgId,
+        FNumber: productionOrder.FPrdOrgId_FNumber,
       },
-
-      FStockId0: {
-        FNumber: "CK001",
-      },
-
-      // 使用生产订单的车间信息
+      // FOwnerTypeID: productionOrder.FOwnerTypeId || "BD_OwnerOrg",
+      // FOwnerID: {
+      //   FNumber: productionOrder.FOwnerId_FNumber,
+      // },
       FWorkShopId: {
-        FNumber:
-          productionOrder.FWorkShopID_FNumber ||
-          productionOrder.FWorkShopID_FName,
+        FNumber: productionOrder.FWorkShopID_FNumber,
       },
-
-      // 使用生产订单的货主信息
-      FOwnerTypeId0: productionOrder.FOwnerTypeId,
-      FOwnerId0: {
-        FNumber: productionOrder.FOwnerId,
-      },
-
       FDescription: entry.remark || "",
-
       FEntity: [
         {
-          FEntryID: 0,
-          // 使用生产订单的物料信息
+          FOutStockType: "1",
+          FIsNew: false,
+          FProductType: entry.productType,
+          FMoId: productionOrder.FID,
+          FMoEntryId: productionOrder.FID,
+          FMOMAINENTRYID: productionOrder.FID,
+          FMoEntrySeq: "1",
+          FSrcEntryId: productionOrder.FID,
+          FSrcBillType: "PRD_MO",
+          FSrcInterId: productionOrder.FID,
+          FSrcBillNo: productionOrder.FBillNo,
+          FSrcEntrySeq: "1",
           FMaterialId: {
-            FNumber: productionOrder.FMaterialId,
+            FNumber: entry.materialCode,
           },
           FUnitID: {
-            FNumber: productionOrder.FUnitId,
+            FNumber: productionOrder.FUnitId_FName,
           },
           FBaseUnitId: {
-            FNumber: productionOrder.FUnitId,
+            FNumber: productionOrder.FUnitId_FName,
           },
+          FMustQty: entry.actualQuantity,
           FRealQty: entry.actualQuantity,
-          FBaseRealQty: entry.actualQuantity,
-
-          // 使用生产订单的货主信息
-          FOwnerTypeId: productionOrder.FOwnerTypeId,
-          FOwnerId: {
-            FNumber: productionOrder.FOwnerId,
+          FCostRate: entry.actualQuantity,
+          FOwnerID: {
+            FNumber: productionOrder.FOwnerId_FNumber,
           },
-
-          FStockId: {
-            FNumber: "CK001",
-          },
-
-          FKeeperTypeId: "BD_KeeperOrg",
-          FKeeperId_Id: productionOrder.FPrdOrgId,
-
+          FOwnerTypeID: productionOrder.FOwnerTypeId || "BD_OwnerOrg",
+          OwnerTypeIdHead: productionOrder.FOwnerId_FNumber,
+          OwnerIdHead_Id: productionOrder.FPrdOrgId_FNumber,
           FMoBillNo: productionOrder.FBillNo,
-
           FStockStatusId: {
             FNumber: "KCZT01_SYS",
           },
-          // FStockStatusId: {
-          //   Id: 10000,
-          //   msterID: 10000,
-          //   MultiLanguageText: [{ PkId: 1, LocaleId: 2052, Name: "可用" }],
-          //   Name: [{ Key: 2052, Value: "可用" }],
-          //   Number: "KCZT01_SYS",
-          //   Type: "0",
-          // },
+          FKeeperTypeId: "BD_KeeperOrg",
+          FKeeperId: {
+            FNumber: productionOrder.FPrdOrgId_FNumber,
+          },
+          FOwnerTypeId: productionOrder.FOwnerTypeId,
+          FStockUnitId: {
+            FNumber: productionOrder.FUnitId_FName,
+          },
+          FStockRealQty: entry.actualQuantity,
+          FBasePrdRealQty: entry.actualQuantity,
+          FBaseMustQty: entry.actualQuantity,
+          FBaseRealQty: entry.actualQuantity,
 
-          FInStockType: "1",
+          // 需求来源
+          FReqSrc: "1",
+          FReqBillNo: productionOrder.FSaleOrderNo,
+          FReqBillId: productionOrder.FSaleOrderEntryId,
+          FReqEntrySeq: "1",
+          FReqEntryId: productionOrder.FSaleOrderEntryId,
 
-          FProduceDate: new Date().toISOString().split("T")[0],
-          FExpiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
+          // FEntity_Link: [
+          //   {
+          //     FEntity_Link_FRuleId: "DeliveryNotice-OutStock",
+          //     FEntity_Link_FSTableName: "T_SAL_DELIVERYNOTICEENTRY",
+          //     FEntity_Link_FSBillId: productionOrder.FID,
+          //     FEntity_Link_FSId: productionOrder.FID,
+          //     FEntity_Link_FFlowId: "f11b462a-8733-40bd-8f29-0906afc6a201",
+          //     FEntity_Link_FFlowLineId: "5",
+          //     FEntity_Link_FBasePrdRealQtyOld: productionOrder.FBaseRealQty,
+          //     FEntity_Link_FBasePrdRealQty: entry.actualQuantity,
+          //   },
+          // ],
         },
       ],
     };
 
-    let k3Response = await k3cMethod("Save", "PRD_INSTOCK", {
+    // 3. 调用金蝶云API
+    let k3Response = await k3cMethod("Save", "SAL_OUTSTOCK", {
       NeedUpDateFields: [],
       NeedReturnFields: [],
-      IsDeleteEntry: "false",
+      IsDeleteEntry: "true",
       SubSystemId: "",
       IsVerifyBaseDataField: "false",
       IsEntryBatchFill: "true",
-      ValidateFlag: "true",
+      ValidateFlag: "false",
       NumberSearch: "true",
       IsAutoAdjustField: "false",
       InterationFlags: "",
@@ -264,7 +306,7 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       IsControlPrecision: "false",
       Model: k3Data,
     });
-    console.log(k3Response);
+
     // 4. 处理响应
     if (k3Response.Result.ResponseStatus.IsSuccess === true) {
       res.json({
@@ -274,11 +316,11 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       });
     } else {
       throw new Error(
-        JSON.stringify(k3Response.Result.ResponseStatus.Errors) || "同步失败"
+        k3Response.Result.ResponseStatus.Errors[0].Message || "同步失败"
       );
     }
   } catch (error) {
-    res.status(500).json({
+    res.status(200).json({
       code: 500,
       message: error.message,
     });

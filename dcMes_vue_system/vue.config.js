@@ -26,7 +26,9 @@ module.exports = {
    * Detail: https://cli.vuejs.org/config/#publicpath
    */
 
-  publicPath: "/dcMesManage/",
+  // publicPath: "/dcMesManage/",
+  publicPath: "/dcMes/",
+  // publicPath: "/dcMesCs/",
   outputDir: "../dcMes_server/admin",
   assetsDir: "static",
   lintOnSave: process.env.NODE_ENV === "development",

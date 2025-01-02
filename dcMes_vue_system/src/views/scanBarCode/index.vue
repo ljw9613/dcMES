@@ -35,7 +35,7 @@
                                     <div class="item-option">
                                         <div class="item-info">
                                             <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId
+                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId_FName
                                                 }}</el-tag>
                                         </div>
                                     </div>
@@ -1528,7 +1528,7 @@ export default {
                     this.popupType = 'ng';
                     this.showPopup = true;
                     setTimeout(() => {
-                        tone(cfbd); // 延迟播放绑定成功提示音
+                        tone(cfbd); // 延迟播放
                     }, 1000);
                 }
                 else if (error.message == '未查询到生产工单') {
@@ -1536,12 +1536,14 @@ export default {
                     this.popupType = 'ng';
                     this.showPopup = true;
                     setTimeout(() => {
-                        tone(cxwgd); // 延迟播放绑定成功提示音
+                        tone(cxwgd); // 延迟播放
                     }, 1000);
                 } else {
                     this.$message.error('确认失败:' + error.message);
+                    this.popupType = 'ng';
+                    this.showPopup = true;
                     setTimeout(() => {
-                        tone(tmyw); // 延迟播放绑定成功提示音
+                        tone(tmyw); // 延迟播放
                     }, 1000);
                 }
             }

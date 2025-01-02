@@ -387,7 +387,11 @@ export default {
                 entryId: row._id
             }
             syncWarehouseEntry(req).then(res => {
-                this.$message.success('同步成功');
+                if (res.code == 200) {
+                    this.$message.success('同步成功');
+                } else {
+                    this.$message.error(res.message);
+                }
             }).catch(error => {
                 this.$message.error('同步失败');
             });

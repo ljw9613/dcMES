@@ -113,7 +113,7 @@
                             <div class="option-main">
                                 <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
                                 <el-tag size="mini" type="info" class="option-tag">
-                                    {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                    {{ item.FMATERIALID }} - {{ item.FUseOrgId_FName }}
                                 </el-tag>
                             </div>
                             <div class="option-sub" v-if="item.FSpecification">

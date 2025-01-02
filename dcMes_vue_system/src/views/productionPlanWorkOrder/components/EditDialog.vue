@@ -64,7 +64,6 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产品" prop="materialId">
-
                         <zr-select v-if="form.productionOrderId" v-model="form.materialId" collection="k3_BD_MATERIAL"
                             :search-fields="['FNumber', 'FName', 'FSpecification']" label-key="FName"
                             sub-key="FMATERIALID" :multiple="false" @select="handleMaterialSelect"
@@ -74,7 +73,7 @@
                                     <div class="option-main">
                                         <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
                                         <el-tag size="mini" type="info" class="option-tag">
-                                            {{ item.FMATERIALID }} - {{ item.FUseOrgId }}
+                                            {{ item.FMATERIALID }} - {{ item.FUseOrgId_FName }}
                                         </el-tag>
                                     </div>
                                     <div class="option-sub" v-if="item.FSpecification">
@@ -105,8 +104,13 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="工单数量" prop="planProductionQuantity">
-                        <el-input-number v-model="form.planProductionQuantity" :min="0" controls-position="right"
-                            style="width: 100%"></el-input-number>
+                        <el-input-number 
+                            v-model="form.planProductionQuantity" 
+                            :min="0" 
+                            controls-position="right"
+                            style="width: 100%"
+                            :disabled="form.status !== 'PENDING'"
+                        ></el-input-number>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -352,13 +356,6 @@ export default {
             if (item) {
                 console.log(item)
                 this.$nextTick(async () => {
-                    this.form.productionOrderId = item._id
-                    this.form.productionOrderNo = item.FBillNo
-                    this.form.fSpecification = item.FSpecification || ''
-                    this.form.materialName = item.FMaterialName || ''
-                    this.form.planQuantity = item.FQty || 0
-                    this.form.materialCode = item.FNumber || ''
-
                     //获取产品料号
                     const { data: material } = await getData('k3_BD_MATERIAL', {
                         query: {
@@ -370,7 +367,18 @@ export default {
 
                     if (material.length) {
                         this.form.materialId = material[0]._id
+                        this.form.materialNumber = material[0].FNumber
+                        this.form.materialName = material[0].FName
+                        this.form.fSpecification = material[0].FSpecification
+                        this.form.FMATERIALID = material[0].FMATERIALID
                     }
+                    this.$nextTick(() => {
+                        this.form.productionOrderId = item._id
+                        this.form.productionOrderNo = item.FBillNo
+                        this.form.fSpecification = item.FSpecification || ''
+                        this.form.materialName = item.FMaterialName || ''
+                        this.form.planQuantity = item.FQty || 0
+                    })
                 })
             }
         },
@@ -414,7 +422,7 @@ export default {
 
             // 工单数量 大于 0 小于等于 计划生产数量
             if (this.form.planProductionQuantity <= 0 || this.form.planProductionQuantity > this.form.planQuantity) {
-                this.$message.error('计划生产数量不正确')
+                this.$message.error('工单数量必须大于0且不能超过计划生产数量')
                 return
             }
 

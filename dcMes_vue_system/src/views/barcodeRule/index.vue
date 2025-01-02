@@ -60,6 +60,9 @@
                 </el-table-column>
                 <el-table-column label="操作" width="200" align="center">
                     <template slot-scope="{row}">
+                        <el-button type="text" size="small" @click="handleView(row)">
+                            <i class="el-icon-view"></i> 查看物料列表
+                        </el-button>
                         <el-button type="text" size="small" @click="handleEdit(row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
@@ -94,18 +97,18 @@
 
                 <!-- 校验规则配置 -->
                 <el-divider content-position="left">校验规则配置</el-divider>
-                <div v-for="(rule, index) in currentRule.validationRules" :key="'validation-'+index" class="rule-item">
+                <div v-for="(rule, index) in currentRule.validationRules" :key="'validation-' + index" class="rule-item">
                     <el-card class="rule-card">
                         <div slot="header" class="clearfix">
-                            <span>校验规则 #{{index + 1}}</span>
-                            <el-button style="float: right; padding: 3px 0" type="text" 
+                            <span>校验规则 #{{ index + 1 }}</span>
+                            <el-button style="float: right; padding: 3px 0" type="text"
                                 @click="removeValidationRule(index)">删除</el-button>
                         </div>
 
                         <el-row :gutter="20">
                             <el-col :span="8">
                                 <el-form-item :label="'规则名称'" :prop="'validationRules.' + index + '.name'">
-                                    <el-input v-model="rule.name" placeholder="请输入规则名称"/>
+                                    <el-input v-model="rule.name" placeholder="请输入规则名称" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
@@ -148,7 +151,8 @@
                                     </el-form-item>
                                 </el-col>
                                 <el-col :span="8">
-                                    <el-form-item :label="'期望值'" :prop="'validationRules.' + index + '.params.expectedValue'">
+                                    <el-form-item :label="'期望值'"
+                                        :prop="'validationRules.' + index + '.params.expectedValue'">
                                         <el-input v-model="rule.params.expectedValue" />
                                     </el-form-item>
                                 </el-col>
@@ -169,12 +173,12 @@
 
                 <!-- 提取配置 -->
                 <el-divider content-position="left">提取配置</el-divider>
-                <div v-for="(config, configIndex) in currentRule.extractionConfigs" :key="'config-'+configIndex" 
+                <div v-for="(config, configIndex) in currentRule.extractionConfigs" :key="'config-' + configIndex"
                     class="extraction-config">
                     <el-card class="config-card">
                         <div slot="header" class="clearfix">
-                            <span>提取配置 #{{configIndex + 1}}</span>
-                            <el-button style="float: right; padding: 3px 0" type="text" 
+                            <span>提取配置 #{{ configIndex + 1 }}</span>
+                            <el-button style="float: right; padding: 3px 0" type="text"
                                 @click="removeExtractionConfig(configIndex)">删除</el-button>
                         </div>
 
@@ -187,24 +191,24 @@
                         </el-form-item>
 
                         <!-- 提取步骤配置 -->
-                        <div v-for="(step, stepIndex) in config.steps" :key="'step-'+configIndex+'-'+stepIndex" 
+                        <div v-for="(step, stepIndex) in config.steps" :key="'step-' + configIndex + '-' + stepIndex"
                             class="step-item">
                             <el-card class="step-card" shadow="hover">
                                 <div slot="header" class="clearfix">
-                                    <span>步骤 #{{stepIndex + 1}}</span>
-                                    <el-button style="float: right; padding: 3px 0" type="text" 
+                                    <span>步骤 #{{ stepIndex + 1 }}</span>
+                                    <el-button style="float: right; padding: 3px 0" type="text"
                                         @click="removeExtractionStep(configIndex, stepIndex)">删除</el-button>
                                 </div>
 
                                 <el-row :gutter="20">
                                     <el-col :span="8">
-                                        <el-form-item :label="'步骤名称'" 
+                                        <el-form-item :label="'步骤名称'"
                                             :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.name'">
-                                            <el-input v-model="step.name" placeholder="请输入步骤名称"/>
+                                            <el-input v-model="step.name" placeholder="请输入步骤名称" />
                                         </el-form-item>
                                     </el-col>
                                     <el-col :span="8">
-                                        <el-form-item :label="'执行顺序'" 
+                                        <el-form-item :label="'执行顺序'"
                                             :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.order'">
                                             <el-input-number v-model="step.order" :min="1" />
                                         </el-form-item>
@@ -216,7 +220,7 @@
                                     </el-col>
                                 </el-row>
 
-                                <el-form-item :label="'提取类型'" 
+                                <el-form-item :label="'提取类型'"
                                     :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.type'">
                                     <el-select v-model="step.type" placeholder="请选择提取类型" style="width: 100%">
                                         <el-option label="分割提取" value="split" />
@@ -229,13 +233,13 @@
                                 <template v-if="step.type === 'split'">
                                     <el-row :gutter="20">
                                         <el-col :span="12">
-                                            <el-form-item :label="'分隔符'" 
+                                            <el-form-item :label="'分隔符'"
                                                 :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.separator'">
                                                 <el-input v-model="step.params.separator" />
                                             </el-form-item>
                                         </el-col>
                                         <el-col :span="12">
-                                            <el-form-item :label="'索引'" 
+                                            <el-form-item :label="'索引'"
                                                 :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.index'">
                                                 <el-input-number v-model="step.params.index" :min="0" />
                                             </el-form-item>
@@ -246,13 +250,13 @@
                                 <template v-if="step.type === 'substring'">
                                     <el-row :gutter="20">
                                         <el-col :span="12">
-                                            <el-form-item :label="'起始位置'" 
+                                            <el-form-item :label="'起始位置'"
                                                 :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.start'">
                                                 <el-input-number v-model="step.params.start" :min="0" />
                                             </el-form-item>
                                         </el-col>
                                         <el-col :span="12">
-                                            <el-form-item :label="'结束位置'" 
+                                            <el-form-item :label="'结束位置'"
                                                 :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.end'">
                                                 <el-input-number v-model="step.params.end" :min="0" />
                                             </el-form-item>
@@ -263,13 +267,13 @@
                                 <template v-if="step.type === 'regex'">
                                     <el-row :gutter="20">
                                         <el-col :span="12">
-                                            <el-form-item :label="'正则表达式'" 
+                                            <el-form-item :label="'正则表达式'"
                                                 :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.pattern'">
                                                 <el-input v-model="step.params.pattern" />
                                             </el-form-item>
                                         </el-col>
                                         <el-col :span="12">
-                                            <el-form-item :label="'捕获组索引'" 
+                                            <el-form-item :label="'捕获组索引'"
                                                 :prop="'extractionConfigs.' + configIndex + '.steps.' + stepIndex + '.params.group'">
                                                 <el-input-number v-model="step.params.group" :min="0" />
                                             </el-form-item>
@@ -306,17 +310,17 @@
                         <!-- 校验结果 -->
                         <div class="test-section">
                             <h4>校验结果</h4>
-                            <div v-for="(step, index) in testResult.validationSteps" :key="'validation-'+index"
+                            <div v-for="(step, index) in testResult.validationSteps" :key="'validation-' + index"
                                 :class="['step-result', step.matched ? 'success' : 'error']">
                                 <div class="step-header">
-                                    步骤 {{index + 1}}: {{step.ruleName}}
+                                    步骤 {{ index + 1 }}: {{ step.ruleName }}
                                 </div>
                                 <div class="step-content">
                                     <template v-if="step.matched">
                                         <i class="el-icon-success"></i> 校验通过
                                     </template>
                                     <template v-else>
-                                        <i class="el-icon-error"></i> {{step.message}}
+                                        <i class="el-icon-error"></i> {{ step.message }}
                                     </template>
                                 </div>
                             </div>
@@ -325,22 +329,22 @@
                         <!-- 提取结果 -->
                         <div v-if="testResult.validationPassed" class="test-section">
                             <h4>提取结果</h4>
-                            <div v-for="(config, index) in testResult.extractionResults" :key="'extraction-'+index"
+                            <div v-for="(config, index) in testResult.extractionResults" :key="'extraction-' + index"
                                 class="extraction-result">
                                 <div class="result-header">
-                                    {{config.target}}
+                                    {{ config.target }}
                                 </div>
-                                <div v-for="(step, stepIndex) in config.steps" :key="'step-'+stepIndex"
+                                <div v-for="(step, stepIndex) in config.steps" :key="'step-' + stepIndex"
                                     class="step-result">
                                     <div class="step-header">
-                                        步骤 {{stepIndex + 1}}: {{step.name}}
+                                        步骤 {{ stepIndex + 1 }}: {{ step.name }}
                                     </div>
                                     <div class="step-content">
-                                        中间结果: {{step.intermediateValue}}
+                                        中间结果: {{ step.intermediateValue }}
                                     </div>
                                 </div>
                                 <div class="final-result">
-                                    最终结果: {{config.finalValue}}
+                                    最终结果: {{ config.finalValue }}
                                 </div>
                             </div>
                         </div>
@@ -352,6 +356,56 @@
                     <el-button type="primary" @click="handleSubmit">确定</el-button>
                 </div>
             </el-form>
+        </el-dialog>
+
+        <!-- 物料列表弹窗 -->
+        <el-dialog title="物料列表" :visible.sync="materialDialogVisible" width="60%">
+            <div class="material-list-container">
+                <div class="material-list-header">
+                    <el-button type="primary" size="small" @click="handleAddMaterial">新增物料绑定</el-button>
+                </div>
+
+                <el-table :data="materialList" border style="width: 100%">
+                    <el-table-column prop="productId.FNumber" label="物料编码" />
+                    <el-table-column prop="productId.FName" label="物料名称" />
+                    <el-table-column prop="createTime" label="创建时间" width="180">
+                        <template slot-scope="scope">
+                            {{ formatDate(scope.row.createTime) }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="150" align="center">
+                        <template slot-scope="scope">
+                            <el-button type="danger" size="mini" @click="deleteMaterial(scope.row)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+
+            <!-- 新增物料绑定弹窗 -->
+            <el-dialog title="新增物料绑定" :visible.sync="addMaterialDialogVisible" width="40%" append-to-body>
+                <el-form :model="materialForm" ref="materialForm" label-width="100px">
+                    <el-form-item label="物料选择" prop="productId">
+                        <zr-select v-model="materialForm.productId" collection="k3_BD_MATERIAL"
+                            :search-fields="['FNumber', 'FName']" label-key="FNumber" sub-key="_id" :multiple="false"
+                            placeholder="请输入物料编码/名称搜索">
+                            <template #option="{ item }">
+                                <div class="select-option">
+                                    <div class="option-main">
+                                        <span class="option-label">{{ item.FNumber }}</span>
+                                        <el-tag size="mini" type="info" class="option-tag">
+                                            {{ item.FName }}
+                                        </el-tag>
+                                    </div>
+                                </div>
+                            </template>
+                        </zr-select>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="addMaterialDialogVisible = false">取 消</el-button>
+                    <el-button type="primary" @click="saveMaterial">确 定</el-button>
+                </div>
+            </el-dialog>
         </el-dialog>
     </div>
 </template>
@@ -399,7 +453,14 @@ export default {
                 page: 1,
                 limit: 20,
                 total: 0
-            }
+            },
+            materialDialogVisible: false,
+            addMaterialDialogVisible: false,
+            materialList: [],
+            materialForm: {
+                productId: ''
+            },
+            currentRuleId: null
         }
     },
 
@@ -480,58 +541,79 @@ export default {
             return `${year}-${month}-${day}`;
         },
 
-        handleView(row) {
-            this.currentRule = JSON.parse(JSON.stringify(row));
-            this.dialogTitle = '查看规则';
-            this.dialogVisible = true;
+        async handleView(row) {
+            this.currentRuleId = row._id;
+            await this.fetchMaterialList(row._id);
+            this.materialDialogVisible = true;
         },
 
-        async validateDICode(diCode) {
+        async fetchMaterialList(ruleId) {
             try {
-                // 取DI码对应的所有物料信息
-                const response = await getData('productDiNum', {
-                    query: { diNum: diCode },
-                    populate: JSON.stringify([{ path: 'productId', model: 'k3_BD_MATERIAL' }])
+                const result = await getData('productBarcodeRule', {
+                    query: { barcodeRule: ruleId },
+                    populate: JSON.stringify([{ path: 'productId', select: 'FNumber FName' }])
+                });
+                if (result.data) {
+                    this.materialList = result.data;
+                }
+            } catch (error) {
+                console.error('获取物料列表失败:', error);
+                this.$message.error('获取物料列表失败');
+            }
+        },
+
+        handleAddMaterial() {
+            this.materialForm = {
+                productId: ''
+            };
+            this.addMaterialDialogVisible = true;
+        },
+
+        async saveMaterial() {
+            try {
+                if (!this.materialForm.productId) {
+                    this.$message.warning('请选择物料');
+                    return;
+                }
+
+                // 检查是否已存在相同物料绑定
+                const existingMaterial = this.materialList.find(
+                    item => item.productId._id === this.materialForm.productId
+                );
+                if (existingMaterial) {
+                    this.$message.warning('该物料已绑定，请勿重复添加');
+                    return;
+                }
+
+                await addData('productBarcodeRule', {
+                    productId: this.materialForm.productId,
+                    barcodeRule: this.currentRuleId,
+                    createBy: this.$store.state.user.id
                 });
 
-                if (response.data.length === 0) {
-                    this.$message.error('该DI编码不存在本系统');
-                    return { isValid: false };
-                }
-
-                // 添加空值检查,过滤掉productId为空的记录
-                const possibleMaterialCodes = response.data
-                    .filter(item => item.productId && item.productId.FNumber)
-                    .map(item => item.productId.FNumber);
-
-                if (possibleMaterialCodes.length === 0) {
-                    this.$message.error('该DI编码未关联有效物料');
-                    return { isValid: false };
-                }
-
-                // 获取当前页面的主物料和子物料编码
-                const allMaterialCodes = [this.mainMaterialCode,
-                ...this.processMaterials.map(m => m.materialCode)];
-
-                // 查找匹配的物料编码
-                const matchedMaterialCode = possibleMaterialCodes.find(code =>
-                    allMaterialCodes.includes(code)
-                );
-
-                if (!matchedMaterialCode) {
-                    this.$message.error('该DI编码对应的物料与当前工序不匹配');
-                    return { isValid: false };
-                }
-
-                // 返回验证结果和匹配到的物料编码
-                return {
-                    isValid: true,
-                    materialCode: matchedMaterialCode
-                };
+                this.$message.success('物料绑定成功');
+                this.addMaterialDialogVisible = false;
+                await this.fetchMaterialList(this.currentRuleId);
             } catch (error) {
-                console.error('DI码验证失败:', error);
-                this.$message.error('DI码验证失败');
-                return { isValid: false };
+                console.error('保存物料绑定失败:', error);
+                this.$message.error('保存物料绑定失败');
+            }
+        },
+
+        async deleteMaterial(row) {
+            try {
+                await this.$confirm('确认解除该物料绑定吗?', '提示', {
+                    type: 'warning'
+                });
+
+                await removeData('productBarcodeRule', { query: { _id: row._id } });
+                this.$message.success('解除绑定成功');
+                await this.fetchMaterialList(this.currentRuleId);
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('删除物料绑定失败:', error);
+                    this.$message.error('删除物料绑定失败');
+                }
             }
         },
 
@@ -908,7 +990,8 @@ export default {
     }
 }
 
-.rule-item, .extraction-config {
+.rule-item,
+.extraction-config {
     margin-bottom: 20px;
 }
 
@@ -977,6 +1060,24 @@ export default {
 
     &:hover {
         color: #f78989;
+    }
+}
+
+.material-list-container {
+    .material-list-header {
+        margin-bottom: 15px;
+    }
+}
+
+.select-option {
+    .option-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .option-label {
+            margin-right: 10px;
+        }
     }
 }
 </style>

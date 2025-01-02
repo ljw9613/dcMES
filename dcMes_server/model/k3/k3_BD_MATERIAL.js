@@ -8,7 +8,11 @@ var materialSchema = new mongoose.Schema({
     FNumber: { type: String }, // 编码
     FDescription: { type: String }, // 描述
     FCreateOrgId: { type: String, required: true }, // 创建组织
+    FCreateOrgId_FNumber: { type: String }, // 创建组织编码
+    FCreateOrgId_FName: { type: String }, // 创建组织名称
     FUseOrgId: { type: String, required: true }, // 使用组织
+    FUseOrgId_FNumber: { type: String }, // 使用组织编码
+    FUseOrgId_FName: { type: String }, // 使用组织名称
     
     // 基础信息
     FOldNumber: { type: String }, // 旧物料编码
@@ -33,12 +37,18 @@ var materialSchema = new mongoose.Schema({
     FRefStatus: { type: String }, // 已使用
     
     // 单位和仓库信息
+    FBaseUnitId: { type: String, required: true }, // 基本单位
     FBaseUnitId_FName: { type: String, required: true }, // 基本单位
     FBaseUnitId_FNumber: { type: String, required: true }, // 基本单位编码
+    FStockId: { type: String, required: true }, // 仓库
     FStockId_FNumber: { type: String, required: true }, // 仓库编码
     FStockId_FName: { type: String, required: true }, // 仓库
     FPickStockId_FNumber: { type: String, required: true }, // 发料仓库编码
     FPickStockId_FName: { type: String, required: true }, // 发料仓库
+
+    FStoreUnitID: { type: String, required: true }, // 库存单位
+    FStoreUnitID_FNumber: { type: String, required: true }, // 库存单位编码
+    FStoreUnitID_FName: { type: String, required: true }, // 库存单位名称
     
     // 自定义字段
     F_TFQJ_TZBM1: { type: String }, // 图纸编码

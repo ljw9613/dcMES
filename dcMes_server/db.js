@@ -10,7 +10,7 @@ module.exports = app => {
   let mongodbUrl =
     "mongodb://dcMes:dcMes123.@47.115.19.76:27017/dcMes";
   // "mongodb://seafoodStreet:seafoodStreet888@47.115.19.76:27017/seafoodStreet";//本地测试
-  // 'mongodb://seafoodStreetDB:seafoodStreetDB2751@10.1.3.36:27010/seafoodStreet';//线上
+  // 'mongodb://dcMesCs:ZxbM3zijfmDCjHZY@127.0.0.1:27017/dcMesCs';//线上测试
   mongoose.connect(
     mongodbUrl,
     {

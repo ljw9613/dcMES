@@ -281,7 +281,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
-import {  syncWarehouseEntry } from "@/api/warehouse/entry";
+import {  syncWarehouseOn } from "@/api/warehouse/entry";
 import ScanDialog from './components/ScanDialog.vue';
 import { query } from "quill";
 
@@ -550,8 +550,12 @@ export default {
             let req = {
                 entryId: row._id
             }
-            syncWarehouseEntry(req).then(res => {
-                this.$message.success('同步成功');
+            syncWarehouseOn(req).then(res => {
+                if(res.code==200){
+                    this.$message.success('同步成功');
+                }else{
+                    this.$message.error(res.message);
+                }
             }).catch(error => {
                 this.$message.error('同步失败');
             });

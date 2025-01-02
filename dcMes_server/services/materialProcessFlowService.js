@@ -143,13 +143,16 @@ class MaterialProcessFlowService {
       //     const processStep = await ProcessStep.findById(stepId);
 
       // 新的查询方式:
-      const processSteps = await ProcessStep.find({ craftId: craft._id, isMES: true }).sort({
+      const processSteps = await ProcessStep.find({
+        craftId: craft._id,
+        isMES: true,
+      }).sort({
         sort: 1,
       });
       if (processSteps && processSteps.length > 0) {
         // 初始化实际生产顺序计数器
         let actualProcessSort = 1;
-        
+
         for (const processStep of processSteps) {
           // 创建工序节点
           const processNode = {
@@ -593,6 +596,11 @@ class MaterialProcessFlowService {
       throw new Error("未查询到生产工单");
     }
 
+    //检测当前工单是否可以继续投入
+    if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
+      throw new Error("工单已达到计划数量，无法继续投入");
+    }
+
     // 如果是首道工序，且物料ID匹配，更新工单投入量
     if (planWorkOrder) {
       if (processPosition.isFirst) {
@@ -965,15 +973,32 @@ class MaterialProcessFlowService {
       // 处理所有旧节点（不仅是已完成的）
       for (const oldNode of flowRecord.processNodes) {
         const newNode = newProcessNodes.find((node) => {
-          if (oldNode.nodeType === "PROCESS_STEP" && node.nodeType === "PROCESS_STEP") {
-            return node.processCode === oldNode.processCode && 
-                   node.level === oldNode.level &&
-                   this.findParentMaterialMatch(flowRecord.processNodes, newProcessNodes, oldNode, node);
+          if (
+            oldNode.nodeType === "PROCESS_STEP" &&
+            node.nodeType === "PROCESS_STEP"
+          ) {
+            return (
+              node.processCode === oldNode.processCode &&
+              node.level === oldNode.level &&
+              this.findParentMaterialMatch(
+                flowRecord.processNodes,
+                newProcessNodes,
+                oldNode,
+                node
+              )
+            );
           }
           if (oldNode.nodeType === "MATERIAL" && node.nodeType === "MATERIAL") {
-            return node.materialId.toString() === oldNode.materialId.toString() && 
-                   node.level === oldNode.level &&
-                   this.findParentProcessMatch(flowRecord.processNodes, newProcessNodes, oldNode, node);
+            return (
+              node.materialId.toString() === oldNode.materialId.toString() &&
+              node.level === oldNode.level &&
+              this.findParentProcessMatch(
+                flowRecord.processNodes,
+                newProcessNodes,
+                oldNode,
+                node
+              )
+            );
           }
           return false;
         });
@@ -1029,18 +1054,21 @@ class MaterialProcessFlowService {
       flowRecord.craftVersion = craft.craftVersion;
 
       // 6. 重新计算进度
-      const requiredNodes = flowRecord.processNodes.filter(node => 
-        node.level !== 0 && (
-          node.nodeType === "PROCESS_STEP" || 
-          (node.nodeType === "MATERIAL" && node.requireScan)
-        )
+      const requiredNodes = flowRecord.processNodes.filter(
+        (node) =>
+          node.level !== 0 &&
+          (node.nodeType === "PROCESS_STEP" ||
+            (node.nodeType === "MATERIAL" && node.requireScan))
       );
-      
-      const completedNodes = requiredNodes.filter(node => node.status === "COMPLETED");
-      
-      flowRecord.progress = requiredNodes.length > 0 
-        ? Math.floor((completedNodes.length / requiredNodes.length) * 100)
-        : 0;
+
+      const completedNodes = requiredNodes.filter(
+        (node) => node.status === "COMPLETED"
+      );
+
+      flowRecord.progress =
+        requiredNodes.length > 0
+          ? Math.floor((completedNodes.length / requiredNodes.length) * 100)
+          : 0;
 
       // 7. 更新流程状态，考虑未完成节点删除的情况
       if (hasUnfinishedNodesDeleted) {
@@ -1049,12 +1077,14 @@ class MaterialProcessFlowService {
         flowRecord.progress = Math.min(flowRecord.progress, 99);
       } else if (flowRecord.progress === 100) {
         // 只有在没有未完成节点被删除，且所有必要节点都完成的情况下，才标记为完成
-        const allRequiredCompleted = this.checkAllRequiredNodesCompleted(flowRecord.processNodes);
+        const allRequiredCompleted = this.checkAllRequiredNodesCompleted(
+          flowRecord.processNodes
+        );
         if (allRequiredCompleted) {
           flowRecord.status = "COMPLETED";
           flowRecord.endTime = new Date();
           const materialNode = flowRecord.processNodes.find(
-            node => node.nodeType === "MATERIAL" && node.level === 0
+            (node) => node.nodeType === "MATERIAL" && node.level === 0
           );
           if (materialNode) {
             materialNode.status = "COMPLETED";
@@ -1080,36 +1110,41 @@ class MaterialProcessFlowService {
 
   // 新增辅助方法：检查父物料节点匹配
   static findParentMaterialMatch(oldNodes, newNodes, oldNode, newNode) {
-    const oldParent = oldNodes.find(n => n.nodeId === oldNode.parentNodeId);
-    const newParent = newNodes.find(n => n.nodeId === newNode.parentNodeId);
-    
+    const oldParent = oldNodes.find((n) => n.nodeId === oldNode.parentNodeId);
+    const newParent = newNodes.find((n) => n.nodeId === newNode.parentNodeId);
+
     if (!oldParent || !newParent) return false;
-    
-    return oldParent.materialId?.toString() === newParent.materialId?.toString();
+
+    return (
+      oldParent.materialId?.toString() === newParent.materialId?.toString()
+    );
   }
 
   // 新增辅助方法：检查父工序节点匹配
   static findParentProcessMatch(oldNodes, newNodes, oldNode, newNode) {
-    const oldParent = oldNodes.find(n => n.nodeId === oldNode.parentNodeId);
-    const newParent = newNodes.find(n => n.nodeId === newNode.parentNodeId);
-    
+    const oldParent = oldNodes.find((n) => n.nodeId === oldNode.parentNodeId);
+    const newParent = newNodes.find((n) => n.nodeId === newNode.parentNodeId);
+
     if (!oldParent || !newParent) return false;
-    
+
     return oldParent.processCode === newParent.processCode;
   }
 
   // 新增辅助方法：检查所有必要节点是否完成
   static checkAllRequiredNodesCompleted(nodes) {
     // 获取所有必要节点（工序节点和需要扫描的物料节点）
-    const requiredNodes = nodes.filter(node => 
-      node.level !== 0 && (
-        node.nodeType === "PROCESS_STEP" || 
-        (node.nodeType === "MATERIAL" && node.requireScan)
-      )
+    const requiredNodes = nodes.filter(
+      (node) =>
+        node.level !== 0 &&
+        (node.nodeType === "PROCESS_STEP" ||
+          (node.nodeType === "MATERIAL" && node.requireScan))
     );
-    
+
     // 检查是否所有必要节点都已完成
-    return requiredNodes.length > 0 && requiredNodes.every(node => node.status === "COMPLETED");
+    return (
+      requiredNodes.length > 0 &&
+      requiredNodes.every((node) => node.status === "COMPLETED")
+    );
   }
 
   // 新增辅助方法：记录节点删除历史
@@ -1252,6 +1287,11 @@ class MaterialProcessFlowService {
         throw new Error("未查询到生产工单");
       }
 
+      //检测当前工单是否可以继续投入
+      if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
+        throw new Error("工单已达到计划数量，无法继续投入");
+      }
+
       // 如果是首道工序，且物料ID匹配，更新工单投入量
       if (planWorkOrder) {
         if (processPosition.isFirst) {
@@ -1352,6 +1392,7 @@ class MaterialProcessFlowService {
         console.log(`未找到工单(ID: ${workOrderId})或物料不匹配`);
         return null;
       }
+      
       // 计算进度百分比
       workOrder.progress =
         type === "output"
@@ -1363,7 +1404,7 @@ class MaterialProcessFlowService {
           : undefined; // 投入量不影响进度
 
       // 检查工单状态
-      if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
+      if (workOrder.outputQuantity >= workOrder.planQuantity) {
         // 更新工单完成状态和时间
         workOrder.status = "COMPLETED";
         workOrder.endTime = new Date();
