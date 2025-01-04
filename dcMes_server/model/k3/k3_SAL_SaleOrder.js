@@ -79,6 +79,7 @@ var salesOrderSchema = new mongoose.Schema({
 
   F_TFQJ_khpo: { type: String }, // 客户PO
   F_TFQJ_Text1: { type: String }, // 客户PO行号
+  F_WAZL_Text: { type: String }, // 客户PO行号
 
   // 关联组织
   FCorrespondOrgId: { type: String }, // 关联组织

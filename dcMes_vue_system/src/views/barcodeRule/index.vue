@@ -53,6 +53,13 @@
                         </el-tag>
                     </template>
                 </el-table-column>
+                <el-table-column label="使用范围" width="100">
+                    <template slot-scope="{row}">
+                        <el-tag :type="row.isGlobal ? 'warning' : ''">
+                            {{ row.isGlobal ? '全局' : '普通' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
                 <el-table-column label="创建时间" align="center" width="160">
                     <template slot-scope="scope">
                         {{ formatDate(scope.row.createAt) }}
@@ -93,6 +100,13 @@
                 </el-form-item>
                 <el-form-item label="启用状态">
                     <el-switch v-model="currentRule.enabled" />
+                </el-form-item>
+                <el-form-item label="全局使用">
+                    <el-switch 
+                        v-model="currentRule.isGlobal"
+                        active-text="全局"
+                        inactive-text="普通"
+                    />
                 </el-form-item>
 
                 <!-- 校验规则配置 -->
@@ -368,6 +382,7 @@
                 <el-table :data="materialList" border style="width: 100%">
                     <el-table-column prop="productId.FNumber" label="物料编码" />
                     <el-table-column prop="productId.FName" label="物料名称" />
+                    <el-table-column prop="productId.FUseOrgId_FName" label="使用组织" />
                     <el-table-column prop="createTime" label="创建时间" width="180">
                         <template slot-scope="scope">
                             {{ formatDate(scope.row.createTime) }}
@@ -389,14 +404,13 @@
                             :search-fields="['FNumber', 'FName']" label-key="FNumber" sub-key="_id" :multiple="false"
                             placeholder="请输入物料编码/名称搜索">
                             <template #option="{ item }">
-                                <div class="select-option">
-                                    <div class="option-main">
-                                        <span class="option-label">{{ item.FNumber }}</span>
-                                        <el-tag size="mini" type="info" class="option-tag">
-                                            {{ item.FName }}
-                                        </el-tag>
+                                <div class="item-option">
+                                        <div class="item-info">
+                                            <span>{{ item.FNumber }} - {{ item.FName }}</span>
+                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId_FName
+                                                }}</el-tag>
+                                        </div>
                                     </div>
-                                </div>
                             </template>
                         </zr-select>
                     </el-form-item>
@@ -440,6 +454,7 @@ export default {
                 description: '',
                 priority: 1,
                 enabled: true,
+                isGlobal: false,
                 validationRules: [],
                 extractionConfigs: []
             },
@@ -736,6 +751,7 @@ export default {
                 description: '',
                 priority: 1,
                 enabled: true,
+                isGlobal: false,
                 validationRules: [],
                 extractionConfigs: []
             };

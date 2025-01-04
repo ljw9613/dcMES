@@ -474,8 +474,8 @@ export default {
         // 获取产品关联的条码规则
         async getProductBarcodeRules(materialIds) {
             try {
-                // 查询所有相关物料的条码规则关联
-                const response = await getData('productBarcodeRule', {
+                // 1. 获取产品关联的条码规则
+                const productRulesResponse = await getData('productBarcodeRule', {
                     query: {
                         productId: { $in: materialIds }
                     },
@@ -484,11 +484,46 @@ export default {
                     ])
                 });
 
-                this.materialBarcodeRules = []
-                if (response.data) {
-                    // 按物料ID分组存储规则
-                    this.materialBarcodeRules = response.data.map(item => item.barcodeRule)
+                // 2. 获取全局条码规则
+                const globalRulesResponse = await getData('barcodeRule', {
+                    query: {
+                        enabled: true,
+                        isGlobal: true
+                    }
+                });
+
+                let rules = [];
+
+                // 处理产品关联的规则
+                if (productRulesResponse.data) {
+                    rules = productRulesResponse.data
+                        .filter(item => item.barcodeRule) // 过滤掉无效的规则
+                        .map(item => ({
+                            ...item.barcodeRule,
+                            priority: item.barcodeRule.priority || 0,
+                            isProductSpecific: true // 标记为产品特定规则
+                        }));
                 }
+
+                // 添加全局规则（确保优先级最低）
+                if (globalRulesResponse.data) {
+                    const globalRules = globalRulesResponse.data.map(rule => ({
+                        ...rule,
+                        priority: -1, // 设置最低优先级
+                        isProductSpecific: false // 标记为全局规则
+                    }));
+                    rules = rules.concat(globalRules);
+                }
+
+                // 按优先级排序（从高到低）
+                rules.sort((a, b) => b.priority - a.priority);
+
+                this.materialBarcodeRules = rules;
+                
+                console.log('条码规则列表:', {
+                    productRules: rules.filter(r => r.isProductSpecific),
+                    globalRules: rules.filter(r => !r.isProductSpecific)
+                });
             } catch (error) {
                 console.error('获取条码规则失败:', error);
                 this.$message.error('获取条码规则失败');
@@ -871,17 +906,20 @@ export default {
         },
 
         async validateBarcode(barcode) {
-            console.log('validateBarcode', barcode);
+            console.log('开始验证条码:', barcode);
             if (!barcode) return false;
 
             try {
-                let rules = this.materialBarcodeRules
+                let rules = this.materialBarcodeRules;
                 if (rules.length == 0) {
-                    this.$message.error('物料未配置条码规则');
+                    this.$message.error('未找到可用的条码规则（包括产品特定规则和全局规则）');
                     return { materialCode: null, isValid: false };
                 }
+
                 // 遍历规则进行匹配
                 for (const rule of rules) {
+                    console.log(`尝试匹配规则: ${rule.name} (${rule.isProductSpecific ? '产品特定' : '全局规则'})`);
+                    
                     let isValid = true;
                     let materialCode = null;
                     let relatedBill = null;
@@ -986,15 +1024,14 @@ export default {
 
                         // 如果成功提取到物料编码，验证是否匹配当前工序
                         if (isValid && materialCode) {
-                            if (materialCode === this.mainMaterialCode) {
-                                console.log('条码匹配成功:', rule.name);
-                                return {
-                                    materialCode,
-                                    isValid: true,
-                                    relatedBill,
-                                    ruleName: rule.name
-                                };
-                            }
+                            console.log(`条码匹配成功: ${rule.name} (${rule.isProductSpecific ? '产品特定' : '全局规则'})`);
+                            return {
+                                materialCode,
+                                isValid: true,
+                                relatedBill,
+                                ruleName: rule.name,
+                                ruleType: rule.isProductSpecific ? 'product' : 'global'
+                            };
                         }
                     }
                 }

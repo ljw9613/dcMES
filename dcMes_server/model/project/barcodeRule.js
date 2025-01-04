@@ -11,6 +11,7 @@ var barcodeRuleSchema = new mongoose.Schema({
   description: { type: String }, // 规则描述
   priority: { type: Number }, // 规则优先级
   enabled: { type: Boolean, default: true }, // 是否启用
+  isGlobal: { type: Boolean, default: false }, // 是否全局使用
 
   // 校验规则列表 - 按顺序执行，全部通过才算校验成功
   validationRules: [{
