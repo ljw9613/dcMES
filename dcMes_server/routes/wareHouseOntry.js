@@ -42,6 +42,10 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 
     // 如果出库单不存在，则创建新的出库单
     if (!entry) {
+      //对比当前出库单销售订单对应的销售数量
+      //查询所有出库单的出库数量得出剩余未出库数量
+      
+      // 获取生产订单信息/
       const order = await K3ProductionOrder.findOne({
         FBillNo: pallet.productionOrderNo,
       });
