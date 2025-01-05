@@ -158,20 +158,28 @@
                                         class="vertical-form-item">
                                         <div class="input-with-status">
                                             <el-input v-model="scanForm.barcodes[material._id]"
-                                                :placeholder="`请扫描子物料条码`"
-                                                :class="{ 'valid-input': validateStatus[material._id] }" readonly>
+                                                :placeholder="!material.scanOperation ? '无需扫码' : '请扫描子物料条码'"
+                                                :class="{ 'valid-input': validateStatus[material._id] }" 
+                                                :readonly="material.scanOperation"
+                                                :disabled="!material.scanOperation">
                                                 <template slot="prefix">
                                                     <i class="el-icon-full-screen"></i>
                                                 </template>
-                                                <template slot="suffix" v-if="material.isBatch">
-                                                    <el-tag type="warning" v-if="material.batchQuantity">
-                                                        {{ getBatchUsageText(material._id) }}
-                                                    </el-tag>
-                                                    <el-tag type="warning" v-else>批次物料</el-tag>
+                                                <template slot="suffix">
+                                                    <template v-if="!material.scanOperation">
+                                                        <el-tag type="info">无需扫码</el-tag>
+                                                    </template>
+                                                    <template v-else-if="material.isBatch">
+                                                        <el-tag type="warning" v-if="material.batchQuantity">
+                                                            {{ getBatchUsageText(material._id) }}
+                                                        </el-tag>
+                                                        <el-tag type="warning" v-else>批次物料</el-tag>
+                                                    </template>
                                                 </template>
                                             </el-input>
-                                            <div class="status-indicator"
-                                                :class="{ 'valid': validateStatus[material._id] }">
+                                            <div class="status-indicator" 
+                                                :class="{ 'valid': validateStatus[material._id] }"
+                                                v-if="material.scanOperation">
                                                 <i :class="getValidateIcon(material._id)"></i>
                                             </div>
                                         </div>
@@ -1139,7 +1147,11 @@ export default {
             const newBarcodes = {};
 
             this.processMaterials.forEach(material => {
-                if (material.isBatch) {
+                if (!material.scanOperation) {
+                    // 无需扫码的物料直接设置为验证通过
+                    this.$set(this.validateStatus, material._id, true);
+                    newBarcodes[material._id] = '无需扫码';
+                } else if (material.isBatch) {
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                     const usageKey = `${cacheKey}_usage`;
                     const cachedBarcode = localStorage.getItem(cacheKey);
@@ -1299,8 +1311,13 @@ export default {
                         }
                     }
 
-                    // 检查是否所有条码都已扫描
-                    const allScanned = Object.values(this.validateStatus).every(status => status === true);
+                    // 检查是否所有需要扫描的条码都已扫描
+                    const allScanned = Object.values(this.validateStatus).every(status => {
+                        const material = this.processMaterials.find(m => 
+                            this.validateStatus[m._id] === status && !m.scanOperation
+                        );
+                        return material ? true : status === true;
+                    });
 
                     if (allScanned) {
                         this.$notify({
@@ -1322,7 +1339,9 @@ export default {
                     } else {
                         // 显示剩余需要扫描的物料
                         const remainingMaterials = this.processMaterials
-                            .filter(material => !this.validateStatus[material._id])
+                            .filter(material => 
+                                !this.validateStatus[material._id] && material.scanOperation
+                            )
                             .map(material => `${material.materialName}(${material.materialCode})`)
                             .join('\n');
 
@@ -1439,10 +1458,17 @@ export default {
         // 确认按钮处理方法
         async handleConfirm() {
             try {
-                // 1. 验证所有条码是否已扫描
-                const allBarcodesFilled = Object.values(this.validateStatus).every(status => status === true);
+                // 1. 验证所有需要扫码的条码是否已扫描
+                const allBarcodesFilled = Object.values(this.validateStatus).every(status => {
+                    // 如果是无需扫码的物料,跳过验证
+                    const material = this.processMaterials.find(m => 
+                        this.validateStatus[m._id] === status && !m.scanOperation
+                    );
+                    return material ? true : status === true;
+                });
+
                 if (!allBarcodesFilled) {
-                    this.$message.warning('请完成所有条码扫描');
+                    this.$message.warning('请完成所有必要的条码扫描');
                     return;
                 }
 
@@ -1480,11 +1506,14 @@ export default {
 
                 let componentScans = [];
                 this.processMaterials.forEach(material => {
-                    componentScans.push({
-                        materialId: material.materialId,
-                        barcode: this.scanForm.barcodes[material._id]
-                    })
-                })
+                    // 只收集需要扫码的物料数据
+                    if (material.scanOperation) {
+                        componentScans.push({
+                            materialId: material.materialId,
+                            barcode: this.scanForm.barcodes[material._id]
+                        });
+                    }
+                });
                 let scanReq = {
                     mainBarcode: this.scanForm.mainBarcode,
                     processStepId: this.processStepId,

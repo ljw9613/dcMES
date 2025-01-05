@@ -597,7 +597,7 @@ class MaterialProcessFlowService {
     }
 
     //检测当前工单是否可以继续投入
-    if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
+    if (planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity) {
       throw new Error("工单已达到计划数量，无法继续投入");
     }
 
@@ -1287,14 +1287,14 @@ class MaterialProcessFlowService {
         throw new Error("未查询到生产工单");
       }
 
-      //检测当前工单是否可以继续投入
-      if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
-        throw new Error("工单已达到计划数量，无法继续投入");
-      }
-
       // 如果是首道工序，且物料ID匹配，更新工单投入量
       if (planWorkOrder) {
         if (processPosition.isFirst) {
+          //检测当前工单是否可以继续投入
+          if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
+            throw new Error("工单已达到计划数量，无法继续投入");
+          }
+
           try {
             await this.updateWorkOrderQuantity(planWorkOrder._id, "input");
           } catch (error) {
@@ -1392,19 +1392,19 @@ class MaterialProcessFlowService {
         console.log(`未找到工单(ID: ${workOrderId})或物料不匹配`);
         return null;
       }
-      
+
       // 计算进度百分比
       workOrder.progress =
         type === "output"
           ? Math.floor(
               ((quantity + (workOrder?.outputQuantity || 0)) /
-                workOrder?.planQuantity) *
+                workOrder?.planProductionQuantity) *
                 100
             )
           : undefined; // 投入量不影响进度
 
       // 检查工单状态
-      if (workOrder.outputQuantity >= workOrder.planQuantity) {
+      if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
         // 更新工单完成状态和时间
         workOrder.status = "COMPLETED";
         workOrder.endTime = new Date();

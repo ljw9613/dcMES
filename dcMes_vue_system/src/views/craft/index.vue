@@ -407,7 +407,6 @@
                     </el-col>
 
                     <el-col :span="12">
-                        {{ processForm.isMES + ''}}
                         <el-form-item label="是否录入MES" prop="isMES">
                             <el-switch v-model="processForm.isMES" :active-value="true" :inactive-value="false" />
                         </el-form-item>
@@ -1248,13 +1247,12 @@ export default {
                     processDesc: '',
                     processStage: '',
                     processType: '',
-                    // 设置默认业务类型为当前工艺的业务类型
                     businessType: this.craftForm.businessType,
                     status: 'CREATE',
                     materials: [],
                     remark: '',
                     sort: nextSort,
-                    isMes: true
+                    isMES: true
                 };
 
                 // 重置物料列表
@@ -1458,6 +1456,23 @@ export default {
 
             this.materialDialog.title = '新增物料'
             this.materialDialog.visible = true
+            
+            // 重置物料表单所有字段到初始状态
+            this.materialForm = {
+                materialId: '',
+                materialCode: '',
+                materialName: '',
+                specification: '',
+                quantity: 1,
+                unit: '个',
+                scanOperation: true,
+                isComponent: false,
+                isPackingBox: false,  // 添加包装箱字段重置
+                isBatch: false,       // 添加批次物料字段重置
+                batchQuantity: 0,     // 添加批次用量字段重置
+                isKey: false          // 添加关键物料字段重置
+            };
+            
             this.$nextTick(() => {
                 this.$refs.materialForm.resetFields()
             })
@@ -1625,19 +1640,31 @@ export default {
         },
 
         handleBatchChange(value) {
-            // 如果切换为批次物料,则关闭关键物料开关
-            if (value) {
-                this.materialForm.isKey = false;
-                this.$message.info('批次物料不能设置为关键物料');
+            if (this.materialForm.isKey) {
+                // 如果已经是关键物料，阻止切换批次物料
+                this.$message.warning('关键物料不能设置为批次物料');
+                // 保持批次物料的状态为false
+                this.$nextTick(() => {
+                    this.materialForm.isBatch = false;
+                });
+                return;
             }
+            // 正常设置批次物料状态
+            this.materialForm.isBatch = value;
         },
 
         handleKeyChange(value) {
-            // 如果切换为关键物料,则关闭批次物料开关
-            if (value) {
-                this.materialForm.isBatch = false;
-                this.$message.info('关键物料不能设置为批次物料');
+            if (this.materialForm.isBatch) {
+                // 如果已经是批次物料，阻止切换关键物料
+                this.$message.warning('批次物料不能设置为关键物料');
+                // 保持关键物料的状态为false
+                this.$nextTick(() => {
+                    this.materialForm.isKey = false;
+                });
+                return;
             }
+            // 正常设置关键物料状态
+            this.materialForm.isKey = value;
         },
 
         // ================ 其他通用方法 ================

@@ -32,46 +32,57 @@ class MaterialPalletizingService {
     userId
   ) {
     try {
-      // 查找托盘记录
+      // 首先查找进行中的产线计划
+      const productionPlan = await productionPlanWorkOrder.findOne({
+        productionLineId: lineId,
+        status: "IN_PROGRESS",
+      });
+
+      //校验托盘数量
+      if (totalQuantity <= 0) {
+        throw new Error("托盘数量不能小于等于0");
+      }
+
+      // //校验托盘数量是否大于工单数量
+      // if (totalQuantity > productionPlan.planProductionQuantity) {
+      //   throw new Error("托盘数量不能大于工单数量");
+      // }
+
+      if (!productionPlan) {
+        throw new Error("未找到对应的产线计划");
+      }
+
+      // 查找当前未完成的托盘（STACKING状态）
       let pallet = await MaterialPalletizing.findOne({
         productLineId: lineId,
         materialId: materialId,
+        productionPlanWorkOrderId: productionPlan._id,
         status: "STACKING",
       });
 
-      // 如果托盘不存在，创建新的托盘记录
+      // // 如果找到未完成的托盘，检查是否属于同一工单
+      // if (pallet && pallet.productionPlanWorkOrderId.toString() !== productionPlan._id.toString()) {
+      //   throw new Error("当前有未完成的托盘属于其他工单，请先完成该托盘");
+      // }
+
+      // 如果不存在托盘，则创建新的托盘
       if (!pallet) {
-        //查询产线生产计划
-        const productionPlan = await productionPlanWorkOrder.findOne({
-          productionLineId: lineId,
-          status: "IN_PROGRESS",
-        });
-
-        console.log("productionPlan", productionPlan);
-
-        if (!productionPlan) {
-          throw new Error("未找到对应的产线计划");
-        }
-
         let palletCode = "YDC-SN-" + new Date().getTime();
 
-        console.log("workOrderNo", productionPlan.workOrderNo);
-        //获取产线计划对应的销售订单和生产订单
-        let saleOrderId = productionPlan.saleOrderId;
-        let saleOrderNo = productionPlan.saleOrderNo;
-        let productionOrderId = productionPlan.productionOrderId;
-        let productionOrderNo = productionPlan.productionOrderNo;
-        let productionPlanWorkOrderId = productionPlan._id;
-        let workOrderNo = productionPlan.workOrderNo;
+        if (typeof totalQuantity === 'number' && typeof productionPlan.planProductionQuantity === 'number' && typeof productionPlan.outputQuantity === 'number') {
+          if (totalQuantity > productionPlan.planProductionQuantity - productionPlan.outputQuantity) {
+            totalQuantity = productionPlan.planProductionQuantity - productionPlan.outputQuantity;
+          }
+        }
 
         pallet = new MaterialPalletizing({
           palletCode,
-          saleOrderId,
-          saleOrderNo,
-          productionOrderId,
-          productionOrderNo,
-          workOrderNo,
-          productionPlanWorkOrderId,
+          saleOrderId: productionPlan.saleOrderId,
+          saleOrderNo: productionPlan.saleOrderNo,
+          productionOrderId: productionPlan.productionOrderId,
+          productionOrderNo: productionPlan.productionOrderNo,
+          workOrderNo: productionPlan.workOrderNo,
+          productionPlanWorkOrderId: productionPlan._id,
           productLineId: lineId,
           productLineName: lineName,
           materialId,
@@ -230,14 +241,16 @@ class MaterialPalletizingService {
       const affectedBarcodes = [];
 
       // 检查是否为箱条码
-      const boxItem = pallet.boxItems.find(item => item.boxBarcode === barcode);
+      const boxItem = pallet.boxItems.find(
+        (item) => item.boxBarcode === barcode
+      );
       if (boxItem) {
         // 记录所有受影响的条码
-        boxItem.boxBarcodes.forEach(bb => {
+        boxItem.boxBarcodes.forEach((bb) => {
           affectedBarcodes.push({
             barcode: bb.barcode,
             barcodeType: "MAIN",
-            boxBarcode: boxItem.boxBarcode
+            boxBarcode: boxItem.boxBarcode,
           });
         });
 
@@ -249,7 +262,7 @@ class MaterialPalletizingService {
           originalData,
           affectedBarcodes,
           reason,
-          createBy: userId
+          createBy: userId,
         });
 
         // 解绑整个箱子
@@ -286,7 +299,7 @@ class MaterialPalletizingService {
         // 记录单个条码解绑
         affectedBarcodes.push({
           barcode: barcode,
-          barcodeType: "MAIN"
+          barcodeType: "MAIN",
         });
 
         // 创建解绑日志
@@ -297,7 +310,7 @@ class MaterialPalletizingService {
           originalData,
           affectedBarcodes,
           reason,
-          createBy: userId
+          createBy: userId,
         });
 
         // 解绑单个条码
@@ -331,7 +344,11 @@ class MaterialPalletizingService {
     }
   }
 
-  static async unbindPalletBarcode(palletCode, userId, reason = "托盘整体解绑") {
+  static async unbindPalletBarcode(
+    palletCode,
+    userId,
+    reason = "托盘整体解绑"
+  ) {
     try {
       const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
@@ -343,24 +360,24 @@ class MaterialPalletizingService {
       const affectedBarcodes = [];
 
       // 收集所有受影响的条码
-      pallet.boxItems.forEach(boxItem => {
-        boxItem.boxBarcodes.forEach(bb => {
+      pallet.boxItems.forEach((boxItem) => {
+        boxItem.boxBarcodes.forEach((bb) => {
           affectedBarcodes.push({
             barcode: bb.barcode,
             barcodeType: "MAIN",
-            boxBarcode: boxItem.boxBarcode
+            boxBarcode: boxItem.boxBarcode,
           });
         });
       });
 
-      pallet.palletBarcodes.forEach(pb => {
-        const isInBox = pallet.boxItems.some(item =>
-          item.boxBarcodes.some(bb => bb.barcode === pb.barcode)
+      pallet.palletBarcodes.forEach((pb) => {
+        const isInBox = pallet.boxItems.some((item) =>
+          item.boxBarcodes.some((bb) => bb.barcode === pb.barcode)
         );
         if (!isInBox) {
           affectedBarcodes.push({
             barcode: pb.barcode,
-            barcodeType: "MAIN"
+            barcodeType: "MAIN",
           });
         }
       });
@@ -373,7 +390,7 @@ class MaterialPalletizingService {
         originalData,
         affectedBarcodes,
         reason,
-        createBy: userId
+        createBy: userId,
       });
 
       // 解绑整个托盘

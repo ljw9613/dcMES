@@ -97,8 +97,26 @@
 
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="生产数量" prop="planQuantity">
-                        <el-input-number v-model="form.planQuantity" :min="0" controls-position="right"
+                    <el-form-item label="需生产数量" prop="planQuantity">
+                        <el-input-number disabled v-model="form.planQuantity" :min="0" controls-position="right"
+                            style="width: 100%"></el-input-number>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="已排产数量">
+                        <el-input-number disabled v-model="totalPlanProductionQuantity" :min="0" controls-position="right"
+                            style="width: 100%"></el-input-number>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="已生产数量">
+                        <el-input-number disabled v-model="totalOutputQuantity" :min="0" controls-position="right"
+                            style="width: 100%"></el-input-number>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="未排产数量">
+                        <el-input-number disabled v-model="totalRemainingQuantity" :min="0" controls-position="right"
                             style="width: 100%"></el-input-number>
                     </el-form-item>
                 </el-col>
@@ -107,6 +125,7 @@
                         <el-input-number 
                             v-model="form.planProductionQuantity" 
                             :min="0" 
+                            :max="totalRemainingQuantity"
                             controls-position="right"
                             style="width: 100%"
                             :disabled="form.status !== 'PENDING'"
@@ -206,6 +225,9 @@ export default {
     },
     data() {
         return {
+            totalPlanProductionQuantity: 0,
+            totalOutputQuantity: 0,
+            totalRemainingQuantity: 0,
             form: {
                 workOrderNo: '',
                 status: 'PENDING',
@@ -379,6 +401,19 @@ export default {
                         this.form.materialName = item.FMaterialName || ''
                         this.form.planQuantity = item.FQty || 0
                     })
+
+                    //查询所有当前生产订单的计划生产数量
+                    let planWorkOrder = await getData('production_plan_work_order', { query: { productionOrderId: item._id }, select: 'planProductionQuantity outputQuantity' });
+                    let planProductionQuantity = 0;
+                    let outputQuantity = 0;
+                    console.log(planWorkOrder.data, 'planWorkOrder.data')
+                    planWorkOrder.data.forEach(item => {
+                        planProductionQuantity += item.planProductionQuantity;
+                        outputQuantity += item.outputQuantity;
+                    });
+                    this.totalPlanProductionQuantity = planProductionQuantity;
+                    this.totalOutputQuantity = outputQuantity;
+                    this.totalRemainingQuantity = Math.max(0, item.FQty - this.totalPlanProductionQuantity);
                 })
             }
         },
@@ -425,6 +460,7 @@ export default {
                 this.$message.error('工单数量必须大于0且不能超过计划生产数量')
                 return
             }
+            
 
             const { data: inProgressWorkOrders } = await getData('production_plan_work_order', {
                 query: {

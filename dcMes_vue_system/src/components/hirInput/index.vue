@@ -62,9 +62,10 @@ export default {
             type: Boolean,
             default: true
         },
-        enableTemplateCache: {
-            type: Boolean,
-            default: false
+        // 修改 defaultTemplate 的类型定义
+        defaultTemplate: {
+            type: Object,
+            default: null
         }
     },
     data() {
@@ -76,26 +77,19 @@ export default {
             isTemplateInitialized: false
         }
     },
-    created() {
-        // 添加初始化缓存模板的逻辑
-        if (this.enableTemplateCache) {
-            // 分别获取模板ID和模板数据
-            const cachedTemplateId = localStorage.getItem('hirInputTemplateId')
-            const cachedTemplateData = localStorage.getItem('hirInputTemplateData')
-            
-            if (cachedTemplateId && cachedTemplateData) {
-                try {
-                    this.selectedTemplate = cachedTemplateId
-                    this.templateData = JSON.parse(cachedTemplateData)
-                    // 初始化打印模板
-                    const printTemplate = JSON.parse(this.templateData.content)
-                    this.initTemplate(printTemplate)
-                } catch (error) {
-                    console.error('缓存模板解析失败:', error)
-                    this.clearTemplateCache()
+    watch: {
+        // 优化 defaultTemplate 的监听
+        defaultTemplate: {
+            immediate: true,
+            handler(template) {
+                if (template && typeof template === 'object') {
+                    this.selectedTemplate = template._id;
+                    this.handleTemplateChange(template);
                 }
             }
         }
+    },
+    created() {
         // 切换 直接 "打印客户端" 主机
         hiprint.hiwebSocket.setHost(process.env.VUE_APP_HIPRINT_WS_ADDRESS);
         // 查看是否 已连接 "直接打印客户端"
@@ -143,26 +137,24 @@ export default {
                 this.hiprintTemplate.design("#hiprint-printTemplate");
             })
         },
-        // 处理模板选择变化
-        handleTemplateChange(val) {
-            if (!val) {
+        // 优化模板变更处理方法
+        handleTemplateChange(template) {
+            if (!template || !template.content) {
                 this.isTemplateInitialized = false;
                 return;
             }
-            
+
             try {
-                let printTemplate = JSON.parse(val.content);
-                // 缓存处理
-                if (this.enableTemplateCache) {
-                    localStorage.setItem('hirInputTemplateId', val._id);
-                    localStorage.setItem('hirInputTemplateData', JSON.stringify(val));
-                    this.templateData = val;
-                }
+                const printTemplate = JSON.parse(template.content);
+                this.templateData = template;
                 
                 // 初始化模板
                 this.initTemplate(printTemplate);
-                this.isTemplateInitialized = true; // 标记模板已初始化
-                this.selectedTemplate = val;
+                this.isTemplateInitialized = true;
+                this.selectedTemplate = template._id;
+                
+                // 触发选择改变事件，传递完整模板对象
+                this.$emit('template-change', template); 
             } catch (error) {
                 console.error('模板初始化失败:', error);
                 this.$message.error('模板初始化失败');
@@ -207,20 +199,7 @@ export default {
                 this.$message.error('静默打印失败');
             }
         },
-        // 新增清除缓存方法
-        clearTemplateCache() {
-            localStorage.removeItem('hirInputTemplateId')
-            localStorage.removeItem('hirInputTemplateData')
-            this.selectedTemplate = null
-            this.templateData = null
-        },
     },
-    // 组件销毁时清理缓存（如果未启用缓存）
-    beforeDestroy() {
-        if (!this.enableTemplateCache) {
-            this.clearTemplateCache()
-        }
-    }
 }
 </script>
 

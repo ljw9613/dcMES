@@ -128,8 +128,15 @@
                                 <i class="el-icon-camera"></i>
                                 <span>统一扫描区域</span>
                             </div>
-                            <hir-input ref="hirInput" :enable-template-cache="true" :show-preview="true"
-                                :show-browser-print="true" :show-silent-print="true" :printData="printData" />
+                            <hir-input 
+                                ref="hirInput" 
+                                :default-template="localPrintTemplate"  
+                                @template-change="handleTemplateChange" 
+                                :show-preview="true"
+                                :show-browser-print="true" 
+                                :show-silent-print="true" 
+                                :printData="printData" 
+                            />
                         </div>
                         <div class="scan-input-section">
                             <el-input v-model="unifiedScanInput" placeholder="请扫描条码"
@@ -343,6 +350,7 @@ export default {
 
             showPopup: false,
             popupType: '',
+            printDataTemplate: '', // 添加 printDataTemplate 属性
         }
     },
     computed: {
@@ -427,6 +435,25 @@ export default {
             },
             set(value) {
                 localStorage.setItem(`batchSize_${this.mainMaterialId}_${this.processStepId}`, value)
+            }
+        },
+        // 修改 printDataTemplate 的计算属性
+        localPrintTemplate: {
+            get() {
+                try {
+                    const savedTemplate = localStorage.getItem('printTemplate_scanBarCodeBatch');
+                    return savedTemplate ? JSON.parse(savedTemplate) : null;
+                } catch (error) {
+                    console.error('解析缓存模板失败:', error);
+                    return null;
+                }
+            },
+            set(value) {
+                try {
+                    localStorage.setItem('printTemplate_scanBarCodeBatch', JSON.stringify(value));
+                } catch (error) {
+                    console.error('保存模板到缓存失败:', error);
+                }
             }
         }
     },
@@ -1320,6 +1347,7 @@ export default {
                         this.palletForm.saleOrderId = res.data.saleOrderId
                         this.palletForm.saleOrderNo = res.data.saleOrderNo
                         this.palletForm.totalQuantity = res.data.totalQuantity
+                        this.batchForm.batchSize = res.data.totalQuantity
 
                         this.scannedList.push({
                             barcode: item.barcode,
@@ -1402,6 +1430,8 @@ export default {
                     this.palletForm.saleOrderId = res.data.saleOrderId
                     this.palletForm.saleOrderNo = res.data.saleOrderNo
                     this.palletForm.totalQuantity = res.data.totalQuantity
+                    this.batchForm.batchSize = res.data.totalQuantity
+
                     // 添加到已扫描列表
                     this.scannedList.push({
                         barcode,
@@ -1460,7 +1490,7 @@ export default {
         // 修改取消保存设置的方法
         async handleCancelSave() {
             try {
-                await this.$confirm('确认取消当前工序设置？这将清除所有批次物料的缓存数据。', '提示', {
+                await this.$confirm('确认取消当前工序设置？这将清除所有批次物料和打印模板的缓存数据。', '提示', {
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning'
@@ -1501,6 +1531,10 @@ export default {
                     processStep: '',
                     componentName: ''
                 };
+
+                // 清除打印模板缓存
+                // const templateKey = `printTemplate_${this.mainMaterialId}_${this.processStepId}`;
+                // localStorage.removeItem(templateKey);
 
                 this.$message.success('已取消工序设置');
 
@@ -1575,6 +1609,7 @@ export default {
                         localStorage.removeItem(key);
                     }
                 });
+
 
                 this.$message.success('缓存清除成功');
 
@@ -1770,7 +1805,7 @@ export default {
         initBatchSize() {
             // 从本地存储获取保存的批次数量
             const savedSize = this.savedBatchSize;
-            if (savedSize) {
+            if (savedSize && !this.batchForm.batchSize) {
                 this.batchForm.batchSize = parseInt(savedSize);
                 this.batchSizeLocked = true;
             }
@@ -1822,13 +1857,14 @@ export default {
                     this.palletForm.productionOrderId = response.data[0].productionOrderId._id
                     this.palletForm.workOrderNo = response.data[0].workOrderNo
                     this.palletForm.totalQuantity = response.data[0].totalQuantity
+                    this.batchForm.batchSize = response.data[0].totalQuantity
                 } else {
                     this.$message.warning('当前产线没有在生产中的工单');
                 }
 
                 // 更新当前托盘编码
                 // 获取当前托盘的已扫描条码
-                if (this.mainMaterialId) {
+                if (this.mainMaterialId && this.palletForm.productionOrderId) {
                     const palletResponse = await getData('material_palletizing', {
                         query: { productLineId: this.productLineId, status: 'STACKING', materialId: this.mainMaterialId },
                         populate: JSON.stringify([{ path: 'productLineId', select: 'lineCode' }, { path: 'productionOrderId', select: 'FWorkShopID_FName' }])
@@ -1838,6 +1874,7 @@ export default {
                         const palletData = palletResponse.data[0];
                         this.palletForm.palletCode = palletData.palletCode
                         this.palletForm.totalQuantity = palletData.totalQuantity
+                        this.batchForm.batchSize = palletData.totalQuantity
                         this.scannedList = palletData.palletBarcodes.map(item => ({
                             barcode: item.barcode,
                             type: item.barcodeType,
@@ -1871,6 +1908,20 @@ export default {
                 }
             } else {
                 this.palletForm.saleOrderNo = '';
+            }
+        },
+
+        // 修改模板变更处理方法
+        handleTemplateChange(template) {
+            if (!template) return;
+            
+            try {
+                // 保存完整的模板对象到本地存储
+                this.localPrintTemplate = template;
+                this.$message.success('打印模板已保存到本地');
+            } catch (error) {
+                console.error('保存打印模板失败:', error);
+                this.$message.error('保存打印模板失败');
             }
         },
     },
@@ -1907,6 +1958,18 @@ export default {
                         this.$set(this.scanForm.barcodes, material._id, cachedBarcode);
                         this.$set(this.validateStatus, material._id, true);
                     }
+                }
+            });
+
+        }
+
+        // 加载本地缓存的打印模板
+        const savedTemplate = this.localPrintTemplate;
+        if (savedTemplate) {
+            this.$nextTick(() => {
+                if (this.$refs.hirInput) {
+                    // 传递完整的模板对象给子组件
+                    this.$refs.hirInput.handleTemplateChange(savedTemplate);
                 }
             });
         }

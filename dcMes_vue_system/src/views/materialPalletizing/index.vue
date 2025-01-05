@@ -71,7 +71,7 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">托盘组托列表</i>
-                    <hir-input ref="hirInput" :printData="printData" />
+                    <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate" @template-change="handleTemplateChange" />
                 </div>
             </div>
         </div>
@@ -196,6 +196,7 @@
                 <el-table-column label="操作" align="center">
                     <template slot-scope="scope">
                         <el-button type="text" style="color: red" @click="handleAllDelete(scope.row)">初始化单据</el-button>
+                        <el-button type="text" style="color: red" @click="Delete(scope.row)">删除单据</el-button>
                         <el-button type="text" @click="handlePrint(scope.row)">打印单据</el-button>
                         <el-button type="text" style="color: orange" @click="showHistory(scope.row)">解绑记录</el-button>
                     </template>
@@ -313,6 +314,27 @@ export default {
             exportDialogVisible: false,
             printDialogVisible: false,
             printData: {},
+            printTemplate: null,
+        }
+    },
+    computed: {
+        localPrintTemplate: {
+            get() {
+                try {
+                    const savedTemplate = localStorage.getItem('printTemplate_materialPalletizing');
+                    return savedTemplate ? JSON.parse(savedTemplate) : null;
+                } catch (error) {
+                    console.error('解析缓存模板失败:', error);
+                    return null;
+                }
+            },
+            set(value) {
+                try {
+                    localStorage.setItem('printTemplate_materialPalletizing', JSON.stringify(value));
+                } catch (error) {
+                    console.error('保存模板到缓存失败:', error);
+                }
+            }
         }
     },
     methods: {
@@ -485,7 +507,17 @@ export default {
             this.dataForm = JSON.parse(JSON.stringify(row));
             this.dialogFormVisible = true;
         },
-
+        Delete(row) {
+            this.$confirm('确认要删除该单据吗?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(async () => {
+                await removeData('material_palletizing', { query: { _id: row._id } });
+                this.$message.success('删除成功');
+                this.fetchData();
+            });
+        },
         handleAllDelete(row) {
             this.$confirm('确认要初始化该单据吗?', '提示', {
                 confirmButtonText: '确定',
@@ -585,7 +617,6 @@ export default {
         },
         handlePrint(row) {
             let printData = row;
-            console.log(row);
             printData.createAt = this.formatDate(row.createAt);
             printData.workshop = (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) || '未记录生产车间';
             printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${row.materialCode}#${row.totalQuantity}#${(row.productLineId && row.productLineId.lineCode) || '未记录生产线'}`;
@@ -724,10 +755,33 @@ export default {
             } finally {
                 this.exportLoading = false;
             }
-        }
+        },
+
+        handleTemplateChange(template) {
+            if (!template) return;
+            
+            try {
+                this.printTemplate = template;
+                this.localPrintTemplate = template;
+                this.$message.success('打印模板已保存到本地');
+            } catch (error) {
+                console.error('保存打印模板失败:', error);
+                this.$message.error('保存打印模板失败');
+            }
+        },
     },
     created() {
         this.fetchData();
+        
+        // 加载本地缓存的打印模板
+        const savedTemplate = this.localPrintTemplate;
+        if (savedTemplate) {
+            this.$nextTick(() => {
+                if (this.$refs.hirInput) {
+                    this.$refs.hirInput.handleTemplateChange(savedTemplate);
+                }
+            });
+        }
     }
 }
 </script>
