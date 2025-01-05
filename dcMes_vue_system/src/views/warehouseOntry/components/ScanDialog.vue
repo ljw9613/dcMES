@@ -1,29 +1,29 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" width="800px" @close="handleClose">
+  <el-dialog :title="title" :visible.sync="dialogVisible" width="800px" @close="handleClose" :close-on-click-modal="false">
     <div class="scan-container">
       <el-form v-if="entryInfo">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="销售单号">
-              <el-input v-model="entryInfo.saleOrderNo" readonly></el-input>
+              <el-input v-model="entryInfo.saleOrderNo" ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="销售数量">
-              <el-input v-model="entryInfo.plannedQuantity" type="number" readonly></el-input>
+              <el-input v-model="entryInfo.saleNumber" type="number" readonly></el-input>
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="货柜号">
-              <el-input v-model="entryInfo.HuoGuiCode" readonly></el-input>
+            <el-form-item label="货柜号" required>
+              <el-input v-model="entryInfo.HuoGuiCode"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="发票号">
-              <el-input v-model="entryInfo.FaQIaoNo" readonly></el-input>
+            <el-form-item label="发票号" required>
+              <el-input v-model="entryInfo.FaQIaoNo"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -40,9 +40,14 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应收数量">
+          <el-col :span="12"> 
+            <el-form-item label="应出库数量" required>
               <el-input v-model="entryInfo.outboundQuantity" type="number"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="已出库数量">
+              <el-input v-model="entryInfo.outNumber" readonly type="number"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -60,7 +65,7 @@
       </el-form>
 
       <!-- 在扫描记录列表上方添加出库单信息卡片 -->
-      <div class="entry-info" v-if="entryInfo">
+      <div class="entry-info" v-if="entryInfo.entryNo">
         <el-card class="box-card">
           <div slot="header" class="clearfix">
             <span>出库单信息</span>
@@ -109,14 +114,14 @@
           <el-row :gutter="20">
             <el-col :span="8">
               <div class="info-item">
-                <label>销售数量：</label>
-                <span>{{ entryInfo.plannedQuantity }}</span>
+                <label>应出库数量</label>
+                <span>{{ entryInfo.outboundQuantity }}</span>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="info-item">
-                <label>实际数量：</label>
-                <span>{{ entryInfo.actualQuantity }}</span>
+                <label>已出库数量：</label>
+                <span>{{ entryInfo.outNumber }}</span>
               </div>
             </el-col>
             <el-col :span="8">
@@ -130,8 +135,8 @@
       </div>
 
       <!-- 扫描记录列表 -->
-      <div class="scan-list">
-        <el-table :data="scanRecords" border style="width: 100%">
+      <div class="scan-list" v-if="entryInfo.entryItems.length>0">
+        <el-table :data="entryInfo.entryItems" border style="width: 100%">
           <el-table-column label="托盘编号" prop="palletCode" align="center" />
           <el-table-column label="销售订单" prop="saleOrderNo" align="center" />
           <el-table-column label="物料编码" prop="materialCode" align="center" />
@@ -157,6 +162,7 @@
 
 <script>
 import { scanPalletOn, deletePallet } from "@/api/warehouse/entry";
+import { number } from "echarts/lib/export";
 export default {
   name: 'ScanDialog',
   props: {
@@ -184,6 +190,7 @@ export default {
         barcode: ''
       },
       rules: {
+        
         barcode: [
           { required: true, message: '请输入或扫描条码', trigger: 'blur' }
         ]
@@ -217,19 +224,9 @@ export default {
   },
   methods: {
     initEntryInfo() {
+      console.log(this.scanData,'this.scanData')
       if (this.scanData) {
-        this.entryInfo = {
-          FBillNo: this.scanData.FBillNo,
-          HuoGuiCode: this.scanData.HuoGuiCode,
-          FaQIaoNo: this.scanData.FaQIaoNo,
-          materialName: this.scanData.materialName,
-          materialSpec: this.scanData.materialSpec,
-          plannedQuantity: this.scanData.FQty,
-          outboundQuantity: this.scanData.outboundQuantity,
-          actualQuantity: 0,
-          palletCount: 0,
-          progress: 0
-        }
+        this.entryInfo = this.scanData
       }
     },
     async handleScanInput() {
@@ -246,15 +243,16 @@ export default {
           const [palletCode, saleOrderNo, materialCode, quantity, lineCode] = barcode.split('#')
           console.log(palletCode,'palletCode');
           
-          if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
-            throw new Error('无效的托盘条码格式');
-          }
+          // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
+          //   throw new Error('无效的托盘条码格式');
+          // }
 
           // 调用托盘出库API
           const response = await scanPalletOn({
             palletCode,
             userId: this.$store.state.user.id,
-            entryInfo:this.entryInfo
+            entryInfo:this.entryInfo,
+
           });
 
           // 更新出库单信息
@@ -274,7 +272,7 @@ export default {
             palletCode,
             saleOrderNo,
             materialCode,
-            quantity: Number(quantity),
+            quantity,
             lineCode,
             scanTime: new Date()
           })
@@ -286,7 +284,39 @@ export default {
         console.error('扫描失败:', error)
       }
     },
+   async saleOrderNoInput(){
+        // 调用托盘出库API
+        const response = await scanPalletOn({
+            palletCode:null,
+            userId: this.$store.state.user.id,
+            entryInfo:this.entryInfo,
+          });
 
+          // 更新出库单信息
+          if (response.data) {
+            this.entryInfo = response.data;
+          }
+
+          if (response.code !== 200) {
+            this.$message.error(response.message);
+            return;
+          }
+
+          this.$message.success("扫码出库成功");
+
+          // 添加到扫描记录
+          this.scanRecords.unshift({
+            palletCode,
+            saleOrderNo,
+            materialCode,
+            quantity,
+            lineCode,
+            scanTime: new Date()
+          })
+
+          // 清空输入框
+          this.scanForm.barcode = ''
+    },
     async handleComplete() {
       try {
         await this.$emit('complete', this.scanRecords.map(record => record.palletCode))

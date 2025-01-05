@@ -3,14 +3,39 @@ const router = express.Router();
 const wareHouseOntry = require("../model/warehouse/warehouseOntry");
 const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
-const { k3cMethod } = require("./k3cMethod");
+const {
+  k3cMethod
+} = require("./k3cMethod");
+const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
 // 扫码出库（包含自动创建出库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
   try {
-    const { palletCode, userId, entryInfo } = req.body;
+    const {
+      palletCode,
+      userId,
+      entryInfo
+    } = req.body;
+
+    if (!entryInfo.outboundQuantity) {
+      return res.status(200).json({
+        code: 404,
+        message: "请先输入应出库数量",
+      });
+    }
 
     // 1. 获取托盘信息
-    const pallet = await MaterialPallet.findOne({ palletCode });
+    let pallet = {}
+    if(palletCode){
+      pallet = await MaterialPallet.findOne({
+        palletCode
+      });
+    }else{
+      pallet = await MaterialPallet.findOne({
+        saleOrderNo: entryInfo.saleOrderNo
+      });
+    }
+    console.log(pallet,'pallet');
+    
     if (!pallet) {
       return res.status(200).json({
         code: 404,
@@ -26,7 +51,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
-    // 判断托盘是否已经入库
+    // 判断托盘是否已经入库 需要!!!
     if (pallet.inWarehouseStatus !== "IN_WAREHOUSE") {
       return res.status(200).json({
         code: 404,
@@ -34,55 +59,205 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    // start 根据pallet.saleOrderNo(销售单号)去wareHouseOntry表查询是否有值
+    //  先判断是否应出库数量和已出库数量相等;
+    //不相等则显示已存在未完成出库单号:xxxxxx
+    let entry1 = await wareHouseOntry.findOne({
+      saleOrderId: pallet.saleOrderId,
+      outNumber: {
+        $ne: pallet.outboundQuantity
+      }
+    });
+    if (entry1&&entry1.entryNo!=entryInfo.entryNo) {
+      return res.status(200).json({
+        code: 404,
+        message: "已存在未完成出库单号:" + entry1.entryNo,
+      });
+    }
+
+    if(!entryInfo.entryNo){
+      //无出库单号则表示存在,无需创建初始化
+
+    let saleOrder = await K3SaleOrder.findOne({
+      _id: pallet.saleOrderId,
+    });
+    console.log('saleOrder', saleOrder);
+    if(!saleOrder){
+      return res.status(200).json({
+        code: 404,
+        message: "销售订单不存在:" + pallet.saleOrderNo,
+      });
+    }
+    let entry = await wareHouseOntry.find({
+      saleOrderNo: pallet.saleOrderNo,
+    });
+    console.log('entry', entry);
+    if (entry.length > 0) {
+      //有值则判断销售数量-已出库数量汇总是否大于应出库数量;
+      let sum = entry.reduce((sum, item) => sum + item.outNumber, 0);
+      console.log('sum', saleOrder.FQty);
+      console.log('sum', sum);
+      console.log('entryInfo.outboundQuantity', entryInfo.outboundQuantity);
+      if (saleOrder.FQty - sum >= entryInfo.outboundQuantity) {
+        // 大于等于应出库数量则显示可以进行初始化新的出库单;
+        console.log('可以进行初始化新的出库单');
+
+        // 获取生产订单信息
+        const order = await K3ProductionOrder.findOne({
+          FBillNo: pallet.productionOrderNo,
+        });
+
+        if (!order) {
+          return res.status(200).json({
+            code: 404,
+            message: "生产订单不存在",
+          });
+        }
+        entry = await wareHouseOntry.create({
+          HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
+          FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
+          outboundQuantity: entryInfo.outboundQuantity, //应出库数量
+          outNumber: order.palletCount, //已出库数量
+          saleNumber: saleOrder.FQty, //销售数量
+          entryNo: "SCCK-" + order.FBillNo,
+          productionOrderNo: order.FBillNo,
+          saleOrderId: saleOrder._id,
+          saleOrderNo: order.FSaleOrderNo,
+          saleOrderEntryId: order.FSaleOrderEntryId,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          materialSpec: pallet.materialSpec,
+          unit: order.FUnitId,
+          workShop: order.FWorkShopID_FName,
+          productType: order.FProductType,
+          correspondOrgId: order.FCorrespondOrgId,
+          status: "IN_PROGRESS",
+          progress: 0,
+          startTime: new Date(),
+          createBy: userId,
+          createAt: new Date(),
+          updateAt: new Date(),
+        });
+
+      } else {
+        //小于应出库数量则返回,该销售单号销售数量为x,已完成出库数量为x,剩余出库数量为x;  saleOrder.FQty - sum = 剩余出库数量
+        console.log('小于应出库数量');
+        entry = await wareHouseOntry.create({
+          HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
+          FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
+          outboundQuantity: saleOrder.FQty - sum, //应出库数量
+          outNumber: order.palletCount, //已出库数量
+          saleNumber: saleOrder.FQty, //销售数量
+          entryNo: "SCCK-" + order.FBillNo,
+          productionOrderNo: order.FBillNo,
+          saleOrderId: saleOrder._id,
+          saleOrderNo: order.FSaleOrderNo,
+          saleOrderEntryId: order.FSaleOrderEntryId,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          materialSpec: pallet.materialSpec,
+          unit: order.FUnitId,
+          workShop: order.FWorkShopID_FName,
+          productType: order.FProductType,
+          correspondOrgId: order.FCorrespondOrgId,
+          status: "IN_PROGRESS",
+          progress: 0,
+          startTime: new Date(),
+          createBy: userId,
+          createAt: new Date(),
+          updateAt: new Date(),
+        });
+      }
+    } else {
+      //无值则判断销售数量-应出库数量是否大于0;
+      if (saleOrder.FQty - entryInfo.outboundQuantity >= 0) {
+        // 大于0;则显示可以进行初始化新的出库单;  
+        console.log('大于0;则显示可以进行初始化新的出库单');
+        // 获取生产订单信息
+        const order = await K3ProductionOrder.findOne({
+          FBillNo: pallet.productionOrderNo,
+        });
+        console.log(order,'order')
+        if (!order) {
+          return res.status(200).json({
+            code: 404,
+            message: "生产订单不存在",
+          });
+        }
+        entry = await wareHouseOntry.create({
+          HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
+          FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
+          outboundQuantity: entryInfo.outboundQuantity, //应出库数量
+          outNumber: order.palletCount, //已出库数量
+          saleNumber: saleOrder.FQty, //销售数量
+          entryNo: "SCCK-" + order.FBillNo,
+          productionOrderNo: order.FBillNo,
+          saleOrderId: saleOrder._id,
+          saleOrderNo: order.FSaleOrderNo,
+          saleOrderEntryId: order.FSaleOrderEntryId,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          materialSpec: pallet.materialSpec,
+          // plannedQuantity: order.FQty,
+          unit: order.FUnitId,
+          workShop: order.FWorkShopID_FName,
+          productType: order.FProductType,
+          correspondOrgId: order.FCorrespondOrgId,
+          status: "IN_PROGRESS",
+          progress: 0,
+          startTime: new Date(),
+          createBy: userId,
+          createAt: new Date(),
+          updateAt: new Date(),
+        });
+      } else {
+        //等于0则返回,该销售单号销售数量为x,剩余出库数量为x;
+        console.log('等于0则返回,该销售单号销售数量为x,剩余出库数量为x');
+        entry = await wareHouseOntry.create({
+          HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
+          FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
+          outboundQuantity: saleOrder.FQty, //应出库数量 == 销售数量
+          outNumber: order.palletCount, //已出库数量
+          saleNumber: saleOrder.FQty, //销售数量
+          entryNo: "SCCK-" + order.FBillNo,
+          productionOrderNo: order.FBillNo,
+          saleOrderId: saleOrder._id,
+          saleOrderNo: order.FSaleOrderNo,
+          saleOrderEntryId: order.FSaleOrderEntryId,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          materialSpec: pallet.materialSpec,
+          unit: order.FUnitId,
+          workShop: order.FWorkShopID_FName,
+          productType: order.FProductType,
+          correspondOrgId: order.FCorrespondOrgId,
+          status: "IN_PROGRESS",
+          progress: 0,
+          startTime: new Date(),
+          createBy: userId,
+          createAt: new Date(),
+          updateAt: new Date(),
+        });
+      }
+    }
+
+  }
+
+
+
+
+
     // 2. 获取或创建出库单
     let entry = await wareHouseOntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
       status: { $ne: "COMPLETED" },
     });
-
-    // 如果出库单不存在，则创建新的出库单
-    if (!entry) {
-      //对比当前出库单销售订单对应的销售数量
-      //查询所有出库单的出库数量得出剩余未出库数量
-      
-      // 获取生产订单信息/
-      const order = await K3ProductionOrder.findOne({
-        FBillNo: pallet.productionOrderNo,
-      });
-
-      if (!order) {
-        return res.status(200).json({
-          code: 404,
-          message: "生产订单不存在",
-        });
-      }
-
-      entry = await wareHouseOntry.create({
-        HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
-        FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
-        outboundQuantity: entryInfo.outboundQuantity, //应收数量
-        entryNo: "SCCK-" + order.FBillNo,
-        productionOrderNo: order.FBillNo,
-        saleOrderId: order.FSaleOrderId,
-        saleOrderNo: order.FSaleOrderNo,
-        saleOrderEntryId: order.FSaleOrderEntryId,
-        materialId: pallet.materialId,
-        materialCode: pallet.materialCode,
-        materialName: pallet.materialName,
-        materialSpec: pallet.materialSpec,
-        plannedQuantity: order.FQty,
-        unit: order.FUnitId,
-        workShop: order.FWorkShopID_FName,
-        productType: order.FProductType,
-        correspondOrgId: order.FCorrespondOrgId,
-        status: "IN_PROGRESS",
-        progress: 0,
-        startTime: new Date(),
-        createBy: userId,
-        createAt: new Date(),
-        updateAt: new Date(),
-      });
-    }
+    console.log(entry,'entry');
+console.log('entry.materialId');
 
     // 3. 校验物料信息是否一致
     if (pallet.materialId.toString() !== entry.materialId.toString()) {
@@ -108,20 +283,31 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       quantity: pallet.totalQuantity,
       scanTime: new Date(),
       scanBy: userId,
+      saleOrderNo: pallet.saleOrderNo, // 新增：销售订单
+    materialCode:pallet.materialCode, //新增： 物料编码
+    lineCode: pallet.productLineName, // 新增：产线
     });
-
     // 6. 更新出库单数量信息和完成进度
-    entry.actualQuantity = entry.entryItems.reduce(
+    entry.outNumber = entry.entryItems.reduce(
       (sum, item) => sum + item.quantity,
       0
     );
     entry.palletCount = entry.entryItems.length;
     entry.progress = Math.round(
-      (entry.actualQuantity / entry.plannedQuantity) * 100
+      (entry.outNumber / entry.outboundQuantity) * 100
     );
 
+
+
+//计算已出库数量是否超过应出库数量
+if(entry.outNumber>entryInfo.outboundQuantity){
+  return res.status(200).json({
+    message: "该托盘数量已经超过应出库数量,无法进行出库,需修改应出库数量",
+  });
+}
+
     // 7. 更新出库单状态
-    if (entry.actualQuantity >= entry.plannedQuantity) {
+    if (entry.outNumber >= entry.outboundQuantity) {
       entry.status = "COMPLETED";
       entry.completedTime = new Date();
     } else {
@@ -156,7 +342,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 // MES出库单同步至金蝶云
 router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
   try {
-    const { entryId } = req.body;
+    const {
+      entryId
+    } = req.body;
 
     // 1. 获取出库单信息和生产订单信息
     const entry = await wareHouseOntry.findById(entryId);
@@ -183,16 +371,14 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
     let k3Stock = await k3cMethod("BillQuery", "SAL_OUTSTOCK", {
       FormId: "SAL_OUTSTOCK",
       FieldKeys: "FID",
-      FilterString: [
-        {
-          FieldName: "FBillNo",
-          Compare: "=",
-          Value: entry.entryNo,
-          Left: "",
-          Right: "",
-          Logic: 0,
-        },
-      ],
+      FilterString: [{
+        FieldName: "FBillNo",
+        Compare: "=",
+        Value: entry.entryNo,
+        Left: "",
+        Right: "",
+        Logic: 0,
+      }, ],
       OrderString: "",
       TopRowCount: 0,
       StartRow: 0,
@@ -222,76 +408,74 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
         FNumber: productionOrder.FWorkShopID_FNumber,
       },
       FDescription: entry.remark || "",
-      FEntity: [
-        {
-          FOutStockType: "1",
-          FIsNew: false,
-          FProductType: entry.productType,
-          FMoId: productionOrder.FID,
-          FMoEntryId: productionOrder.FID,
-          FMOMAINENTRYID: productionOrder.FID,
-          FMoEntrySeq: "1",
-          FSrcEntryId: productionOrder.FID,
-          FSrcBillType: "PRD_MO",
-          FSrcInterId: productionOrder.FID,
-          FSrcBillNo: productionOrder.FBillNo,
-          FSrcEntrySeq: "1",
-          FMaterialId: {
-            FNumber: entry.materialCode,
-          },
-          FUnitID: {
-            FNumber: productionOrder.FUnitId_FName,
-          },
-          FBaseUnitId: {
-            FNumber: productionOrder.FUnitId_FName,
-          },
-          FMustQty: entry.actualQuantity,
-          FRealQty: entry.actualQuantity,
-          FCostRate: entry.actualQuantity,
-          FOwnerID: {
-            FNumber: productionOrder.FOwnerId_FNumber,
-          },
-          FOwnerTypeID: productionOrder.FOwnerTypeId || "BD_OwnerOrg",
-          OwnerTypeIdHead: productionOrder.FOwnerId_FNumber,
-          OwnerIdHead_Id: productionOrder.FPrdOrgId_FNumber,
-          FMoBillNo: productionOrder.FBillNo,
-          FStockStatusId: {
-            FNumber: "KCZT01_SYS",
-          },
-          FKeeperTypeId: "BD_KeeperOrg",
-          FKeeperId: {
-            FNumber: productionOrder.FPrdOrgId_FNumber,
-          },
-          FOwnerTypeId: productionOrder.FOwnerTypeId,
-          FStockUnitId: {
-            FNumber: productionOrder.FUnitId_FName,
-          },
-          FStockRealQty: entry.actualQuantity,
-          FBasePrdRealQty: entry.actualQuantity,
-          FBaseMustQty: entry.actualQuantity,
-          FBaseRealQty: entry.actualQuantity,
-
-          // 需求来源
-          FReqSrc: "1",
-          FReqBillNo: productionOrder.FSaleOrderNo,
-          FReqBillId: productionOrder.FSaleOrderEntryId,
-          FReqEntrySeq: "1",
-          FReqEntryId: productionOrder.FSaleOrderEntryId,
-
-          // FEntity_Link: [
-          //   {
-          //     FEntity_Link_FRuleId: "DeliveryNotice-OutStock",
-          //     FEntity_Link_FSTableName: "T_SAL_DELIVERYNOTICEENTRY",
-          //     FEntity_Link_FSBillId: productionOrder.FID,
-          //     FEntity_Link_FSId: productionOrder.FID,
-          //     FEntity_Link_FFlowId: "f11b462a-8733-40bd-8f29-0906afc6a201",
-          //     FEntity_Link_FFlowLineId: "5",
-          //     FEntity_Link_FBasePrdRealQtyOld: productionOrder.FBaseRealQty,
-          //     FEntity_Link_FBasePrdRealQty: entry.actualQuantity,
-          //   },
-          // ],
+      FEntity: [{
+        FOutStockType: "1",
+        FIsNew: false,
+        FProductType: entry.productType,
+        FMoId: productionOrder.FID,
+        FMoEntryId: productionOrder.FID,
+        FMOMAINENTRYID: productionOrder.FID,
+        FMoEntrySeq: "1",
+        FSrcEntryId: productionOrder.FID,
+        FSrcBillType: "PRD_MO",
+        FSrcInterId: productionOrder.FID,
+        FSrcBillNo: productionOrder.FBillNo,
+        FSrcEntrySeq: "1",
+        FMaterialId: {
+          FNumber: entry.materialCode,
         },
-      ],
+        FUnitID: {
+          FNumber: productionOrder.FUnitId_FName,
+        },
+        FBaseUnitId: {
+          FNumber: productionOrder.FUnitId_FName,
+        },
+        FMustQty: entry.actualQuantity,
+        FRealQty: entry.actualQuantity,
+        FCostRate: entry.actualQuantity,
+        FOwnerID: {
+          FNumber: productionOrder.FOwnerId_FNumber,
+        },
+        FOwnerTypeID: productionOrder.FOwnerTypeId || "BD_OwnerOrg",
+        OwnerTypeIdHead: productionOrder.FOwnerId_FNumber,
+        OwnerIdHead_Id: productionOrder.FPrdOrgId_FNumber,
+        FMoBillNo: productionOrder.FBillNo,
+        FStockStatusId: {
+          FNumber: "KCZT01_SYS",
+        },
+        FKeeperTypeId: "BD_KeeperOrg",
+        FKeeperId: {
+          FNumber: productionOrder.FPrdOrgId_FNumber,
+        },
+        FOwnerTypeId: productionOrder.FOwnerTypeId,
+        FStockUnitId: {
+          FNumber: productionOrder.FUnitId_FName,
+        },
+        FStockRealQty: entry.actualQuantity,
+        FBasePrdRealQty: entry.actualQuantity,
+        FBaseMustQty: entry.actualQuantity,
+        FBaseRealQty: entry.actualQuantity,
+
+        // 需求来源
+        FReqSrc: "1",
+        FReqBillNo: productionOrder.FSaleOrderNo,
+        FReqBillId: productionOrder.FSaleOrderEntryId,
+        FReqEntrySeq: "1",
+        FReqEntryId: productionOrder.FSaleOrderEntryId,
+
+        // FEntity_Link: [
+        //   {
+        //     FEntity_Link_FRuleId: "DeliveryNotice-OutStock",
+        //     FEntity_Link_FSTableName: "T_SAL_DELIVERYNOTICEENTRY",
+        //     FEntity_Link_FSBillId: productionOrder.FID,
+        //     FEntity_Link_FSId: productionOrder.FID,
+        //     FEntity_Link_FFlowId: "f11b462a-8733-40bd-8f29-0906afc6a201",
+        //     FEntity_Link_FFlowLineId: "5",
+        //     FEntity_Link_FBasePrdRealQtyOld: productionOrder.FBaseRealQty,
+        //     FEntity_Link_FBasePrdRealQty: entry.actualQuantity,
+        //   },
+        // ],
+      }, ],
     };
 
     // 3. 调用金蝶云API

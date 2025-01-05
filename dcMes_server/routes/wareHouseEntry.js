@@ -69,7 +69,6 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         materialCode: pallet.materialCode,
         materialName: pallet.materialName,
         materialSpec: pallet.materialSpec,
-        plannedQuantity: order.FQty,
         unit: order.FUnitId,
         workShop: order.FWorkShopID_FName,
         productType: order.FProductType,

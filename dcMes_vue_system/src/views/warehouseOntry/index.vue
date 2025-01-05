@@ -106,8 +106,8 @@
 
                 <el-table-column label="数量信息" align="center">
                     <template slot-scope="scope">
-                        <div>计划: {{ scope.row.plannedQuantity }}</div>
-                        <div>实际: {{ scope.row.actualQuantity }}</div>
+                        <div>应出: {{ scope.row.outboundQuantity }}</div>
+                        <div>已出: {{ scope.row.outNumber }}</div>
                         <div>托盘数: {{ scope.row.palletCount }}</div>
                     </template>
                 </el-table-column>
@@ -131,6 +131,7 @@
                 <el-table-column label="操作" align="center" width="200">
                     <template slot-scope="scope">
                      
+                        <el-button type="text" style="color: green" @click="handleChuKu(scope.row)" v-if="scope.row.outboundQuantity>scope.row.outNumber&&scope.row.status=='IN_PROGRESS'">继续出库</el-button>
                         <el-button type="text" style="color: red" @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button>
                     </template>
@@ -185,7 +186,7 @@
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="应收数量">
+                <el-form-item label="应出库数量">
                     <el-input v-model="scanData.outboundQuantity" type="number"></el-input>
                 </el-form-item>
             </el-form>
@@ -244,7 +245,7 @@
 
                 <el-row :gutter="20">
                     <el-col :span="12">
-                        <el-form-item label="应收数量">
+                        <el-form-item label="应出库数量">
                             <el-input v-model="scanData.outboundQuantity" type="number"></el-input>
                         </el-form-item>
                     </el-col>
@@ -341,17 +342,30 @@ export default {
         }
     },
     methods: {
+        handleChuKu(row){
+            this.scanData = row;
+            this.scanDialogVisible = true;
+
+        },
         handlePalletBarcodeOpen() {
             this.scanData ={
-                FBillNo:null,
-                FaQIaoNo:null,
-                HuoGuiCode:null,
-                materialSpec:null,
-                materialName:null,
-                outboundQuantity:0,
-                FQty:0,
-            }
-            this.outboundQuantityDialog = true;
+          FBillNo: null,
+          HuoGuiCode: null,
+          FaQIaoNo: null,
+          materialName: null,
+          materialSpec: null,
+          plannedQuantity: null,
+          outboundQuantity: null,
+          outNumber: null,
+          saleNumber: null,
+          actualQuantity: 0,
+          palletCount: 0,
+          progress: 0,
+          status:null,
+          entryItems:[]
+        }
+            // this.outboundQuantityDialog = true;
+            this.scanDialogVisible = true;
         },
 
         
