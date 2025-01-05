@@ -53,7 +53,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="使用范围" width="100">
+                <el-table-column label="使用范围" width="100" v-if="hasEditPermission">
                     <template slot-scope="{row}">
                         <el-tag :type="row.isGlobal ? 'warning' : ''">
                             {{ row.isGlobal ? '全局' : '普通' }}
@@ -475,12 +475,23 @@ export default {
             materialForm: {
                 productId: ''
             },
-            currentRuleId: null
+            currentRuleId: null,
+
+            hasEditPermission: false,
         }
     },
 
     created() {
         this.fetchRules()
+
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        console.log(roles.buttonList, 'roles.buttonList')
+        if (roles.buttonList.includes("global_barcode_rule")) {
+            this.hasEditPermission = true;
+        }
     },
 
     methods: {

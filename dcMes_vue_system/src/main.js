@@ -43,13 +43,15 @@ import { requestK3Data } from "@/api/K3Data";
 // import HiPrint from 'vue-plugin-hiprint'
 import "sv-print/dist/style.css";
 
+import Dict from '@/utils/dict'  // 引入字典工具
+import { getData } from '@/api/data' // 假设这是获取字典数据的API
 
 // Vue.use(HiPrint)
 
 
 // 将自动注册所有组件为全局组件
 
-DictData.install()
+
 /**
  *你想要使用MockJs的模拟api
  *您可以执行:mockXHR()
@@ -94,6 +96,25 @@ Object.keys(filters).forEach(key => {
 
 // 注册全局过滤器
 
+// 配置字典选项
+Vue.use(Dict, {
+  metas: {
+    '*': {
+      request: (dictMeta) => {
+        return getData('dictData', { query: { dictType: dictMeta.type } }).then(res => {
+          // 处理返回的数据格式，将raw中的数据提取出来
+          return res.data.map(item => ({
+            label: item.dictLabel,
+            value: item.dictValue,
+            // 可以根据需要添加其他字段
+            sort: item.dictSort,
+            status: item.status
+          }))
+        })
+      }
+    }
+  }
+})
 
 new Vue({
   el: "#app", router, store, render: h => h(App)

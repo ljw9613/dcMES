@@ -4,7 +4,7 @@
       <!-- 扫码输入区域 -->
       <el-form :model="scanForm" ref="scanForm" :rules="rules">
         <el-form-item prop="barcode">
-          <zr-select v-model="stockId" collection="k3_BD_STOCK" :search-fields="['FName','FNumber']"
+          <zr-select v-model="stock_id" collection="k3_BD_STOCK" :search-fields="['FName','FNumber']"
             label-key="FName" sub-key="FStockId" :multiple="false" placeholder="请选择仓库"
             @select="handleTemplateChange">
             <template #option="{ item }">
@@ -145,10 +145,12 @@ export default {
   },
   data() {
     return {
-      stockId:null,
+      stock_id:localStorage.getItem('lastSelectedstock_id') || null,
+      stockId: localStorage.getItem('lastSelectedStockId') || null,
       dialogVisible: false,
       scanForm: {
-        barcode: ''
+        barcode: '',
+        stockId: localStorage.getItem('lastSelectedStockId') || null
       },
       rules: {
         barcode: [
@@ -178,15 +180,13 @@ export default {
   methods: {
      // 处理模板选择变化
      handleTemplateChange(val) {
-      console.log(val,'val');
-      console.log(this.scanForm);
-      
-            // if (!val) {
-            //     return;
-            // }
-            
-            this.scanForm.stockId = val.FStockId;
-        },
+      if (val) {
+        this.stock_id = val._id;
+        this.scanForm.stockId = val.FStockId;
+        localStorage.setItem('lastSelectedstock_id', val._id);
+        localStorage.setItem('lastSelectedStockId', val.FStockId);
+      }
+    },
     async handleScanInput() {
       try {
         await this.$refs.scanForm.validate()
@@ -258,7 +258,6 @@ export default {
 
     resetForm() {
       this.scanForm.barcode = ''
-      this.scanForm.stockId = ''
       this.scanRecords = []
       this.entryInfo = null
       if (this.$refs.scanForm) {
