@@ -407,6 +407,7 @@
                     </el-col>
 
                     <el-col :span="12">
+                        {{ processForm.isMES + ''}}
                         <el-form-item label="是否录入MES" prop="isMES">
                             <el-switch v-model="processForm.isMES" :active-value="true" :inactive-value="false" />
                         </el-form-item>

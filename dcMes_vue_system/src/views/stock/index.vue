@@ -163,12 +163,11 @@
         </base-table>
 
         <!-- 添加同步订单弹窗 -->
-        <el-dialog title="同步销售订单" :visible.sync="syncDialogVisible" width="500px">
+        <el-dialog title="同步仓库数据" :visible.sync="syncDialogVisible" width="500px">
             <el-form :model="syncForm" ref="syncForm" label-width="100px">
                 <el-form-item label="同步方式">
                     <el-radio-group v-model="syncForm.syncType">
                         <el-radio label="date">按日期同步</el-radio>
-                        <el-radio label="billNo">按单号同步</el-radio>
                         <el-radio label="all">同步全部</el-radio>
                     </el-radio-group>
                 </el-form-item>
@@ -176,9 +175,6 @@
                     <el-date-picker v-model="syncForm.dateRange" type="daterange" range-separator="至"
                         start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
                     </el-date-picker>
-                </el-form-item>
-                <el-form-item label="销售单号" required v-if="syncForm.syncType === 'billNo'">
-                    <el-input v-model="syncForm.billNo" placeholder="请输入销售单号"></el-input>
                 </el-form-item>
                 <el-form-item label="单据状态">
                     <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
@@ -263,10 +259,9 @@ export default {
             syncProgressTimer: null,
             syncDialogVisible: false,
             syncForm: {
-                syncType: 'date',
+                syncType: 'all',
                 dateRange: [],
                 documentStatus: 'C',
-                billNo: ''
             },
             activeTab: 'basic',
             flexDetailVisible: false,
@@ -710,11 +705,11 @@ export default {
                         this.$message.success('同步任务已启动');
                     }
                 } else {
-                    this.$message.error(response.message || '销售订单同步失败');
+                    this.$message.error(response.message || '仓库数据同步失败');
                 }
             } catch (error) {
-                console.error('销售订单同步失败:', error);
-                this.$message.error('销售订单同步失败');
+                console.error('仓库数据同步失败:', error);
+                this.$message.error('仓库数据同步失败');
             }
 
         },
@@ -737,7 +732,7 @@ export default {
                 return;
             }
             if (this.syncForm.syncType === 'billNo' && !this.syncForm.billNo) {
-                this.$message.warning('请输入销售单号');
+                this.$message.warning('请输入仓库单号');
                 return;
             }
 
@@ -745,13 +740,13 @@ export default {
                 let confirmMessage = '';
                 switch (this.syncForm.syncType) {
                     case 'all':
-                        confirmMessage = '确认要同步所有销售订单数据吗？此操作可能需要较长时间';
+                        confirmMessage = '确认要同步所有仓库数据吗？此操作可能需要较长时间';
                         break;
                     case 'date':
-                        confirmMessage = '确认要同步选定日期范围的销售订单数据吗？此操作可能需要一些时间';
+                        confirmMessage = '确认要同步选定日期范围的仓库数据吗？此操作可能需要一些时间';
                         break;
                     case 'billNo':
-                        confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的销售订单数据吗？`;
+                        confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的仓库数据吗？`;
                         break;
                 }
 

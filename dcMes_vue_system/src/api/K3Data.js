@@ -53,7 +53,7 @@ export function getSyncStatusAll() {
 }
 
 
-// 同步仓库数据
+// 同步仓库数据/sync/BD_STOCK
 export function syncBD_STOCK(data) {
   return request({
     url: "/K3/sync/BD_STOCK",

@@ -1,52 +1,52 @@
 <template>
   <el-dialog :title="title" :visible.sync="dialogVisible" width="800px" @close="handleClose">
     <div class="scan-container">
-      <el-form>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="销售单号">
-                            <el-input v-model="entryInfo.saleOrderNo" readonly></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="销售数量">
-                            <el-input v-model="entryInfo.plannedQuantity" type="number" readonly></el-input>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+      <el-form v-if="entryInfo">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="销售单号">
+              <el-input v-model="entryInfo.saleOrderNo" readonly></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="销售数量">
+              <el-input v-model="entryInfo.plannedQuantity" type="number" readonly></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="货柜号">
-                            <el-input v-model="entryInfo.HuoGuiCode" readonly></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="发票号">
-                            <el-input v-model="entryInfo.FaQIaoNo" readonly></el-input>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="产品名称">
-                            <el-input v-model="entryInfo.materialName" readonly></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="产品型号">
-                            <el-input v-model="entryInfo.materialSpec" readonly></el-input>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="应收数量">
-                            <el-input v-model="entryInfo.outboundQuantity" type="number"></el-input>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="货柜号">
+              <el-input v-model="entryInfo.HuoGuiCode" readonly></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="发票号">
+              <el-input v-model="entryInfo.FaQIaoNo" readonly></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="产品名称">
+              <el-input v-model="entryInfo.materialName" readonly></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="产品型号">
+              <el-input v-model="entryInfo.materialSpec" readonly></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="应收数量">
+              <el-input v-model="entryInfo.outboundQuantity" type="number"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
       <!-- 扫码输入区域 -->
       <el-form :model="scanForm" ref="scanForm" :rules="rules">
         <el-form-item prop="barcode">
@@ -297,13 +297,13 @@ export default {
     },
 
     handleClose() {
+      this.$emit('update:visible', false)
       this.resetForm()
     },
 
     resetForm() {
       this.scanForm.barcode = ''
       this.scanRecords = []
-      this.entryInfo = null
       if (this.$refs.scanForm) {
         this.$refs.scanForm.resetFields()
       }
