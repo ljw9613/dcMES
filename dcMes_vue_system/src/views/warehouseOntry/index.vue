@@ -131,6 +131,7 @@
                 <el-table-column label="操作" align="center" width="200">
                     <template slot-scope="scope">
                      
+                        <el-button type="text" style="color: orange" @click="handleUpdateNumber(scope.row)">修改应出库数量</el-button>
                         <el-button type="text" style="color: green" @click="handleChuKu(scope.row)" v-if="scope.row.outboundQuantity>scope.row.outNumber&&scope.row.status=='IN_PROGRESS'">继续出库</el-button>
                         <el-button type="text" style="color: red" v-if="hasDeletePermission" @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button>
@@ -343,6 +344,38 @@ export default {
         }
     },
     methods: {
+        handleUpdateNumber(row) {
+            this.$prompt('请修改应出库数量', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                inputValue: row.outboundQuantity
+            }).then(({ value }) => {
+                if (value >= row.outNumber) {  // 检查是否大于等于已出库数量
+                    updateData('warehouse_ontry', {
+                        query: { _id: row._id },
+                        update: {
+                            outboundQuantity: value
+                        }
+                    }).then(() => {
+                        this.$message({
+                            type: 'success',
+                            message: '修改成功: ' + value
+                        });
+                        this.fetchData(); // 刷新数据
+                    });
+                } else {
+                    this.$message({
+                        type: 'error',
+                        message: '应出库数量不能小于已出库数量：' + row.outNumber
+                    });
+                }
+            }).catch(() => {
+                this.$message({
+                    type: 'info',
+                    message: '取消输入'
+                });       
+            });
+        },
         handleChuKu(row){
             this.scanData = row;
             this.scanDialogVisible = true;

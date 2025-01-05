@@ -259,13 +259,23 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     console.log(entry,'entry');
 console.log('entry.materialId');
 
+if(!entry){
+  return res.status(200).json({
+    message: "该出库单号无法再进行出库",
+  });
+}
     // 3. 校验物料信息是否一致
     if (pallet.materialId.toString() !== entry.materialId.toString()) {
       return res.status(200).json({
         message: "托盘物料与出库单物料不一致",
       });
     }
-
+    if(entryInfo.FaQIaoNo){
+      entry.FaQIaoNo = entryInfo.FaQIaoNo;
+    }
+    if(entryInfo.HuoGuiCode){
+      entry.HuoGuiCode = entryInfo.HuoGuiCode;
+    }
     // 4. 检查托盘是否已经出库
     const existingPallet = entry.entryItems.find(
       (item) => item.palletCode === palletCode
