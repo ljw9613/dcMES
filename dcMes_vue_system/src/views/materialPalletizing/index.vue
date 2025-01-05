@@ -195,8 +195,8 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center">
                     <template slot-scope="scope">
-                        <el-button type="text" style="color: red" @click="handleAllDelete(scope.row)">初始化单据</el-button>
-                        <el-button type="text" style="color: red" @click="Delete(scope.row)">删除单据</el-button>
+                        <el-button type="text" style="color: red" v-if="hasInitializeTrayDocumentsPermission" @click="handleAllDelete(scope.row)">初始化单据</el-button>
+                        <el-button type="text" style="color: red" v-if="hasInitializeTrayDocumentsPermission" @click="Delete(scope.row)">删除单据</el-button>
                         <el-button type="text" @click="handlePrint(scope.row)">打印单据</el-button>
                         <el-button type="text" style="color: orange" @click="showHistory(scope.row)">解绑记录</el-button>
                     </template>
@@ -315,6 +315,8 @@ export default {
             printDialogVisible: false,
             printData: {},
             printTemplate: null,
+
+            hasInitializeTrayDocumentsPermission: false
         }
     },
     computed: {
@@ -781,6 +783,14 @@ export default {
                     this.$refs.hirInput.handleTemplateChange(savedTemplate);
                 }
             });
+        }
+
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        if (roles.buttonList.includes("Initialize_tray_documents")) {
+            this.hasInitializeTrayDocumentsPermission = true;
         }
     }
 }

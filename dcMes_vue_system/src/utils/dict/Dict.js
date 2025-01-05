@@ -64,6 +64,7 @@ export default class Dict {
 function loadDict(dict, dictMeta) {
   return dictMeta.request(dictMeta)
     .then(response => {
+      console.log('response========================', response);
       const type = dictMeta.type
       let dicts = dictMeta.responseConverter(response, dictMeta)
       if (!(dicts instanceof Array)) {

@@ -8,8 +8,11 @@ export const options = {
        * 字典请求，方法签名为function(dictMeta: DictMeta): Promise
        */
       request: (dictMeta) => {
-        console.log(`load dict ${dictMeta.type}`)
-        return Promise.resolve([])
+        console.log(`开始加载字典 ${dictMeta.type}`);
+        return Promise.resolve([]).then(response => {
+          console.log(`字典 ${dictMeta.type} 的响应数据:`, response);
+          return response;
+        });
       },
       /**
        * 字典响应数据转换器，方法签名为function(response: Object, dictMeta: DictMeta): DictData

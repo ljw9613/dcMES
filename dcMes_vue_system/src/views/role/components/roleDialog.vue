@@ -7,7 +7,7 @@
 <template>
   <div class="app-container">
     <!-- 弹窗start -->
-    <el-dialog :title="add ? '添加角色' : '编辑角色'" :visible.sync="dialogFormVisible">
+    <el-dialog :title="add ? '添加角色' : '编辑角色'" :visible.sync="dialogFormVisible" @open="handleDialogOpen">
       <el-form v-if="isShow" ref="dataForm" v-model="postList" label-position="right">
         <el-form-item label="角色名称" label-width="100px" required>
           <el-input v-model="postList.name" placeholder="请输入角色名称" />
@@ -25,7 +25,7 @@
         </el-form-item>
         <el-form-item label="菜单权限" label-width="100px" required>
           <el-card v-if="menu" shadow="never">
-            <custom-menu-tree v-if="optionsList.length > 0" v-model="postList.menuList" :options="optionsList" />
+            <custom-menu-tree v-if="dialogFormVisible && optionsList.length > 0" v-model="postList.menuList" :options="optionsList" />
           </el-card>
         </el-form-item>
         <el-form-item label="备注" label-width="100px">
@@ -64,6 +64,16 @@ export default {
     };
   },
   async created() {
+    // 如果使用了字典管理器，可以等待字典加载完成
+    console.log('字典数据已加载:', this.dict.type.button_permissions);
+  },
+  watch: {
+    dialogFormVisible(val) {
+      if (!val) {
+        // 弹窗关闭时重置数据
+        this.resetForm()
+      }
+    }
   },
   methods: {
     getTree(currentNode, checkedStatus) {
@@ -90,7 +100,6 @@ export default {
         sort: { sortNum: 1 },
       });
       this.optionsList = formatMenu2Tree(dataList, null, []);
-      console.log(JSON.stringify(this.optionsList));
     },
     AddClick() {
       console.log("AddClick");
@@ -105,19 +114,26 @@ export default {
         this.isShow = true;
       });
     },
-    EditClick(item) {
-      this.menu = false;
-      this.add = false;
-      this.isShow = true;
-      this._id = item._id;
-      this.postList = item;
-      this.dialogFormVisible = true;
-      this.getSelectData();
+    async EditClick(item) {
+      this.menu = false
+      this.add = false
+      this.isShow = false
+      this._id = item._id
+      
+      // 先获取菜单数据
+      await this.getSelectData()
+      
+      // 设置初始数据
+      this.postList = JSON.parse(JSON.stringify(item))
+      this.postList.buttonList = item.buttonList || []
+      
+      // 打开弹窗
+      this.dialogFormVisible = true
+      
       this.$nextTick(() => {
-        this.menu = true;
-        this.initTreeSelection();
-        this.$forceUpdate();
-      });
+        this.menu = true
+        this.isShow = true
+      })
     },
 
     async createData() {
@@ -198,12 +214,36 @@ export default {
         console.log(this.postList.parentId);
       }
     },
-    // 编辑时初始化树的选中状态
-    initTreeSelection() {
-      if (this.postList.menuList && this.postList.menuList.length > 0) {
-        this.$nextTick(() => {
-          this.$refs.menuTree.setCheckedKeys(this.postList.menuList);
-        });
+    resetForm() {
+      this.postList = {
+        name: '',
+        label: '',
+        buttonList: [],
+        menuList: [],
+        remark: ''
+      }
+      this.menu = false
+      this.isShow = false
+    },
+    handleDialogOpen() {
+      if (!this.add && this._id) {
+        // 编辑模式下，重新获取最新数据
+        this.refreshRoleData()
+      }
+    },
+    async refreshRoleData() {
+      try {
+        const { data } = await getData("role", {
+          query: { _id: this._id }
+        })
+        if (data && data.length > 0) {
+          this.postList = JSON.parse(JSON.stringify(data[0]))
+          // 确保 buttonList 存在
+          this.postList.buttonList = this.postList.buttonList || []
+        }
+      } catch (error) {
+        console.error('获取角色数据失败:', error)
+        this.$message.error('获取角色数据失败')
       }
     },
   },
