@@ -5,7 +5,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="销售单号">
-              <el-input v-model="entryInfo.saleOrderNo" ></el-input>
+              <el-input v-model="entryInfo.saleOrderNo" @blur="saleOrderNoInput"  @keyup.enter.native="saleOrderNoInput"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -18,12 +18,12 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="货柜号" required>
-              <el-input v-model="entryInfo.HuoGuiCode"></el-input>
+              <el-input v-model="entryInfo.HuoGuiCode" :readonly="entryInfo._id&&entryInfo.HuoGuiCode"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="发票号" required>
-              <el-input v-model="entryInfo.FaQIaoNo"></el-input>
+              <el-input v-model="entryInfo.FaQIaoNo"  :readonly="entryInfo._id&&entryInfo.FaQIaoNo"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -153,7 +153,7 @@
 
     <div slot="footer" class="dialog-footer">
       <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleComplete" :disabled="!scanRecords.length">
+      <el-button type="primary" @click="handleComplete" :disabled="!entryInfo.entryItems.length">
         完成出库
       </el-button>
     </div>
