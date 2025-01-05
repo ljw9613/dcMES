@@ -106,8 +106,8 @@
 
                 <el-table-column label="数量信息" align="center">
                     <template slot-scope="scope">
-                        <div>计划: {{ scope.row.plannedQuantity }}</div>
-                        <div>实际: {{ scope.row.actualQuantity }}</div>
+                        <div>应入库: {{ scope.row.plannedQuantity }}</div>
+                        <div>已入库: {{ scope.row.actualQuantity }}</div>
                         <div>托盘数: {{ scope.row.palletCount }}</div>
                     </template>
                 </el-table-column>
@@ -131,7 +131,7 @@
                 <el-table-column label="操作" align="center" width="200">
                     <template slot-scope="scope">
                      
-                        <el-button type="text" style="color: red" @click="handleDelete(scope.row)">删除</el-button>
+                        <el-button type="text" style="color: red" v-if="hasDeletePermission" @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button>
                     </template>
                 </el-table-column>
@@ -212,7 +212,8 @@ export default {
                 ]
             },
             exportLoading: false,
-            exportProgress: 0
+            exportProgress: 0,
+            hasDeletePermission: false,
         }
     },
     methods: {
@@ -483,6 +484,13 @@ export default {
     },
     created() {
         this.fetchData()
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        if (roles.buttonList.includes("Delete_inbound_and_outbound_documents")) {
+            this.hasDeletePermission = true;
+        }
     }
 }
 </script>

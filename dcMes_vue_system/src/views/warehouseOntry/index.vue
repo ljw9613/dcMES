@@ -132,7 +132,7 @@
                     <template slot-scope="scope">
                      
                         <el-button type="text" style="color: green" @click="handleChuKu(scope.row)" v-if="scope.row.outboundQuantity>scope.row.outNumber&&scope.row.status=='IN_PROGRESS'">继续出库</el-button>
-                        <el-button type="text" style="color: red" @click="handleDelete(scope.row)">删除</el-button>
+                        <el-button type="text" style="color: red" v-if="hasDeletePermission" @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button>
                     </template>
                 </el-table-column>
@@ -338,7 +338,8 @@ export default {
             outboundQuantityDialog: false,
             outboundQuantity: '',
             scanPalletDialog: false,
-            palletBarcode: ''
+            palletBarcode: '',
+            hasDeletePermission: false,
         }
     },
     methods: {
@@ -661,6 +662,13 @@ export default {
     },
     created() {
         this.fetchData()
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        if (roles.buttonList.includes("Delete_inbound_and_outbound_documents")) {
+            this.hasDeletePermission = true;
+        }
     }
 }
 </script>
