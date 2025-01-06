@@ -1,4 +1,6 @@
 const { spawn } = require("child_process");
+const path = require("path");
+
 async function k3cMethod(method_Name, method_FormId, method_Query) {
   try {
     return new Promise(async (resolve, reject) => {
@@ -8,7 +10,8 @@ async function k3cMethod(method_Name, method_FormId, method_Query) {
         //methodName方法名，View
         //methodQuery 请求参数
         // 指定要调用的Python文件和方法
-        const pythonScript = "routes/k3request.py";
+        const pythonScript = path.join(__dirname, "k3request.py");
+        console.log("Python script path:", pythonScript);
 
         // 指定Python脚本、方法和参数
         // 指定Python脚本、方法和参数
