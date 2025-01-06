@@ -9,23 +9,83 @@
                 <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="入库单号">
-                            <el-input v-model="searchForm.entryNo" placeholder="请输入入库单号" clearable></el-input>
+                            <!-- <el-input v-model="searchForm.entryNo" placeholder="请输入入库单号" clearable></el-input> -->
+                            <zr-select v-model="searchForm.entryNo" collection="warehouse_entry"
+                                :search-fields="['entryNo']" label-key="entryNo" value-key="entryNo"
+                                 :multiple="false" placeholder="请输入入库单号" clearable
+                                style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.entryNo }}</span>
+                                            <!-- <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.entryNo }}
+                                            </el-tag> -->
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="生产订单号">
-                            <el-input v-model="searchForm.productionOrderNo" placeholder="请输入生产订单号"
-                                clearable></el-input>
+                            <!-- <el-input v-model="searchForm.productionOrderNo" placeholder="请输入生产订单号"
+                                clearable></el-input> -->
+                                <zr-select v-model="searchForm.productionOrderNo" collection="warehouse_entry"
+                                :search-fields="['productionOrderNo']" label-key="productionOrderNo" value-key="productionOrderNo"
+                                 :multiple="false" placeholder="请输入生产订单号" clearable
+                                style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.productionOrderNo }}</span>
+                                            <!-- <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.entryNo }}
+                                            </el-tag> -->
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="销售订单号">
-                            <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单号" clearable></el-input>
+                            <!-- <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单号" clearable></el-input> -->
+                            <zr-select v-model="searchForm.saleOrderNo" collection="warehouse_entry"
+                                :search-fields="['saleOrderNo']" label-key="saleOrderNo" value-key="saleOrderNo"
+                                 :multiple="false" placeholder="请输入销售订单号" clearable
+                                style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.saleOrderNo }}</span>
+                                            <!-- <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.entryNo }}
+                                            </el-tag> -->
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="托盘编号">
-                            <el-input v-model="searchForm.palletCode" placeholder="请输入托盘编号" clearable></el-input>
+                            <!-- <el-input v-model="searchForm.palletCode" placeholder="请输入托盘编号" clearable></el-input> -->
+                            <zr-select v-model="searchForm.palletCode" collection="warehouse_entry"
+                                :search-fields="['palletCode']" label-key="palletCode" value-key="palletCode"
+                                 :multiple="false" placeholder="请输入托盘编号" clearable
+                                style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.palletCode }}</span>
+                                            <!-- <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.entryNo }}
+                                            </el-tag> -->
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -227,11 +287,13 @@ export default {
                     $and: []
                 }
             };
-
+            const escapeRegex = (string) => {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            };
             if (this.searchForm.entryNo) {
                 req.query.$and.push({
                     entryNo: {
-                        $regex: this.escapeRegex(this.searchForm.entryNo),
+                        $regex: escapeRegex(this.searchForm.entryNo),
                         $options: 'i'
                     }
                 });
@@ -240,7 +302,7 @@ export default {
             if (this.searchForm.productionOrderNo) {
                 req.query.$and.push({
                     productionOrderNo: {
-                        $regex: this.escapeRegex(this.searchForm.productionOrderNo),
+                        $regex: escapeRegex(this.searchForm.productionOrderNo),
                         $options: 'i'
                     }
                 });
@@ -249,7 +311,7 @@ export default {
             if (this.searchForm.saleOrderNo) {
                 req.query.$and.push({
                     saleOrderNo: {
-                        $regex: this.escapeRegex(this.searchForm.saleOrderNo),
+                        $regex: escapeRegex(this.searchForm.saleOrderNo),
                         $options: 'i'
                     }
                 });
@@ -258,7 +320,7 @@ export default {
             if (this.searchForm.palletCode) {
                 req.query.$and.push({
                     'entryItems.palletCode': {
-                        $regex: this.escapeRegex(this.searchForm.palletCode),
+                        $regex: escapeRegex(this.searchForm.palletCode),
                         $options: 'i'
                     }
                 });
