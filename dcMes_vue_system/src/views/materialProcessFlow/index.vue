@@ -1386,13 +1386,13 @@ export default {
                 // 转换数据为Excel格式
                 const excelData = result.data.map(item => ({
                     '型号': item.materialCode || '-',
-                    '客户订单': item.productionPlanWorkOrderId.saleOrderNo || '-',
+                    '客户订单': item.productionPlanWorkOrderId?item.productionPlanWorkOrderId.saleOrderNo: '-',
                     'UDI序列号': item.barcode || '-',//
-                    '生产批号': item.productionPlanWorkOrderId.productionOrderNo || '-',
+                    '生产批号':item.productionPlanWorkOrderId? item.productionPlanWorkOrderId.productionOrderNo : '-',
                     '外箱UDI': item.barcode || '-',//
                     '彩盒UDI': item.barcode || '-',//
                     '产品UDI': item.barcode || '-',//
-                    '生产日期': item.productionPlanWorkOrderId.actualStartTime ? this.formatDate(item.productionPlanWorkOrderId.actualStartTime) : this.formatDate(item.productionPlanWorkOrderId.planStartTime)
+                    '生产日期': item.createAt ? this.formatDate(item.createAt) : '-'
                 }));
 
                 // 创建工作簿
