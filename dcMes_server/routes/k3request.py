@@ -3,8 +3,9 @@ import io
 import sys
 import json
 import logging
+import os
 
-from k3cloud_webapi_sdk.main import K3CloudApiSdk
+from k3cloud_webapi_sdk import main
 import time
 import unittest
 
@@ -14,12 +15,15 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 
 # 首先构造一个SDK实例
-api_sdk = K3CloudApiSdk()
+api_sdk = main.K3CloudApiSdk()
 
-# 初始化方案一：Init初始化方法，使用conf.ini配置文件
-# config_path:配置文件的相对或绝对路径，建议使用绝对路径
-# config_node:配置文件中的节点名称
-api_sdk.Init(config_path='libs/conf.ini', config_node='config')
+# 获取当前文件所在目录的上级目录
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 构建配置文件的绝对路径
+config_path = os.path.join(base_dir, 'libs', 'conf.ini')
+
+# 初始化 SDK
+api_sdk.Init(config_path=config_path, config_node='config')
 
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
 save_data = {

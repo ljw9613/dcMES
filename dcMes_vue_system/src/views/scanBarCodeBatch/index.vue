@@ -351,6 +351,8 @@ export default {
             showPopup: false,
             popupType: '',
             printDataTemplate: '', // 添加 printDataTemplate 属性
+
+            hasPrintPermission: false,
         }
     },
     computed: {
