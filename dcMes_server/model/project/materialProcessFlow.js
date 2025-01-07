@@ -80,6 +80,8 @@ const materialProcessFlowSchema = new mongoose.Schema({
   materialSpec: { type: String }, // 规格型号
   isProduct: { type: Boolean },//是否成品工艺
 
+  businessType: { type: String }, // 业务类型
+
   // 工艺信息
   craftId: { type: mongoose.Schema.ObjectId, ref: "craft" }, // 关联工艺ID
   craftVersion: { type: String }, // 工艺版本号，记录创建时的工艺版本

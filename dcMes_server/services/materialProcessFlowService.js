@@ -66,6 +66,7 @@ class MaterialProcessFlowService {
         isProduct: craft.isProduct,
         craftId: craft._id,
         craftVersion: craft.craftVersion,
+        businessType: craft.businessType,
         processNodes,
         startTime: new Date(),
         status: "PENDING",
