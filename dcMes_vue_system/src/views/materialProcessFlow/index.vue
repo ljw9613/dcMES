@@ -66,7 +66,11 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">主条码生产流程列表</i>
+                    <div>
+                    <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
                     <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -1355,7 +1359,95 @@ export default {
             this.exportDialogVisible = true;
             this.exportForm.exportOption = 'current'; // 重置选项
         },
+        async handleAllExcel() {
+            try {
+                // 显示加载提示
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在导出数据，请稍候...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
 
+                // 获取表格数据
+                let req = this.searchData();
+                req.page = this.currentPage;
+                req.skip = (this.currentPage - 1) * this.pageSize;
+                req.limit = this.pageSize;
+                req.sort = { createAt: -1 };
+                req.populate = JSON.stringify([{ path: 'productionPlanWorkOrderId' },{ path: 'materialId' }]);
+                
+                const result = await getData("material_process_flow", req);
+                
+                if (result.code !== 200) {
+                    throw new Error(result.msg || '获取数据失败');
+                }
+
+                // 转换数据为Excel格式
+                const excelData = result.data.map(item => ({
+                    '型号': item.materialCode || '-',
+                    '客户订单': item.productionPlanWorkOrderId?item.productionPlanWorkOrderId.saleOrderNo: '-',
+                    'UDI序列号': item.barcode || '-',//
+                    '生产批号':item.productionPlanWorkOrderId? item.productionPlanWorkOrderId.productionOrderNo : '-',
+                    '外箱UDI': item.barcode || '-',//
+                    '彩盒UDI': item.barcode || '-',//
+                    '产品UDI': item.barcode || '-',//
+                    '生产日期': item.createAt ? this.formatDate(item.createAt) : '-'
+                }));
+
+                // 创建工作簿
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(excelData);
+
+                // 设置列宽
+                const colWidths = [
+                    { wch: 15 }, // 型号
+                    { wch: 15 }, // 客户订单
+                    { wch: 20 }, // UDI序列号
+                    { wch: 15 }, // 生产批号
+                    { wch: 20 }, // 外箱UDI
+                    { wch: 20 }, // 彩盒UDI
+                    { wch: 20 }, // 产品UDI
+                    { wch: 20 }  // 生产日期
+                ];
+                ws['!cols'] = colWidths;
+
+                // 设置表头样式
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const address = XLSX.utils.encode_cell({ r: 0, c: C });
+                    if (!ws[address]) continue;
+                    ws[address].s = {
+                        font: { bold: true },
+                        alignment: { horizontal: 'center' },
+                        fill: { fgColor: { rgb: "f5f7fa" } }
+                    };
+                }
+
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '数据列表');
+
+                // 生成Excel文件并下载
+                const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([excelBuffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+
+                // 生成文件名（使用当前时间戳）
+                const fileName = `数据导出_${new Date().toLocaleDateString()}.xlsx`;
+
+                // 下载文件
+                FileSaver.saveAs(blob, fileName);
+
+                this.$message.success('导出成功');
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败: ' + error.message);
+            } finally {
+                // 关闭加载提示
+                this.$loading().close();
+            }
+        },
         // 确认导出
         async confirmExport() {
             const exportOption = this.exportForm.exportOption;
