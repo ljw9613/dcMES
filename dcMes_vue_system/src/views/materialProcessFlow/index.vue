@@ -924,7 +924,30 @@ export default {
         searchData() {
             let req = {
                 query: {
-                    $and: []
+                    $and: [
+                        // {materialCode:{$in:[
+                        //     "1313102002",
+                        //     "1313102004",
+                        //     "1108102018",
+                        //     "1108102010",
+                        //     "1108102014",
+                        //     "1108102011",
+                        //     "1108102012",
+                        //     "1108102013",
+                        //     "1108102016",
+                        //     "1108102025",
+                        //     "1108102027",
+                        //     "1108102003",
+                        //     "1108102007",
+                        //     "1108102004",
+                        //     "1108102002",
+                        //     "1108102001",
+                        //     "1108102005",
+                        //     "1108102009",
+                        //     "1108102029",
+                        //     "1108102020"
+                        // ]}}
+                    ]
                 }
             };
 
@@ -1375,9 +1398,9 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.sort = { createAt: -1 };
-                req.populate = JSON.stringify([{ path: 'productionPlanWorkOrderId' },{ path: 'materialId' }]);
+                // req.populate = JSON.stringify([{ path: 'productionPlanWorkOrderId' },{ path: 'materialId' }]);
                 
-                const result = await getData("material_process_flow", req);
+                const result = await getData("sale_order_barcode_mapping", req);
                 
                 if (result.code !== 200) {
                     throw new Error(result.msg || '获取数据失败');
@@ -1386,7 +1409,7 @@ export default {
                 // 转换数据为Excel格式
                 const excelData = result.data.map(item => ({
                     '型号': item.materialCode || '-',
-                    '客户订单': item.productionPlanWorkOrderId?item.productionPlanWorkOrderId.saleOrderNo: '-',
+                    '客户订单': item.saleOrderNo?item.saleOrderNo: '-',
                     'UDI序列号': item.barcode || '-',//
                     '生产批号':item.productionPlanWorkOrderId? item.productionPlanWorkOrderId.productionOrderNo : '-',
                     '外箱UDI': item.barcode || '-',//

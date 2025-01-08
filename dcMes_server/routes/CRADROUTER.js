@@ -44,6 +44,7 @@ const k3_BD_STOCK = require("../model/k3/K3_BD_STOCK");
 const InspectionLastData = require("../model/project/InspectionLastData");
 const InspectionData = require("../model/project/InspectionData");
 const unbindRecord = require("../model/project/unbindRecord");
+const sale_order_barcode_mapping = require("../model/project/saleOrderBarcodeMapping");
 
 
 
@@ -84,6 +85,7 @@ ADDROUTER(router, "productBarcodeRule", productBarcodeRule);
 ADDROUTER(router, "InspectionLastData", InspectionLastData);
 ADDROUTER(router, "InspectionData", InspectionData);
 ADDROUTER(router, "unbindRecord", unbindRecord);
+ADDROUTER(router, "sale_order_barcode_mapping", sale_order_barcode_mapping);
 
 //wms模型
 ADDROUTER(router, "warehouse_entry", warehouseEntry);
