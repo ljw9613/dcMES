@@ -362,11 +362,13 @@ export default {
                     $and: []
                 }
             };
-
+            const escapeRegex = (string) => {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            };
             if (this.searchForm.palletCode) {
                 req.query.$and.push({
                     palletCode: {
-                        $regex: this.escapeRegex(this.searchForm.palletCode),
+                        $regex: escapeRegex(this.searchForm.palletCode),
                         $options: 'i'
                     }
                 });
@@ -375,7 +377,7 @@ export default {
             if (this.searchForm.saleOrderNo) {
                 req.query.$and.push({
                     saleOrderNo: {
-                        $regex: this.escapeRegex(this.searchForm.saleOrderNo),
+                        $regex: escapeRegex(this.searchForm.saleOrderNo),
                         $options: 'i'
                     }
                 });
@@ -384,7 +386,7 @@ export default {
             if (this.searchForm.productionOrderNo) {
                 req.query.$and.push({
                     productionOrderNo: {
-                        $regex: this.escapeRegex(this.searchForm.productionOrderNo),
+                        $regex: escapeRegex(this.searchForm.productionOrderNo),
                         $options: 'i'
                     }
                 });
@@ -393,7 +395,7 @@ export default {
             if (this.searchForm.workOrderNo) {
                 req.query.$and.push({
                     workOrderNo: {
-                        $regex: this.escapeRegex(this.searchForm.workOrderNo),
+                        $regex: escapeRegex(this.searchForm.workOrderNo),
                         $options: 'i'
                     }
                 });
