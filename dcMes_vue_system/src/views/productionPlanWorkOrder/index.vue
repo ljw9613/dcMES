@@ -204,13 +204,31 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="计划数量" width="100">
+                <el-table-column label="需生产数量" width="100">
                     <template slot-scope="scope">
                         {{ scope.row.planQuantity }}
                     </template>
                 </el-table-column>
 
-                <el-table-column label="计划生产数量" width="100">
+                <el-table-column label="已排产数量" width="100">
+                    <template slot-scope="scope">
+                        {{ totalPlanQuantity(scope.row) }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="已生产数量" width="100">
+                    <template slot-scope="scope">
+                        {{totalOutputQuantity(scope.row) }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="未排产数量" width="100">
+                    <template slot-scope="scope">
+                        {{ totalRemainingQuantity(scope.row) }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="工单数量" width="100">
                     <template slot-scope="scope">
                         {{ scope.row.planProductionQuantity }}
                     </template>
@@ -221,7 +239,6 @@
                         {{ scope.row.inputQuantity }}
                     </template>
                 </el-table-column>
-
                 <el-table-column label="产出数量" width="100">
                     <template slot-scope="scope">
                         {{ scope.row.outputQuantity }}
@@ -246,6 +263,7 @@
                         {{ formatDate(scope.row.planEndTime) }}
                     </template>
                 </el-table-column>
+
 
                 <el-table-column label="操作" width="180" fixed="right">
                     <template slot-scope="scope">
@@ -298,10 +316,94 @@ export default {
             dialogStatus: '',
             detailDialogVisible: false,
             selection: [], // 存储选中的记录
-            dataForm: {}
+            dataForm: {},
+            quantityMap: new Map(), // 用于存储两种数量的计算结果
+        }
+    },
+    computed: {
+        // 返回计算planProductionQuantity总和的函数
+        totalPlanQuantity() {
+            return (row) => {
+                const cache = this.quantityMap.get(row._id);
+                if (cache) {
+                    return cache.planQuantity;
+                }
+                this.calculateAndCacheQuantities(row);
+                return 0;
+            }
+        },
+        
+        // 返回计算outputQuantity总和的函数
+        totalOutputQuantity() {
+            return (row) => {
+                const cache = this.quantityMap.get(row._id);
+                if (cache) {
+                    return cache.outputQuantity;
+                }
+                this.calculateAndCacheQuantities(row);
+                return 0;
+            }
+        },
+
+        // 返回计算剩余可排产数量的函数
+        totalRemainingQuantity() {
+            return (row) => {
+                try {
+                    // 确保 FQty 是数字
+                    const totalQty = parseFloat(row.FQty) || 0;
+                    
+                    const cache = this.quantityMap.get(row._id);
+                    if (cache) {
+                        // 确保 planQuantity 是数字
+                        const planQty = parseFloat(cache.planQuantity) || 0;
+                        return Math.max(0, totalQty - planQty);
+                    }
+                    
+                    this.calculateAndCacheQuantities(row);
+                    return totalQty; // 首次返回转换后的总需求量
+                } catch (error) {
+                    console.error('计算剩余数量出错:', error);
+                    return 0;
+                }
+            }
         }
     },
     methods: {
+        // 计算并缓存两种数量
+        async calculateAndCacheQuantities(row) {
+            try {
+                const result = await getData('production_plan_work_order', {
+                    query: { 
+                        productionOrderId: row._id,
+                        status: { $ne: 'CANCELLED' } // 排除已取消的工单
+                    },
+                    select: 'planProductionQuantity outputQuantity'
+                });
+                
+                const totals = result.data.reduce((acc, item) => {
+                    return {
+                        planQuantity: acc.planQuantity + (item.planProductionQuantity || 0),
+                        outputQuantity: acc.outputQuantity + (item.outputQuantity || 0)
+                    };
+                }, { planQuantity: 0, outputQuantity: 0 });
+                
+                this.quantityMap.set(row._id, totals);
+                this.$forceUpdate();
+            } catch (error) {
+                console.error('计算汇总数失败:', error);
+                this.quantityMap.set(row._id, { planQuantity: 0, outputQuantity: 0 });
+            }
+        },
+
+        // 清除缓存的方法（在需要更新数据时调用）
+        clearQuantityCache(rowId) {
+            if (rowId) {
+                this.quantityMap.delete(rowId);
+            } else {
+                this.quantityMap.clear();
+            }
+        },
+
         // 获取状态标签类型
         getStatusType(status) {
             const statusMap = {

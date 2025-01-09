@@ -114,7 +114,7 @@
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
                     <!-- 扫码出库 -->
-                    <el-button type="primary" @click="handlePalletBarcodeOpen">扫描单据出库</el-button>
+                    <el-button type="primary" @click="handlePalletBarcodeOpen">新增</el-button>
                 </el-form-item>
             </el-form>
         </el-card>

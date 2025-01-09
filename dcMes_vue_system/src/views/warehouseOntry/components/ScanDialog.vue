@@ -15,18 +15,7 @@
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="货柜号" required>
-              <el-input v-model="entryInfo.HuoGuiCode" :readonly="entryInfo._id&&entryInfo.HuoGuiCode"></el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="发票号" required>
-              <el-input v-model="entryInfo.FaQIaoNo"  :readonly="entryInfo._id&&entryInfo.FaQIaoNo"></el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="产品名称">
@@ -36,6 +25,18 @@
           <el-col :span="12">
             <el-form-item label="产品型号">
               <el-input v-model="entryInfo.materialSpec" readonly></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="货柜号" required>
+              <el-input v-model="entryInfo.HuoGuiCode" :readonly="entryInfo._id&&entryInfo.HuoGuiCode"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="发票号" required>
+              <el-input v-model="entryInfo.FaQIaoNo"  :readonly="entryInfo._id&&entryInfo.FaQIaoNo"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
