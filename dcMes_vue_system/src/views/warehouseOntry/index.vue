@@ -72,17 +72,18 @@
                     <el-col :span="6">
                         <el-form-item label="托盘编号">
                             <!-- <el-input v-model="searchForm.palletCode" placeholder="请输入托盘编号" clearable></el-input> -->
-                            <zr-select v-model="searchForm.palletCode" collection="warehouse_ontry"
-                                :search-fields="['palletCode']" label-key="palletCode" value-key="palletCode"
-                                 :multiple="false" placeholder="请输入托盘编号" clearable
+                            <zr-select v-model="searchForm.palletCode" collection="material_palletizing"
+                                :search-fields="['palletCode']" 
+                                label-key="palletCode" 
+                                value-key="palletCode"
+                                :multiple="false" 
+                                placeholder="请输入托盘编号" 
+                                clearable
                                 style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
                                             <span class="option-label">{{ item.palletCode }}</span>
-                                            <!-- <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.entryNo }}
-                                            </el-tag> -->
                                         </div>
                                     </div>
                                 </template>
@@ -740,6 +741,14 @@ export default {
         },
         resetForm() {
             this.$refs.searchForm.resetFields()
+            this.searchForm ={
+                entryNo: '',
+                productionOrderNo: '',
+                saleOrderNo: '',
+                palletCode: '',
+                status: '',
+                dateRange: []
+            },
             this.search()
         },
         handleAdd() {

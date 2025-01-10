@@ -70,10 +70,10 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="托盘编号">
-                            <zr-select v-model="searchForm.palletCode" collection="warehouse_entry"
-                                :search-fields="['entryItems.palletCode']" 
-                                label-key="entryItems.palletCode" 
-                                value-key="entryItems.palletCode"
+                            <zr-select v-model="searchForm.palletCode" collection="material_palletizing"
+                                :search-fields="['palletCode']" 
+                                label-key="palletCode" 
+                                value-key="palletCode"
                                 :multiple="false" 
                                 placeholder="请输入托盘编号" 
                                 clearable
@@ -81,7 +81,7 @@
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
-                                            <span class="option-label">{{ item.entryItems[0].palletCode }}</span>
+                                            <span class="option-label">{{ item.palletCode }}</span>
                                         </div>
                                     </div>
                                 </template>

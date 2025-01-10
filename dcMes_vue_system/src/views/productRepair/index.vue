@@ -20,7 +20,10 @@
                     </el-col>
                     <el-col :span="4">
                         <el-form-item label="处理方案">
-                            <el-input v-model="searchForm.solution" placeholder="请输入处理方案" clearable></el-input>
+                            <el-select v-model="searchForm.solution" clearable placeholder="请选择处理方案" style="width: 100%">
+          <el-option v-for="dict in dict.type.repair_solution" :key="dict.value" :label="dict.label"
+            :value="dict.value" />
+        </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
@@ -62,7 +65,7 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
-
+                <el-table-column type="selection" width="55" align="center" fixed="left" />
                 <el-table-column label="产品条码" align="center" prop="barcode">
                     <template slot-scope="scope">
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.barcode }}</el-link>
@@ -119,7 +122,7 @@
                         <el-button type="text" size="small" @click="handleEdit(scope.row)" v-if="scope.row.status=='PENDING_REVIEW'">
                             <i class="el-icon-edit"></i> 修改
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)">
+                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)" v-if="scope.row.status=='PENDING_REVIEW'">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
                     </template>
@@ -133,10 +136,10 @@
         <el-dialog title="审核" :visible.sync="reviewDialogVisible" width="30%">
             <el-form :model="reviewForm" ref="reviewForm" label-width="100px">
                 <el-form-item label="维修结果" prop="repairResult">
-                    <el-select v-model="reviewForm.repairResult" placeholder="请选择维修结果" style="width: 100%">
-                        <el-option label="合格" value="QUALIFIED" />
-                        <el-option label="不合格" value="UNQUALIFIED" />
-                    </el-select>
+                    <el-radio-group v-model="reviewForm.repairResult">
+                        <el-radio label="QUALIFIED">合格</el-radio>
+                        <el-radio label="UNQUALIFIED">不合格</el-radio>
+                    </el-radio-group>
                 </el-form-item>
                 <el-form-item label="不利影响评价" prop="adverseEffect">
                     <el-input type="textarea" v-model="reviewForm.adverseEffect" :rows="3" placeholder="请输入不利影响评价"></el-input>
@@ -159,6 +162,7 @@ import { refreshMachine } from "@/api/machine";
 
 export default {
     name: 'ProductionLine',
+  dicts: ['repair_solution'],
     components: {
         EditDialog
     },
@@ -229,6 +233,9 @@ export default {
             }
             if (this.searchForm.materialSpec) {
                 req.query.$and.push({ materialSpec: { $regex: this.searchForm.materialSpec, $options: 'i' } });
+            }
+            if (this.searchForm.solution) {
+                req.query.$and.push({ solution: { $regex: this.searchForm.solution, $options: 'i' } });
             }
             if (this.searchForm.batchNumber) {
                 req.query.$and.push({ batchNumber: { $regex: this.searchForm.batchNumber, $options: 'i' } });
@@ -348,6 +355,12 @@ export default {
                 this.$message.warning('请选择要删除的记录');
                 return;
             }
+            // 检查是否包含已审核的记录
+            const hasReviewedRecords = this.selection.some(item => item.status === 'REVIEWED');
+            if (hasReviewedRecords) {
+                this.$message.warning('选中记录中包含已审核的记录，不能删除');
+                return;
+            }
 
             this.$confirm(`确认删除选中的 ${this.selection.length} 条记录吗？`, '提示', {
                 confirmButtonText: '确定',
@@ -355,15 +368,26 @@ export default {
                 type: 'warning'
             }).then(async () => {
                 try {
+                    this.listLoading = true;
                     const ids = this.selection.map(item => item._id);
-                    await removeData('product_repair', { query: { _id: { $in: ids } } });
+                    await removeData('product_repair', { 
+                        query: { 
+                            _id: { $in: ids },
+                            status: { $ne: 'REVIEWED' } // 防止删除已审核的记录
+                        } 
+                    });
                     this.$message.success('批量删除成功');
-                    this.fetchData();
+                    this.selection = []; // 清空选择
+                    await this.fetchData();
                 } catch (error) {
                     console.error('批量删除失败:', error);
-                    this.$message.error('批量删除失败');
+                    this.$message.error('批量删除失败，可能包含已审核的记录');
+                } finally {
+                    this.listLoading = false;
                 }
-            }).catch(() => { });
+            }).catch(() => {
+                this.$message.info('已取消删除');
+            });
         },
 
         async handleSubmit() {
