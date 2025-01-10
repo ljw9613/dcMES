@@ -70,18 +70,18 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="托盘编号">
-                            <!-- <el-input v-model="searchForm.palletCode" placeholder="请输入托盘编号" clearable></el-input> -->
                             <zr-select v-model="searchForm.palletCode" collection="warehouse_entry"
-                                :search-fields="['palletCode']" label-key="palletCode" value-key="palletCode"
-                                 :multiple="false" placeholder="请输入托盘编号" clearable
+                                :search-fields="['entryItems.palletCode']" 
+                                label-key="entryItems.palletCode" 
+                                value-key="entryItems.palletCode"
+                                :multiple="false" 
+                                placeholder="请输入托盘编号" 
+                                clearable
                                 style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
-                                            <span class="option-label">{{ item.palletCode }}</span>
-                                            <!-- <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.entryNo }}
-                                            </el-tag> -->
+                                            <span class="option-label">{{ item.entryItems[0].palletCode }}</span>
                                         </div>
                                     </div>
                                 </template>
@@ -527,8 +527,17 @@ export default {
             this.fetchData()
         },
         resetForm() {
-            this.$refs.searchForm.resetFields()
-            this.search()
+            this.$refs.searchForm.resetFields();
+            // 手动重置所有搜索表单字段
+            this.searchForm = {
+                entryNo: '',
+                productionOrderNo: '',
+                saleOrderNo: '',
+                palletCode: '',
+                status: '',
+                dateRange: []
+            };
+            this.search();
         },
         handleAdd() {
             this.dialogStatus = 'create'
