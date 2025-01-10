@@ -172,7 +172,7 @@
 
         <div slot="footer" class="dialog-footer">
             <template v-if="dialogStatus === 'edit'">
-                <el-button type="info" @click="handleOneKeyProduction">
+                <el-button type="info"   v-if="form.status === 'PENDING' || form.status === 'PAUSED'" @click="handleOneKeyProduction">
                     一键生产
                 </el-button>
                 <el-button type="success" @click="handleStartProduction" :disabled="!canStart"
@@ -185,7 +185,7 @@
                 </el-button>
                 <el-button type="danger" @click="handleCancelProduction" :disabled="form.status !== 'IN_PROGRESS'"
                     v-if="form.status === 'IN_PROGRESS'">
-                    取消生产
+                    工单作废
                 </el-button>
             </template>
             <el-button @click="handleClose">取 消</el-button>

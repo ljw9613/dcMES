@@ -30,7 +30,7 @@ module.exports = {
   // outputDir: "../dcMes_server/admin",
   // publicPath: "/dcMesManage/",
   // outputDir: "../dcMes_server/adminManage",
-    publicPath: "/dcMesCs/",
+  publicPath: "/dcMesCs/",
   outputDir: "../dcMes_server/adminCs",
   assetsDir: "static",
   lintOnSave: process.env.NODE_ENV === "development",
