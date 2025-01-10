@@ -237,7 +237,7 @@ export default {
         
         // 发送扫描事件到父组件
         const success = await this.$emit('scan', barcode)
-
+        console.log('success',success)
         if (success) {
           // 解析条码信息
           const [palletCode, saleOrderNo, materialCode, quantity, lineCode] = barcode.split('#')
