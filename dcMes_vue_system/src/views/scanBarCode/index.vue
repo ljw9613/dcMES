@@ -1311,6 +1311,18 @@ export default {
                         }
                     }
 
+                    if (!matched) {
+                        this.$message.error('条码不匹配');
+                        this.popupType = 'ng';
+                        this.showPopup = true;
+                        setTimeout(() => {
+                            tone(tmyw); // 延迟播放错误提示音
+                        }, 300);
+                        this.unifiedScanInput = '';
+                        this.$refs.scanInput.focus();
+                        return;
+                    }
+
                     // 检查是否所有需要扫描的条码都已扫描
                     const allScanned = Object.values(this.validateStatus).every(status => {
                         const material = this.processMaterials.find(m => 

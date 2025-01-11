@@ -598,7 +598,10 @@ class MaterialProcessFlowService {
     }
 
     //检测当前工单是否可以继续投入
-    if (planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity) {
+    if (
+      planWorkOrder &&
+      planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+    ) {
       throw new Error("工单已达到计划数量，无法继续投入");
     }
 
