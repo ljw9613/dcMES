@@ -113,9 +113,18 @@
       <el-row :gutter="20">
         <el-col :span="24">
           <el-form-item label="状态" prop="status">
-            <el-tag :type="getStatusType(form.status)" v-if="form.status">
+
+
+            <el-select v-model="form.status" placeholder="请选择状态" clearable style="width: 100%"  v-if="dialogStatus=='edit'">
+                                <el-option label="待审核" value="PENDING_REVIEW" />
+                                <el-option label="已审核" value="REVIEWED" />
+                                <el-option label="已作废" value="VOIDED" />
+                            </el-select>
+
+            <el-tag :type="getStatusType(form.status)" v-else>
               {{ getStatusText(form.status) }}
             </el-tag>
+
           </el-form-item>
         </el-col>
       </el-row>
@@ -329,6 +338,7 @@ export default {
           : [formData.barcode];
         this.form = formData;
       } else {
+        this.barcode = ''
         this.form = {
           barcodes: [],
           materialId: "",
