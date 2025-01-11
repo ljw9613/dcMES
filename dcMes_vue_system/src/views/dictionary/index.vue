@@ -58,7 +58,9 @@
       </el-table-column>
       <el-table-column align="center" class-name="small-padding fixed-width" label="操作">
         <template slot-scope="scope">
-          <el-button type="primary" @click="handleView(scope.row)">查看字典</el-button>
+          <router-link :to="{ path: '/dict/data', query: { dictType: scope.row.dictType } }" class="link-type">
+            <span>查看字典</span>
+          </router-link>
           <el-button icon="el-icon-edit" size="mini" type="text" @click="handleUpdate(scope.row)">修改
           </el-button>
           <el-button icon="el-icon-delete" size="mini" style="color: red" type="text"

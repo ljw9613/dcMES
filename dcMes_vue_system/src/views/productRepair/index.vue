@@ -60,6 +60,8 @@
                     <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增</el-button>
                     <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
                         @click="handleBatchDelete">批量删除</el-button>
+                    <el-button type="success" icon="el-icon-check" :disabled="!selection.length"
+                        @click="handleBatchReview">批量审核</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -193,6 +195,25 @@
                 <el-button type="primary" @click="submitReview">确 定</el-button>
             </div>
         </el-dialog>
+
+        <el-dialog title="批量审核" :visible.sync="batchReviewDialogVisible" width="30%">
+            <el-form :model="batchReviewForm" ref="batchReviewForm" label-width="100px">
+                <el-form-item label="维修结果" prop="repairResult">
+                    <el-radio-group v-model="batchReviewForm.repairResult">
+                        <el-radio label="QUALIFIED">合格</el-radio>
+                        <el-radio label="UNQUALIFIED">不合格</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="不利影响评价" prop="adverseEffect">
+                    <el-input type="textarea" v-model="batchReviewForm.adverseEffect" :rows="3"
+                        placeholder="请输入不利影响评价"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="batchReviewDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="submitBatchReview">确 定</el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -229,6 +250,11 @@ export default {
                 repairResult: '',
                 adverseEffect: '',
                 _id: ''
+            },
+            batchReviewDialogVisible: false,
+            batchReviewForm: {
+                repairResult: '',
+                adverseEffect: ''
             }
         }
     },
@@ -520,6 +546,63 @@ export default {
             } catch (error) {
                 console.error('审核失败:', error);
                 this.$message.error('审核失败');
+            }
+        },
+
+        handleBatchReview() {
+            if (!this.selection.length) {
+                this.$message.warning('请选择要审核的记录');
+                return;
+            }
+            
+            // 检查是否包含已审核或已作废的记录
+            const invalidRecords = this.selection.some(item => 
+                item.status === 'REVIEWED' || item.status === 'VOIDED'
+            );
+            
+            if (invalidRecords) {
+                this.$message.warning('选中记录中包含已审核或已作废的记录，不能进行批量审核');
+                return;
+            }
+            
+            this.batchReviewForm = {
+                repairResult: '',
+                adverseEffect: ''
+            };
+            this.batchReviewDialogVisible = true;
+        },
+        
+        async submitBatchReview() {
+            try {
+                if (!this.batchReviewForm.repairResult) {
+                    this.$message.warning('请选择维修结果');
+                    return;
+                }
+                
+                const ids = this.selection.map(item => item._id);
+                const reqData = {
+                    repairResult: this.batchReviewForm.repairResult,
+                    adverseEffect: this.batchReviewForm.adverseEffect,
+                    status: 'REVIEWED',
+                    reviewTime: new Date(),
+                    reviewer: this.$store.state.user.userInfo
+                };
+                
+                await updateData('product_repair', {
+                    query: { 
+                        _id: { $in: ids },
+                        status: 'PENDING_REVIEW'  // 确保只更新待审核的记录
+                    },
+                    update: reqData
+                });
+                
+                this.$message.success('批量审核成功');
+                this.batchReviewDialogVisible = false;
+                this.selection = [];
+                this.fetchData();
+            } catch (error) {
+                console.error('批量审核失败:', error);
+                this.$message.error('批量审核失败');
             }
         }
     },

@@ -104,8 +104,8 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="已排产数量">
-                        <el-input-number disabled v-model="totalPlanProductionQuantity" :min="0" controls-position="right"
-                            style="width: 100%"></el-input-number>
+                        <el-input-number disabled v-model="totalPlanProductionQuantity" :min="0"
+                            controls-position="right" style="width: 100%"></el-input-number>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
@@ -122,14 +122,9 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="工单数量" prop="planProductionQuantity">
-                        <el-input-number 
-                            v-model="form.planProductionQuantity" 
-                            :min="0" 
-                            :max="totalRemainingQuantity"
-                            controls-position="right"
-                            style="width: 100%"
-                            :disabled="form.status !== 'PENDING'"
-                        ></el-input-number>
+                        <el-input-number v-model="form.planProductionQuantity" :min="0" :max="totalRemainingQuantity"
+                            controls-position="right" style="width: 100%"
+                            :disabled="form.status !== 'PENDING'"></el-input-number>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -172,7 +167,7 @@
 
         <div slot="footer" class="dialog-footer">
             <template v-if="dialogStatus === 'edit'">
-                <el-button type="info"   v-if="form.status === 'PENDING' || form.status === 'PAUSED'" @click="handleOneKeyProduction">
+                <el-button type="info" v-if="form.status === 'IN_PROGRESS'" @click="handleOneKeyProduction">
                     一键生产
                 </el-button>
                 <el-button type="success" @click="handleStartProduction" :disabled="!canStart"
@@ -460,7 +455,7 @@ export default {
                 this.$message.error('工单数量必须大于0且不能超过计划生产数量')
                 return
             }
-            
+
 
             const { data: inProgressWorkOrders } = await getData('production_plan_work_order', {
                 query: {
