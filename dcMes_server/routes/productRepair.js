@@ -22,13 +22,6 @@ router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
 
 
 
-    if (materialProcessFlowData.isProduct && !materialProcessFlowData.productionPlanWorkOrderId) {
-      return res.status(200).json({
-        code: 404,
-        message: "该条码没有关联生产计划,不是主产品,无法创建维修单",
-      });
-    }
-
     if (
       form.materialId &&
       String(form.materialId) !== String(materialProcessFlowData.materialId)
