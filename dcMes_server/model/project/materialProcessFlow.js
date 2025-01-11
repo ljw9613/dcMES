@@ -78,7 +78,7 @@ const materialProcessFlowSchema = new mongoose.Schema({
   materialCode: { type: String }, // 物料编码
   materialName: { type: String }, // 物料名称
   materialSpec: { type: String }, // 规格型号
-  isProduct: { type: Boolean },//是否成品工艺
+  isProduct: { type: Boolean }, //是否成品工艺
 
   businessType: { type: String }, // 业务类型
 
@@ -112,6 +112,7 @@ const materialProcessFlowSchema = new mongoose.Schema({
     ref: "production_plan_work_order",
     description: "工单ID",
   },
+
 
   // 天科数据上传
   dataUpload: { type: Number, required: false },

@@ -18,11 +18,20 @@ const asyncK3Schedule = async () => {
   // 每天凌晨2点执行备份
   schedule.scheduleJob("0 3 * * *", async () => {
     try {
-      // 计算6个月前的日期
+      // 计算昨天的日期范围
       const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 6);
+      startDate.setDate(startDate.getDate() - 1);
+      startDate.setHours(0, 0, 0, 0); // 设置为昨天的开始时间
+
       const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setDate(endDate.getDate() - 1);
+      endDate.setHours(23, 59, 59, 999); // 设置为昨天的结束时间
+
+      // // 计算6个月前的日期
+      // const startDate = new Date();
+      // startDate.setMonth(startDate.getMonth() - 6);
+      // const endDate = new Date();
+      // endDate.setMonth(endDate.getMonth() + 1);
 
       const filterString = [
         {

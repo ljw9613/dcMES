@@ -67,8 +67,8 @@
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">主条码生产流程列表</i>
                     <div>
-                    <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
-                    <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
+                        <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
+                        <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
 
                     </div>
                 </div>
@@ -444,8 +444,7 @@
                         </el-table-column>
                         <el-table-column label="操作" width="120" fixed="right">
                             <template slot-scope="scope">
-                                <el-button type="text"
-                                    @click="handleView(scope.row)">
+                                <el-button type="text" @click="handleView(scope.row)">
                                     查看详情
                                 </el-button>
 
@@ -492,6 +491,7 @@ import { unbindComponents, updateFlowNodes } from '@/api/materialProcessFlowServ
 import XLSX from 'xlsx';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
+import { query } from "quill";
 
 export default {
     name: 'SaleOrder',
@@ -599,16 +599,29 @@ export default {
         // 修改 handleUnbind 方法
         async handleUnbind(row) {
             try {
+                // 查询维修记录
+                let barcodeRepair = await getData('product_repair', { 
+                    query: { 
+                        barcode: this.dataForm.barcode, 
+                        status: 'PENDING_REVIEW' 
+                    } 
+                });
+
+                if (barcodeRepair.data.length === 0) {
+                    this.$message.warning('请先创建维修记录，再进行解绑操作');
+                    return;
+                }
+
                 const { value: reason } = await this.$confirm(
                     '此操作将解绑当前工序及其后续所有工序的物料，是否继续？',
                     '解绑确认', {
-                        confirmButtonText: '确定',
-                        cancelButtonText: '取消',
-                        type: 'warning',
-                        showInput: true,
-                        inputPlaceholder: '请输入解绑原因(非必填)',
-                        inputValidator: (value) => true
-                    }
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning',
+                    showInput: true,
+                    inputPlaceholder: '请输入解绑原因(非必填)',
+                    inputValidator: (value) => true
+                }
                 );
 
                 const loading = this.$loading({
@@ -634,7 +647,7 @@ export default {
                             // 1. 更新主数据
                             if (response.data) {
                                 this.dataForm = JSON.parse(JSON.stringify(response.data));
-                                
+
                                 // 2. 重新处理流程图数据
                                 if (this.dataForm.processNodes) {
                                     this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
@@ -1399,9 +1412,9 @@ export default {
                 req.limit = this.pageSize;
                 req.sort = { createAt: -1 };
                 // req.populate = JSON.stringify([{ path: 'productionPlanWorkOrderId' },{ path: 'materialId' }]);
-                
+
                 const result = await getData("sale_order_barcode_mapping", req);
-                
+
                 if (result.code !== 200) {
                     throw new Error(result.msg || '获取数据失败');
                 }
@@ -1409,9 +1422,9 @@ export default {
                 // 转换数据为Excel格式
                 const excelData = result.data.map(item => ({
                     '型号': item.materialCode || '-',
-                    '客户订单': item.saleOrderNo?item.saleOrderNo: '-',
+                    '客户订单': item.saleOrderNo ? item.saleOrderNo : '-',
                     'UDI序列号': item.barcode || '-',//
-                    '生产批号':item.productionPlanWorkOrderId? item.productionPlanWorkOrderId.productionOrderNo : '-',
+                    '生产批号': item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.productionOrderNo : '-',
                     '外箱UDI': item.barcode || '-',//
                     '彩盒UDI': item.barcode || '-',//
                     '产品UDI': item.barcode || '-',//

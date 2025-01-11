@@ -20,15 +20,27 @@
                     </el-col>
                     <el-col :span="4">
                         <el-form-item label="处理方案">
-                            <el-select v-model="searchForm.solution" clearable placeholder="请选择处理方案" style="width: 100%">
-          <el-option v-for="dict in dict.type.repair_solution" :key="dict.value" :label="dict.label"
-            :value="dict.value" />
-        </el-select>
+                            <el-select v-model="searchForm.solution" clearable placeholder="请选择处理方案"
+                                style="width: 100%">
+                                <el-option v-for="dict in dict.type.repair_solution" :key="dict.value"
+                                    :label="dict.label" :value="dict.value" />
+                            </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
-                        <el-form-item label="生产批号">
-                            <el-input v-model="searchForm.batchNumber" placeholder="请输入生产批号" clearable></el-input>
+                        <el-form-item label="生产工单">
+                            <el-input v-model="searchForm.workOrderNo" placeholder="请输入生产工单" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="4">
+                        <el-form-item label="销售订单">
+                            <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <!-- 生产订单 -->
+                    <el-col :span="4">
+                        <el-form-item label="生产订单">
+                            <el-input v-model="searchForm.productionOrderNo" placeholder="请输入生产订单" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
@@ -72,36 +84,63 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="产品型号" align="center" prop="materialSpec" />
+                <el-table-column label="产品型号" align="center" prop="materialSpec" >
+                    <template slot-scope="scope">
+                        {{ scope.row.materialSpec ? scope.row.materialSpec : '暂无数据' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="销售订单" align="center" prop="saleOrderNo" />
+                <el-table-column label="生产订单" align="center" prop="productionOrderNo" />
+                <el-table-column label="生产工单" align="center" prop="workOrderNo" />
 
-                <el-table-column label="生产批号" align="center" prop="batchNumber" />
-
-                <el-table-column label="维修人" align="center" prop="repairPerson.name" />
+                <el-table-column label="维修上报人" align="center" prop="repairPerson.nickName" />
 
                 <el-table-column label="维修时间" align="center" width="160">
                     <template slot-scope="scope">
                         {{ formatDate(scope.row.repairTime) }}
                     </template>
                 </el-table-column>
+                <el-table-column label="业务类型" align="center" prop="businessType">
+                    <template slot-scope="scope">
+                        <dict-tag :options="dict.type.businessType" :value="scope.row.businessType" />
+                    </template>
+                </el-table-column>
+                <el-table-column label="处理方案" align="center" prop="solution" />
 
-                <el-table-column label="审核人" align="center" prop="reviewer.name" />
+
+                <el-table-column label="不良现象" align="center" prop="defectDescription" >
+                    <template slot-scope="scope">
+                        {{ scope.row.defectDescription ? scope.row.defectDescription : '暂无数据' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="分析原因" align="center" prop="causeAnalysis" >
+                    <template slot-scope="scope">
+                        {{ scope.row.causeAnalysis ? scope.row.causeAnalysis : '暂无数据' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="维修描述" align="center" prop="repairDescription" >
+                    <template slot-scope="scope">
+                        {{ scope.row.repairDescription ? scope.row.repairDescription : '暂无数据' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="审核人" align="center" prop="reviewer.nickName">
+                    <template slot-scope="scope">
+                        {{ scope.row.reviewer ? scope.row.reviewer.nickName : '暂无数据' }}
+                    </template>
+                </el-table-column>
 
                 <el-table-column label="审核时间" align="center" width="160">
                     <template slot-scope="scope">
                         {{ formatDate(scope.row.reviewTime) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="不良现象" align="center" prop="defectDescription" />
-                <el-table-column label="分析原因" align="center" prop="causeAnalysis" />
-                <el-table-column label="维修描述" align="center" prop="repairDescription" />
-                <el-table-column label="处理方案" align="center" prop="solution" />
-                <el-table-column label="业务类型" align="center" prop="businessType" />
-               
                 <el-table-column label="维修结果" align="center" width="100" fixed="right">
                     <template slot-scope="scope">
-                        <el-tag :type="getRepairResultType(scope.row.repairResult)" v-if="scope.row.repairResult"> 
-                            {{ getRepairResultText(scope.row.repairResult) }}
+                        <el-tag :type="getRepairResultType(scope.row.repairResult)" v-if="scope.row.repairResult">
+                            {{ scope.row.repairResult ? getRepairResultText(scope.row.repairResult) : '暂无数据' }}
                         </el-tag>
+                        <el-tag v-else>暂无数据</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="状态" align="center" width="100" fixed="right">
@@ -116,14 +155,17 @@
                         <el-button type="text" size="small" @click="handleView(scope.row)" style="color: #409EFF;">
                             <i class="el-icon-view"></i> 查看
                         </el-button>
-                        <el-button type="text" size="small" @click="handleReview(scope.row)" style="color: green;" v-if="scope.row.status=='PENDING_REVIEW'">
+                        <el-button type="text" size="small" @click="handleReview(scope.row)" style="color: green;"
+                            v-if="scope.row.status == 'PENDING_REVIEW'">
                             <i class="el-icon-edit"></i> 审核
                         </el-button>
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)" v-if="scope.row.status=='PENDING_REVIEW'">
+                        <el-button type="text" size="small" @click="handleEdit(scope.row)"
+                            v-if="scope.row.status == 'PENDING_REVIEW'">
                             <i class="el-icon-edit"></i> 修改
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)" v-if="scope.row.status=='PENDING_REVIEW'">
-                            <i class="el-icon-delete"></i> 删除
+                        <el-button type="text" size="small" class="delete-btn" @click="handleVoid(scope.row)"
+                            v-if="scope.row.status == 'PENDING_REVIEW'">
+                            <i class="el-icon-delete"></i> 作废
                         </el-button>
                     </template>
                 </el-table-column>
@@ -142,7 +184,8 @@
                     </el-radio-group>
                 </el-form-item>
                 <el-form-item label="不利影响评价" prop="adverseEffect">
-                    <el-input type="textarea" v-model="reviewForm.adverseEffect" :rows="3" placeholder="请输入不利影响评价"></el-input>
+                    <el-input type="textarea" v-model="reviewForm.adverseEffect" :rows="3"
+                        placeholder="请输入不利影响评价"></el-input>
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -158,21 +201,19 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
 import { query } from "quill";
 import { refreshMachine } from "@/api/machine";
-
-
 export default {
     name: 'ProductionLine',
-  dicts: ['repair_solution'],
+    dicts: ['repair_solution', 'businessType'],
     components: {
         EditDialog
     },
     data() {
         return {
             searchForm: {
-                    barcode:"",
-                    materialSpec:"",
-                    batchNumber:"",
-                    status:"",
+                barcode: "",
+                materialSpec: "",
+                batchNumber: "",
+                status: "",
             },
             tableList: [],
             total: 0,
@@ -237,8 +278,14 @@ export default {
             if (this.searchForm.solution) {
                 req.query.$and.push({ solution: { $regex: this.searchForm.solution, $options: 'i' } });
             }
-            if (this.searchForm.batchNumber) {
-                req.query.$and.push({ batchNumber: { $regex: this.searchForm.batchNumber, $options: 'i' } });
+            if (this.searchForm.workOrderNo) {
+                req.query.$and.push({ workOrderNo: { $regex: this.searchForm.workOrderNo, $options: 'i' } });
+            }
+            if (this.searchForm.saleOrderNo) {
+                req.query.$and.push({ saleOrderNo: { $regex: this.searchForm.saleOrderNo, $options: 'i' } });
+            }
+            if (this.searchForm.productionOrderNo) {
+                req.query.$and.push({ productionOrderNo: { $regex: this.searchForm.productionOrderNo, $options: 'i' } });
             }
             if (this.searchForm.status) {
                 req.query.$and.push({ status: this.searchForm.status });
@@ -271,6 +318,10 @@ export default {
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.count = true;
+                req.sort = {
+                    _id: -1
+                };
+                req.populate = JSON.stringify([{ path: 'repairPerson', select: 'nickName' }, { path: 'reviewer', select: 'nickName' }]);
                 const result = await getData("product_repair", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
@@ -324,7 +375,21 @@ export default {
             this.dataForm = JSON.parse(JSON.stringify(row));
             this.dialogFormVisible = true;
         },
-
+        handleVoid(row) {
+            this.$confirm('确认要作废该产品维修记录吗?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(async () => {
+                let req = {
+                    query: { _id: row._id },
+                    update: { $set: { status: 'VOIDED' } }
+                };
+                await updateData('product_repair', req);
+                this.$message.success('作废成功');
+                this.fetchData();
+            });
+        },
         handleDelete(row) {
             this.$confirm('确认要删除该产品维修记录吗?', '提示', {
                 confirmButtonText: '确定',
@@ -332,7 +397,7 @@ export default {
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('product_repair', {query:{_id:row._id}});
+                    await removeData('product_repair', { query: { _id: row._id } });
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {
@@ -370,11 +435,11 @@ export default {
                 try {
                     this.listLoading = true;
                     const ids = this.selection.map(item => item._id);
-                    await removeData('product_repair', { 
-                        query: { 
+                    await removeData('product_repair', {
+                        query: {
                             _id: { $in: ids },
                             status: { $ne: 'REVIEWED' } // 防止删除已审核的记录
-                        } 
+                        }
                     });
                     this.$message.success('批量删除成功');
                     this.selection = []; // 清空选择
@@ -435,7 +500,7 @@ export default {
                     this.$message.warning('请选择维修结果');
                     return;
                 }
-                
+
                 const reqData = {
                     repairResult: this.reviewForm.repairResult,
                     adverseEffect: this.reviewForm.adverseEffect,
@@ -444,7 +509,7 @@ export default {
                     reviewer: this.$store.state.user.userInfo // 假设存储了当前用户信息
                 };
 
-                await updateData('product_repair', { 
+                await updateData('product_repair', {
                     query: { _id: this.reviewForm._id },
                     update: reqData
                 });

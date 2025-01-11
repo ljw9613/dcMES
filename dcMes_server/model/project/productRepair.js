@@ -8,26 +8,25 @@ const productRepairSchema = new mongoose.Schema({
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 关联物料表
   materialNumber: { type: String }, // 物料编码
   materialName: { type: String }, // 物料名称
-  materialSpec: { type: String, required: true }, // 产品型号
-  batchNumber: { type: String, required: true }, // 生产批号
+  materialSpec: { type: String }, // 产品型号
+  batchNumber: { type: String }, // 生产批号
 
   // 维修信息
   repairPerson: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 维修人
-  repairTime: { type: Date }, // 维修时间
+  repairTime: { type: Date, default: Date.now }, // 维修时间
   defectDescription: { type: String, required: true }, // 不良现象
   causeAnalysis: { type: String }, // 分析原因
   repairDescription: { type: String }, // 维修描述
   solution: { type: String }, // 处理方案
-  repairResult: { 
-    type: String, 
+  repairResult: {
+    type: String,
     enum: ["QUALIFIED", "UNQUALIFIED"], // 合格/不合格
   }, // 维修结果
-  adverseEffect:{ type: String }, //不利影响评价
+  adverseEffect: { type: String }, //不利影响评价
 
   // 审核信息
   reviewer: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 审核人
   reviewTime: { type: Date }, // 审核时间
-
 
   //工单信息
   productionPlanWorkOrderId: {
@@ -35,18 +34,18 @@ const productRepairSchema = new mongoose.Schema({
     ref: "production_plan_work_order",
     description: "工单ID",
   },
-
-  // 销售订单相关信息
-  saleOrderId: { type: mongoose.Schema.ObjectId, ref: "k3_SAL_SaleOrder" }, // 销售订单ID
-  saleOrderNo: { type: String }, // 销售订单号
-
+  workOrderNo: { type: String }, // 任务工单号
+  saleOrderId: { type: mongoose.Schema.ObjectId, ref: "k3_SAL_SaleOrder" }, // 关联销售订单
+  saleOrderNo: { type: String }, // 销售单号
+  productionOrderId: { type: mongoose.Schema.ObjectId, ref: "k3_PRD_MO" }, // 关联生产订单
+  productionOrderNo: { type: String }, // 生产单号
 
   // 业务信息
   businessType: { type: String }, // 业务类型
   status: {
     type: String,
     enum: ["PENDING_REVIEW", "REVIEWED", "VOIDED"], // 待审核、已审核、已作废
-    default: "PENDING_REVIEW"
+    default: "PENDING_REVIEW",
   }, // 状态
 
   // 基础字段
@@ -54,7 +53,7 @@ const productRepairSchema = new mongoose.Schema({
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
   updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
   createAt: { type: Date, default: Date.now },
-  updateAt: { type: Date, default: Date.now }
+  updateAt: { type: Date, default: Date.now },
 });
 
 // 添加索引
