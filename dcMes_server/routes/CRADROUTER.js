@@ -46,6 +46,9 @@ const InspectionData = require("../model/project/InspectionData");
 const unbindRecord = require("../model/project/unbindRecord");
 const sale_order_barcode_mapping = require("../model/project/saleOrderBarcodeMapping");
 
+//产品维修模块
+const productRepair = require("../model/project/productRepair");
+
 
 
 // 引入 udi 模型
@@ -90,5 +93,9 @@ ADDROUTER(router, "sale_order_barcode_mapping", sale_order_barcode_mapping);
 //wms模型
 ADDROUTER(router, "warehouse_entry", warehouseEntry);
 ADDROUTER(router, "warehouse_ontry", warehouseOntry);
+
+//产品维修模块
+ADDROUTER(router, "product_repair", productRepair);
+
 
 module.exports = router;
