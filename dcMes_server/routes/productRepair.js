@@ -20,8 +20,6 @@ router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
     console.log(form, "materialId");
     console.log(materialProcessFlowData, "materialProcessFlowData");
 
-
-
     if (
       form.materialId &&
       String(form.materialId) !== String(materialProcessFlowData.materialId)
@@ -91,8 +89,8 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
       });
     } else {
       //新增
-      const errors = [];
-      const successRecords = [];
+      let errors = [];
+      let successRecords = [];
 
       // 批量创建维修记录
       for (const barcode of form.barcodes) {
@@ -164,9 +162,13 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
           }
         }
       }
+      console.log(successRecords, "successRecords");
+      console.log(errors, "errors");
+      console.log(form, "form");
+      console.log(userId, "userId");
 
       res.json({
-        code: successRecords.length > 0 ? 200 : 400,
+        code: 200,
         message:
           successRecords.length > 0 ? "维修单创建成功" : "维修单创建失败",
         data: {

@@ -306,7 +306,7 @@ export default {
                 type: 'warning'
             }).then(async () => {
                 try {
-                    await removeData('production_line', row._id);
+                    await removeData('production_line', { query: { _id: row._id } });
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {

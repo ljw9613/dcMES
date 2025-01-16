@@ -45,6 +45,7 @@ const processNodeSchema = new mongoose.Schema(
     isKeyMaterial: { type: Boolean, default: false }, // 是否关键物料
     isBatch: { type: Boolean, default: false }, // 是否批次物料
     batchQuantity: { type: Number, default: 0 }, // 批次用量
+    isRfid: { type: Boolean, default: false }, // 是否RFID物料
 
     // 条码状态
     barcode: { type: String, default: "" }, // 条码信息

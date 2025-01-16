@@ -485,6 +485,13 @@
                             </el-switch>
                         </template>
                     </el-table-column>
+                    <el-table-column label="RFID" prop="isRfid">
+                        <template slot-scope="scope">
+                            <el-switch v-model="scope.row.isRfid" :active-value="true" :inactive-value="false" disabled>
+                            </el-switch>
+                        </template>
+                    </el-table-column>
+
                     <el-table-column label="操作" fixed="right" width="150">
                         <template slot-scope="scope">
                             <el-button type="text" size="small" @click="handleEditMaterial(scope.row)">编辑</el-button>
@@ -580,6 +587,11 @@
                     <el-col :span="12">
                         <el-form-item label="是否包装箱">
                             <el-switch v-model="materialForm.isPackingBox" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="RFID">
+                            <el-switch v-model="materialForm.isRfid" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
@@ -805,7 +817,12 @@ export default {
                         quantity: 1,
                         unit: '个',
                         scanOperation: true,
-                        isComponent: false
+                        isComponent: false,
+                        isRfid: false,
+                        isKey: false,
+                        isBatch: false,
+                        batchQuantity: 0,
+
                     };
                     // 清空物料选项
                     this.materialOptions = [];
@@ -824,7 +841,11 @@ export default {
                 quantity: 1,
                 unit: '个',
                 scanOperation: true,
-                isComponent: false
+                isComponent: false,
+                isRfid: false,
+                isKey: false,
+                isBatch: false,
+                batchQuantity: 0,
             },
             materialOptions: [],
             materialRules: {
@@ -1470,7 +1491,8 @@ export default {
                 isPackingBox: false,  // 添加包装箱字段重置
                 isBatch: false,       // 添加批次物料字段重置
                 batchQuantity: 0,     // 添加批次用量字段重置
-                isKey: false          // 添加关键物料字段重置
+                isKey: false,          // 添加关键物料字段重置
+                isRfid: false,         // 添加RFID字段重置
             };
             
             this.$nextTick(() => {
@@ -1514,7 +1536,8 @@ export default {
                     isBatch: Boolean(currentMaterial.isBatch),
                     isPackingBox: Boolean(currentMaterial.isPackingBox),
                     batchQuantity: currentMaterial.batchQuantity || 0,
-                    isKey: Boolean(currentMaterial.isKey)
+                    isKey: Boolean(currentMaterial.isKey),
+                    isRfid: Boolean(currentMaterial.isRfid)
                 };
 
                 // 初始化物料选项
@@ -1612,6 +1635,7 @@ export default {
                             isBatch: this.materialForm.isBatch,
                             batchQuantity: this.materialForm.batchQuantity,
                             isKey: this.materialForm.isKey,
+                            isRfid: this.materialForm.isRfid,
                             createBy: this.$store.getters.name
                         };
 

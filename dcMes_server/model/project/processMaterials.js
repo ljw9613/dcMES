@@ -21,6 +21,8 @@ var processMaterialsSchema = new mongoose.Schema({
   isComponent: { type: Boolean, default: false }, // 是否组件
   isBatch: { type: Boolean, default: false }, // 是否批次物料
   batchQuantity: { type: Number, default: 0 }, // 批次用量
+  //是否为RFID物料
+  isRfid: { type: Boolean, default: false }, // 是否RFID物料
   // 是否包装箱
   isPackingBox: { type: Boolean, default: false }, // 是否包装箱
   createBy: { type: String }, // 创建人

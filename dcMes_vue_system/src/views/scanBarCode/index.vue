@@ -35,8 +35,9 @@
                                     <div class="item-option">
                                         <div class="item-info">
                                             <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{ item.FUseOrgId_FName
-                                                }}</el-tag>
+                                            <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{
+                                                item.FUseOrgId_FName
+                                            }}</el-tag>
                                         </div>
                                     </div>
                                 </template>
@@ -86,7 +87,7 @@
             </el-card>
         </div>
         <div class="right-content">
-            <template v-if="mainMaterialId && processStepId">
+            <template v-if="mainMaterialId && processStepId && processStepData.processType !== 'F'">
                 <el-card class="scan-card">
                     <!-- 标题部分 -->
                     <div class="card-header">
@@ -159,9 +160,8 @@
                                         <div class="input-with-status">
                                             <el-input v-model="scanForm.barcodes[material._id]"
                                                 :placeholder="!material.scanOperation ? '无需扫码' : '请扫描子物料条码'"
-                                                :class="{ 'valid-input': validateStatus[material._id] }" 
-                                                :readonly="material.scanOperation"
-                                                :disabled="!material.scanOperation">
+                                                :class="{ 'valid-input': validateStatus[material._id] }"
+                                                :readonly="material.scanOperation" :disabled="!material.scanOperation">
                                                 <template slot="prefix">
                                                     <i class="el-icon-full-screen"></i>
                                                 </template>
@@ -177,7 +177,7 @@
                                                     </template>
                                                 </template>
                                             </el-input>
-                                            <div class="status-indicator" 
+                                            <div class="status-indicator"
                                                 :class="{ 'valid': validateStatus[material._id] }"
                                                 v-if="material.scanOperation">
                                                 <i :class="getValidateIcon(material._id)"></i>
@@ -201,7 +201,7 @@
                 <div class="init-tip">
                     <div class="overlay">
                         <i class="el-icon-warning-outline pulse"></i>
-                        <p>请先初始化工序设置</p>
+                        <p>请先初始化工序设置,请选择非托盘工序</p>
                     </div>
                 </div>
             </template>
@@ -236,6 +236,9 @@ import bdcg from "@/assets/tone/bdcg.mp3";
 import cfbd from "@/assets/tone/cfbd.mp3";
 import pcwlxz from "@/assets/tone/pcwlxz.mp3";
 import cxwgd from "@/assets/tone/cxwgd.mp3";
+import dwx from "@/assets/tone/dwx.mp3";
+import wxsb from "@/assets/tone/wxsb.mp3";
+
 import TscPrinter from '@/components/tscInput'
 import StatusPopup from '@/components/StatusPopup/index.vue'
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
@@ -307,6 +310,10 @@ export default {
 
             showPopup: false,
             popupType: 'ok',
+
+            craftInfo: {}, // 保存工艺信息
+
+            processStepData: {}, // 保存工序信息
         }
     },
     computed: {
@@ -433,10 +440,9 @@ export default {
                 if (response.code === 200 && response.data) {
                     const { materialId, processStepId, lineId, productionPlanWorkOrderId } = response.data;
                     console.log("materialId:", materialId);
-                    console.log("processStepId:", processStepId.processName);
                     console.log("lineId:", lineId);
                     console.log("workProductionPlanWorkOrderId:", productionPlanWorkOrderId);
-                    if (materialId && processStepId) {
+                    if (materialId && processStepId && processStepId.processName) {
                         console.log("materialId:", materialId);
                         console.log("processStepId:", processStepId.processName);
                         console.log("lineId:", lineId);
@@ -475,6 +481,13 @@ export default {
                     throw new Error(response.message || '获取机器进度失败');
                 }
             } catch (error) {
+                //先清空缓存
+                localStorage.removeItem('mainMaterialId');
+                localStorage.removeItem('processStepId');
+                this.mainMaterialId = '';
+                this.processStepId = '';
+                this.formData.productModel = '';
+                this.formData.processStep = '';
                 console.error('自动初始化失败:', error);
                 this.$message.error('自动初始化失败: ' + error.message);
             }
@@ -527,7 +540,7 @@ export default {
                 rules.sort((a, b) => b.priority - a.priority);
 
                 this.materialBarcodeRules = rules;
-                
+
                 console.log('条码规则列表:', {
                     productRules: rules.filter(r => r.isProductSpecific),
                     globalRules: rules.filter(r => !r.isProductSpecific)
@@ -689,11 +702,13 @@ export default {
                 return;
             }
             this.formData.processStep = processId;
+            this.processStepData = processId;
             // this.processStepId = processId; // 缓存选中的工序ID
         },
 
         // 保存按钮处理
         async handleSave() {
+
             if (!this.formData.productModel || !this.formData.processStep || !this.formData.productLine) {
                 this.$message.warning('请选择产品型号、工序和产线');
                 return;
@@ -792,6 +807,8 @@ export default {
 
                 const processStep = stepResponse.data[0];
 
+                this.processStepData = processStep;
+
                 // 获取该工序所属的工艺信息
                 const craftResponse = await getData('craft', {
                     query: { _id: processStep.craftId },
@@ -804,6 +821,8 @@ export default {
                 }
 
                 const craft = craftResponse.data[0];
+
+                this.craftInfo = craft; // 保存工艺信息
 
                 // 获取工艺对应的物料信息
                 const material = await this.getMaterialById(craft.materialId);
@@ -927,7 +946,7 @@ export default {
                 // 遍历规则进行匹配
                 for (const rule of rules) {
                     console.log(`尝试匹配规则: ${rule.name} (${rule.isProductSpecific ? '产品特定' : '全局规则'})`);
-                    
+
                     let isValid = true;
                     let materialCode = null;
                     let relatedBill = null;
@@ -1183,6 +1202,8 @@ export default {
         async handleUnifiedScan(value) {
             if (!value) return;
 
+            console.log('工艺信息:', this.craftInfo);
+
             if (this.scanTimer) {
                 clearTimeout(this.scanTimer);
             }
@@ -1191,6 +1212,8 @@ export default {
                 try {
                     const cleanValue = value.trim().replace(/[\r\n]/g, '');
                     if (!cleanValue) return;
+
+
 
                     const isValidResult = await this.validateBarcode(cleanValue);
                     if (!isValidResult.isValid) {
@@ -1211,8 +1234,40 @@ export default {
                         return;
                     }
 
+
+
                     const materialCode = isValidResult.materialCode;
                     let matched = false;
+
+                    // TODO 国内检查非成品条码检测是否有未完成的维修记录
+                    if (this.craftInfo && ((!this.craftInfo.isProduct) || (this.craftInfo.materialCode !== materialCode))) {
+                        // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+                        console.log('非成品条码检测是否有未完成的维修记录');
+                        const repairRecord = await getData('product_repair', {
+                            query: { barcode: cleanValue },
+                            sort: { _id: -1 }
+                        });
+                        if (repairRecord.data.length > 0) {
+                            if (repairRecord.data[0].status == 'PENDING_REVIEW') {
+                                this.unifiedScanInput = '';
+                                this.$refs.scanInput.focus();
+                                this.$message.error('该条码存在未完成的维修记录');
+                                this.popupType = 'ng';
+                                this.showPopup = true;
+                                tone(dwx);
+                                return;
+                            }
+                            if (repairRecord.data[0].status == 'REVIEWED' && repairRecord.data[0].repairResult !== 'QUALIFIED') {
+                                this.unifiedScanInput = '';
+                                this.$refs.scanInput.focus();
+                                this.$message.error('该条码已完成维修,但维修结果为不合格');
+                                this.popupType = 'ng';
+                                this.showPopup = true;
+                                tone(wxsb);
+                                return;
+                            }
+                        }
+                    }
 
                     // 检查主物料
                     if (materialCode === this.mainMaterialCode) {
@@ -1254,7 +1309,7 @@ export default {
                                         const count = await this.queryBatchUsageCount(value, material._id);
 
                                         // 如果设置了使用次数限制且已达到限制
-                                        if (material.batchQuantity && count >= material.batchQuantity) {
+                                        if (material.batchQuantity && count >= material.batchQuantity && material.batchQuantity > 0) {
                                             this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
                                             this.popupType = 'ng';
@@ -1271,7 +1326,7 @@ export default {
                                         const currentUsage = parseInt(localStorage.getItem(usageKey) || '0');
 
                                         // 只有当达到使用限制时才清除
-                                        if (material.batchQuantity && currentUsage >= material.batchQuantity) {
+                                        if (material.batchQuantity && currentUsage >= material.batchQuantity && material.batchQuantity > 0) {
                                             localStorage.removeItem(cacheKey);
                                             localStorage.removeItem(usageKey);
                                             this.$set(this.scanForm.barcodes, material._id, '');
@@ -1325,7 +1380,7 @@ export default {
 
                     // 检查是否所有需要扫描的条码都已扫描
                     const allScanned = Object.values(this.validateStatus).every(status => {
-                        const material = this.processMaterials.find(m => 
+                        const material = this.processMaterials.find(m =>
                             this.validateStatus[m._id] === status && !m.scanOperation
                         );
                         return material ? true : status === true;
@@ -1351,7 +1406,7 @@ export default {
                     } else {
                         // 显示剩余需要扫描的物料
                         const remainingMaterials = this.processMaterials
-                            .filter(material => 
+                            .filter(material =>
                                 !this.validateStatus[material._id] && material.scanOperation
                             )
                             .map(material => `${material.materialName}(${material.materialCode})`)
@@ -1473,7 +1528,7 @@ export default {
                 // 1. 验证所有需要扫码的条码是否已扫描
                 const allBarcodesFilled = Object.values(this.validateStatus).every(status => {
                     // 如果是无需扫码的物料,跳过验证
-                    const material = this.processMaterials.find(m => 
+                    const material = this.processMaterials.find(m =>
                         this.validateStatus[m._id] === status && !m.scanOperation
                     );
                     return material ? true : status === true;
@@ -1898,7 +1953,7 @@ export default {
                         const count = await this.queryBatchUsageCount(cachedBarcode, material.materialId);
                         console.log(count, 'count')
                         // 如果count等于批次用量，则清除缓存
-                        if (count === material.batchQuantity) {
+                        if (count === material.batchQuantity && material.batchQuantity > 0) {
                             this.$message.warning('批次条码使用次数已达到上限');
                             this.popupType = 'ng';
                             this.showPopup = true;

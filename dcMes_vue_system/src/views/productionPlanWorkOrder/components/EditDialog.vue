@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="dialogTitle" :visible.sync="visible" width="60%" @close="handleClose">
+    <el-dialog :title="dialogTitle" :visible.sync="visible" v-if="visible" width="60%" @close="handleClose">
         <el-form ref="form" :model="form" :rules="rules" label-width="120px" size="small">
             <el-row :gutter="20">
                 <el-col :span="12">
@@ -122,9 +122,8 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="工单数量" prop="planProductionQuantity">
-                        <el-input-number v-model="form.planProductionQuantity" :min="0" :max="totalRemainingQuantity"
-                            controls-position="right" style="width: 100%"
-                            :disabled="form.status !== 'PENDING'"></el-input-number>
+                        <el-input-number v-model="form.planProductionQuantity" :min="0" controls-position="right"
+                            style="width: 100%" :disabled="form.status !== 'PENDING'"></el-input-number>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -178,8 +177,8 @@
                     v-if="form.status === 'IN_PROGRESS'">
                     暂停生产
                 </el-button>
-                <el-button type="danger" @click="handleCancelProduction" :disabled="form.status !== 'IN_PROGRESS'"
-                    v-if="form.status === 'IN_PROGRESS'">
+                <el-button type="danger" @click="handleCancelProduction" 
+                    v-if="form.status === 'PENDING'">
                     工单作废
                 </el-button>
             </template>
@@ -289,6 +288,7 @@ export default {
         },
         rowData: {
             handler(val) {
+                console.log(val, 'this.rowDatahandler')
                 if (val && this.visible) {
                     this.initFormData()
                 }
@@ -323,8 +323,22 @@ export default {
                 this.$message.error('获取工序数据失败')
             }
         },
-        initFormData() {
+        async initFormData() {
             if (this.dialogStatus === 'edit') {
+                console.log(this.rowData, 'this.rowData')
+                // 查询所有当前生产订单的计划生产数量
+                let planWorkOrder = await getData('production_plan_work_order', { query: { productionOrderId: this.rowData.productionOrderId }, select: 'planProductionQuantity outputQuantity' });
+                let planProductionQuantity = 0;
+                let outputQuantity = 0;
+                console.log(planWorkOrder.data, 'planWorkOrder.data')
+                planWorkOrder.data.forEach(item => {
+                    planProductionQuantity += item.planProductionQuantity;
+                    outputQuantity += item.outputQuantity;
+                });
+                this.totalPlanProductionQuantity = planProductionQuantity;
+                this.totalOutputQuantity = outputQuantity;
+                this.totalRemainingQuantity = Math.max(0, this.rowData.planQuantity - this.totalPlanProductionQuantity);
+                console.log(this.form, 'this.form')
                 this.form = { ...this.rowData }
             } else {
                 this.form = {

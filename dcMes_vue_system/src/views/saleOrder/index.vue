@@ -69,7 +69,8 @@
                 <el-row :gutter="20" v-show="showAdvanced">
                     <el-col :span="6">
                         <el-form-item label="物料编码">
-                            <el-input v-model="searchForm.FMaterialId" placeholder="请输入物料编码" clearable></el-input>
+                            <el-input v-model="searchForm.FMaterialId_FNumber" placeholder="请输入物料编码"
+                                clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -98,7 +99,8 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">销售订单列表</i>
-                    <!-- <el-button type="primary" @click="handleAdd">新增订单</el-button> -->
+                    <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
+                        @template-change="handleTemplateChange" />
                 </div>
             </div>
         </div>
@@ -111,7 +113,7 @@
             <template slot="law">
                 <el-table-column label="销售单号" prop="FBillNo">
                     <template slot-scope="scope">
-                        <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.FBillNo }}</el-link>
+                        {{ scope.row.FBillNo }}
                     </template>
                 </el-table-column>
 
@@ -123,8 +125,8 @@
 
                 <el-table-column label="客户" prop="FCustId" width="200">
                     <template slot-scope="scope">
-                        <el-tooltip :content="scope.row.FSettleAddress" placement="top">
-                            <span>{{ scope.row.FSettleId || '-' }}</span>
+                        <el-tooltip :content="scope.row.FCustId_FNumber" placement="top">
+                            <span>{{ scope.row.FCustId_FName || '-' }}</span>
                         </el-tooltip>
                     </template>
                 </el-table-column>
@@ -145,13 +147,13 @@
 
                 <el-table-column label="销售部门" prop="FSaleDeptId" width="120">
                     <template slot-scope="scope">
-                        {{ scope.row.FSaleDeptId || '-' }}
+                        {{ scope.row.FSaleDeptId_FName || '-' }}
                     </template>
                 </el-table-column>
 
                 <el-table-column label="销售员" prop="FSalerId" width="120">
                     <template slot-scope="scope">
-                        {{ scope.row.FSalerId || '-' }}
+                        {{ scope.row.FSalerId_FName || '-' }}
                     </template>
                 </el-table-column>
 
@@ -186,8 +188,8 @@
 
                 <el-table-column label="物料编码" prop="FMaterialId" width="120">
                     <template slot-scope="scope">
-                        <el-tooltip :content="scope.row.FMaterialName" placement="top">
-                            <span>{{ scope.row.FMaterialId || '-' }}</span>
+                        <el-tooltip :content="scope.row.FMaterialId_FNumber" placement="top">
+                            <span>{{ scope.row.FMaterialId_FNumber || '-' }}</span>
                         </el-tooltip>
                     </template>
                 </el-table-column>
@@ -214,7 +216,7 @@
 
                 <el-table-column label="单位" prop="FUnitID" width="80">
                     <template slot-scope="scope">
-                        {{ scope.row.FUnitID || '-' }}
+                        {{ scope.row.FUnitID_FName || '-' }}
                     </template>
                 </el-table-column>
 
@@ -230,9 +232,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="100">
+                <el-table-column label="操作" fixed="right" width="180">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
+                        <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -280,15 +284,45 @@
                 <el-button type="primary" @click="confirmSync">确 定</el-button>
             </div>
         </el-dialog>
+        <sale-order-ext-dialog :visible.sync="extDialogVisible" :sale-order-id="currentOrderId"
+            :sale-order-data="currentOrderData" @saved="handleExtSaved">
+        </sale-order-ext-dialog>
+
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { syncSAL_SaleOrder, getSyncStatus } from "@/api/K3Data";
+import SaleOrderExtDialog from './components/SaleOrderExtDialog.vue'
+import HirInput from '@/components/hirInput/index.vue'
 
 export default {
     name: 'SaleOrder',
+    components: {
+        SaleOrderExtDialog,
+        HirInput
+    },
+    computed: {
+        localPrintTemplate: {
+            get() {
+                try {
+                    const savedTemplate = localStorage.getItem('printTemplate_saleOrder');
+                    return savedTemplate ? JSON.parse(savedTemplate) : null;
+                } catch (error) {
+                    console.error('解析缓存模板失败:', error);
+                    return null;
+                }
+            },
+            set(value) {
+                try {
+                    localStorage.setItem('printTemplate_saleOrder', JSON.stringify(value));
+                } catch (error) {
+                    console.error('保存模板到缓存失败:', error);
+                }
+            }
+        }
+    },
     data() {
         return {
             searchForm: {
@@ -334,17 +368,36 @@ export default {
                 dateRange: [],
                 documentStatus: 'C',
                 billNo: ''
-            }
+            },
+            extDialogVisible: false,
+            currentOrderId: '',
+            currentOrderData: {},
+            printDialogVisible: false,
+            printData: {},
+            printTemplate: {},
+
         }
     },
     methods: {
+        handleTemplateChange(template) {
+            if (!template) return;
+
+            try {
+                this.printTemplate = template;
+                this.localPrintTemplate = template;
+                this.$message.success('打印模板已保存到本地');
+            } catch (error) {
+                console.error('保存打印模板失败:', error);
+                this.$message.error('保存打印模板失败');
+            }
+        },
         // ... 其他方法保持与 material 页面类似,修改相应的字段名和业务逻辑
         // 这里只列出一些需要特别修改的方法
         // 获取状态标签类型
         getStatusType(status) {
             const statusMap = {
                 'DRAFT': 'info',
-                'APPROVED': 'success',
+                'C': 'success',
                 'PROCESSING': 'warning',
                 'REJECTED': 'danger'
             }
@@ -355,7 +408,7 @@ export default {
         getStatusText(status) {
             const statusMap = {
                 'DRAFT': '草稿',
-                'APPROVED': '已审核',
+                'C': '已审核',
                 'PROCESSING': '审核中',
                 'REJECTED': '已拒绝'
             }
@@ -435,10 +488,10 @@ export default {
         },
 
         // 查看详情
-        handleView(row) {
-            this.dataForm = JSON.parse(JSON.stringify(row));
-            this.dialogStatus = 'view';
-            this.dialogFormVisible = true;
+        handleExt(row) {
+            this.currentOrderId = row._id
+            this.currentOrderData = row
+            this.extDialogVisible = true
         },
 
         // 编辑
@@ -798,7 +851,7 @@ export default {
 
             try {
                 let confirmMessage = '';
-                switch(this.syncForm.syncType) {
+                switch (this.syncForm.syncType) {
                     case 'all':
                         confirmMessage = '确认要同步所有销售订单数据吗？此操作可能需要较长时间';
                         break;
@@ -828,7 +881,7 @@ export default {
                         "FilterString": []
                     };
 
-                    switch(this.syncForm.syncType) {
+                    switch (this.syncForm.syncType) {
                         case 'date':
                             const [startDate, endDate] = this.syncForm.dateRange;
                             req.FilterString = [
@@ -971,9 +1024,48 @@ export default {
         beforeDestroy() {
             this.stopSyncProgressCheck();
         },
+
+        // 拓展信息保存成功的回调
+        handleExtSaved() {
+            this.fetchData() // 刷新列表数据
+        },
+
+        async handlePrint(row) {
+            const result = await getData('k3_SAL_SaleOrderExt', {
+                query: { FSaleOrderId: row._id }
+            })
+            let printData = { ...row };
+            if (result.code === 200 && result.data.length > 0) {
+                printData = { ...printData, ...result.data[0] }
+            }
+            //格式化时间
+            printData.FDate = this.formatDate(printData.FDate);
+            this.printData = printData;
+            console.log("🚀 ~ handlePrint ~ printData:", printData)
+            this.$nextTick(() => {
+                this.$refs.hirInput.handlePrints();
+            });
+
+        },
+
+        handlePrintDialogClose() {
+            this.printDialogVisible = false
+            this.currentOrderId = ''
+            this.currentOrderData = {}
+        }
     },
     created() {
         this.fetchData();
+
+        // 加载本地缓存的打印模板
+        const savedTemplate = this.localPrintTemplate;
+        if (savedTemplate) {
+            this.$nextTick(() => {
+                if (this.$refs.hirInput) {
+                    this.$refs.hirInput.handleTemplateChange(savedTemplate);
+                }
+            });
+        }
     }
 }
 </script>

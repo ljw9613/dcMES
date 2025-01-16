@@ -1,9 +1,9 @@
 <template>
     <div>
-        <!-- 添加模板选择 -->
+        <!-- 修改模板选择器,增加查询参数 -->
         <zr-select v-model="selectedTemplate" collection="printTemplate" :search-fields="['templateName']"
-            label-key="templateName" sub-key="FCustId" :multiple="false" placeholder="请选择打印模板"
-            @select="handleTemplateChange">
+            :query-params="templateQueryParams" label-key="templateName" sub-key="FCustId" :multiple="false"
+            :placeholder="placeholder" @select="handleTemplateChange">
             <template #option="{ item }">
                 <div class="item-option">
                     <div class="item-info">
@@ -20,7 +20,7 @@
         <el-button v-if="showBrowserPrint" type="primary" @click="handlePrints">浏览器打印</el-button>
         <el-button v-if="showSilentPrint" type="primary" @click="handlePrints2">静默打印</el-button>
         <!-- 添加弹窗包裹 -->
-        <el-dialog title="打印预览" :visible.sync="dialogVisible" width="240mm" :before-close="handleClose">
+        <el-dialog title="打印预览" append-to-body :visible.sync="dialogVisible" width="240mm" :before-close="handleClose">
             <div>
                 <div>
                     <div id="hiprint-printTemplate"></div>
@@ -66,6 +66,16 @@ export default {
         defaultTemplate: {
             type: Object,
             default: null
+        },
+        // 新增模板查询参数
+        templateParams: {
+            type: Object,
+            default: () => ({})
+        },
+        // 新增placeholder自定义
+        placeholder: {
+            type: String,
+            default: '请选择打印模板'
         }
     },
     data() {
@@ -74,7 +84,11 @@ export default {
             hiprintTemplate: null,
             selectedTemplate: null,
             templateData: null,
-            isTemplateInitialized: false
+            isTemplateInitialized: false,
+            // 新增模板查询参数
+            templateQueryParams: {
+                query: {}
+            }
         }
     },
     watch: {
@@ -85,6 +99,24 @@ export default {
                 if (template && typeof template === 'object') {
                     this.selectedTemplate = template._id;
                     this.handleTemplateChange(template);
+                }
+            }
+        },
+        // 监听模板查询参数变化
+        templateParams: {
+            immediate: true,
+            deep: true,
+            handler(newParams) {
+                if (newParams && Object.keys(newParams).length > 0) {
+                    console.log("newParams", newParams);
+                    // 构建查询条件
+                    this.templateQueryParams = {
+                        query: {
+                          ...newParams
+                        }
+                    };
+                } else {
+                    this.templateQueryParams = { query: {} };
                 }
             }
         }
@@ -129,6 +161,7 @@ export default {
                 paginationContainer: ".hiprint-printPagination",
             });
 
+
         },
         handlePreview() {
             this.dialogVisible = true;
@@ -147,14 +180,14 @@ export default {
             try {
                 const printTemplate = JSON.parse(template.content);
                 this.templateData = template;
-                
+
                 // 初始化模板
                 this.initTemplate(printTemplate);
                 this.isTemplateInitialized = true;
                 this.selectedTemplate = template._id;
-                
+
                 // 触发选择改变事件，传递完整模板对象
-                this.$emit('template-change', template); 
+                this.$emit('template-change', template);
             } catch (error) {
                 console.error('模板初始化失败:', error);
                 this.$message.error('模板初始化失败');

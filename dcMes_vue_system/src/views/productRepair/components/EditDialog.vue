@@ -5,10 +5,10 @@
       <!-- 基础信息 -->
       <el-row :gutter="20" v-if="dialogStatus == 'create'">
         <el-form-item prop="barcode">
-          <el-input v-model="barcode" :placeholder="placeholder" @keyup.enter.native="handleScanInput" ref="scanInput"
+          <el-input v-model="barcode" :placeholder="placeholder" @keyup.enter.native="handleBarcodeSearch" ref="scanInput"
             clearable>
             <template slot="append">
-              <el-button @click="handleScanInput">确认</el-button>
+              <el-button @click="handleBarcodeSearch">确认</el-button>
             </template>
           </el-input>
         </el-form-item>
@@ -169,6 +169,7 @@ import {
   scanProductRepair,
   submitProductRepair
 } from "@/api/product/productRepair";
+import { getData, addData, updateData, removeData } from "@/api/data";
 
 export default {
   name: "EditDialog",
@@ -181,6 +182,10 @@ export default {
     dialogStatus: {
       type: String,
       default: "create"
+    },
+    dialogType: {
+      type: String,
+      default: "main"
     },
     rowData: {
       type: Object,
@@ -213,8 +218,14 @@ export default {
         barcodes: [
           {
             required: true,
-            message: "请输入至少一个产品条码",
-            trigger: "change"
+            validator: (rule, value, callback) => {
+              if (!value || value.length === 0) {
+                callback(new Error('请至少扫描一个产品条码'));
+              } else {
+                callback();
+              }
+            },
+            trigger: 'change'
           }
         ],
         materialSpec: [
@@ -269,10 +280,63 @@ export default {
       }
       return typeMap[status] || 'info'
     },
-    async handleScanInput() {
+    // 处理条码搜索
+    async handleBarcodeSearch() {
+      if (!this.barcode.trim()) {
+        this.$message.warning('请输入要搜索的条码');
+        return;
+      }
+
+      this.searchLoading = true;
       try {
-        const barcode = this.barcode.trim();
+        if (this.dialogType === 'main') {
+          // 查询主条码
+          const searchQuery = {
+            query: {
+              'processNodes.barcode': this.barcode
+            }
+          };
+
+          const mainBarcodeResult = await getData('material_process_flow', searchQuery);
+          if (mainBarcodeResult.code === 200 && mainBarcodeResult.data && mainBarcodeResult.data.length > 0) {
+            this.handleScanInput(mainBarcodeResult.data[0].barcode)
+            return;
+          }
+        }
+        // 查询当前条码
+        let currentSearchQuery = {
+          query: {
+            barcode: this.barcode
+          }
+        }
+        const currentBarcodeResult = await getData('material_process_flow', currentSearchQuery);
+
+        if (currentBarcodeResult.code === 200 && currentBarcodeResult.data && currentBarcodeResult.data.length > 0) {
+          this.handleScanInput(currentBarcodeResult.data[0].barcode)
+          return;
+        }
+
+        this.$message.warning('未找到相关数据');
+
+      } catch (error) {
+        console.error('搜索失败:', error);
+        this.$message.error('搜索失败: ' + error.message);
+      } finally {
+        this.barcode = ""
+        this.searchLoading = false;
+      }
+    },
+    async handleScanInput(barcode) {
+      try {
+        // const barcode = this.barcode.trim();
         console.log(barcode, "barcode");
+
+        if (this.dialogType === 'main') {
+        }
+
+        if (this.dialogType === 'auxiliary') {
+          this.form.businessType = 'AUXILIARY_LINE';
+        }
 
         // 添加条码数量限制检查
         if (this.form.barcodes.length >= 100) {
@@ -295,6 +359,7 @@ export default {
         });
         if (response.code !== 200) {
           this.$message.error(response.message);
+          this.barcode = "";
           return;
         }
         // 更新出库单信息
@@ -304,7 +369,7 @@ export default {
           this.form["materialName"] = response.data.materialName; // 物料名称
           this.form["materialSpec"] = response.data.materialSpec; // 产品型号
           this.form["businessType"] = response.data.businessType; // 业务类型
-          this.form["batchNumber"] = response.data.productionPlanWorkOrderId
+          this.form["workOrderNo"] = response.data.productionPlanWorkOrderId
             ? response.data.productionPlanWorkOrderId.workOrderNo
             : null; // 生产批号
           this.form["productionPlanWorkOrderId"] = response.data.productionPlanWorkOrderId ? response.data.productionPlanWorkOrderId._id : null; // 工单ID
@@ -355,49 +420,77 @@ export default {
     },
     async handleSubmit() {
       this.$refs.form.validate(async valid => {
-        if (valid) {
-          this.submitLoading = true;
-          try {
-            let response = await submitProductRepair({
-              form: this.form,
-              userId: this.$store.state.user.id
-            });
+        if (!valid) {
+          return;
+        }
 
-            if (response.code !== 200) {
-              this.$message.error(response.message);
-              return;
-            }
+        if (!this.form.barcodes || this.form.barcodes.length === 0) {
+          this.$message.error('请至少扫描一个产品条码');
+          return;
+        }
 
-            // 展示处理结果
-            const { successCount, totalCount, errors } = response.data;
+        this.submitLoading = true;
+        try {
+          let response = await submitProductRepair({
+            form: this.form,
+            userId: this.$store.state.user.id
+          });
 
-            // 如果有错误信息，使用 Message Box 展示详细信息
-            if (errors && errors.length > 0) {
-              const errorMessage = errors.join('\n');
-              await this.$msgbox({
-                title: '处理结果',
-                message: `成功处理 ${successCount}/${totalCount} 条记录\n\n错误详情：\n${errorMessage}`,
-                type: 'warning',
-                showCancelButton: false,
-                confirmButtonText: '确定'
-              });
-            } else {
-              this.$message.success(response.message);
-            }
-
-            this.$emit('submit');
-            this.handleClose();
-          } catch (error) {
-            console.error("提交失败:", error);
-            this.$message.error("提交失败");
-          } finally {
-            this.submitLoading = false;
+          if (response.code !== 200) {
+            this.$message.error(response.message);
+            return;
           }
+
+          const { successCount, totalCount, errors } = response.data;
+
+          if (errors && errors.length > 0) {
+            const errorMessage = errors.join('\n');
+            await this.$msgbox({
+              title: '处理结果',
+              message: `成功处理 ${successCount}/${totalCount} 条记录\n\n错误详情：\n${errorMessage}`,
+              type: 'warning',
+              showCancelButton: true,
+              cancelButtonText: '导出错误信息',
+              confirmButtonText: '确定',
+              callback: action => {
+                if (action === 'cancel') {
+                  this.exportErrorsToExcel(errors);
+                }
+              }
+            });
+          } else {
+            this.$message.success(response.message);
+          }
+
+          this.$emit('submit');
+          this.handleClose();
+        } catch (error) {
+          console.error("提交失败:", error);
+          this.$message.error("提交失败");
+        } finally {
+          this.submitLoading = false;
         }
       });
     },
     handleRemoveBarcode(index) {
       this.form.barcodes.splice(index, 1);
+      // 当条码列表为空时，重置表单数据
+      if (this.form.barcodes.length === 0) {
+        this.initFormData();
+      }
+    },
+    exportErrorsToExcel(errors) {
+      import('@/vendor/Export2Excel').then(excel => {
+        const tHeader = ['序号', '错误信息']
+        const data = errors.map((error, index) => [index + 1, error])
+        excel.export_json_to_excel({
+          header: tHeader,
+          data,
+          filename: '错误信息',
+          autoWidth: true,
+          bookType: 'xlsx'
+        })
+      })
     }
   }
 };

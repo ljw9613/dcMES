@@ -57,10 +57,11 @@
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
-                    <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增</el-button>
+                    <el-button type="primary" icon="el-icon-plus" @click="handleAdd('main')" v-if="hasFinishedProductMaintenance">新增成品维修</el-button>
+                    <el-button type="primary" icon="el-icon-plus" @click="handleAdd('auxiliary')" v-if="hasComponentMaintenance">新增组件维修</el-button>
                     <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
-                        @click="handleBatchDelete">批量删除</el-button>
-                    <el-button type="success" icon="el-icon-check" :disabled="!selection.length"
+                        @click="handleBatchVoid">批量作废</el-button>
+                    <el-button v-if="hasMaintenanceAudit" type="success" icon="el-icon-check" :disabled="!selection.length"
                         @click="handleBatchReview">批量审核</el-button>
                 </el-form-item>
             </el-form>
@@ -158,7 +159,7 @@
                             <i class="el-icon-view"></i> 查看
                         </el-button>
                         <el-button type="text" size="small" @click="handleReview(scope.row)" style="color: green;"
-                            v-if="scope.row.status == 'PENDING_REVIEW'">
+                            v-if="scope.row.status == 'PENDING_REVIEW' && hasMaintenanceAudit">
                             <i class="el-icon-edit"></i> 审核
                         </el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)"
@@ -174,7 +175,7 @@
             </template>
         </base-table>
 
-        <edit-dialog :visible.sync="dialogFormVisible" :dialog-status="dialogStatus" :row-data="dataForm"
+        <edit-dialog :visible.sync="dialogFormVisible" :dialog-status="dialogStatus" :row-data="dataForm" :dialog-type="dialogType"
             @submit="handleSubmit" />
 
         <el-dialog title="审核" :visible.sync="reviewDialogVisible" width="30%">
@@ -243,6 +244,7 @@ export default {
             listLoading: true,
             dialogFormVisible: false,
             dialogStatus: '',
+            dialogType: '',
             selection: [],
             dataForm: {},
             reviewDialogVisible: false,
@@ -255,7 +257,10 @@ export default {
             batchReviewForm: {
                 repairResult: '',
                 adverseEffect: ''
-            }
+            },
+            hasMaintenanceAudit: false,
+            hasFinishedProductMaintenance: false,
+            hasComponentMaintenance: false,
         }
     },
     methods: {
@@ -397,11 +402,21 @@ export default {
         },
 
         handleEdit(row) {
+            // 审核不可删除
+            if (row.status === 'REVIEWED') {
+                this.$message.warning('该记录已审核，不可修改！');
+                return;
+            }
             this.dialogStatus = 'edit';
             this.dataForm = JSON.parse(JSON.stringify(row));
             this.dialogFormVisible = true;
         },
         handleVoid(row) {
+            // 审核不可删除
+            if (row.status === 'REVIEWED') {
+                this.$message.warning('该记录已审核，不可作废！');
+                return;
+            }
             this.$confirm('确认要作废该产品维修记录吗?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
@@ -435,13 +450,14 @@ export default {
             });
         },
 
-        handleAdd() {
+        handleAdd(type) {
             this.dialogStatus = 'create';
+            this.dialogType = type;
             this.dataForm = {};
             this.dialogFormVisible = true;
         },
 
-        handleBatchDelete() {
+        handleBatchVoid() {
             if (!this.selection.length) {
                 this.$message.warning('请选择要删除的记录');
                 return;
@@ -453,7 +469,7 @@ export default {
                 return;
             }
 
-            this.$confirm(`确认删除选中的 ${this.selection.length} 条记录吗？`, '提示', {
+            this.$confirm(`确认作废选中的 ${this.selection.length} 条记录吗？`, '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
@@ -461,23 +477,22 @@ export default {
                 try {
                     this.listLoading = true;
                     const ids = this.selection.map(item => item._id);
-                    await removeData('product_repair', {
-                        query: {
-                            _id: { $in: ids },
-                            status: { $ne: 'REVIEWED' } // 防止删除已审核的记录
-                        }
-                    });
-                    this.$message.success('批量删除成功');
+                    let req = {
+                        query: { _id: { $in: ids } },
+                        update: { $set: { status: 'VOIDED' } }
+                    };
+                    await updateData('product_repair', req);
+                    this.$message.success('批量作废成功');
                     this.selection = []; // 清空选择
                     await this.fetchData();
                 } catch (error) {
-                    console.error('批量删除失败:', error);
-                    this.$message.error('批量删除失败，可能包含已审核的记录');
+                    console.error('批量作废失败:', error);
+                    this.$message.error('批量作废失败，可能包含已审核的记录');
                 } finally {
                     this.listLoading = false;
                 }
             }).catch(() => {
-                this.$message.info('已取消删除');
+                this.$message.info('已取消作废');
             });
         },
 
@@ -532,7 +547,7 @@ export default {
                     adverseEffect: this.reviewForm.adverseEffect,
                     status: 'REVIEWED',
                     reviewTime: new Date(),
-                    reviewer: this.$store.state.user.userInfo // 假设存储了当前用户信息
+                    reviewer: this.$store.state.user.id // 假设存储了当前用户信息
                 };
 
                 await updateData('product_repair', {
@@ -585,7 +600,7 @@ export default {
                     adverseEffect: this.batchReviewForm.adverseEffect,
                     status: 'REVIEWED',
                     reviewTime: new Date(),
-                    reviewer: this.$store.state.user.userInfo
+                    reviewer: this.$store.state.user.id
                 };
                 
                 await updateData('product_repair', {
@@ -608,6 +623,24 @@ export default {
     },
     created() {
         this.fetchData();
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return false;
+        }
+        console.log(roles.buttonList, 'roles.buttonList')
+        //审核权限
+        if (roles.buttonList.includes("maintenance_audit")) {
+            this.hasMaintenanceAudit = true;
+        }
+
+        //成品维修权限 finished_product_maintenance
+        if (roles.buttonList.includes("finished_product_maintenance")) {
+            this.hasFinishedProductMaintenance = true;
+        }
+        // 组件维修 component_maintenance
+        if (roles.buttonList.includes("component_maintenance")) {
+            this.hasComponentMaintenance = true;
+        }
     }
 }
 </script>

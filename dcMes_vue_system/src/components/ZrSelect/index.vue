@@ -98,6 +98,14 @@ export default {
       type: Boolean,
       default: false
     },// 是否懒加载
+
+    // 新增 queryParams 属性
+    queryParams: {
+      type: Object,
+      default: () => ({
+        query: {}
+      })
+    }
   },
 
   data() {
@@ -176,6 +184,10 @@ export default {
         if (Object.keys(this.additionalQuery).length > 0) {
           queryConditions.push(this.additionalQuery)
         }
+        // 添加 queryParams 中的查询条件
+        if (this.queryParams.query && Object.keys(this.queryParams.query).length > 0) {
+          queryConditions.push(this.queryParams.query)
+        }
 
         const result = await getData(this.collection, {
           query: JSON.stringify(
@@ -187,7 +199,6 @@ export default {
         })
 
         this.total = result.countnum || 0
-        // 根据是否追加来更新列表
         this.items = append ? [...this.items, ...result.data] : result.data
       } catch (error) {
         console.error('搜索失败:', error)
@@ -207,16 +218,26 @@ export default {
     },
 
     async fetchItemsByIds(ids) {
-      console.log('查询ID:', ids)
       if (!ids.length) return
 
       try {
+        const queryConditions = {
+          [this.valueKey]: { $in: ids },
+          ...this.additionalQuery
+        }
+        
+        // 合并 queryParams 中的查询条件
+        if (this.queryParams.query && Object.keys(this.queryParams.query).length > 0) {
+          queryConditions.$and = [
+            queryConditions,
+            this.queryParams.query
+          ]
+        }
+
         const result = await getData(this.collection, {
-          query: JSON.stringify({
-            [this.valueKey]: { $in: ids },
-            ...this.additionalQuery
-          })
+          query: JSON.stringify(queryConditions)
         })
+        
         if (result.data && result.data.length > 0) {
           const existingItems = this.items.filter(
             item => !result.data.find(i => i[this.valueKey] === item[this.valueKey])

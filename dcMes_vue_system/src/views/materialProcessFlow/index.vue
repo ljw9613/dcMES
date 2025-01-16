@@ -108,8 +108,16 @@
                         <el-progress :percentage="scope.row.progress || 0"></el-progress>
                     </template>
                 </el-table-column>
-
-
+                <el-table-column label="开始时间" width="200">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.startTime) || '-' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="结束时间" width="200">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.endTime) || '-' }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="操作" fixed="right" width="200">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
@@ -448,8 +456,8 @@
                                     查看详情
                                 </el-button>
 
-                                <el-button type="text" style="color: red;"
-                                    @click="handleInit(scope.row)">成品初始化</el-button>
+                                <!-- <el-button type="text" style="color: red;"
+                                    @click="handleInit(scope.row)">成品初始化</el-button> -->
                             </template>
                         </el-table-column>
                     </el-table>
@@ -599,18 +607,20 @@ export default {
         // 修改 handleUnbind 方法
         async handleUnbind(row) {
             try {
-                // 查询维修记录
-                let barcodeRepair = await getData('product_repair', { 
-                    query: { 
-                        barcode: this.dataForm.barcode, 
-                        status: 'PENDING_REVIEW' 
-                    } 
-                });
+                // TODO 国内查询维修记录
+                // let barcodeRepair = await getData('product_repair', {
+                //     query: {
+                //         barcode: this.dataForm.barcode,
+                //         status: 'PENDING_REVIEW'
+                //     }
+                // });
 
-                if (barcodeRepair.data.length === 0) {
-                    this.$message.warning('请先创建维修记录，再进行解绑操作');
-                    return;
-                }
+                // if (barcodeRepair.data.length === 0) {
+                //     this.$message.warning('请先创建维修记录，再进行解绑操作');
+                //     return;
+                // }
+
+                //检测
 
                 const { value: reason } = await this.$confirm(
                     '此操作将解绑当前工序及其后续所有工序的物料，是否继续？',
@@ -800,6 +810,18 @@ export default {
         //成品初始化
         async handleInit(row) {
             try {
+                // 查询维修记录
+                let barcodeRepair = await getData('product_repair', {
+                    query: {
+                        barcode: row.barcode,
+                        status: 'PENDING_REVIEW'
+                    }
+                });
+
+                if (barcodeRepair.data.length === 0) {
+                    this.$message.warning('请先创建维修记录，再进行初始化');
+                    return;
+                }
                 console.log(row, 'row')
                 // 显示确认对话框
                 await this.$confirm('确认要成品初始化吗?该操作无法撤回！请谨慎操作！', '提示', {

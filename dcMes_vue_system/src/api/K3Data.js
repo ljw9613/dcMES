@@ -61,3 +61,48 @@ export function syncBD_STOCK(data) {
     data
   });
 }
+
+///PUR_PurchaseOrder
+export function syncPUR_PurchaseOrder(data) {
+  return request({
+    url: "/K3/sync/PUR_PurchaseOrder",
+    method: "post",
+    data
+  });
+}
+
+// 同步生产领料单数据
+export function syncPRD_PickMtrl(data) {
+  return request({
+    url: "/K3/sync/PRD_PickMtrl",
+    method: "post",
+    data
+  });
+}
+
+// 同步发货通知单数据
+export function syncSAL_DeliveryNotice(data) {
+  return request({
+    url: "/K3/sync/SAL_DeliveryNotice",
+    method: "post",
+    data
+  });
+}
+
+// 同步生产入库单数据
+export function syncPRD_InStock(data) {
+  return request({
+    url: "/K3/sync/PRD_InStock",
+    method: "post",
+    data
+  });
+}
+
+// 同步采购领料单数据
+export function syncPUR_RequisitionBill(data) {
+  return request({
+    url: "/K3/sync/PUR_RequisitionBill",
+    method: "post",
+    data
+  });
+}

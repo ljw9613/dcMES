@@ -113,7 +113,7 @@ app.use('/', require('./routes/materialPalletizing'));
 app.use('/', require('./routes/wareHouseEntry.js'));
 app.use('/', require('./routes/wareHouseOntry.js'));
 app.use('/', require('./routes/productRepair.js'));
-
+app.use('/', require('./routes/uploadMesFile.js'));
 // 更新工艺编码
 // require("./routes/caftNum")
 // 初始化定时任务

@@ -37,7 +37,7 @@
                                             <span>{{ item.FNumber }} - {{ item.FName }}</span>
                                             <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{
                                                 item.FUseOrgId_FName
-                                                }}</el-tag>
+                                            }}</el-tag>
                                         </div>
                                     </div>
                                 </template>
@@ -128,20 +128,30 @@
                                 <i class="el-icon-camera"></i>
                                 <span>统一扫描区域</span>
                             </div>
-                            <hir-input 
-                                ref="hirInput" 
-                                :default-template="localPrintTemplate"  
-                                @template-change="handleTemplateChange" 
-                                :show-preview="true"
-                                :show-browser-print="true" 
-                                :show-silent-print="true" 
-                                :printData="printData" 
-                            />
+                            <hir-input ref="hirInput" :default-template="localPrintTemplate"
+                                @template-change="handleTemplateChange" :show-preview="true" :show-browser-print="true"
+                                :show-silent-print="true" :printData="printData" />
                         </div>
                         <div class="scan-input-section">
-                            <el-input v-model="unifiedScanInput" placeholder="请扫描条码"
+                            <!-- 添加扫描模式切换 -->
+                            <div class="scan-mode-switch">
+                                <el-radio-group v-model="scanMode" size="small">
+                                    <el-radio-button label="normal">普通模式</el-radio-button>
+                                    <el-radio-button label="rfid">RFID模式</el-radio-button>
+                                </el-radio-group>
+                                <el-tooltip content="普通模式用于扫描条码，RFID模式用于读取RFID标签" placement="top">
+                                    <i class="el-icon-question"></i>
+                                </el-tooltip>
+                            </div>
+
+                            <!-- 扫描输入框 -->
+                            <el-input v-model="unifiedScanInput"
+                                :placeholder="scanMode === 'normal' ? '请扫描条码' : '请读取RFID标签'"
                                 @keyup.enter.native="handleUnifiedScan(unifiedScanInput)" ref="scanInput" clearable
                                 @clear="focusInput">
+                                <template slot="prepend">
+                                    <i :class="scanMode === 'normal' ? 'el-icon-camera' : 'el-icon-connection'"></i>
+                                </template>
                             </el-input>
                         </div>
 
@@ -264,6 +274,9 @@ import smcg from "@/assets/tone/smcg.mp3";
 import tmyw from "@/assets/tone/tmyw.mp3";
 import cxwgd from "@/assets/tone/cxwgd.mp3";
 import cfbd from "@/assets/tone/cfbd.mp3";
+import dwx from "@/assets/tone/dwx.mp3";
+import wxsb from "@/assets/tone/wxsb.mp3";
+
 import hirInput from '@/components/hirInput'
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
@@ -353,6 +366,10 @@ export default {
             printDataTemplate: '', // 添加 printDataTemplate 属性
 
             hasPrintPermission: false,
+            scanMode: localStorage.getItem('scanMode') || 'normal', // 默认为普通模式
+
+            craftInfo: {},
+
         }
     },
     computed: {
@@ -494,6 +511,20 @@ export default {
                 }
             },
             immediate: true
+        },
+        scanMode: {
+            handler(newMode) {
+                // 保存到本地存储
+                localStorage.setItem('scanMode', newMode);
+                // 清空输入框
+                this.unifiedScanInput = '';
+                // 重新获取焦点
+                this.$nextTick(() => {
+                    this.$refs.scanInput.focus();
+                });
+                // 提示模式切换
+                this.$message.success(`已切换至${newMode === 'normal' ? '普通' : 'RFID'}模式`);
+            }
         }
     },
 
@@ -515,13 +546,8 @@ export default {
                 console.log("获取到的机器进度:", response.data);
                 if (response.code === 200 && response.data) {
                     const { materialId, processStepId, lineId, productionPlanWorkOrderId } = response.data;
-                    console.log("materialId:", materialId);
-                    console.log("processStepId:", processStepId.processName);
-                    console.log("lineId:", lineId);
-                    console.log("workProductionPlanWorkOrderId:", productionPlanWorkOrderId);
-                    if (materialId && processStepId) {
+                    if (materialId && processStepId && processStepId.processName) {
                         console.log("materialId:", materialId);
-                        console.log("processStepId:", processStepId.processName);
                         console.log("lineId:", lineId);
                         // 更新本地存储
                         this.mainMaterialId = materialId._id;
@@ -559,6 +585,12 @@ export default {
                     throw new Error(response.message || '获取机器进度失败');
                 }
             } catch (error) {
+                localStorage.removeItem('mainMaterialId');
+                localStorage.removeItem('processStepId');
+                this.mainMaterialId = '';
+                this.processStepId = '';
+                this.formData.productModel = '';
+                this.formData.processStep = '';
                 console.error('自动初始化失败:', error);
                 this.$message.error('自动初始化失败: ' + error.message);
             }
@@ -790,6 +822,8 @@ export default {
 
                 const craft = craftResponse.data[0];
 
+                this.craftInfo = craft; // 保存工艺信息
+
                 // 获取工艺对应的物料信息
                 const material = await this.getMaterialById(craft.materialId);
 
@@ -947,7 +981,7 @@ export default {
                 rules.sort((a, b) => b.priority - a.priority);
 
                 this.materialBarcodeRules = rules;
-                
+
                 console.log('条码规则列表:', {
                     productRules: rules.filter(r => r.isProductSpecific),
                     globalRules: rules.filter(r => !r.isProductSpecific),
@@ -1239,8 +1273,47 @@ export default {
 
             this.scanTimer = setTimeout(async () => {
                 try {
-                    const cleanValue = value.trim().replace(/[\r\n]/g, '');
+                    let cleanValue = value.trim().replace(/[\r\n]/g, '');
                     if (!cleanValue) return;
+
+                    // 根据不同模式处理扫描值
+                    if (this.scanMode === 'rfid') {
+                        // RFID模式下的特殊处理
+                        // if (!cleanValue.startsWith('RF')) {
+                        //     this.$message.error('无效的RFID标签格式');
+                        //     this.popupType = 'ng';
+                        //     this.showPopup = true;
+                        //     tone(tmyw);
+                        //     return;
+                        // }
+                        // 可以在这里添加RFID特有的验证逻辑
+                        // 查询RFID标签对应的主条码
+                        let rfidResponse = await getData('material_process_flow', {
+                            query: {
+                                'processNodes': {
+                                    $elemMatch: {
+                                        $and: [
+                                            { isRfid: { $eq: true } },  // 必须是RFID节点
+                                            { barcode: { $eq: cleanValue } }, // 必须匹配扫描的条码
+                                        ]
+                                    }
+                                }
+                            }
+                        });
+                        if (rfidResponse.data && rfidResponse.data.length > 0) {
+                            cleanValue = rfidResponse.data[0].barcode;
+                        } else {
+                            this.unifiedScanInput = '';
+                            this.$refs.scanInput.focus();
+                            this.$message.error('未找到该RFID标签对应的条码');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
+                            tone(tmyw);
+                            return;
+                        }
+                    }
+
+
 
                     // 检查是否已扫描
                     if (this.scannedList.some(item => item.barcode === cleanValue)) {
@@ -1283,6 +1356,36 @@ export default {
                             tone(tmyw);
                             return;
                         }
+
+                        // TODO 国内检查非成品条码检测是否有未完成的维修记录
+                        if (this.craftInfo && ((!this.craftInfo.isProduct) || (this.craftInfo.materialCode !== isValid.materialCode))) {
+                            // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+                            console.log('非成品条码检测是否有未完成的维修记录');
+                            const repairRecord = await getData('product_repair', {
+                                query: { barcode: cleanValue },
+                                sort: { _id: -1 }
+                            });
+                            if (repairRecord.data.length > 0) {
+                                if (repairRecord.data[0].status == 'PENDING_REVIEW') {
+                                    this.unifiedScanInput = '';
+                                    this.$refs.scanInput.focus();
+                                    this.$message.error('该条码存在未完成的维修记录');
+                                    this.popupType = 'ng';
+                                    this.showPopup = true;
+                                    tone(dwx);
+                                    return;
+                                }
+                                if (repairRecord.data[0].status == 'REVIEWED' && repairRecord.data[0].repairResult !== 'QUALIFIED') {
+                                    this.unifiedScanInput = '';
+                                    this.$refs.scanInput.focus();
+                                    this.$message.error('该条码已完成维修,但维修结果为不合格');
+                                    this.popupType = 'ng';
+                                    this.showPopup = true;
+                                    tone(wxsb);
+                                    return;
+                                }
+                            }
+                        }
                         // 是包装箱条码，获取包装箱内的所有条码
                         await this.handleBoxBarcode(cleanValue, boxResponse.data);
                     } else {
@@ -1303,6 +1406,36 @@ export default {
                             this.showPopup = true;
                             tone(tmyw);
                             return;
+                        }
+
+                        // TODO 国内检查非成品条码检测是否有未完成的维修记录
+                        if (this.craftInfo && ((!this.craftInfo.isProduct) || (this.craftInfo.materialCode !== isValidResult.materialCode))) {
+                            // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+                            console.log('非成品条码检测是否有未完成的维修记录');
+                            const repairRecord = await getData('product_repair', {
+                                query: { barcode: cleanValue },
+                                sort: { _id: -1 }
+                            });
+                            if (repairRecord.data.length > 0) {
+                                if (repairRecord.data[0].status == 'PENDING_REVIEW') {
+                                    this.unifiedScanInput = '';
+                                    this.$refs.scanInput.focus();
+                                    this.$message.error('该条码存在未完成的维修记录');
+                                    this.popupType = 'ng';
+                                    this.showPopup = true;
+                                    tone(dwx);
+                                    return;
+                                }
+                                if (repairRecord.data[0].status == 'REVIEWED' && repairRecord.data[0].repairResult !== 'QUALIFIED') {
+                                    this.unifiedScanInput = '';
+                                    this.$refs.scanInput.focus();
+                                    this.$message.error('该条码已完成维修,但维修结果为不合格');
+                                    this.popupType = 'ng';
+                                    this.showPopup = true;
+                                    tone(wxsb);
+                                    return;
+                                }
+                            }
                         }
 
                         await this.handleMainBarcode(cleanValue)
@@ -1916,7 +2049,7 @@ export default {
         // 修改模板变更处理方法
         handleTemplateChange(template) {
             if (!template) return;
-            
+
             try {
                 // 保存完整的模板对象到本地存储
                 this.localPrintTemplate = template;
@@ -2611,5 +2744,35 @@ export default {
 .el-input>>>.el-input__inner:focus {
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.scan-mode-switch {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.scan-mode-switch .el-icon-question {
+    color: #909399;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.scan-mode-switch .el-icon-question:hover {
+    color: #409EFF;
+}
+
+.el-input-group__prepend i {
+    font-size: 18px;
+}
+
+/* 为不同模式设置不同的输入框样式 */
+.scan-input-section .el-input.rfid-mode>>>.el-input__inner {
+    border-color: #67C23A;
+}
+
+.scan-input-section .el-input.normal-mode>>>.el-input__inner {
+    border-color: #409EFF;
 }
 </style>

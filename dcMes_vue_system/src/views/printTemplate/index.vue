@@ -60,7 +60,7 @@
                         @click="handleBatchDelete">
                         批量删除
                     </el-button>
-                    <!-- <el-button @click="dayinForm">ZRMES打印模板</el-button> -->
+                    <el-button @click="dayinForm">ZRMES打印模板</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -82,12 +82,12 @@
                 <el-table-column label="模板编号" prop="templateCode" />
                 <el-table-column label="模板类型" prop="templateType">
                     <template slot-scope="scope">
-                        <el-tag>{{ scope.row.templateType }}</el-tag>
+                        <dict-tag :options="dict.type.templateType" :value="scope.row.templateType" />
                     </template>
                 </el-table-column>
                 <el-table-column label="业务类型" prop="businessType">
                     <template slot-scope="scope">
-                        <el-tag type="warning">{{ scope.row.businessType }}</el-tag>
+                        <dict-tag :options="dict.type.businessType" :value="scope.row.businessType" />
                     </template>
                 </el-table-column>
                 <el-table-column label="纸张大小" prop="config.paperSize" />
@@ -303,9 +303,39 @@ export default {
             }).catch(() => { });
         },
 
+        async getTemplateCode(templateType) {
+            try {
+                // 获取同类型的所有模板
+                const result = await getData("printTemplate", {
+                    query: { templateType: templateType }
+                });
+                
+                // 获取当前日期作为编号前缀 (YYYYMMDD)
+                // const date = new Date();
+                // const year = date.getFullYear();
+                // const month = String(date.getMonth() + 1).padStart(2, '0');
+                // const day = String(date.getDate()).padStart(2, '0');
+                // const datePrefix = `${year}${month}${day}`;
+                
+                // 生成序列号 (3位数，从001开始)
+                const sequence = String(result.data.length + 1).padStart(3, '0');
+                
+                // 返回格式: 模板类型-日期-序号 (例如: PACK-20240319-001)
+                return `${templateType}-${sequence}`;
+                // return `${templateType}-${datePrefix}-${sequence}`;
+            } catch (error) {
+                console.error('获取模板编号失败:', error);
+                throw error;
+            }
+        },
+
         async handleSubmit(formData) {
             try {
                 if (this.dialogStatus === 'create') {
+                    // 生成模板编号
+                    const templateCode = await this.getTemplateCode(formData.templateType);
+                    formData.templateCode = templateCode;
+                    
                     await addData('printTemplate', formData);
                     this.$message.success('添加成功');
                 } else {
