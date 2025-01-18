@@ -9,7 +9,7 @@ var mongoose = require("mongoose");
 var processMaterialsSchema = new mongoose.Schema({
   craftId: { type: mongoose.Schema.ObjectId, ref: "craft" }, // 关联工艺ID
   processStepId: { type: mongoose.Schema.ObjectId, ref: "processStep" }, // 工序步骤编号
-  materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID
+  materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 物料ID
   materialCode: { type: String }, // 物料编码
   materialName: { type: String }, // 物料名称
   specification: { type: String }, // 规格型号

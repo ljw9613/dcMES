@@ -427,6 +427,11 @@
                 :tableDataloading="materialTableData.listLoading" :height="materialTableData.height"
                 :cell-style="{ textAlign: 'center' }">
                 <template slot="law">
+                    <el-table-column label="使用组织" prop="materialId.FUseOrgId_FName">
+                        <template slot-scope="scope">
+                            {{ scope.row.materialId ? scope.row.materialId.FUseOrgId_FName : '--' }}
+                        </template>
+                    </el-table-column>
                     <el-table-column label="物料编码" prop="materialCode">
                         <template slot-scope="scope">
                             <span style="color: #ff4949">*</span>
@@ -498,6 +503,8 @@
                             <el-button type="text" size="small" @click="handleDeleteMaterial(scope.row)">删除</el-button>
                         </template>
                     </el-table-column>
+
+
                 </template>
             </base-table>
 
@@ -1131,10 +1138,10 @@ export default {
 
         async generateProcessCode() {
             try {
-                // 获最后一个工序编码
+                // 获取所有工序中最后一个编码
                 const result = await getData('processStep', {
-                    query: {},
-                    sort: { processCode: -1 },
+                    query: { craftId: this.tempCraftId },  // 查询所有工序
+                    sort: { processCode: -1 },  // 按工序编码降序排序
                     limit: 1
                 });
 
@@ -1142,10 +1149,14 @@ export default {
                 let sequence = '0001';
                 if (result.data && result.data.length > 0) {
                     const lastCode = result.data[0].processCode;
-                    const matches = lastCode.match(/\d{4}/);
-                    if (matches) {
-                        const lastSequence = parseInt(matches[0]);
-                        sequence = (lastSequence + 1).toString().padStart(4, '0');
+                    console.log(lastCode, 'lastCode')
+                    // 修改正则表达式以匹配最后一个下划线后的数字
+                    const parts = lastCode.split('_');
+                    const lastSequence = parts.find(part => /^\d{4}$/.test(part));
+                    console.log(lastSequence, 'lastSequence')
+                    console.log(parts, 'parts')
+                    if (lastSequence) {
+                        sequence = (parseInt(lastSequence) + 1).toString().padStart(4, '0');
                     }
                 }
 
@@ -1256,6 +1267,7 @@ export default {
 
                 // 生成工序编码
                 const processCode = await this.generateProcessCode();
+                console.log(processCode, 'processCode')
 
                 this.processOperationType = 'create';
                 this.tempProcessId = this.ObjectId();
@@ -1346,18 +1358,18 @@ export default {
             this.$refs.processForm.validate(async (valid) => {
                 if (valid) {
                     try {
-                        // // 检查工序编号是否重复
-                        // const existingProcess = await getData('processStep', {
-                        //     query: {
-                        //         processCode: this.processForm.processCode,
-                        //         _id: { $ne: this.tempProcessId } // 排除当前编辑的工序
-                        //     }
-                        // });
+                        // 检查工序编号是否重复
+                        const existingProcess = await getData('processStep', {
+                            query: {
+                                processCode: this.processForm.processCode,
+                                _id: { $ne: this.tempProcessId } // 排除当前编辑的工序
+                            }
+                        });
 
-                        // if (existingProcess.data && existingProcess.data.length > 0) {
-                        //     this.$message.error('工序编号已存在,请修改后重试');
-                        //     return;
-                        // }
+                        if (existingProcess.data && existingProcess.data.length > 0) {
+                            this.$message.error('工序编号已存在,请修改后重试');
+                            return;
+                        }
 
                         // 检查工序次序是否重复
                         const existingProcessSort = await getData('processStep', {
@@ -1453,9 +1465,16 @@ export default {
                     query: {
                         processStepId: processId
                     },
+                    populate: JSON.stringify([
+                        {
+                            path: 'materialId',
+                            select: 'FUseOrgId_FName' // 选择需要的字段
+                        }
+                    ]),
                     page: this.materialTableData.currentPage,
                     limit: this.materialTableData.pageSize,
-                    count: true
+                    count: true,
+
                 };
                 const result = await getData("processMaterials", req);
                 this.materialTableData.tableList = result.data;
@@ -1477,7 +1496,7 @@ export default {
 
             this.materialDialog.title = '新增物料'
             this.materialDialog.visible = true
-            
+
             // 重置物料表单所有字段到初始状态
             this.materialForm = {
                 materialId: '',
@@ -1494,7 +1513,7 @@ export default {
                 isKey: false,          // 添加关键物料字段重置
                 isRfid: false,         // 添加RFID字段重置
             };
-            
+
             this.$nextTick(() => {
                 this.$refs.materialForm.resetFields()
             })

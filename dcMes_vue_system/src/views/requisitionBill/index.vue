@@ -58,7 +58,7 @@
                     <i class="el-icon-tickets">采购申请单列表</i>
                     <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
                         :template-params="{
-                            templateType: { $in: ['WM', 'AP'] },
+                            // templateType: { $in: ['PR'] },
                             status: true
                         }" placeholder="请选择采购申请单打印模板" @template-change="handleTemplateChange" />
                 </div>
@@ -231,6 +231,16 @@
                 <el-button type="primary" @click="confirmSync">确 定</el-button>
             </div>
         </el-dialog>
+
+        <!-- 拓展数据对话框 -->
+        <el-dialog title="拓展数据" :visible.sync="extDialogVisible">
+            <requisition-bill-ext
+                v-if="extDialogVisible"
+                :order-data="currentOrderData"
+                @close="extDialogVisible = false"
+                @refresh="fetchData"
+            />
+        </el-dialog>
     </div>
 </template>
 
@@ -239,12 +249,14 @@ import { getData } from "@/api/data";
 import { syncPUR_RequisitionBill, getSyncStatus } from "@/api/K3Data";
 import HirInput from '@/components/hirInput/index.vue'
 import MaterialDetail from './components/MaterialDetail.vue'
+import RequisitionBillExt from './components/RequisitionBillExt.vue'
 
 export default {
     name: 'RequisitionBill',
     components: {
         HirInput,
-        MaterialDetail
+        MaterialDetail,
+        RequisitionBillExt
     },
     computed: {
         localPrintTemplate: {
@@ -298,7 +310,8 @@ export default {
             materialDetailVisible: false,
             currentOrderData: {},
             printData: {},
-            printTemplate: {}
+            printTemplate: {},
+            extDialogVisible: false,
         }
     },
     methods: {
@@ -382,48 +395,48 @@ export default {
 
             // 申请单号查询
             if (this.searchForm.FBillNo) {
-                req.query.$and.push({ 
-                    FBillNo: { 
-                        $regex: this.searchForm.FBillNo.trim(), 
-                        $options: 'i' 
-                    } 
+                req.query.$and.push({
+                    FBillNo: {
+                        $regex: this.searchForm.FBillNo.trim(),
+                        $options: 'i'
+                    }
                 });
             }
 
             // 申请组织查询
             if (this.searchForm.FApplicationOrgId.Number) {
-                req.query.$and.push({ 
-                    'FApplicationOrgId.Number': { 
-                        $regex: this.searchForm.FApplicationOrgId.Number.trim(), 
-                        $options: 'i' 
-                    } 
+                req.query.$and.push({
+                    'FApplicationOrgId.Number': {
+                        $regex: this.searchForm.FApplicationOrgId.Number.trim(),
+                        $options: 'i'
+                    }
                 });
             }
 
             // 申请部门查询
             if (this.searchForm.FApplicationDeptId.Number) {
-                req.query.$and.push({ 
-                    'FApplicationDeptId.Number': { 
-                        $regex: this.searchForm.FApplicationDeptId.Number.trim(), 
-                        $options: 'i' 
-                    } 
+                req.query.$and.push({
+                    'FApplicationDeptId.Number': {
+                        $regex: this.searchForm.FApplicationDeptId.Number.trim(),
+                        $options: 'i'
+                    }
                 });
             }
 
             // 单据状态查询
             if (this.searchForm.FDocumentStatus) {
-                req.query.$and.push({ 
-                    FDocumentStatus: this.searchForm.FDocumentStatus 
+                req.query.$and.push({
+                    FDocumentStatus: this.searchForm.FDocumentStatus
                 });
             }
 
             // 申请人查询
             if (this.searchForm.FApplicantId) {
-                req.query.$and.push({ 
-                    'FApplicantId.Name': { 
-                        $regex: this.searchForm.FApplicantId.trim(), 
-                        $options: 'i' 
-                    } 
+                req.query.$and.push({
+                    'FApplicantId.Name': {
+                        $regex: this.searchForm.FApplicantId.trim(),
+                        $options: 'i'
+                    }
                 });
             }
 
@@ -567,17 +580,45 @@ export default {
 
         // 处理打印模板变更
         handleTemplateChange(template) {
-            this.printTemplate = template;
-            this.localPrintTemplate = template;
+            try {
+                this.printTemplate = template;
+                this.localPrintTemplate = template;
+                this.$message.success('打印模板已保存到本地');
+            } catch (error) {
+                console.error('保存打印模板失败:', error);
+                this.$message.error('保存打印模板失败');
+            }
+            // this.printTemplate = template;
+            // this.localPrintTemplate = template;
         },
 
         // 处理打印
         async handlePrint(row) {
+            
             if (!this.printTemplate) {
                 this.$message.warning('请先选择打印模板');
                 return;
             }
-            // 这里添加打印逻辑
+            let printData = row;
+            // 发货通知单打印数据处理
+            if (this.localPrintTemplate.templateType === 'DN') {
+                printData.FApproveDate = this.formatDate(printData.FApproveDate);
+                printData.FCreateDate = this.formatDate(printData.FCreateDate);
+                printData.FCustomerID_Name = printData.FCustomerID && printData.FCustomerID.Name;
+                // 处理明细数据
+                printData.FEntity = printData.FEntity.map((item, index) => ({
+                    ...item,
+                    FNum: index + 1,
+                    FMaterialID_Name: item.FMaterialID && item.FMaterialID.Name,
+                    FMaterialID_Number: item.FMaterialID && item.FMaterialID.Number,
+                    FMaterialID_Specification: item.FMaterialID && item.FMaterialID.Specification,
+                    FUnitID_Name: item.FUnitID && item.FUnitID.Name
+                }));
+            }
+            this.printData = printData;
+            this.$nextTick(() => {
+                this.$refs.hirInput.handlePrints();
+            });
         },
 
         // 显示物料明细
@@ -597,6 +638,11 @@ export default {
             this.selection = selection;
         },
 
+        // 处理拓展数据
+        handleExt(row) {
+            this.currentOrderData = row
+            this.extDialogVisible = true
+        },
     },
     created() {
         this.fetchData();

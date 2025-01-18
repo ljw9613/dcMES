@@ -46,7 +46,8 @@ const k3_PRD_InStock = require("../model/k3/K3_PRD_InStock");
 const k3_PUR_RequisitionBill = require("../model/k3/K3_PUR_RequisitionBill");
 //k3 拓展模型
 const k3_SAL_SaleOrderExt = require("../model/k3Ext/k3_SAL_SaleOrderExt");
-
+const k3_PRD_PickMtrlExt = require("../model/k3Ext/k3_PRD_PickMtrlExt");
+const k3_PUR_RequisitionBillExt = require("../model/k3Ext/K3_PUR_RequisitionBillExt");
 //检测模块
 const InspectionLastData = require("../model/project/InspectionLastData");
 const InspectionData = require("../model/project/InspectionData");
@@ -101,6 +102,8 @@ ADDROUTER(router, "barcodeRule", barcodeRule);
 ADDROUTER(router, "productBarcodeRule", productBarcodeRule);
 //k3 拓展模型
 ADDROUTER(router, "k3_SAL_SaleOrderExt", k3_SAL_SaleOrderExt);
+ADDROUTER(router, "k3_PRD_PickMtrlExt", k3_PRD_PickMtrlExt);
+ADDROUTER(router, "k3_PUR_RequisitionBillExt", k3_PUR_RequisitionBillExt);
 //检测模块
 ADDROUTER(router, "InspectionLastData", InspectionLastData);
 ADDROUTER(router, "InspectionData", InspectionData);

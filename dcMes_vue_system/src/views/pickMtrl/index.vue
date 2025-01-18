@@ -242,6 +242,16 @@
                 <el-button type="primary" @click="confirmSync">确 定</el-button>
             </div>
         </el-dialog>
+
+        <!-- 拓展数据对话框 -->
+        <el-dialog title="拓展数据" :visible.sync="extDialogVisible">
+            <pick-mtrl-ext
+                v-if="extDialogVisible"
+                :order-data="currentOrderData"
+                @close="extDialogVisible = false"
+                @refresh="fetchData"
+            />
+        </el-dialog>
     </div>
 </template>
 
@@ -250,12 +260,14 @@ import { getData } from "@/api/data";
 import { syncPRD_PickMtrl, getSyncStatus } from "@/api/K3Data";
 import HirInput from '@/components/hirInput/index.vue'
 import MaterialDetail from './components/MaterialDetail.vue'
+import PickMtrlExt from './components/PickMtrlExt.vue'
 
 export default {
     name: 'PickMtrl',
     components: {
         HirInput,
-        MaterialDetail
+        MaterialDetail,
+        PickMtrlExt
     },
     computed: {
         localPrintTemplate: {
@@ -309,6 +321,7 @@ export default {
                 documentStatus: 'C',
                 billNo: ''
             },
+            extDialogVisible: false,
         }
     },
     methods: {
@@ -387,6 +400,8 @@ export default {
         // 处理打印
         async handlePrint(row) {
             let printData = { ...row };
+            console.log(printData);
+            console.log(this.localPrintTemplate);
 
             // 生产领料单打印数据处理
             if (this.localPrintTemplate.templateType === 'MR') {
@@ -655,6 +670,11 @@ export default {
                     break;
             }
             return req;
+        },
+
+        handleExt(row) {
+            this.currentOrderData = row
+            this.extDialogVisible = true
         },
 
     },
