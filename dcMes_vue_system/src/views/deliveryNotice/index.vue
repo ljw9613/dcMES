@@ -56,7 +56,7 @@
                     <i class="el-icon-tickets">发货通知单列表</i>
                     <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
                         :template-params="{
-                            templateType: { $in: ['DN'] },
+                            // templateType: { $in: ['DN'] },
                             status: true
                         }" placeholder="请选择发货通知打印模板" @template-change="handleTemplateChange" />
                 </div>

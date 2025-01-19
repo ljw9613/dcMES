@@ -65,7 +65,7 @@
                     <i class="el-icon-tickets">采购订单列表</i>
                     <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
                         :template-params="{
-                            templateType: { $in: ['WM', 'AP'] },
+                            // templateType: { $in: ['WM', 'AP'] },
                             status: true
                         }" placeholder="请选择采购订单打印模板" @template-change="handleTemplateChange" />
                 </div>
