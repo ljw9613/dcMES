@@ -23,8 +23,7 @@
                 <!-- 高级搜索部分 -->
                 <div v-if="showAdvanced" class="screen_content_second">
                     <el-form-item label="发货组织">
-                        <el-input v-model="searchForm.FDeliveryOrgID.Number" placeholder="请输入发货组织编号"
-                            clearable></el-input>
+                        <el-input v-model="searchForm.FStockOrgId.Number" placeholder="请输入发货组织编号" clearable></el-input>
                     </el-form-item>
 
                     <el-form-item label="客户">
@@ -54,12 +53,12 @@
         <div class="screen1">
             <div class="screen_content">
                 <div class="screen_content_first">
-                    <i class="el-icon-tickets">发货通知单列表</i>
+                    <i class="el-icon-tickets">销售出库单列表</i>
                     <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
                         :template-params="{
-                            // templateType: { $in: ['DN'] },
+                            // templateType: { $in: ['OS'] },
                             status: true
-                        }" placeholder="请选择发货通知打印模板" @template-change="handleTemplateChange" />
+                        }" placeholder="请选择销售出库打印模板" @template-change="handleTemplateChange" />
                 </div>
             </div>
         </div>
@@ -74,60 +73,131 @@
                 <el-table-column type="expand">
                     <template slot-scope="props">
                         <el-table :data="props.row.FEntity || []" border style="width: 100%">
+                            <!-- 基础信息 -->
+                            <el-table-column label="序号" type="index" width="50" align="center" />
+                            <el-table-column label="客户物料" min-width="120">
+                                <template slot-scope="scope">
+                                    <el-tooltip :content="getCustMatInfo(scope.row.FCustMatID)" placement="top">
+                                        <span>{{ scope.row.FCustMatID && scope.row.FCustMatID.Number || '-' }}</span>
+                                    </el-tooltip>
+                                </template>
+                            </el-table-column>
+
                             <!-- 物料信息 -->
                             <el-table-column label="物料编码" min-width="120">
                                 <template slot-scope="scope">
-                                    {{ scope.row.FMaterialID && scope.row.FMaterialID.Number || '-' }}
-                                    <el-tooltip :content="getMaterialName(scope.row.FMaterialID)" placement="top">
-                                        <span>{{ getMaterialNumber(scope.row.FMaterialID) }}</span>
+                                    <el-tooltip :content="getMaterialInfo(scope.row.FMaterialID)" placement="top">
+                                        <span>{{ scope.row.FMaterialID && scope.row.FMaterialID.Number || '-' }}</span>
                                     </el-tooltip>
                                 </template>
                             </el-table-column>
                             <el-table-column label="物料名称" min-width="150">
                                 <template slot-scope="scope">
-                                    {{ getMaterialName(scope.row.FMaterialID) }}
+                                    {{ scope.row.FMaterialID && scope.row.FMaterialID.Name || '-' }}
                                 </template>
                             </el-table-column>
                             <el-table-column label="规格型号" min-width="120">
                                 <template slot-scope="scope">
-                                    {{ getMaterialSpec(scope.row.FMaterialID) }}
+                                    {{ scope.row.FMaterialID && scope.row.FMaterialID.Specification || '-' }}
                                 </template>
                             </el-table-column>
 
                             <!-- 数量与单位 -->
-                            <el-table-column label="单位" prop="FUnitID.Name" width="100" />
-                            <el-table-column label="发货数量" prop="FQty" width="100" />
-                            <el-table-column label="可用库存" prop="FAvailableQty" width="100" />
+                            <el-table-column label="单位" width="80">
+                                <template slot-scope="scope">
+                                    {{ scope.row.FUnitID && scope.row.FUnitID.Name || '-' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="应发数量" width="100">
+                                <template slot-scope="scope">
+                                    {{ formatNumber(scope.row.FMustQty) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="实发数量" width="100">
+                                <template slot-scope="scope">
+                                    {{ formatNumber(scope.row.FRealQty) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="库存数量" width="100">
+                                <template slot-scope="scope">
+                                    {{ formatNumber(scope.row.FInventoryQty) }}
+                                </template>
+                            </el-table-column>
 
                             <!-- 仓储信息 -->
-                            <el-table-column label="发货仓库" min-width="120">
+                            <el-table-column label="仓库" min-width="120">
                                 <template slot-scope="scope">
-                                    {{ scope.row.FStockID && scope.row.FStockID.Name || '-' }}
+                                    <el-tooltip :content="getStockInfo(scope.row.FStockID)" placement="top">
+                                        <span>{{ scope.row.FStockID && scope.row.FStockID.Name || '-' }}</span>
+                                    </el-tooltip>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="批号" prop="FLot" width="120" />
-                            <el-table-column label="库存状态" prop="FStockStatusId.Name" width="100" />
+                            <el-table-column label="库存状态" width="100">
+                                <template slot-scope="scope">
+                                    {{ scope.row.FStockStatusID && scope.row.FStockStatusID.Name || '-' }}
+                                </template>
+                            </el-table-column>
 
-                            <!-- 发货信息 -->
-                            <el-table-column label="计划发货日期" width="160">
+                            <!-- 价格信息 -->
+                            <el-table-column label="单价" width="100">
                                 <template slot-scope="scope">
-                                    {{ formatDate(scope.row.FPlanDeliveryDate) }}
+                                    {{ formatPrice(scope.row.FPrice) }}
                                 </template>
                             </el-table-column>
-                            <el-table-column label="发货日期" width="160">
+                            <el-table-column label="含税单价" width="100">
                                 <template slot-scope="scope">
-                                    {{ formatDate(scope.row.FDeliveryDate) }}
+                                    {{ formatPrice(scope.row.FTaxPrice) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="金额" width="120">
+                                <template slot-scope="scope">
+                                    {{ formatPrice(scope.row.FAmount) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="税额" width="100">
+                                <template slot-scope="scope">
+                                    {{ formatPrice(scope.row.FTaxAmount) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="价税合计" width="120">
+                                <template slot-scope="scope">
+                                    {{ formatPrice(scope.row.FAllAmount) }}
+                                </template>
+                            </el-table-column>
+
+                            <!-- 来源信息 -->
+                            <el-table-column label="来源类型" prop="FSrcType" width="120" />
+                            <el-table-column label="来源单号" min-width="120">
+                                <template slot-scope="scope">
+                                    {{ scope.row.FSrcBillNo || '-' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="订单号" min-width="120">
+                                <template slot-scope="scope">
+                                    {{ scope.row.FSoorDerno || '-' }}
+                                </template>
+                            </el-table-column>
+
+                            <!-- 日期信息 -->
+                            <el-table-column label="生产日期" width="160">
+                                <template slot-scope="scope">
+                                    {{ formatDate(scope.row.FProduceDate) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="有效期至" width="160">
+                                <template slot-scope="scope">
+                                    {{ formatDate(scope.row.FExpiryDate) }}
                                 </template>
                             </el-table-column>
 
                             <!-- 其他信息 -->
-                            <el-table-column label="备注" prop="FNoteEntry" min-width="150" />
+                            <el-table-column label="备注" prop="FEntrynote" min-width="150" />
                         </el-table>
                     </template>
                 </el-table-column>
 
                 <!-- 主表列 -->
-                <el-table-column label="发货单号" prop="FBillNo" min-width="120" />
+                <el-table-column label="出库单号" prop="FBillNo" min-width="120" />
                 <el-table-column label="销售组织" min-width="180">
                     <template slot-scope="scope">
                         <el-tooltip :content="getOrgInfo(scope.row.FSaleOrgId)" placement="top">
@@ -138,8 +208,8 @@
 
                 <el-table-column label="发货组织" min-width="180">
                     <template slot-scope="scope">
-                        <el-tooltip :content="getOrgInfo(scope.row.FDeliveryOrgID)" placement="top">
-                            <span>{{ scope.row.FDeliveryOrgID && scope.row.FDeliveryOrgID.Name || '-' }}</span>
+                        <el-tooltip :content="getOrgInfo(scope.row.FStockOrgId)" placement="top">
+                            <span>{{ scope.row.FStockOrgId && scope.row.FStockOrgId.Name || '-' }}</span>
                         </el-tooltip>
                     </template>
                 </el-table-column>
@@ -188,7 +258,7 @@
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
                         <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
-                        <el-button type="text" size="small" @click="handleLogistics(scope.row)">物流信息</el-button>
+                        <!-- <el-button type="text" size="small" @click="handleLogistics(scope.row)">物流信息</el-button> -->
                         <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
                     </template>
                 </el-table-column>
@@ -202,7 +272,7 @@
         </el-dialog>
 
         <!-- 添加同步对话框 -->
-        <el-dialog title="同步发货通知单" :visible.sync="syncDialogVisible" width="500px">
+        <el-dialog title="同步销售出库单" :visible.sync="syncDialogVisible" width="500px">
             <el-form :model="syncForm" ref="syncForm" label-width="100px">
                 <el-form-item label="同步方式">
                     <el-radio-group v-model="syncForm.syncType">
@@ -216,8 +286,8 @@
                         start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
                     </el-date-picker>
                 </el-form-item>
-                <el-form-item label="发货单号" required v-if="syncForm.syncType === 'billNo'">
-                    <el-input v-model="syncForm.billNo" placeholder="请输入发货单号"></el-input>
+                <el-form-item label="出库单号" required v-if="syncForm.syncType === 'billNo'">
+                    <el-input v-model="syncForm.billNo" placeholder="请输入出库单号"></el-input>
                 </el-form-item>
                 <el-form-item label="单据状态">
                     <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
@@ -234,10 +304,9 @@
             </div>
         </el-dialog>
 
-
         <!-- 拓展数据对话框 -->
         <el-dialog title="拓展数据" :visible.sync="extDialogVisible">
-            <deliveryNoticeExt v-if="extDialogVisible" :order-data="currentOrderData" @close="extDialogVisible = false"
+            <outStockExt v-if="extDialogVisible" :order-data="currentOrderData" @close="extDialogVisible = false"
                 @refresh="fetchData" />
         </el-dialog>
     </div>
@@ -245,23 +314,23 @@
 
 <script>
 import { getData } from "@/api/data";
-import { syncSAL_DeliveryNotice, getSyncStatus } from "@/api/K3Data";
+import { syncSAL_OutStock, getSyncStatus } from "@/api/K3Data";
 import HirInput from '@/components/hirInput/index.vue'
 import LogisticsDetail from './components/LogisticsDetail.vue'
-import deliveryNoticeExt from './components/deliveryNoticeExt.vue'
+import outStockExt from './components/outStockExt.vue'
 
 export default {
-    name: 'DeliveryNotice',
+    name: 'OutStock',
     components: {
         HirInput,
         LogisticsDetail,
-        deliveryNoticeExt
+        outStockExt
     },
     computed: {
         localPrintTemplate: {
             get() {
                 try {
-                    const savedTemplate = localStorage.getItem('printTemplate_deliveryNotice');
+                    const savedTemplate = localStorage.getItem('printTemplate_outStock');
                     return savedTemplate ? JSON.parse(savedTemplate) : null;
                 } catch (error) {
                     console.error('解析缓存模板失败:', error);
@@ -270,7 +339,7 @@ export default {
             },
             set(value) {
                 try {
-                    localStorage.setItem('printTemplate_deliveryNotice', JSON.stringify(value));
+                    localStorage.setItem('printTemplate_outStock', JSON.stringify(value));
                 } catch (error) {
                     console.error('保存模板到缓存失败:', error);
                 }
@@ -284,7 +353,7 @@ export default {
                 FSaleOrgId: {
                     Number: ''
                 },
-                FDeliveryOrgID: {
+                FStockOrgId: {
                     Number: ''
                 },
                 FCustomerID: {
@@ -310,8 +379,8 @@ export default {
                 documentStatus: 'C',
                 billNo: ''
             },
+            extDialogVisible: false,
 
-            extDialogVisible: false
         }
     },
     methods: {
@@ -326,7 +395,7 @@ export default {
                 req.sort = { FBillNo: 1 };
                 req.count = true;
 
-                const result = await getData("K3_SAL_DeliveryNotice", req);
+                const result = await getData("K3_SAL_OutStock", req);
 
                 if (result.code === 200) {
                     this.tableList = result.data;
@@ -358,8 +427,8 @@ export default {
                 req.query.$and.push({ 'FSaleOrgId.Number': { $regex: this.searchForm.FSaleOrgId.Number.trim(), $options: 'i' } });
             }
 
-            if (this.searchForm.FDeliveryOrgID.Number) {
-                req.query.$and.push({ 'FDeliveryOrgID.Number': { $regex: this.searchForm.FDeliveryOrgID.Number.trim(), $options: 'i' } });
+            if (this.searchForm.FStockOrgId.Number) {
+                req.query.$and.push({ 'FStockOrgId.Number': { $regex: this.searchForm.FStockOrgId.Number.trim(), $options: 'i' } });
             }
 
             if (this.searchForm.FCustomerID.Number) {
@@ -389,12 +458,14 @@ export default {
         // 处理打印
         async handlePrint(row) {
             // 
+            console.log("this.localPrintTemplate", this.localPrintTemplate)
             if (!this.localPrintTemplate) {
                 this.$message.warning('请先选择打印模板');
                 return;
             }
+
             //获取拓展数据
-            const result = await getData('k3_SAL_DeliveryNoticeExt', {
+            const result = await getData('k3_SAL_OutStockExt', {
                 query: { FSaleOrderId: row._id },
                 populate: JSON.stringify([{ path: 'productionOrderId' }])
             })
@@ -406,22 +477,22 @@ export default {
                 printData.FDeliveryDate = this.formatDate(printData.FApproveDate);
             }
 
-            // 发货通知单打印数据处理
-            if (this.localPrintTemplate.templateType === 'DN') {
-                printData.FApproveDate = this.formatDate(printData.FApproveDate);
-                printData.FCreateDate = this.formatDate(printData.FCreateDate);
-                printData.FCustomerID_Name = printData.FCustomerID && printData.FCustomerID.Name;
-                // 处理明细数据
-                printData.FEntity = printData.FEntity.map((item, index) => ({
-                    ...item,
-                    FNum: index + 1,
-                    FMaterialID_Name: item.FMaterialID && item.FMaterialID.Name,
-                    FMaterialID_Number: item.FMaterialID && item.FMaterialID.Number,
-                    FMaterialID_Specification: item.FMaterialID && item.FMaterialID.Specification,
-                    FUnitID_Name: item.FUnitID && item.FUnitID.Name
-                }));
-            }
-
+            // 销售出库单打印数据处理
+            // if (this.localPrintTemplate.templateType === 'DN') {
+            printData.FApproveDate = this.formatDate(printData.FApproveDate);
+            printData.FCreateDate = this.formatDate(printData.FCreateDate);
+            printData.FCustomerID_Name = printData.FCustomerID && printData.FCustomerID.Name;
+            // 处理明细数据
+            printData.FEntity = printData.FEntity.map((item, index) => ({
+                ...item,
+                FNum: index + 1,
+                FMaterialID_Name: item.FMaterialID && item.FMaterialID.Name,
+                FMaterialID_Number: item.FMaterialID && item.FMaterialID.Number,
+                FMaterialID_Specification: item.FMaterialID && item.FMaterialID.Specification,
+                FUnitID_Name: item.FUnitID && item.FUnitID.Name
+            }));
+            // }
+            console.log(printData, 'printData')
             this.printData = printData;
             this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints();
@@ -534,7 +605,7 @@ export default {
                     }]
                 };
 
-                const response = await syncSAL_DeliveryNotice(req);
+                const response = await syncSAL_OutStock(req);
                 if (response.code === 200) {
                     this.startSyncProgressCheck();
                     this.$message.success('同步任务已启动');
@@ -565,7 +636,7 @@ export default {
                 return;
             }
             if (this.syncForm.syncType === 'billNo' && !this.syncForm.billNo) {
-                this.$message.warning('请输入发货单号');
+                this.$message.warning('请输入出库单号');
                 return;
             }
 
@@ -579,7 +650,7 @@ export default {
                 });
 
                 try {
-                    const response = await syncSAL_DeliveryNotice(req);
+                    const response = await syncSAL_OutStock(req);
                     if (response.code === 200) {
                         this.syncDialogVisible = false;
                         this.startSyncProgressCheck();
@@ -662,7 +733,7 @@ export default {
 
             this.syncProgressTimer = setInterval(async () => {
                 try {
-                    const response = await getSyncStatus('K3_SAL_DeliveryNotice');
+                    const response = await getSyncStatus('K3_SAL_OutStock');
                     if (response.code === 200) {
                         const task = response.taskStatus;
                         if (task) {
@@ -704,6 +775,59 @@ export default {
             }
         },
 
+        // 格式化数字
+        formatNumber(value) {
+            if (!value && value !== 0) return '-'
+            return Number(value).toLocaleString('zh-CN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })
+        },
+
+        // 格式化价格
+        formatPrice(value) {
+            if (!value && value !== 0) return '-'
+            return Number(value).toLocaleString('zh-CN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                style: 'currency',
+                currency: 'USD'
+            })
+        },
+
+        // 获取客户物料信息
+        getCustMatInfo(custMat) {
+            if (!custMat) return '-'
+            return `${custMat.Number} - ${custMat.Name}
+物料编码: ${custMat.MaterialId && custMat.MaterialId.Number || '-'}`
+        },
+
+        // 获取物料完整信息
+        getMaterialInfo(material) {
+            if (!material) return '-'
+            return `${material.Number} - ${material.Name}
+规格: ${material.Specification || '-'}
+物料组: ${material.MaterialGroup && material.MaterialGroup.Name || '-'}`
+        },
+
+        // 获取仓库完整信息
+        getStockInfo(stock) {
+            if (!stock) return '-'
+            return `${stock.Number} - ${stock.Name}
+属性: ${this.getStockProperty(stock.StockProperty)}`
+        },
+
+        // 获取仓库属性描述
+        getStockProperty(property) {
+            const propertyMap = {
+                '1': '普通仓库',
+                '2': '质检仓库',
+                '3': '在途仓库',
+                '4': '虚拟仓库',
+                '5': '委外仓库'
+            }
+            return propertyMap[property] || '未知'
+        },
         handleExt(row) {
             this.currentOrderData = row
             this.extDialogVisible = true
@@ -787,5 +911,9 @@ export default {
             padding: 10px;
         }
     }
+}
+
+.el-table>>>.cell {
+    white-space: nowrap;
 }
 </style>

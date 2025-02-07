@@ -643,6 +643,7 @@ export default {
 
                 try {
                     if (row.nodeType === 'PROCESS_STEP') {
+
                         const response = await unbindComponents({
                             mainBarcode: this.dataForm.barcode,
                             processStepId: row.processStepId,

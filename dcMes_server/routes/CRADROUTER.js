@@ -44,10 +44,15 @@ const k3_PRD_PickMtrl = require("../model/k3/K3_PRD_PickMtrl");
 const k3_SAL_DeliveryNotice = require("../model/k3/K3_SAL_DeliveryNotice");
 const k3_PRD_InStock = require("../model/k3/K3_PRD_InStock");
 const k3_PUR_RequisitionBill = require("../model/k3/K3_PUR_RequisitionBill");
+const K3_SAL_OutStock = require("../model/k3/K3_SAL_OutStock");
+
 //k3 拓展模型
 const k3_SAL_SaleOrderExt = require("../model/k3Ext/k3_SAL_SaleOrderExt");
 const k3_PRD_PickMtrlExt = require("../model/k3Ext/k3_PRD_PickMtrlExt");
 const k3_PUR_RequisitionBillExt = require("../model/k3Ext/K3_PUR_RequisitionBillExt");
+const k3_SAL_OutStockExt = require("../model/k3Ext/k3_SAL_OutStockExt");
+const k3_SAL_DeliveryNoticeExt = require("../model/k3Ext/k3_SAL_DeliveryNoticeExt");
+
 //检测模块
 const InspectionLastData = require("../model/project/InspectionLastData");
 const InspectionData = require("../model/project/InspectionData");
@@ -96,6 +101,8 @@ ADDROUTER(router, "k3_PRD_PickMtrl", k3_PRD_PickMtrl);
 ADDROUTER(router, "k3_SAL_DeliveryNotice", k3_SAL_DeliveryNotice);
 ADDROUTER(router, "k3_PRD_InStock", k3_PRD_InStock);
 ADDROUTER(router, "k3_PUR_RequisitionBill", k3_PUR_RequisitionBill);
+ADDROUTER(router, "k3_SAL_OutStock", K3_SAL_OutStock);
+
 
 ADDROUTER(router, "productDiNum", productDiNum);
 ADDROUTER(router, "barcodeRule", barcodeRule);
@@ -104,6 +111,9 @@ ADDROUTER(router, "productBarcodeRule", productBarcodeRule);
 ADDROUTER(router, "k3_SAL_SaleOrderExt", k3_SAL_SaleOrderExt);
 ADDROUTER(router, "k3_PRD_PickMtrlExt", k3_PRD_PickMtrlExt);
 ADDROUTER(router, "k3_PUR_RequisitionBillExt", k3_PUR_RequisitionBillExt);
+ADDROUTER(router, "k3_SAL_OutStockExt", k3_SAL_OutStockExt);
+ADDROUTER(router, "k3_SAL_DeliveryNoticeExt", k3_SAL_DeliveryNoticeExt);
+
 //检测模块
 ADDROUTER(router, "InspectionLastData", InspectionLastData);
 ADDROUTER(router, "InspectionData", InspectionData);

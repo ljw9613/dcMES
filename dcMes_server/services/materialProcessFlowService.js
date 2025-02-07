@@ -1817,6 +1817,218 @@ class MaterialProcessFlowService {
       throw error;
     }
   }
+
+  /**
+   * 构建完整的BOM结构数据
+   * @param {string} materialId - 顶层物料ID
+   * @param {Object} craft - 工艺信息
+   * @param {Set} processedMaterials - 已处理的物料集合（防止循环引用）
+   * @param {number} level - 当前层级
+   * @returns {Promise<Array>} BOM结构数组
+   */
+  static async buildFullBOMStructure(
+    materialId,
+    craft,
+    processedMaterials = new Set(),
+    level = 0
+  ) {
+    try {
+      // 检查材料是否已处理过（防止循环依赖）
+      if (processedMaterials.has(materialId.toString())) {
+        console.warn(`检测到循环依赖, 材料ID: ${materialId}`);
+        return [];
+      }
+
+      const bomStructure = [];
+      // 添加当前材料到已处理集合
+      processedMaterials.add(materialId.toString());
+
+      // 获取主物料信息
+      const material = await Material.findById(materialId);
+      if (!material) {
+        throw new Error(`未找到物料信息: ${materialId}`);
+      }
+
+      // 创建主物料节点
+      const rootNode = {
+        level,
+        materialId: material._id,
+        materialCode: material.FNumber,
+        materialName: material.FName,
+        specification: material.FSpecification,
+        unit: material.FBaseUnitId_FName,
+        craftId: craft?._id,
+        craftName: craft?.craftName,
+        children: [],
+        processSteps: []
+      };
+
+      // 如果存在工艺，获取所有工序
+      if (craft) {
+        const processSteps = await ProcessStep.find({
+          craftId: craft._id,
+        }).sort({ sort: 1 });
+
+        // 处理每个工序
+        for (const processStep of processSteps) {
+          const processNode = {
+            processId: processStep._id,
+            processCode: processStep.processCode,
+            processName: processStep.processName,
+            processType: processStep.processType,
+            sort: processStep.sort,
+            materials: []
+          };
+
+          // 获取工序关联的物料
+          const processMaterials = await ProcessMaterials.find({
+            processStepId: processStep._id,
+          });
+
+          // 如果没有关联物料，也添加一个空的物料记录
+          if (processMaterials.length === 0) {
+            processNode.materials.push({
+              materialId: null,
+              materialCode: '',
+              materialName: '',
+              specification: '',
+              quantity: null,
+              unit: '',
+              isComponent: false,
+              isKeyMaterial: false,
+              isBatch: false,
+              batchQuantity: null,
+              isPackingBox: false,
+              isRfid: false,
+              children: []
+            });
+          } else {
+            // 处理工序物料
+            for (const processMaterial of processMaterials) {
+              const subMaterial = await Material.findById(processMaterial.materialId);
+              if (!subMaterial) continue;
+
+              // 查找子物料的工艺
+              const subCraft = await Craft.findOne({
+                materialId: subMaterial._id,
+              });
+
+              // 递归处理子物料的BOM结构
+              const subStructure = await this.buildFullBOMStructure(
+                subMaterial._id,
+                subCraft,
+                processedMaterials,
+                level + 1
+              );
+
+              const materialNode = {
+                materialId: subMaterial._id,
+                materialCode: subMaterial.FNumber,
+                materialName: subMaterial.FName,
+                specification: subMaterial.FSpecification,
+                quantity: processMaterial.quantity,
+                unit: processMaterial.unit,
+                isComponent: processMaterial.isComponent,
+                isKeyMaterial: processMaterial.isKey,
+                isBatch: processMaterial.isBatch,
+                batchQuantity: processMaterial.batchQuantity,
+                isPackingBox: processMaterial.isPackingBox,
+                isRfid: processMaterial.isRfid,
+                children: subStructure
+              };
+
+              processNode.materials.push(materialNode);
+            }
+          }
+
+          rootNode.processSteps.push(processNode);
+        }
+      }
+
+      bomStructure.push(rootNode);
+      return bomStructure;
+
+    } catch (error) {
+      console.error("构建BOM结构失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 导出完整BOM结构为扁平数组（用于Excel导出等）
+   * @param {string} materialId - 顶层物料ID
+   * @returns {Promise<Array>} 扁平化的BOM数据数组
+   */
+  static async exportFlattenedBOMStructure(materialId) {
+    try {
+      const craft = await Craft.findOne({ materialId });
+      const bomStructure = await this.buildFullBOMStructure(materialId, craft);
+      const flattenedData = [];
+
+      const flattenBOM = (node, parentProcess = null, parentMaterial = null) => {
+        // 添加工序信息
+        node.processSteps.forEach(process => {
+          // 如果工序没有物料，添加一条只有工序信息的记录
+          if (process.materials.length === 0 || (process.materials.length === 1 && !process.materials[0].materialId)) {
+            flattenedData.push({
+              level: node.level,
+              parentMaterialCode: node.materialCode,
+              parentMaterialName: node.materialName,
+              processCode: process.processCode,
+              processName: process.processName,
+              processType: process.processType,
+              materialCode: '',
+              materialName: '',
+              specification: '',
+              quantity: null,
+              unit: '',
+              isComponent: '',
+              isKeyMaterial: '',
+              isBatch: '',
+              batchQuantity: null,
+              isPackingBox: '',
+              isRfid: ''
+            });
+          } else {
+            process.materials.forEach(material => {
+              flattenedData.push({
+                level: node.level,
+                parentMaterialCode: node.materialCode,
+                parentMaterialName: node.materialName,
+                processCode: process.processCode,
+                processName: process.processName,
+                processType: process.processType,
+                materialCode: material.materialCode,
+                materialName: material.materialName,
+                specification: material.specification,
+                quantity: material.quantity,
+                unit: material.unit,
+                isComponent: material.isComponent ? '是' : '否',
+                isKeyMaterial: material.isKeyMaterial ? '是' : '否',
+                isBatch: material.isBatch ? '是' : '否',
+                batchQuantity: material.batchQuantity,
+                isPackingBox: material.isPackingBox ? '是' : '否',
+                isRfid: material.isRfid ? '是' : '否'
+              });
+
+              // 递归处理子物料
+              if (material.children && material.children.length > 0) {
+                material.children.forEach(child => {
+                  flattenBOM(child, process, material);
+                });
+              }
+            });
+          }
+        });
+      };
+
+      bomStructure.forEach(root => flattenBOM(root));
+      return flattenedData;
+    } catch (error) {
+      console.error("导出BOM结构失败:", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = MaterialProcessFlowService;

@@ -44,6 +44,11 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
+                        <el-form-item label="物料编号">
+                            <el-input v-model="searchForm.materialNumber" placeholder="请输入物料编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="4">
                         <el-form-item label="状态">
                             <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 100%">
                                 <el-option label="待审核" value="PENDING_REVIEW" />
@@ -63,6 +68,10 @@
                         @click="handleBatchVoid">批量作废</el-button>
                     <el-button v-if="hasMaintenanceAudit" type="success" icon="el-icon-check" :disabled="!selection.length"
                         @click="handleBatchReview">批量审核</el-button>
+                    <el-button type="success" icon="el-icon-download" @click="handleExport" :loading="exportLoading">
+                        <i class="el-icon-download"></i>
+                        {{ exportLoading ? `正在导出(${exportProgress}%)` : '导出数据' }}
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -215,14 +224,25 @@
                 <el-button type="primary" @click="submitBatchReview">确 定</el-button>
             </div>
         </el-dialog>
+
+        <!-- 添加导出进度条对话框 -->
+        <el-dialog title="导出进度" :visible.sync="exportDialogVisible" :close-on-click-modal="false"
+            :close-on-press-escape="false" :show-close="false" width="30%">
+            <el-progress :percentage="exportProgress" :status="exportProgress === 100 ? 'success' : ''"
+                :stroke-width="18">
+            </el-progress>
+            <div style="text-align: center; margin-top: 10px">
+                {{ exportProgress === 100 ? '导出完成' : '正在导出数据，请稍候...' }}
+            </div>
+        </el-dialog>
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
-import { query } from "quill";
-import { refreshMachine } from "@/api/machine";
+
+
 export default {
     name: 'ProductionLine',
     dicts: ['repair_solution', 'businessType'],
@@ -236,6 +256,7 @@ export default {
                 materialSpec: "",
                 batchNumber: "",
                 status: "",
+                materialNumber: "",
             },
             tableList: [],
             total: 0,
@@ -261,6 +282,9 @@ export default {
             hasMaintenanceAudit: false,
             hasFinishedProductMaintenance: false,
             hasComponentMaintenance: false,
+            exportLoading: false,
+            exportProgress: 0,
+            exportDialogVisible: false,
         }
     },
     methods: {
@@ -320,6 +344,9 @@ export default {
             }
             if (this.searchForm.status) {
                 req.query.$and.push({ status: this.searchForm.status });
+            }
+            if (this.searchForm.materialNumber) {
+                req.query.$and.push({ materialNumber: { $regex: this.searchForm.materialNumber, $options: 'i' } });
             }
 
             if (!req.query.$and.length) {
@@ -618,6 +645,109 @@ export default {
             } catch (error) {
                 console.error('批量审核失败:', error);
                 this.$message.error('批量审核失败');
+            }
+        },
+
+        async handleExport() {
+            this.exportLoading = true;
+            this.exportProgress = 0;
+            this.exportDialogVisible = true;
+
+            try {
+                // 构建查询条件
+                let req = this.searchData();
+                req.populate = JSON.stringify([
+                    { path: 'repairPerson', select: 'nickName' },
+                    { path: 'reviewer', select: 'nickName' }
+                ]);
+
+                // 获取所有数据（不分页）
+                const result = await getData("product_repair", req);
+                const totalItems = result.data.length;
+
+                if (totalItems === 0) {
+                    this.$message.warning('未找到符合条件的维修记录');
+                    this.exportDialogVisible = false;
+                    this.exportLoading = false;
+                    return;
+                }
+
+                // 准备 Excel 数据
+                const exportData = [];
+                const batchSize = 100;
+                const header = [
+                    '产品条码', '物料编号', '产品型号', '销售订单', '生产订单', 
+                    '生产工单', '维修上报人', '维修时间', '业务类型', '处理方案',
+                    '不良现象', '分析原因', '维修描述', '审核人', '审核时间',
+                    '维修结果', '状态'
+                ];
+
+                for (let i = 0; i < totalItems; i += batchSize) {
+                    const batch = result.data.slice(i, i + batchSize).map(item => {
+                        // 处理业务类型
+                        let businessTypeLabel = '';
+                        const businessTypeDict = this.dict.type.businessType.find(dict => dict.value === item.businessType);
+                        if (businessTypeDict) {
+                            businessTypeLabel = businessTypeDict.label;
+                        } else {
+                            businessTypeLabel = item.businessType;
+                        }
+
+                        return [
+                            item.barcode,
+                            item.materialCode,
+                            item.materialSpec || '暂无数据',
+                            item.saleOrderNo,
+                            item.productionOrderNo,
+                            item.workOrderNo,
+                            item.repairPerson ? item.repairPerson.nickName : '暂无数据',
+                            this.formatDate(item.repairTime),
+                            businessTypeLabel,
+                            item.solution,
+                            item.defectDescription || '暂无数据',
+                            item.causeAnalysis || '暂无数据',
+                            item.repairDescription || '暂无数据',
+                            item.reviewer ? item.reviewer.nickName : '暂无数据',
+                            this.formatDate(item.reviewTime),
+                            this.getRepairResultText(item.repairResult),
+                            this.getStatusText(item.status)
+                        ];
+                    });
+
+                    exportData.push(...batch);
+
+                    // 更新进度
+                    this.exportProgress = Math.round((i + batch.length) / totalItems * 100);
+
+                    // 给UI一个更新的机会
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // 导出Excel
+                import('@/vendor/Export2Excel').then(excel => {
+                    excel.export_json_to_excel({
+                        header: header,
+                        data: exportData,
+                        filename: '维修记录_' + new Date().getTime(),
+                        autoWidth: true,
+                        bookType: 'xlsx'
+                    });
+                    this.exportProgress = 100;
+                    this.$message.success('导出成功');
+                });
+
+                // 延迟关闭对话框
+                setTimeout(() => {
+                    this.exportDialogVisible = false;
+                    this.exportProgress = 0;
+                }, 1000);
+
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败');
+                this.exportDialogVisible = false;
+            } finally {
+                this.exportLoading = false;
             }
         }
     },

@@ -62,13 +62,13 @@
                                 <span v-if="!innerScope.row.isComponent && !innerScope.row.isKeyMaterial">-</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="120" fixed="right">
-                            <template slot-scope="scope">
-                                <el-button type="text" size="small" @click="handleUnbind(scope.row)">解绑</el-button>
-                            </template>
-                        </el-table-column>
                     </el-table>
                     <div v-else class="no-material">暂无关联物料</div>
+                </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+                <template slot-scope="scope">
+                    <el-button type="text" size="small" @click="handleUnbind(scope.row)">解绑</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -84,10 +84,15 @@ export default {
         flowChartData: {
             type: Array,
             default: () => []
+        },
+        mainBarcode: {
+            type: String,
+            default: ''
         }
     },
     data() {
         return {
+
             unbindDialogVisible: false,
             unbindForm: {
                 processNodeId: '',
@@ -127,7 +132,7 @@ export default {
                 // TODO 国内查询维修记录
                 // let barcodeRepair = await getData('product_repair', {
                 //     query: {
-                //         barcode: this.dataForm.barcode,
+                //         barcode: this.mainBarcode,
                 //         status: 'PENDING_REVIEW'
                 //     }
                 // });
@@ -136,12 +141,6 @@ export default {
                 //     this.$message.warning('请先创建维修记录，再进行解绑操作');
                 //     return;
                 // }
-
-                await this.$confirm('确认要解绑该工序下的物料吗？', '提示', {
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消',
-                    type: 'warning'
-                });
 
                 const { value: reason } = await this.$prompt('请输入解绑原因', '提示', {
                     confirmButtonText: '确定',
@@ -154,21 +153,32 @@ export default {
                     }
                 });
 
-                const unbindData = {
-                    processNodeId: row.nodeId,
-                    reason: reason,
-                    materialIds: row.children
-                        .filter(item => item.nodeType === 'MATERIAL' && item.barcode)
-                        .map(item => item.nodeId)
-                };
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在解绑...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
 
-                const result = await unbindComponents(unbindData);
+                try {
+                    const unbindData = {
+                        mainBarcode: this.mainBarcode,
+                        processStepId: row.processStepId,  // 修改为使用 nodeId
+                        userId: this.$store.state.user.id,
+                        reason: reason || '未填写解绑原因',
+                        unbindSubsequent: true
+                    };
 
-                if (result.code === 200) {
-                    this.$message.success('解绑成功');
-                    this.$emit('unbind-success');
-                } else {
-                    this.$message.error(result.message || '解绑失败');
+                    const response = await unbindComponents(unbindData);
+
+                    if (response.code === 200 && response.success) {
+                        this.$message.success('解绑成功');
+                        this.$emit('unbind-success');
+                    } else {
+                        throw new Error(response.message || '解绑失败');
+                    }
+                } finally {
+                    loading.close();
                 }
             } catch (error) {
                 if (error !== 'cancel') {

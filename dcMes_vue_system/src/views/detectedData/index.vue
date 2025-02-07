@@ -57,11 +57,20 @@
                             </el-date-picker>
                         </el-form-item>
                     </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="物料编码">
+                            <el-input v-model="searchForm.materialCode" placeholder="请输入物料编码" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
                 </el-row>
 
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
+                    <el-button type="primary" @click="handleExportByMaterial" :loading="exportLoading">
+                        <i class="el-icon-download"></i>
+                        {{ exportLoading ? `正在导出(${exportProgress}%)` : '按物料导出' }}
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -203,6 +212,7 @@ export default {
     data() {
         return {
             searchForm: {
+                materialCode: '',
                 scanCode: '',
                 machineId: '',
                 processId: '',
@@ -303,6 +313,7 @@ export default {
         resetForm() {
             this.$refs.searchForm.resetFields();
             this.searchForm = {
+                materialCode: '',
                 scanCode: '',
                 machineId: '',
                 processId: '',
@@ -315,13 +326,41 @@ export default {
         async fetchData() {
             this.listLoading = true;
             try {
+                let scanCodes = [];
+                
+                // 如果输入了物料编码，先查询对应的物料条码
+                if (this.searchForm.materialCode) {
+                    const materialFlowResult = await getData("material_process_flow", {
+                        query: {
+                            materialCode: this.searchForm.materialCode
+                        },
+                        select: 'barcode'
+                    });
+                    
+                    if (materialFlowResult.data && materialFlowResult.data.length > 0) {
+                        scanCodes = materialFlowResult.data.map(item => item.barcode);
+                    }
+                }
+
                 let req = this.searchData();
+                
+                // 如果有物料编码查询结果，添加条码查询条件
+                if (scanCodes.length > 0) {
+                    if (!req.query.$and) {
+                        req.query.$and = [];
+                    }
+                    req.query.$and.push({
+                        scanCode: { $in: scanCodes }
+                    });
+                }
+
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
                 req.sort = { _id: -1 };
                 req.count = true;
                 req.populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]);
+                
                 const result = await getData("InspectionLastData", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
@@ -489,17 +528,56 @@ export default {
             this.exportDialogVisible = true;
 
             try {
+                let scanCodes = [];
+                
+                // 如果输入了物料编码，先查询对应的物料条码
+                if (this.searchForm.materialCode) {
+                    const materialFlowResult = await getData("material_process_flow", {
+                        query: {
+                            materialCode: this.searchForm.materialCode
+                        },
+                        select: 'barcode'
+                    });
+                    
+                    if (materialFlowResult.data && materialFlowResult.data.length > 0) {
+                        scanCodes = materialFlowResult.data.map(item => item.barcode);
+                    } else {
+                        this.$message.warning('未找到该物料编码对应的条码记录');
+                        this.exportDialogVisible = false;
+                        this.exportLoading = false;
+                        return;
+                    }
+                }
+
                 // 构建查询条件
                 let req = this.searchData();
+                
+                // 如果有物料编码查询结果，添加条码查询条件
+                if (scanCodes.length > 0) {
+                    if (!req.query.$and) {
+                        req.query.$and = [];
+                    }
+                    req.query.$and.push({
+                        scanCode: { $in: scanCodes }
+                    });
+                }
+                
                 req.populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]);
 
                 // 获取所有数据（不分页）
                 const result = await getData("InspectionLastData", req);
                 const totalItems = result.data.length;
 
+                if (totalItems === 0) {
+                    this.$message.warning('未找到符合条件的检测数据');
+                    this.exportDialogVisible = false;
+                    this.exportLoading = false;
+                    return;
+                }
+
                 // 准备 Excel 数据
                 const exportData = [];
-                const batchSize = 100; // 每批处理的数据量
+                const batchSize = 100;
                 const header = ['扫描码', '设备名称', '工序名称', '检测结果', '检测时间', '检测详情'];
 
                 for (let i = 0; i < totalItems; i += batchSize) {
@@ -528,6 +606,101 @@ export default {
                         header: header,
                         data: exportData,
                         filename: '检测数据' + new Date().getTime(),
+                        autoWidth: true,
+                        bookType: 'xlsx'
+                    });
+                    this.exportProgress = 100;
+                    this.$message.success('导出成功');
+                });
+
+                // 延迟关闭对话框
+                setTimeout(() => {
+                    this.exportDialogVisible = false;
+                    this.exportProgress = 0;
+                }, 1000);
+
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败');
+                this.exportDialogVisible = false;
+            } finally {
+                this.exportLoading = false;
+            }
+        },
+
+        async handleExportByMaterial() {
+            if (!this.searchForm.materialCode) {
+                this.$message.warning('请输入物料编码');
+                return;
+            }
+
+            this.exportLoading = true;
+            this.exportProgress = 0;
+            this.exportDialogVisible = true;
+
+            try {
+                // 1. 先查询物料流程表获取条码
+                const materialFlowResult = await getData("material_process_flow", {
+                    query: {
+                        materialCode: this.searchForm.materialCode
+                    },
+                    select: 'barcode'
+                });
+
+                if (!materialFlowResult.data || materialFlowResult.data.length === 0) {
+                    this.$message.warning('未找到该物料编码对应的条码记录');
+                    this.exportDialogVisible = false;
+                    return;
+                }
+
+                const barcodes = materialFlowResult.data.map(item => item.barcode);
+                
+                // 2. 使用条码数组查询检测数据
+                const inspectionResult = await getData("InspectionLastData", {
+                    query: {
+                        scanCode: { $in: barcodes }
+                    },
+                    populate: JSON.stringify([{ path: 'machineId' }, { path: 'processId' }])
+                });
+
+                if (!inspectionResult.data || inspectionResult.data.length === 0) {
+                    this.$message.warning('未找到对应的检测数据');
+                    this.exportDialogVisible = false;
+                    return;
+                }
+
+                const totalItems = inspectionResult.data.length;
+                
+                // 准备导出数据
+                const exportData = [];
+                const batchSize = 100;
+                const header = ['扫描码', '设备名称', '工序名称', '检测结果', '检测时间', '检测详情'];
+
+                for (let i = 0; i < totalItems; i += batchSize) {
+                    const batch = inspectionResult.data.slice(i, i + batchSize).map(item => [
+                        item.scanCode,
+                        item.machineId ? item.machineId.machineName : '--',
+                        item.processId ? item.processId.processName : '--',
+                        !item.error ? '合格' : '不合格',
+                        this.formatDate(item.createTime),
+                        this.inspectionDataHandle(item).join('; ')
+                    ]);
+
+                    exportData.push(...batch);
+
+                    // 更新进度
+                    this.exportProgress = Math.round((i + batch.length) / totalItems * 100);
+
+                    // 给UI一个更新的机会
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // 导出Excel
+                import('@/vendor/Export2Excel').then(excel => {
+                    excel.export_json_to_excel({
+                        header: header,
+                        data: exportData,
+                        filename: `${this.searchForm.materialCode}_检测数据_${new Date().getTime()}`,
                         autoWidth: true,
                         bookType: 'xlsx'
                     });

@@ -182,7 +182,7 @@ export default {
                     // 更新现有数据
                     saveResult = await updateData('k3_PUR_RequisitionBillExt', {
                         query: { _id: this.extId },
-                        updateData: saveData
+                        update: saveData
                     })
                 } else {
                     // 新增数据

@@ -106,3 +106,12 @@ export function syncPUR_RequisitionBill(data) {
     data
   });
 }
+
+//
+export function syncSAL_OutStock(data) {
+  return request({
+    url: "/K3/sync/SAL_OutStock",
+    method: "post",
+    data
+  });
+}

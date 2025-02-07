@@ -97,6 +97,7 @@
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
+                    <el-button type="success" @click="handleExport">导出数据</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -150,6 +151,8 @@
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
                         <el-button type="text" size="small" @click="handleDelete(scope.row)">删除</el-button>
+                        <el-button type="text" size="small" @click="handleExportSingle(scope.row)">导出</el-button>
+                        <el-button type="text" size="small" @click="handleExportBOM(scope.row)">导出BOM</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -640,6 +643,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import ZrSelect from '@/components/ZrSelect'
 import workDialog from '@/components/workDialog'
 import Sortable from 'sortablejs'
+import { exportBOM } from '@/api/materialProcessFlowService'
 export default {
     components: { ZrSelect, workDialog },
     name: 'CraftManagement',
@@ -2133,6 +2137,395 @@ export default {
         // 监听业务类型变化
         async handleBusinessTypeChange(value) {
             await this.generateCraftCode();
+        },
+
+        // 添加导出方法
+        async handleExport() {
+            try {
+                this.$message.info('正在准备导出数据，请稍候...');
+
+                // 获取筛选条件下的所有工艺数据
+                let searchQuery = this.searchData();
+                const craftResult = await getData("craft", {
+                    ...searchQuery,
+                    populate: JSON.stringify([{ path: 'materialId' }])
+                });
+
+                if (!craftResult.data || craftResult.data.length === 0) {
+                    this.$message.warning('没有数据可供导出');
+                    return;
+                }
+
+                // 准备导出数据
+                const exportData = [];
+
+                // 遍历每个工艺
+                for (const craft of craftResult.data) {
+                    // 获取工艺对应的所有工序
+                    const processResult = await getData("processStep", {
+                        query: { craftId: craft._id },
+                        sort: { sort: 1 },
+                    });
+
+                    // 对每个工序获取其物料信息
+                    for (const process of processResult.data) {
+                        const materialResult = await getData("processMaterials", {
+                            query: { processStepId: process._id },
+                            populate: JSON.stringify([{ path: 'materialId' }])
+                        });
+
+                        // 如果工序没有物料，也要记录工序信息
+                        if (materialResult.data.length === 0) {
+                            exportData.push({
+                                // 工艺信息
+                                craftCode: craft.craftCode,
+                                craftName: craft.craftName,
+                                craftType: this.getDictLabel(this.dict.type.craftType, craft.craftType),
+                                craftDesc: craft.craftDesc,
+                                craftMaterialCode: craft.materialId ? craft.materialId.FNumber : '',
+                                craftMaterialName: craft.materialId ? craft.materialId.FName : '',
+                                productStage: craft.productStage,
+                                status: this.getStatusText(craft.status),
+                                // 工序信息
+                                processCode: process.processCode,
+                                processName: process.processName,
+                                processType: this.getDictLabel(this.dict.type.processType, process.processType),
+                                processDesc: process.processDesc,
+                                processSort: process.sort,
+                                // 物料信息（空）
+                                materialCode: '',
+                                materialName: '',
+                                specification: '',
+                                quantity: '',
+                                unit: '',
+                                isKey: '',
+                                isBatch: '',
+                                batchQuantity: ''
+                            });
+                        } else {
+                            // 有物料的情况，为每个物料创建一条记录
+                            for (const material of materialResult.data) {
+                                exportData.push({
+                                    // 工艺信息
+                                    craftCode: craft.craftCode,
+                                    craftName: craft.craftName,
+                                    craftType: this.getDictLabel(this.dict.type.craftType, craft.craftType),
+                                    craftDesc: craft.craftDesc,
+                                    craftMaterialCode: craft.materialId ? craft.materialId.FNumber : '',
+                                    craftMaterialName: craft.materialId ? craft.materialId.FName : '',
+                                    productStage: craft.productStage,
+                                    status: this.getStatusText(craft.status),
+                                    // 工序信息
+                                    processCode: process.processCode,
+                                    processName: process.processName,
+                                    processType: this.getDictLabel(this.dict.type.processType, process.processType),
+                                    processDesc: process.processDesc,
+                                    processSort: process.sort,
+                                    // 物料信息
+                                    materialCode: material.materialCode,
+                                    materialName: material.materialName,
+                                    specification: material.specification,
+                                    quantity: material.quantity,
+                                    unit: material.unit,
+                                    isKey: material.isKey ? '是' : '否',
+                                    isBatch: material.isBatch ? '是' : '否',
+                                    batchQuantity: material.batchQuantity || ''
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // 定义Excel的列头
+                const header = {
+                    craftCode: '工艺编码',
+                    craftName: '工艺名称',
+                    craftType: '工艺类型',
+                    craftDesc: '工艺描述',
+                    craftMaterialCode: '工艺物料编码',
+                    craftMaterialName: '工艺物料名称',
+                    productStage: '生产阶级',
+                    status: '状态',
+                    processCode: '工序编码',
+                    processName: '工序名称',
+                    processType: '工序类型',
+                    processDesc: '工序描述',
+                    processSort: '工序顺序',
+                    materialCode: '物料编码',
+                    materialName: '物料名称',
+                    specification: '规格型号',
+                    quantity: '用量',
+                    unit: '单位',
+                    isKey: '关键物料',
+                    isBatch: '批次物料',
+                    batchQuantity: '批次用量'
+                };
+
+                // 导出Excel
+                import('@/vendor/Export2Excel').then(excel => {
+                    excel.export_json_to_excel({
+                        header: Object.values(header),
+                        data: exportData.map(item => Object.keys(header).map(key => item[key])),
+                        filename: '工艺管理数据',
+                        autoWidth: true,
+                        bookType: 'xlsx'
+                    });
+                    this.$message.success('导出成功');
+                });
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败: ' + error.message);
+            }
+        },
+
+        // 添加获取字典标签的辅助方法
+        getDictLabel(dict = [], value) {
+            const item = dict.find(dict => dict.value === value);
+            return item ? item.label : '';
+        },
+        // 添加单条数据导出方法
+        async handleExportSingle(row) {
+            try {
+                this.$message.info('正在准备导出数据，请稍候...');
+
+                // 获取完整的工艺数据（包含关联的materialId信息）
+                const craftResult = await getData("craft", {
+                    query: { _id: row._id },
+                    populate: JSON.stringify([{ path: 'materialId' }])
+                });
+
+                if (!craftResult.data || craftResult.data.length === 0) {
+                    this.$message.warning('未找到工艺数据');
+                    return;
+                }
+
+                const craft = craftResult.data[0];
+                const exportData = [];
+
+                // 获取工艺对应的所有工序
+                const processResult = await getData("processStep", {
+                    query: { craftId: craft._id },
+                    sort: { sort: 1 },
+                });
+
+                // 对每个工序获取其物料信息
+                for (const process of processResult.data) {
+                    const materialResult = await getData("processMaterials", {
+                        query: { processStepId: process._id },
+                        populate: JSON.stringify([{ path: 'materialId' }])
+                    });
+
+                    // 如果工序没有物料，也要记录工序信息
+                    if (materialResult.data.length === 0) {
+                        exportData.push({
+                            // 工艺信息
+                            craftCode: craft.craftCode,
+                            craftName: craft.craftName,
+                            craftType: this.getDictLabel(this.dict.type.craftType, craft.craftType),
+                            craftDesc: craft.craftDesc,
+                            craftMaterialCode: craft.materialId ? craft.materialId.FNumber : '',
+                            craftMaterialName: craft.materialId ? craft.materialId.FName : '',
+                            productStage: craft.productStage,
+                            status: this.getStatusText(craft.status),
+                            // 工序信息
+                            processCode: process.processCode,
+                            processName: process.processName,
+                            processType: this.getDictLabel(this.dict.type.processType, process.processType),
+                            processDesc: process.processDesc,
+                            processSort: process.sort,
+                            // 物料信息（空）
+                            materialCode: '',
+                            materialName: '',
+                            specification: '',
+                            quantity: '',
+                            unit: '',
+                            isKey: '',
+                            isBatch: '',
+                            batchQuantity: ''
+                        });
+                    } else {
+                        // 有物料的情况，为每个物料创建一条记录
+                        for (const material of materialResult.data) {
+                            exportData.push({
+                                // 工艺信息
+                                craftCode: craft.craftCode,
+                                craftName: craft.craftName,
+                                craftType: this.getDictLabel(this.dict.type.craftType, craft.craftType),
+                                craftDesc: craft.craftDesc,
+                                craftMaterialCode: craft.materialId ? craft.materialId.FNumber : '',
+                                craftMaterialName: craft.materialId ? craft.materialId.FName : '',
+                                productStage: craft.productStage,
+                                status: this.getStatusText(craft.status),
+                                // 工序信息
+                                processCode: process.processCode,
+                                processName: process.processName,
+                                processType: this.getDictLabel(this.dict.type.processType, process.processType),
+                                processDesc: process.processDesc,
+                                processSort: process.sort,
+                                // 物料信息
+                                materialCode: material.materialCode,
+                                materialName: material.materialName,
+                                specification: material.specification,
+                                quantity: material.quantity,
+                                unit: material.unit,
+                                isKey: material.isKey ? '是' : '否',
+                                isBatch: material.isBatch ? '是' : '否',
+                                batchQuantity: material.batchQuantity || ''
+                            });
+                        }
+                    }
+                }
+
+                // 定义Excel的列头
+                const header = {
+                    craftCode: '工艺编码',
+                    craftName: '工艺名称',
+                    craftType: '工艺类型',
+                    craftDesc: '工艺描述',
+                    craftMaterialCode: '工艺物料编码',
+                    craftMaterialName: '工艺物料名称',
+                    productStage: '生产阶级',
+                    status: '状态',
+                    processCode: '工序编码',
+                    processName: '工序名称',
+                    processType: '工序类型',
+                    processDesc: '工序描述',
+                    processSort: '工序顺序',
+                    materialCode: '物料编码',
+                    materialName: '物料名称',
+                    specification: '规格型号',
+                    quantity: '用量',
+                    unit: '单位',
+                    isKey: '关键物料',
+                    isBatch: '批次物料',
+                    batchQuantity: '批次用量'
+                };
+
+                // 导出Excel
+                import('@/vendor/Export2Excel').then(excel => {
+                    excel.export_json_to_excel({
+                        header: Object.values(header),
+                        data: exportData.map(item => Object.keys(header).map(key => item[key])),
+                        filename: `工艺数据_${craft.craftCode}`,
+                        autoWidth: true,
+                        bookType: 'xlsx'
+                    });
+                    this.$message.success('导出成功');
+                });
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败: ' + error.message);
+            }
+        },
+
+        /**
+         * 处理导出BOM
+         * @param {Object} row - 当前行数据
+         */
+        async handleExportBOM(row) {
+            try {
+                this.exportLoading = true;
+                this.exportProgress = 0;
+                this.exportDialogVisible = true;
+
+                // 调用后端接口获取BOM数据
+                const response = await exportBOM(row.materialId._id || row.materialId);
+
+                if (!response.data || response.data.length === 0) {
+                    this.$message.warning('未找到相关BOM数据');
+                    this.exportDialogVisible = false;
+                    return;
+                }
+
+                const totalItems = response.data.length;
+                const batchSize = 100;
+                const exportData = [];
+
+                // 定义Excel表头
+                const header = [
+                    '层级',
+                    '父物料编码',
+                    '父物料名称', 
+                    '工序编码',
+                    '工序名称',
+                    '工序类型',
+                    '物料编码',
+                    '物料名称',
+                    '规格型号',
+                    '用量',
+                    '单位',
+                    '是否组件',
+                    '是否关键物料',
+                    '是否批次物料',
+                    '批次用量',
+                    '是否包装箱',
+                    '是否RFID'
+                ];
+
+                // 分批处理数据
+                for (let i = 0; i < totalItems; i += batchSize) {
+                    const batch = response.data.slice(i, i + batchSize).map(item => {
+                        // 处理层级缩进
+                        const levelPrefix = '  '.repeat(item.level);
+                        
+                        return [
+                            item.level,
+                            item.parentMaterialCode,
+                            `${levelPrefix}${item.parentMaterialName}`, // 添加缩进
+                            item.processCode || '',
+                            item.processName || '',
+                            item.processType || '',
+                            item.materialCode || '',
+                            item.materialName || '',
+                            item.specification || '',
+                            item.quantity || '',
+                            item.unit || '',
+                            item.isComponent ? '是' : '否',
+                            item.isKeyMaterial ? '是' : '否',
+                            item.isBatch ? '是' : '否',
+                            item.batchQuantity || '',
+                            item.isPackingBox ? '是' : '否',
+                            item.isRfid ? '是' : '否'
+                        ];
+                    });
+
+                    exportData.push(...batch);
+
+                    // 更新进度
+                    this.exportProgress = Math.round((i + batch.length) / totalItems * 100);
+
+                    // 给UI一个更新的机会
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // 生成文件名
+                const fileName = `${row.craftName || 'BOM'}_${row.materialCode || ''}_${this.parseTime(new Date(), '{y}{m}{d}')}`;
+
+                // 导出Excel
+                import('@/vendor/Export2Excel').then(excel => {
+                    excel.export_json_to_excel({
+                        header: header,
+                        data: exportData,
+                        filename: fileName,
+                        autoWidth: true,
+                        bookType: 'xlsx'
+                    });
+                    this.exportProgress = 100;
+                    this.$message.success('BOM导出成功');
+                });
+
+                // 延迟关闭对话框
+                setTimeout(() => {
+                    this.exportDialogVisible = false;
+                    this.exportProgress = 0;
+                }, 1000);
+
+            } catch (error) {
+                console.error('导出BOM失败:', error);
+                this.$message.error('导出BOM失败: ' + error.message);
+            } finally {
+                this.exportLoading = false;
+            }
         },
     },
     created() {

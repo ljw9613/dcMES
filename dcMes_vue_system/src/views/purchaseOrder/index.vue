@@ -985,11 +985,17 @@ export default {
             //材料入库单
             if (this.localPrintTemplate.templateType === 'WM') {
                 printData.FApproveDate = this.formatDate(printData.FApproveDate);
+                printData.FCreateDate = this.formatDate(printData.FCreateDate);
+                printData.totalFQty = printData.FPOOrderEntry.reduce((sum, item) => sum + item.FQty, 0);
+                printData.FSupplierId_Name = printData.FSupplierId && printData.FSupplierId.Name;
+                printData.FSupplierId_Number = printData.FSupplierId && printData.FSupplierId.Number;
                 printData.FPOOrderEntry.map((item, index) => {
+                    console.log(item)
                     item.FNum = index + 1;
                     item.FMaterialId_Name = item.FMaterialId && item.FMaterialId.Name;
                     item.FMaterialId_Number = item.FMaterialId && item.FMaterialId.Number;
                     item.FMaterialId_Specification = item.FMaterialId && item.FMaterialId.Specification;
+                    item.FDeliveryDate = this.formatDate(item.FDeliveryDate);
                 })
                 //格式化时间
                 printData.FDate = this.formatDate(printData.FDate);

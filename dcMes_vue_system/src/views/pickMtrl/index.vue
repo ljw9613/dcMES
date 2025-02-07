@@ -245,12 +245,8 @@
 
         <!-- 拓展数据对话框 -->
         <el-dialog title="拓展数据" :visible.sync="extDialogVisible">
-            <pick-mtrl-ext
-                v-if="extDialogVisible"
-                :order-data="currentOrderData"
-                @close="extDialogVisible = false"
-                @refresh="fetchData"
-            />
+            <pick-mtrl-ext v-if="extDialogVisible" :order-data="currentOrderData" @close="extDialogVisible = false"
+                @refresh="fetchData" />
         </el-dialog>
     </div>
 </template>
@@ -399,9 +395,23 @@ export default {
 
         // 处理打印
         async handlePrint(row) {
-            let printData = { ...row };
             console.log(printData);
             console.log(this.localPrintTemplate);
+            if (!this.localPrintTemplate) {
+                this.$message.warning('请先选择打印模板');
+                return;
+            }
+
+            //获取拓展数据
+            const result = await getData('k3_PRD_PickMtrlExt', {
+                query: { FSaleOrderId: row._id },
+                populate: JSON.stringify([{ path: 'productionOrderId' }])
+            })
+            let printData = { ...row };
+            if (result.code === 200 && result.data.length > 0) {
+                console.log(result.data[0], 'result.data[0]')
+                printData = { ...printData, ...result.data[0] }
+            }
 
             // 生产领料单打印数据处理
             if (this.localPrintTemplate.templateType === 'MR') {
@@ -419,6 +429,7 @@ export default {
                     FMaterialId_Specification: item.FMaterialId && item.FMaterialId.Specification
                 }));
             }
+            console.log(printData, 'productionOrderNo')
 
             this.printData = printData;
             this.$nextTick(() => {

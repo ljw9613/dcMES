@@ -1040,6 +1040,10 @@ export default {
             }
             //格式化时间
             printData.FDate = this.formatDate(printData.FDate);
+            printData.FApproveDate = this.formatDate(printData.FApproveDate);
+            printData.FCreateDate = this.formatDate(printData.FCreateDate);
+            printData.FPlanDeliveryDate = this.formatDate(printData.FPlanDeliveryDate);
+            
             this.printData = printData;
             console.log("🚀 ~ handlePrint ~ printData:", printData)
             this.$nextTick(() => {

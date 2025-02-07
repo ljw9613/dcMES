@@ -197,4 +197,25 @@ router.post("/api/v1/initialize-machine-barcode", async (req, res) => {
   }
 });
 
+
+
+/**
+ * 导出BOM结构
+ */
+router.get('/api/v1/exportBOM', async (req, res) => {
+    try {
+        const { materialId } = req.query;
+        if (!materialId) {
+            return res.status(400).json({ error: '缺少必要参数: materialId' });
+        }
+
+        const bomData = await MaterialProcessFlowService.exportFlattenedBOMStructure(materialId);
+        res.json({ data: bomData });
+    } catch (error) {
+        console.error('导出BOM失败:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 module.exports = router;

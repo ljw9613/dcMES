@@ -2313,4 +2313,419 @@ async function syncRequisitionBillData(modelName, filterString, syncTask) {
   }
 }
 
+// 同步销售出库单数据
+router.post("/sync/SAL_OutStock", async (req, res) => {
+  try {
+    const modelName = "K3_SAL_OutStock";
+    const FilterString = req.body.FilterString || "";
+
+    // 检查是否有正在进行的任务
+    if (syncTasks.has(modelName)) {
+      const existingTask = syncTasks.get(modelName);
+      if (existingTask.status === "running") {
+        return res.json({
+          code: 200,
+          success: true,
+          message: "同步任务正在进行中",
+          taskStatus: existingTask.getStatus(),
+        });
+      }
+    }
+
+    // 创建新的同步任务
+    const syncTask = new SyncTask(modelName);
+    syncTasks.set(modelName, syncTask);
+
+    // 启动异步同步过程
+    syncOutStockData(modelName, FilterString, syncTask);
+
+    res.json({
+      code: 200,
+      success: true,
+      message: "同步任务已启动",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// 销售出库单数据同步的具体实现
+async function syncOutStockData(modelName, filterString, syncTask) {
+  try {
+    const K3OutStock = require("../model/k3/K3_SAL_OutStock");
+    let startRow = 0;
+    const pageSize = 100;
+    let hasMoreData = true;
+    let allOutStockNumbers = [];
+
+    // 第一步：获取所有销售出库单的基本信息
+    console.log("\n开始获取销售出库单列表...");
+    while (hasMoreData) {
+      const response = await k3cMethod("BillQuery", "SAL_OUTSTOCK", {
+        FormId: "SAL_OUTSTOCK",
+        FieldKeys: "FBillNo",
+        FilterString: filterString,
+        OrderString: "",
+        TopRowCount: 0,
+        StartRow: startRow,
+        Limit: pageSize,
+      });
+
+      if (!response || !Array.isArray(response) || response.length === 0) {
+        hasMoreData = false;
+        break;
+      }
+
+      // 提取单据编号
+      const numbers = response.map((item) => item[0]);
+      allOutStockNumbers.push(...numbers);
+
+      startRow += pageSize;
+      console.log(`已获取 ${allOutStockNumbers.length} 个销售出库单编号`);
+
+      if (response.length < pageSize) {
+        hasMoreData = false;
+      }
+    }
+
+    console.log(`\n共找到 ${allOutStockNumbers.length} 个销售出库单`);
+    syncTask.updateProgress(0, allOutStockNumbers.length);
+
+    // 第二步：逐个获取详细数据
+    let processedCount = 0;
+    const startTime = Date.now();
+
+    for (const billNo of allOutStockNumbers) {
+      try {
+        // 获取详细数据
+        const viewResponse = await k3cMethod("View", "SAL_OUTSTOCK", {
+          CreateOrgId: 0,
+          Number: billNo,
+          Id: "",
+          IsSortBySeq: "false",
+        });
+
+        if (!viewResponse?.Result?.Result) {
+          console.log(`警告: 销售出库单 ${billNo} 未返回有效数据`);
+          continue;
+        }
+
+        const outStockData = viewResponse.Result.Result;
+        // console.log(JSON.stringify(outStockData));
+
+        // 转换数据格式
+        const transformedData = {
+          // 基础信息
+          FID: outStockData.Id,
+          FBillNo: outStockData.BillNo,
+          FDate: outStockData.Date,
+          FDocumentStatus: outStockData.DocumentStatus,
+          FCancelStatus: outStockData.CancelStatus,
+
+          // 组织信息
+          FSaleOrgId: {
+            Id: outStockData.SaleOrgId_Id,
+            Number: outStockData.SaleOrgId?.Number,
+            Name: outStockData.SaleOrgId?.MultiLanguageText?.[0]?.Name,
+            ParentOrg: outStockData.SaleOrgId?.ParentOrg && {
+              Id: outStockData.SaleOrgId.ParentOrg.Id,
+              Number: outStockData.SaleOrgId.ParentOrg.Number,
+              Name: outStockData.SaleOrgId.ParentOrg.MultiLanguageText?.[0]?.Name
+            }
+          },
+          FStockOrgId: {
+            Id: outStockData.StockOrgId_Id,
+            Number: outStockData.StockOrgId?.Number,
+            Name: outStockData.StockOrgId?.MultiLanguageText?.[0]?.Name
+          },
+
+          // 业务伙伴信息
+          FCustomerID: {
+            Id: outStockData.CustomerID_Id,
+            Number: outStockData.CustomerID?.Number,
+            Name: outStockData.CustomerID?.MultiLanguageText?.[0]?.Name,
+            TradingCurrId: outStockData.CustomerID?.TRADINGCURRID && {
+              Id: outStockData.CustomerID.TRADINGCURRID.Id,
+              Number: outStockData.CustomerID.TRADINGCURRID.Number,
+              Name: outStockData.CustomerID.TRADINGCURRID.Name?.[0]?.Value
+            }
+          },
+          FCarrierID: {
+            Id: outStockData.CarrierID_Id,
+            Number: outStockData.CarrierID?.Number,
+            Name: outStockData.CarrierID?.MultiLanguageText?.[0]?.Name
+          },
+
+          // 部门与人员信息
+          FDeliveryDeptID: {
+            Id: outStockData.DeliveryDeptID_Id,
+            Number: outStockData.DeliveryDeptID?.Number,
+            Name: outStockData.DeliveryDeptID?.MultiLanguageText?.[0]?.Name
+          },
+          FSaleDeptID: {
+            Id: outStockData.SaleDeptID_Id,
+            Number: outStockData.SaleDeptID?.Number,
+            Name: outStockData.SaleDeptID?.MultiLanguageText?.[0]?.Name
+          },
+          FStockerGroupID: {
+            Id: outStockData.StockerGroupID_Id,
+            Number: outStockData.StockerGroupID?.Number,
+            Name: outStockData.StockerGroupID?.MultiLanguageText?.[0]?.Name
+          },
+          FStockerID: {
+            Id: outStockData.StockerID_Id,
+            Number: outStockData.StockerID?.Number,
+            Name: outStockData.StockerID?.MultiLanguageText?.[0]?.Name
+          },
+          FSalesGroupID: {
+            Id: outStockData.SalesGroupID_Id,
+            Number: outStockData.SalesGroupID?.Number,
+            Name: outStockData.SalesGroupID?.MultiLanguageText?.[0]?.Name
+          },
+          FSalesManID: {
+            Id: outStockData.SalesManID_Id,
+            Number: outStockData.SalesManID?.Number,
+            Name: outStockData.SalesManID?.MultiLanguageText?.[0]?.Name
+          },
+
+          // 单据类型
+          FBillTypeID: {
+            Id: outStockData.BillTypeID_Id,
+            Number: outStockData.BillTypeID?.Number,
+            Name: outStockData.BillTypeID?.MultiLanguageText?.[0]?.Name
+          },
+
+          // 其他信息
+          FNote: outStockData.Note,
+          FCarriageNO: outStockData.CarriageNO,
+
+          // 操作记录
+          FCreatorId: {
+            Id: outStockData.CreatorId_Id,
+            Name: outStockData.CreatorId?.Name
+          },
+          FCreateDate: outStockData.CreateDate,
+          FModifierId: {
+            Id: outStockData.ModifierId_Id,
+            Name: outStockData.ModifierId?.Name
+          },
+          FModifyDate: outStockData.ModifyDate,
+          FApproverID: {
+            Id: outStockData.ApproverID_Id,
+            Name: outStockData.ApproverID?.Name
+          },
+          FApproveDate: outStockData.ApproveDate,
+
+          // 自定义字段
+          F_TFQJ_cgdh: outStockData.F_TFQJ_cgdh,
+          F_TFQJ_ppspo: outStockData.F_TFQJ_ppspo,
+          F_TFQJ_khpo: outStockData.F_TFQJ_khpo,
+          F_TFQJ_ddzt1: outStockData.F_TFQJ_ddzt1,
+          F_TFQJ_kdrq: outStockData.F_TFQJ_kdrq,
+          F_TFQJ_zhpoh: outStockData.F_TFQJ_zhpoh,
+          F_TFQJ_zhpoyy: outStockData.F_TFQJ_zhpoyy,
+
+          // 财务信息
+          FSALOutStockFin: outStockData.SAL_OUTSTOCKFIN?.map(fin => ({
+            FEntryID: fin.Id,
+            FSettleOrgID: {
+              Id: fin.SettleOrgID_Id,
+              Number: fin.SettleOrgID?.Number,
+              Name: fin.SettleOrgID?.Name?.[0]?.Value
+            },
+            FLocalCurrID: {
+              Id: fin.LocalCurrID_Id,
+              Number: fin.LocalCurrID?.Number,
+              Name: fin.LocalCurrID?.Name?.[0]?.Value,
+              Symbol: fin.LocalCurrID?.Symbol,
+              PriceDigits: fin.LocalCurrID?.PriceDigits,
+              AmountDigits: fin.LocalCurrID?.AmountDigits
+            },
+            FExchangeRate: fin.ExchangeRate,
+            FBillAmount: fin.BillAmount,
+            FBillAmount_LC: fin.BillAmount_LC,
+            FBillTaxAmount: fin.BillTaxAmount,
+            FBillAllAmount: fin.BillAllAmount,
+            FIsIncludedTax: fin.IsIncludedTax
+          })),
+
+          // 明细信息
+          FEntity: outStockData.SAL_OUTSTOCKENTRY?.map(entry => ({
+            FENTRYID: entry.Id,
+            FSeq: entry.Seq,
+            FRowType: entry.RowType,
+
+            // 物料信息
+            FMaterialID: {
+              Id: entry.MaterialID_Id,
+              Number: entry.MaterialID?.Number,
+              Name: entry.MaterialID?.Name?.[0]?.Value,
+              Specification: entry.MaterialID?.Specification?.[0]?.Value,
+              UseOrgId: {
+                Id: entry.MaterialID?.UseOrgId?.Id,
+                Number: entry.MaterialID?.UseOrgId?.Number,
+                Name: entry.MaterialID?.UseOrgId?.Name?.[0]?.Value
+              },
+              MaterialGroup: entry.MaterialID?.MaterialGroup && {
+                Id: entry.MaterialID.MaterialGroup.Id,
+                Number: entry.MaterialID.MaterialGroup.Number,
+                Name: entry.MaterialID.MaterialGroup.Name?.[0]?.Value
+              },
+              MaterialBase: entry.MaterialID?.MaterialBase?.map(base => ({
+                Id: base.Id,
+                ErpClsID: base.ErpClsID,
+                IsInventory: base.IsInventory,
+                IsSale: base.IsSale,
+                BaseUnitId: base.BaseUnitId && {
+                  Id: base.BaseUnitId.Id,
+                  Number: base.BaseUnitId.Number,
+                  Name: base.BaseUnitId.Name?.[0]?.Value
+                }
+              }))
+            },
+
+            // 客户物料信息
+            FCustMatID: entry.CustMatID && {
+              Id: entry.CustMatID_Id,
+              Number: entry.CustMatID?.Number,
+              Name: entry.CustMatID?.Name?.[0]?.Value,
+              MaterialId: {
+                Id: entry.CustMatID?.MaterialId?.Id,
+                Number: entry.CustMatID?.MaterialId?.Number,
+                Name: entry.CustMatID?.MaterialId?.Name?.[0]?.Value
+              }
+            },
+
+            // 数量信息
+            FMustQty: entry.MustQty,
+            FRealQty: entry.RealQty,
+            FInventoryQty: entry.InventoryQty,
+            FBaseUnitQty: entry.BaseUnitQty,
+            FAuxUnitQty: entry.AuxUnitQty,
+            FActQty: entry.ActQty,
+            FSALUNITQTY: entry.SALUNITQTY,
+            FSALBASEQTY: entry.SALBASEQTY,
+            FPRICEBASEQTY: entry.PRICEBASEQTY,
+
+            // 单位信息
+            FUnitID: {
+              Id: entry.UnitID_Id,
+              Number: entry.UnitID?.Number,
+              Name: entry.UnitID?.Name?.[0]?.Value,
+              Precision: entry.UnitID?.Precision,
+              RoundType: entry.UnitID?.RoundType
+            },
+
+            // 仓储信息
+            FStockID: {
+              Id: entry.StockID_Id,
+              Number: entry.StockID?.Number,
+              Name: entry.StockID?.Name?.[0]?.Value,
+              IsOpenLocation: entry.StockID?.IsOpenLocation,
+              StockProperty: entry.StockID?.StockProperty
+            },
+            FStockLocID: {
+              FF100001: entry.StockLocID?.FF100001,
+              FF100002: entry.StockLocID?.FF100002,
+              FF100003: entry.StockLocID?.FF100003
+            },
+
+            // 价格相关
+            FPrice: entry.Price,
+            FTaxPrice: entry.TaxPrice,
+            FAmount: entry.Amount,
+            FTaxAmount: entry.TaxAmount,
+            FAllAmount: entry.AllAmount,
+            FTaxRate: entry.TaxRate,
+
+            // 来源信息
+            FSrcType: entry.SrcType,
+            FSrcBillNo: entry.SrcBillNo,
+            FSoorDerno: entry.SoorDerno,
+
+            // 其他信息
+            FIsFree: entry.IsFree,
+            FLot: entry.Lot,
+            FProduceDate: entry.ProduceDate,
+            FExpiryDate: entry.ExpiryDate,
+            FMtoNo: entry.MtoNo,
+            FEntrynote: entry.Entrynote,
+            FProjectNo: entry.ProjectNo,
+            FOUTCONTROL: entry.OUTCONTROL,
+
+            // 自定义字段
+            F_dcdj_Text: entry.F_dcdj_Text,
+            F_dcdj_Text1: entry.F_dcdj_Text1,
+            F_TFQJ_ofislineid: entry.F_TFQJ_ofislineid,
+            F_TFQJ_EndbuyerPO: entry.F_TFQJ_EndbuyerPO,
+            F_TFQJ_CRD: entry.F_TFQJ_CRD,
+            F_TFQJ_ETD: entry.F_TFQJ_ETD,
+            F_TFQJ_jhdd: entry.F_TFQJ_jhdd && {
+              Id: entry.F_TFQJ_jhdd.Id,
+              Number: entry.F_TFQJ_jhdd.Number,
+              Value: entry.F_TFQJ_jhdd.Value
+            },
+
+            // 关联信息
+            FEntity_Link: entry.FEntity_Link?.map(link => ({
+              FLinkId: link.Id,
+              FFlowId: link.FlowId,
+              FFlowLineId: link.FlowLineId,
+              FRuleId: link.RuleId,
+              FSTableName: link.STableName,
+              FSBillId: link.SBillId,
+              FSId: link.SId,
+              FBaseUnitQty: link.BaseUnitQty
+            })),
+
+            // 序列号子表
+            FSerialSubEntity: entry.SerialSubEntity?.map(serial => ({
+              FDetailID: serial.Id,
+              FSerialNo: serial.SerialNo,
+              FSerialId: serial.SerialId,
+              FSerialNote: serial.SerialNote,
+              FSN: serial.SN,
+              FIMEI1: serial.IMEI1,
+              FIMEI2: serial.IMEI2,
+              FMEID: serial.MEID,
+              FPushReturnNotice: serial.PushReturnNotice
+            }))
+          }))
+        };
+        console.log(JSON.stringify(transformedData))
+
+        // 更新或插入数据
+        await K3OutStock.findOneAndUpdate(
+          { FID: transformedData.FID },
+          transformedData,
+          { upsert: true, new: true }
+        );
+
+        processedCount++;
+        syncTask.updateProgress(processedCount, allOutStockNumbers.length);
+
+        // 打印进度
+        const progress = ((processedCount / allOutStockNumbers.length) * 100).toFixed(2);
+        const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(
+          `处理进度: ${progress}% (${processedCount}/${allOutStockNumbers.length}) | 已用时: ${timeElapsed}秒`
+        );
+      } catch (error) {
+        console.error(`处理销售出库单 ${billNo} 时出错:`, error);
+        continue; // 继续处理下一个单据
+      }
+    }
+
+    syncTask.complete();
+    console.log("\n同步完成!");
+  } catch (error) {
+    console.error("同步销售出库单数据失败:", error);
+    syncTask.fail(error);
+    throw error;
+  }
+}
+
 module.exports = router;

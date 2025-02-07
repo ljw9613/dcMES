@@ -116,6 +116,7 @@
                                 <!-- 物料信息 -->
                                 <el-tab-pane label="物料信息" name="material">
                                     <material-info 
+                                        :main-barcode="dataForm.barcode"
                                         :flow-chart-data="processedFlowChartData"
                                         @unbind-success="handleUnbindSuccess">
                                     </material-info>
@@ -123,7 +124,7 @@
 
                                 <!-- 物料条码信息 -->
                                 <el-tab-pane label="物料条码信息" name="materialBarcode">
-                                    <material-barcode-info :material-barcode-data="processedMaterialBarcodeData">
+                                    <material-barcode-info :main-barcode="dataForm.barcode" :material-barcode-data="processedMaterialBarcodeData">
                                     </material-barcode-info>
                                 </el-tab-pane>
 

@@ -86,6 +86,53 @@
           </el-col>
         </el-row>
       </el-card>
+
+      <!-- 在生产订单信息卡片后添加新的物流信息卡片 -->
+      <el-card class="box-card" shadow="hover">
+        <div slot="header" class="card-header">
+          <span>物流信息</span>
+        </div>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="客户地址" prop="FCustomerAddress">
+              <el-input v-model="formData.FCustomerAddress" placeholder="请输入客户地址"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系人" prop="FContactPerson">
+              <el-input v-model="formData.FContactPerson" placeholder="请输入联系人"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="FContactPhone">
+              <el-input v-model="formData.FContactPhone" placeholder="请输入联系电话"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="发货时间" prop="FDeliveryDate">
+              <el-date-picker
+                v-model="formData.FDeliveryDate"
+                type="datetime"
+                placeholder="选择发货时间"
+                style="width: 100%">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="物流方式" prop="FLogisticsMethod">
+              <el-select v-model="formData.FLogisticsMethod" placeholder="请选择物流方式" style="width: 100%">
+                <el-option label="海运" value="sea"></el-option>
+                <el-option label="空运" value="air"></el-option>
+                <el-option label="陆运" value="land"></el-option>
+                <el-option label="铁路" value="rail"></el-option>
+                <el-option label="多式联运" value="multimodal"></el-option>
+                <el-option label="自提" value="self"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-card>
     </el-form>
 
     <!-- 操作按钮 -->
@@ -110,7 +157,7 @@ export default {
   data() {
     return {
       formData: {
-        FPickMtrlId: '',
+        FOutStockId: '',
         FBillNo: '',
         productionOrderId: '',
         productionOrderNo: '',
@@ -122,11 +169,31 @@ export default {
         FWorkShopID_FName: '',
         FPrdOrgId_FName: '',
         FPlanStartDate: '',
-        FPlanFinishDate: ''
+        FPlanFinishDate: '',
+        FCustomerAddress: '',
+        FContactPerson: '',
+        FContactPhone: '',
+        FDeliveryDate: '',
+        FLogisticsMethod: ''
       },
       rules: {
         productionOrderId: [
           { required: true, message: '请选择关联生产订单', trigger: 'change' }
+        ],
+        FCustomerAddress: [
+          { required: true, message: '请输入客户地址', trigger: 'blur' }
+        ],
+        FContactPerson: [
+          { required: true, message: '请输入联系人', trigger: 'blur' }
+        ],
+        FContactPhone: [
+          { required: true, message: '请输入联系电话', trigger: 'blur' }
+        ],
+        FDeliveryDate: [
+          { required: true, message: '请选择发货时间', trigger: 'change' }
+        ],
+        FLogisticsMethod: [
+          { required: true, message: '请选择物流方式', trigger: 'change' }
         ]
       },
       loading: false,
@@ -163,31 +230,29 @@ export default {
       }
     },
 
-
-
     // 提交表单
     async handleSubmit() {
       try {
         await this.$refs.formRef.validate()
 
         let saveResult
-        // 确保 formData 中包含 FPickMtrlId
+        // 确保 formData 中包含 FOutStockId
         const saveData = {
           ...this.formData,
-          FPickMtrlId: this.orderData._id,
+          FOutStockId: this.orderData._id,
           FBillNo: this.orderData.FBillNo
         }
         console.log(saveData, 'saveData')
 
         if (this.extId) {
           // 更新现有数据
-          saveResult = await updateData('k3_PRD_PickMtrlExt', {
+          saveResult = await updateData('k3_SAL_OutStockExt', {
             query: { _id: this.extId },
             update: saveData
           })
         } else {
           // 新增数据
-          saveResult = await addData('k3_PRD_PickMtrlExt',
+          saveResult = await addData('k3_SAL_OutStockExt',
             saveData
           )
         }
@@ -210,31 +275,39 @@ export default {
       try {
         console.log('设置基本信息')
         // 设置基本信息
-        this.formData.FPickMtrlId = this.orderData._id
+        this.formData.FOutStockId = this.orderData._id
         this.formData.FBillNo = this.orderData.FBillNo
-
 
         // 获取拓展数据
         const req = {
           query: {
-            FPickMtrlId: this.orderData._id
+            FOutStockId: this.orderData._id
           }
         }
-        const res = await getData('k3_PRD_PickMtrlExt', req)
+        const res = await getData('k3_SAL_OutStockExt', req)
         if (res.code === 200 && res.data.length > 0) {
           const extData = res.data[0]
           this.extId = extData._id
-          this.formData.productionOrderId = extData.productionOrderId
-          this.formData.productionOrderNo = extData.productionOrderNo
-          this.formData.FMaterialId = extData.FMaterialId
-          this.formData.FMaterialName = extData.FMaterialName
-          this.formData.FSpecification = extData.FSpecification
-          this.formData.FQty = extData.FQty
-          this.formData.FUnitId_FName = extData.FUnitId_FName
-          this.formData.FWorkShopID_FName = extData.FWorkShopID_FName
-          this.formData.FPrdOrgId_FName = extData.FPrdOrgId_FName
-          this.formData.FPlanStartDate = extData.FPlanStartDate
-          this.formData.FPlanFinishDate = extData.FPlanFinishDate
+          // 确保所有物流相关字段都被正确赋值
+          Object.assign(this.formData, {
+            productionOrderId: extData.productionOrderId,
+            productionOrderNo: extData.productionOrderNo,
+            FMaterialId: extData.FMaterialId,
+            FMaterialName: extData.FMaterialName,
+            FSpecification: extData.FSpecification,
+            FQty: extData.FQty,
+            FUnitId_FName: extData.FUnitId_FName,
+            FWorkShopID_FName: extData.FWorkShopID_FName,
+            FPrdOrgId_FName: extData.FPrdOrgId_FName,
+            FPlanStartDate: extData.FPlanStartDate,
+            FPlanFinishDate: extData.FPlanFinishDate,
+            // 物流相关字段
+            FCustomerAddress: extData.FCustomerAddress || '',
+            FContactPerson: extData.FContactPerson || '',
+            FContactPhone: extData.FContactPhone || '',
+            FDeliveryDate: extData.FDeliveryDate || '',
+            FLogisticsMethod: extData.FLogisticsMethod || ''
+          })
           // 如果有生产订单ID，获取生产订单信息
           if (extData.productionOrderId) {
             const orderRes = await getData('k3_PRD_MO', {
