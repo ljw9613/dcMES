@@ -21,6 +21,8 @@ const processStep = require("../model/project/processStep");
 const scanRecord = require("../model/project/scanRecord");
 const processMaterials = require("../model/project/processMaterials");
 const materialProcessFlow = require("../model/project/materialProcessFlow");
+const SamplingInspectionFlow = require("../model/project/SamplingInspectionFlow");
+
 const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
 const productionLine = require("../model/project/productionLine");
 const equipmentInformation = require("../model/project/equipmentInformation");
@@ -69,6 +71,7 @@ ADDROUTER(router, "processStep", processStep);
 ADDROUTER(router, "scanRecord", scanRecord);
 ADDROUTER(router, "processMaterials", processMaterials);
 ADDROUTER(router, "material_process_flow", materialProcessFlow);
+ADDROUTER(router, "sampling_nspection_flow", SamplingInspectionFlow);
 ADDROUTER(router, "production_plan_work_order", productionPlanWorkOrder);
 ADDROUTER(router, "production_line", productionLine);
 ADDROUTER(router, "equipmentInformation", equipmentInformation);
