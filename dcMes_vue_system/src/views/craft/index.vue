@@ -147,12 +147,13 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" fixed="right" width="150">
+                <el-table-column label="操作" fixed="right" width="220">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
                         <el-button type="text" size="small" @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" size="small" @click="handleExportSingle(scope.row)">导出</el-button>
                         <el-button type="text" size="small" @click="handleExportBOM(scope.row)">导出BOM</el-button>
+                        <el-button type="text" size="small" @click="handleCopy(scope.row)">复制</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -348,13 +349,13 @@
                 </el-row>
                 <el-row :gutter="20">
                     <el-col :span="12">
-                        <el-form-item label="工序名称" prop="processName">
-                            <el-input v-model="processForm.processName" placeholder="请输入工序名称"></el-input>
+                        <el-form-item label="工序编码" prop="processCode">
+                            <el-input v-model="processForm.processCode" placeholder="请输入工序编码" disabled />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="工序编码" prop="processCode">
-                            <el-input v-model="processForm.processCode" placeholder="请输入工序编码"></el-input>
+                        <el-form-item label="工序名称" prop="processName">
+                            <el-input v-model="processForm.processName" placeholder="请输入工序名称" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -635,6 +636,39 @@
         </el-dialog>
         <work-dialog :visible.sync="workDialogVisible" :material-id="craftForm.materialId"
             :work-table-data="workTableData" />
+        
+        <!-- 添加复制工艺弹窗 -->
+        <el-dialog :close-on-click-modal="false" title="复制工艺" :visible.sync="copyDialogVisible" width="50%" append-to-body>
+          <el-form ref="copyForm" :model="copyForm" :rules="copyRules" label-width="100px">
+            <el-row :gutter="20">
+              <el-col :span="24">
+                <el-form-item label="选择物料" prop="materialId">
+                  <zr-select v-model="copyForm.materialId" collection="k3_BD_MATERIAL"
+                    :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
+                    :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleCopyMaterialChange">
+                    <template #option="{ item }">
+                      <div class="select-option">
+                        <div class="option-main">
+                          <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
+                          <el-tag size="mini" type="info" class="option-tag">
+                            {{ item.FMATERIALID }} - {{ item.FUseOrgId_FName }}
+                          </el-tag>
+                        </div>
+                        <div class="option-sub" v-if="item.FSpecification">
+                          <small>规格: {{ item.FSpecification }}</small>
+                        </div>
+                      </div>
+                    </template>
+                  </zr-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+          <div slot="footer" class="dialog-footer">
+            <el-button @click="copyDialogVisible = false">取 消</el-button>
+            <el-button type="primary" :loading="copyLoading" @click="submitCopyForm">确 定</el-button>
+          </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -873,7 +907,20 @@ export default {
 
             workTableData: [],
             workDialogVisible: false,
-            hasOneKeyProductionPermission: false
+            hasOneKeyProductionPermission: false,
+            
+            // 复制工艺相关数据
+            copyDialogVisible: false,
+            copyLoading: false,
+            copyForm: {
+              materialId: '',
+              sourceCraftId: '', // 源工艺ID
+            },
+            copyRules: {
+              materialId: [
+                { required: true, message: '请选择物料', trigger: 'change' }
+              ]
+            },
         }
     },
 
@@ -1142,27 +1189,31 @@ export default {
 
         async generateProcessCode() {
             try {
-                // 获取所有工序中最后一个编码
+                // 获取当前工艺下的所有工序
                 const result = await getData('processStep', {
-                    query: { craftId: this.tempCraftId },  // 查询所有工序
-                    sort: { processCode: -1 },  // 按工序编码降序排序
-                    limit: 1
+                    query: { 
+                        craftId: this.tempCraftId,
+                        processCode: { $exists: true, $ne: '' } // 确保processCode存在且不为空
+                    }
                 });
 
                 // 获取序列号
-                let sequence = '0001';
+                let maxSequence = 0;
                 if (result.data && result.data.length > 0) {
-                    const lastCode = result.data[0].processCode;
-                    console.log(lastCode, 'lastCode')
-                    // 修改正则表达式以匹配最后一个下划线后的数字
-                    const parts = lastCode.split('_');
-                    const lastSequence = parts.find(part => /^\d{4}$/.test(part));
-                    console.log(lastSequence, 'lastSequence')
-                    console.log(parts, 'parts')
-                    if (lastSequence) {
-                        sequence = (parseInt(lastSequence) + 1).toString().padStart(4, '0');
-                    }
+                    // 遍历所有工序编码，找出最大序列号
+                    result.data.forEach(process => {
+                        const parts = process.processCode.split('_');
+                        parts.forEach(part => {
+                            if (/^\d{4}$/.test(part)) {
+                                const currentSequence = parseInt(part);
+                                maxSequence = Math.max(maxSequence, currentSequence);
+                            }
+                        });
+                    });
                 }
+
+                // 序列号加1
+                const sequence = (maxSequence + 1).toString().padStart(4, '0');
 
                 // 使用统一的编码生成逻辑
                 return this.generateUnifiedCode(
@@ -1362,16 +1413,17 @@ export default {
             this.$refs.processForm.validate(async (valid) => {
                 if (valid) {
                     try {
-                        // 检查工序编号是否重复
+                        // 检查同一工艺下是否存在相同工序编码
                         const existingProcess = await getData('processStep', {
                             query: {
+                                craftId: this.tempCraftId,
                                 processCode: this.processForm.processCode,
                                 _id: { $ne: this.tempProcessId } // 排除当前编辑的工序
                             }
                         });
 
                         if (existingProcess.data && existingProcess.data.length > 0) {
-                            this.$message.error('工序编号已存在,请修改后重试');
+                            this.$message.error('当前工艺下已存在相同工序编码，请修改后重试');
                             return;
                         }
 
@@ -1902,7 +1954,7 @@ export default {
             console.log("material", material);
             // 验证是否已经选择过该物料，排除当前正在编辑的物料
             const isDuplicate = this.materialTableData.tableList.some(
-                item => item.materialId === material.FMATERIALID &&
+                item => item.materialId === material._id &&
                     item._id !== this.editingMaterialId  // 排除当前正在编辑的物料
             );
 
@@ -1913,7 +1965,7 @@ export default {
             }
 
             // 验证是否与工艺级物料重复
-            if (material.FMATERIALID === this.craftForm.materialId) {
+            if (material._id === this.craftForm.materialId) {
                 this.$message.warning('不能选择与工艺相同的物料');
                 this.materialForm.materialId = '';
                 return;
@@ -2526,6 +2578,210 @@ export default {
             } finally {
                 this.exportLoading = false;
             }
+        },
+        
+        // 打开复制工艺弹窗
+        handleCopy(row) {
+          this.copyDialogVisible = true;
+          this.copyForm = {
+            materialId: '',
+            sourceCraftId: row._id
+          };
+        },
+        
+        // 处理复制工艺的物料选择
+        async handleCopyMaterialChange(material) {
+          if (!material) return;
+          
+          try {
+            // 检查物料是否已有工艺
+            const existingCraft = await getData('craft', {
+              query: {
+                materialId: material._id,
+                status: { $ne: 'VOID' }
+              }
+            });
+            
+            if (existingCraft.data && existingCraft.data.length > 0) {
+              this.$message.warning(`该物料已存在工艺，工艺名称: ${existingCraft.data[0].craftName}`);
+              this.copyForm.materialId = '';
+              return;
+            }
+          } catch (error) {
+            console.error('检查物料工艺失败:', error);
+            this.$message.error('检查物料工艺失败');
+          }
+        },
+        
+        // 提交复制工艺表单
+        async submitCopyForm() {
+          this.$refs.copyForm.validate(async (valid) => {
+            if (!valid) return;
+            
+            try {
+              this.copyLoading = true;
+              
+              // 1. 获取源工艺数据
+              const sourceCraftResult = await getData('craft', {
+                query: { _id: this.copyForm.sourceCraftId },
+                populate: JSON.stringify([{ path: 'materialId' }]) // 添加materialId的populate
+              });
+              
+              if (!sourceCraftResult.data || sourceCraftResult.data.length === 0) {
+                throw new Error('未找到源工艺数据');
+              }
+              
+              const sourceCraft = sourceCraftResult.data[0];
+              
+              // 2. 获取目标物料信息
+              const targetMaterialResult = await getData('k3_BD_MATERIAL', {
+                query: { _id: this.copyForm.materialId }
+              });
+              
+              if (!targetMaterialResult.data || targetMaterialResult.data.length === 0) {
+                throw new Error('未找到目标物料数据');
+              }
+              
+              const targetMaterial = targetMaterialResult.data[0];
+              
+              // 3. 创建新工艺
+              const newCraftId = this.ObjectId();
+              const newCraft = {
+                _id: newCraftId,
+                craftCode: sourceCraft.craftCode, // 保持原工艺编码
+                craftName: `${sourceCraft.craftName}_复制`,
+                craftType: sourceCraft.craftType,
+                craftDesc: sourceCraft.craftDesc,
+                materialId: this.copyForm.materialId,
+                // 复制物料相关信息
+                materialCode: targetMaterial.FNumber,
+                componentName: targetMaterial.FName,
+                productName: targetMaterial.FSpecification,
+                craftParams: sourceCraft.craftParams,
+                processSteps: [],
+                productStage: sourceCraft.productStage,
+                attachments: sourceCraft.attachments,
+                remark: sourceCraft.remark,
+                status: 'CREATE',
+                isStandard: sourceCraft.isStandard,
+                businessType: sourceCraft.businessType,
+                isProduct: sourceCraft.isProduct,
+                createBy: this.$store.getters.name,
+                createAt: new Date()
+              };
+              
+              // 4. 获取源工艺的所有工序
+              const sourceProcessResult = await getData('processStep', {
+                query: { craftId: this.copyForm.sourceCraftId },
+                sort: { sort: 1 }
+              });
+              
+              if (!sourceProcessResult.data || sourceProcessResult.data.length === 0) {
+                throw new Error('源工艺没有工序数据');
+              }
+
+              // 5. 复制工序及其物料
+              const processPromises = sourceProcessResult.data.map(async (sourceProcess, index) => {
+                // 生成新的工序编码
+                const processSequence = (index + 1).toString().padStart(4, '0');
+                const newProcessCode = this.generateUnifiedCode(
+                  sourceCraft.craftType,
+                  sourceProcess.processType,
+                  processSequence,
+                  sourceProcess.businessType
+                );
+
+                // 创建新工序
+                const newProcessId = this.ObjectId();
+                const newProcess = {
+                  _id: newProcessId,
+                  craftId: newCraftId,
+                  processCode: newProcessCode,
+                  processName: sourceProcess.processName,
+                  processDesc: sourceProcess.processDesc,
+                  processStage: sourceProcess.processStage,
+                  processType: sourceProcess.processType,
+                  businessType: sourceProcess.businessType,
+                  machineId: sourceProcess.machineId,
+                  status: 'CREATE',
+                  materials: [],
+                  remark: sourceProcess.remark,
+                  sort: sourceProcess.sort,
+                  isMES: sourceProcess.isMES,
+                  createBy: this.$store.getters.name,
+                  createAt: new Date()
+                };
+                
+                try {
+                  // 获取源工序的物料
+                  const sourceMaterialsResult = await getData('processMaterials', {
+                    query: { processStepId: sourceProcess._id }
+                  });
+                  
+                  if (sourceMaterialsResult.data && sourceMaterialsResult.data.length > 0) {
+                    // 复制物料
+                    const materialPromises = sourceMaterialsResult.data.map(async (sourceMaterial) => {
+                      const newMaterialId = this.ObjectId();
+                      const newMaterial = {
+                        _id: newMaterialId,
+                        craftId: newCraftId,
+                        processStepId: newProcessId,
+                        materialId: sourceMaterial.materialId,
+                        materialCode: sourceMaterial.materialCode,
+                        materialName: sourceMaterial.materialName,
+                        specification: sourceMaterial.specification,
+                        quantity: sourceMaterial.quantity,
+                        unit: sourceMaterial.unit,
+                        scanOperation: sourceMaterial.scanOperation,
+                        isComponent: sourceMaterial.isComponent,
+                        isPackingBox: sourceMaterial.isPackingBox,
+                        isBatch: sourceMaterial.isBatch,
+                        batchQuantity: sourceMaterial.batchQuantity,
+                        isKey: sourceMaterial.isKey,
+                        isRfid: sourceMaterial.isRfid,
+                        createBy: this.$store.getters.name,
+                        createAt: new Date()
+                      };
+                      
+                      try {
+                        await addData('processMaterials', newMaterial);
+                        return newMaterialId;
+                      } catch (error) {
+                        console.error('添加工序物料失败:', error);
+                        return null;
+                      }
+                    });
+                    
+                    const newMaterialIds = await Promise.all(materialPromises);
+                    newProcess.materials = newMaterialIds.filter(id => id !== null);
+                  }
+                  
+                  // 保存新工序
+                  await addData('processStep', newProcess);
+                  return newProcessId;
+                } catch (error) {
+                  console.error('复制工序失败:', error);
+                  return null;
+                }
+              });
+              
+              const newProcessIds = await Promise.all(processPromises);
+              newCraft.processSteps = newProcessIds.filter(id => id !== null);
+              
+              // 6. 保存新工艺
+              await addData('craft', newCraft);
+              
+              this.$message.success('工艺复制成功');
+              this.copyDialogVisible = false;
+              this.fetchCraftData();
+              
+            } catch (error) {
+              console.error('复制工艺失败:', error);
+              this.$message.error('复制工艺失败: ' + error.message);
+            } finally {
+              this.copyLoading = false;
+            }
+          });
         },
     },
     created() {

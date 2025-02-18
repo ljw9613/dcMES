@@ -77,6 +77,7 @@
 
 <script>
 import { unbindComponents } from '@/api/materialProcessFlowService';
+import { getData, addData, updateData, removeData } from "@/api/data";
 
 export default {
     name: 'MaterialInfo',
@@ -130,17 +131,17 @@ export default {
         async handleUnbind(row) {
             try {
                 // TODO 国内查询维修记录
-                // let barcodeRepair = await getData('product_repair', {
-                //     query: {
-                //         barcode: this.mainBarcode,
-                //         status: 'PENDING_REVIEW'
-                //     }
-                // });
+                let barcodeRepair = await getData('product_repair', {
+                    query: {
+                        barcode: this.mainBarcode,
+                        status: 'PENDING_REVIEW'
+                    }
+                });
 
-                // if (barcodeRepair.data.length === 0) {
-                //     this.$message.warning('请先创建维修记录，再进行解绑操作');
-                //     return;
-                // }
+                if (barcodeRepair.data.length === 0) {
+                    this.$message.warning('请先创建维修记录，再进行解绑操作');
+                    return;
+                }
 
                 const { value: reason } = await this.$prompt('请输入解绑原因', '提示', {
                     confirmButtonText: '确定',

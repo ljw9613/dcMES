@@ -354,6 +354,26 @@ class MaterialProcessFlowService {
       throw new Error("未找到对应的主条码流程记录");
     }
 
+    // 检查主物料条码是否已使用
+    try {
+      await mongoose.model("preProductionBarcode").updateOne(
+        {
+          barcode: mainBarcode,
+          status: "PENDING", // 只更新未使用的记录
+        },
+        {
+          $set: {
+            status: "USED",
+            usedBy: userId,
+            usedAt: new Date(),
+          },
+        }
+      );
+    } catch (error) {
+      console.warn(`更新条码批次使用状态失败: ${mainBarcode}`, error);
+      // 这里不抛出错误，因为不是所有条码都需要更新
+    }
+
     // 查找工序节点
     const processNode = flowRecord.processNodes.find(
       (node) =>
@@ -589,6 +609,29 @@ class MaterialProcessFlowService {
       }
     }
 
+    // 在验证每个扫描的物料ID后，添加更新materialBarcodeBatch的逻辑
+    for (const scan of componentScans) {
+      // 尝试更新materialBarcodeBatch表中的使用状态
+      try {
+        await mongoose.model("materialBarcodeBatch").updateOne(
+          {
+            batchId: scan.barcode,
+            isUsed: false, // 只更新未使用的记录
+          },
+          {
+            $set: {
+              isUsed: true,
+              updateBy: userId,
+              updateAt: new Date(),
+            },
+          }
+        );
+      } catch (error) {
+        console.warn(`更新条码批次使用状态失败: ${scan.barcode}`, error);
+        // 这里不抛出错误，因为不是所有条码都需要更新
+      }
+    }
+
     // 在更新节点状态之前，检查是否为首道或末道工序
     const processPosition = this.checkProcessPosition(
       flowRecord.processNodes,
@@ -683,23 +726,28 @@ class MaterialProcessFlowService {
       flowRecord.startTime = new Date();
       flowRecord.status = "IN_PROCESS";
     }
-    
-    // 修改进度计算逻辑，只计算必要节点
-    const requiredNodes = flowRecord.processNodes.filter(
-      (node) =>
-        node.level !== 0 &&
-        (node.nodeType === "PROCESS_STEP" ||
-          (node.nodeType === "MATERIAL" && node.requireScan))
-    );
 
-    const completedNodes = requiredNodes.filter(
-      (node) => node.status === "COMPLETED"
-    );
+    // 修改进度计算逻辑
+    const calculateProgress = (nodes) => {
+      // 只计算需要扫描的节点（requireScan为true的物料节点和所有工序节点）
+      const requiredNodes = nodes.filter(
+        (node) =>
+          node.level !== 0 && // 排除根节点
+          (node.nodeType === "PROCESS_STEP" ||
+            (node.nodeType === "MATERIAL" && node.requireScan === true)) // 只计算requireScan为true的物料节点
+      );
 
-    flowRecord.progress =
-      requiredNodes.length > 0
+      const completedNodes = requiredNodes.filter(
+        (node) => node.status === "COMPLETED"
+      );
+
+      return requiredNodes.length > 0
         ? Math.floor((completedNodes.length / requiredNodes.length) * 100)
         : 0;
+    };
+
+    // 在更新流程记录时使用
+    flowRecord.progress = calculateProgress(flowRecord.processNodes);
 
     // 检查是否所有必要节点都已完成
     if (flowRecord.progress === 100) {
@@ -709,16 +757,14 @@ class MaterialProcessFlowService {
       if (allRequiredCompleted) {
         flowRecord.status = "COMPLETED";
         flowRecord.endTime = new Date();
-        const materialNode = flowRecord.processNodes.find(
-          (node) => node.nodeType === "MATERIAL" && node.level === 0
+        // 更新根节点状态
+        const rootNode = flowRecord.processNodes.find(
+          (node) => node.level === 0 && node.nodeType === "MATERIAL"
         );
-        if (materialNode) {
-          materialNode.status = "COMPLETED";
-          materialNode.endTime = new Date();
+        if (rootNode) {
+          rootNode.status = "COMPLETED";
+          rootNode.endTime = new Date();
         }
-      } else {
-        flowRecord.status = "IN_PROCESS";
-        flowRecord.progress = 99; // 防止显示100%但实际未完全完成
       }
     }
     if (planWorkOrder) {
@@ -1124,7 +1170,7 @@ class MaterialProcessFlowService {
           }
         } else {
           flowRecord.status = "IN_PROCESS";
-          flowRecord.progress = 99;
+          flowRecord.progress = 99; // 防止显示100%但实际未完全完成
         }
       } else if (flowRecord.progress > 0) {
         flowRecord.status = "IN_PROCESS";
@@ -1319,7 +1365,9 @@ class MaterialProcessFlowService {
 
       //检测当前工单是否可以继续投入 - 仅在首道工序时检查
       if (planWorkOrder && processPosition.isFirst) {
-        if (planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity) {
+        if (
+          planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+        ) {
           throw new Error("工单已达到计划数量，无法继续投入");
         }
       }
@@ -1860,7 +1908,7 @@ class MaterialProcessFlowService {
         craftId: craft?._id,
         craftName: craft?.craftName,
         children: [],
-        processSteps: []
+        processSteps: [],
       };
 
       // 如果存在工艺，获取所有工序
@@ -1877,7 +1925,7 @@ class MaterialProcessFlowService {
             processName: processStep.processName,
             processType: processStep.processType,
             sort: processStep.sort,
-            materials: []
+            materials: [],
           };
 
           // 获取工序关联的物料
@@ -1889,23 +1937,25 @@ class MaterialProcessFlowService {
           if (processMaterials.length === 0) {
             processNode.materials.push({
               materialId: null,
-              materialCode: '',
-              materialName: '',
-              specification: '',
+              materialCode: "",
+              materialName: "",
+              specification: "",
               quantity: null,
-              unit: '',
+              unit: "",
               isComponent: false,
               isKeyMaterial: false,
               isBatch: false,
               batchQuantity: null,
               isPackingBox: false,
               isRfid: false,
-              children: []
+              children: [],
             });
           } else {
             // 处理工序物料
             for (const processMaterial of processMaterials) {
-              const subMaterial = await Material.findById(processMaterial.materialId);
+              const subMaterial = await Material.findById(
+                processMaterial.materialId
+              );
               if (!subMaterial) continue;
 
               // 查找子物料的工艺
@@ -1934,7 +1984,7 @@ class MaterialProcessFlowService {
                 batchQuantity: processMaterial.batchQuantity,
                 isPackingBox: processMaterial.isPackingBox,
                 isRfid: processMaterial.isRfid,
-                children: subStructure
+                children: subStructure,
               };
 
               processNode.materials.push(materialNode);
@@ -1947,7 +1997,6 @@ class MaterialProcessFlowService {
 
       bomStructure.push(rootNode);
       return bomStructure;
-
     } catch (error) {
       console.error("构建BOM结构失败:", error);
       throw error;
@@ -1965,11 +2014,18 @@ class MaterialProcessFlowService {
       const bomStructure = await this.buildFullBOMStructure(materialId, craft);
       const flattenedData = [];
 
-      const flattenBOM = (node, parentProcess = null, parentMaterial = null) => {
+      const flattenBOM = (
+        node,
+        parentProcess = null,
+        parentMaterial = null
+      ) => {
         // 添加工序信息
-        node.processSteps.forEach(process => {
+        node.processSteps.forEach((process) => {
           // 如果工序没有物料，添加一条只有工序信息的记录
-          if (process.materials.length === 0 || (process.materials.length === 1 && !process.materials[0].materialId)) {
+          if (
+            process.materials.length === 0 ||
+            (process.materials.length === 1 && !process.materials[0].materialId)
+          ) {
             flattenedData.push({
               level: node.level,
               parentMaterialCode: node.materialCode,
@@ -1977,20 +2033,20 @@ class MaterialProcessFlowService {
               processCode: process.processCode,
               processName: process.processName,
               processType: process.processType,
-              materialCode: '',
-              materialName: '',
-              specification: '',
+              materialCode: "",
+              materialName: "",
+              specification: "",
               quantity: null,
-              unit: '',
-              isComponent: '',
-              isKeyMaterial: '',
-              isBatch: '',
+              unit: "",
+              isComponent: "",
+              isKeyMaterial: "",
+              isBatch: "",
               batchQuantity: null,
-              isPackingBox: '',
-              isRfid: ''
+              isPackingBox: "",
+              isRfid: "",
             });
           } else {
-            process.materials.forEach(material => {
+            process.materials.forEach((material) => {
               flattenedData.push({
                 level: node.level,
                 parentMaterialCode: node.materialCode,
@@ -2003,17 +2059,17 @@ class MaterialProcessFlowService {
                 specification: material.specification,
                 quantity: material.quantity,
                 unit: material.unit,
-                isComponent: material.isComponent ? '是' : '否',
-                isKeyMaterial: material.isKeyMaterial ? '是' : '否',
-                isBatch: material.isBatch ? '是' : '否',
+                isComponent: material.isComponent ? "是" : "否",
+                isKeyMaterial: material.isKeyMaterial ? "是" : "否",
+                isBatch: material.isBatch ? "是" : "否",
                 batchQuantity: material.batchQuantity,
-                isPackingBox: material.isPackingBox ? '是' : '否',
-                isRfid: material.isRfid ? '是' : '否'
+                isPackingBox: material.isPackingBox ? "是" : "否",
+                isRfid: material.isRfid ? "是" : "否",
               });
 
               // 递归处理子物料
               if (material.children && material.children.length > 0) {
-                material.children.forEach(child => {
+                material.children.forEach((child) => {
                   flattenBOM(child, process, material);
                 });
               }
@@ -2022,10 +2078,85 @@ class MaterialProcessFlowService {
         });
       };
 
-      bomStructure.forEach(root => flattenBOM(root));
+      bomStructure.forEach((root) => flattenBOM(root));
       return flattenedData;
     } catch (error) {
       console.error("导出BOM结构失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 修复流程进度和状态
+   * @param {string} barcode - 主条码
+   */
+  static async fixFlowProgress(barcode) {
+    try {
+      // 查找流程记录
+      const flowRecord = await MaterialProcessFlow.findOne({ barcode });
+      if (!flowRecord) {
+        throw new Error("未找到对应的流程记录");
+      }
+
+      // 重新计算进度
+      const requiredNodes = flowRecord.processNodes.filter(
+        (node) =>
+          node.level !== 0 && // 排除根节点
+          (node.nodeType === "PROCESS_STEP" ||
+            (node.nodeType === "MATERIAL" && node.requireScan === true))
+      );
+
+      const completedNodes = requiredNodes.filter(
+        (node) => node.status === "COMPLETED"
+      );
+
+      // 检查是否所有必要节点都已完成
+      const allNodesCompleted = requiredNodes.length === completedNodes.length;
+
+      // 更新进度
+      flowRecord.progress =
+        requiredNodes.length > 0
+          ? Math.floor((completedNodes.length / requiredNodes.length) * 100)
+          : 0;
+
+      // 如果所有节点都完成，更新整体状态
+      if (allNodesCompleted) {
+        flowRecord.status = "COMPLETED";
+        flowRecord.endTime = new Date();
+
+        // 更新根节点状态
+        const rootNode = flowRecord.processNodes.find(
+          (node) => node.level === 0 && node.nodeType === "MATERIAL"
+        );
+        if (rootNode) {
+          rootNode.status = "COMPLETED";
+          rootNode.endTime = new Date();
+        }
+      } else {
+        flowRecord.status = "IN_PROCESS";
+        flowRecord.endTime = null;
+
+        // 重置根节点状态
+        const rootNode = flowRecord.processNodes.find(
+          (node) => node.level === 0 && node.nodeType === "MATERIAL"
+        );
+        if (rootNode) {
+          rootNode.status = "PENDING";
+          rootNode.endTime = null;
+        }
+      }
+
+      // 保存更新
+      await flowRecord.save();
+
+      return {
+        barcode: flowRecord.barcode,
+        previousProgress: flowRecord.progress,
+        status: flowRecord.status,
+        message: allNodesCompleted ? "所有节点已完成" : "流程进行中",
+      };
+    } catch (error) {
+      console.error("修复流程进度失败:", error);
       throw error;
     }
   }

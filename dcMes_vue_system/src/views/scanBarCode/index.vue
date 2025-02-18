@@ -1051,6 +1051,7 @@ export default {
 
                         // 如果成功提取到物料编码，验证是否匹配当前工序
                         if (isValid && materialCode) {
+
                             console.log(`条码匹配成功: ${rule.name} (${rule.isProductSpecific ? '产品特定' : '全局规则'})`);
                             return {
                                 materialCode,
@@ -1271,8 +1272,37 @@ export default {
 
                     // 检查主物料
                     if (materialCode === this.mainMaterialCode) {
+                        // 添加主物料条码顺序检查
+                        try {
+                            const preProductionResponse = await getData('preProductionBarcode', {
+                                query: {
+                                    materialNumber: materialCode,
+                                    status: 'PENDING'  // 只查询待使用的条码
+                                },
+                                sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
+                                limit: 1
+                            });
+
+                            if (preProductionResponse.data && preProductionResponse.data.length > 0) {
+                                const expectedBarcode = preProductionResponse.data[0].barcode;
+                                if (value !== expectedBarcode) {
+                                    this.$message.error(`请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`);
+                                    this.popupType = 'ng';
+                                    this.showPopup = true;
+                                    tone(tmyw);
+                                    return;
+                                }
+                            }
+                            // 如果没有找到对应的预生产条码记录，继续正常流程
+                        } catch (error) {
+                            console.warn('检查主物料条码顺序失败:', error);
+                            // 如果查询失败，不阻止正常流程
+                        }
+
+                        // 验证通过，继续原有逻辑
                         this.scanForm.mainBarcode = value;
                         this.validateStatus.mainBarcode = true;
+                        
                         await this.handleMainBarcode(value);
 
                         tone(smcg);
@@ -1297,6 +1327,32 @@ export default {
                     if (!matched) {
                         for (const material of this.processMaterials) {
                             if (material.materialCode === materialCode) {
+                                // 新增：检查materialBarcodeBatch表中是否存在该物料编码的未使用条码
+                                try {
+                                    const batchResponse = await getData('materialBarcodeBatch', {
+                                        query: {
+                                            materialCode: materialCode,
+                                            isUsed: false
+                                        },
+                                        sort: { createAt: 1 }, // 按创建时间正序排序，获取最早的未使用条码
+                                        limit: 1
+                                    });
+
+                                    if (batchResponse.data && batchResponse.data.length > 0) {
+                                        const expectedBatchId = batchResponse.data[0].batchId;
+                                        if (value !== expectedBatchId) {
+                                            this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
+                                            tone(tmyw)
+                                            return;
+                                        }
+                                    }
+                                    // 如果没有找到对应的批次记录，继续正常流程
+                                } catch (error) {
+                                    console.warn('检查批次条码顺序失败:', error);
+                                    // 如果查询失败，不阻止正常流程
+                                }
+
+
                                 // 如果是批次物料
                                 if (material.isBatch) {
                                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
@@ -1333,6 +1389,7 @@ export default {
                                             this.$set(this.validateStatus, material._id, false);
                                             this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
+
                                             return;
                                         }
                                     }

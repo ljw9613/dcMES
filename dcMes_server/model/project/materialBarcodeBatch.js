@@ -14,6 +14,8 @@ var materialBarcodeSchema = new mongoose.Schema({
     sequenceLength: { type: Number }, // 序列号长度，默认8位
     createBy: { type: String }, // 创建人
     updateBy: { type: String }, // 更新人
+    //是否使用
+    isUsed: { type: Boolean, default: false },
     createAt: { type: Date, default: Date.now }, // 创建时间
     updateAt: { type: Date, default: Date.now } // 更新时间
 });

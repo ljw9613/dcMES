@@ -29,7 +29,13 @@ const printTemplate = require("../model/project/printTemplate");
 const materialPalletizing = require("../model/project/materialPalletizing");
 const materialPalletizingUnbindLog = require("../model/project/materialPalletizingUnbindLog");
 const barcodeRule = require("../model/project/barcodeRule");
+const barcodeSegmentRule = require("../model/project/barcodeSegmentRule");
 const productBarcodeRule = require("../model/project/productBarcodeRule");
+const materialBarcodeBatch = require("../model/project/materialBarcodeBatch");
+const barcodeSegmentRuleMaterial = require("../model/project/barcodeSegmentRuleMaterial");
+const preProductionBarcode = require("../model/project/preProductionBarcode");
+
+
 //wms模型
 const warehouseEntry = require("../model/warehouse/warehouseEntry");
 const warehouseOntry = require("../model/warehouse/warehouseOntry");
@@ -46,12 +52,14 @@ const k3_PRD_InStock = require("../model/k3/K3_PRD_InStock");
 const k3_PUR_RequisitionBill = require("../model/k3/K3_PUR_RequisitionBill");
 const K3_SAL_OutStock = require("../model/k3/K3_SAL_OutStock");
 
+
 //k3 拓展模型
 const k3_SAL_SaleOrderExt = require("../model/k3Ext/k3_SAL_SaleOrderExt");
 const k3_PRD_PickMtrlExt = require("../model/k3Ext/k3_PRD_PickMtrlExt");
 const k3_PUR_RequisitionBillExt = require("../model/k3Ext/K3_PUR_RequisitionBillExt");
 const k3_SAL_OutStockExt = require("../model/k3Ext/k3_SAL_OutStockExt");
 const k3_SAL_DeliveryNoticeExt = require("../model/k3Ext/k3_SAL_DeliveryNoticeExt");
+const k3_SAL_SaleOrder_CustInfo = require("../model/k3Ext/k3_SAL_SaleOrder_CustInfo");
 
 //检测模块
 const InspectionLastData = require("../model/project/InspectionLastData");
@@ -102,10 +110,15 @@ ADDROUTER(router, "k3_SAL_DeliveryNotice", k3_SAL_DeliveryNotice);
 ADDROUTER(router, "k3_PRD_InStock", k3_PRD_InStock);
 ADDROUTER(router, "k3_PUR_RequisitionBill", k3_PUR_RequisitionBill);
 ADDROUTER(router, "k3_SAL_OutStock", K3_SAL_OutStock);
+ADDROUTER(router, "materialBarcodeBatch", materialBarcodeBatch);
+ADDROUTER(router, "barcodeSegmentRuleMaterial", barcodeSegmentRuleMaterial);
+ADDROUTER(router, "preProductionBarcode", preProductionBarcode);
+
 
 
 ADDROUTER(router, "productDiNum", productDiNum);
 ADDROUTER(router, "barcodeRule", barcodeRule);
+ADDROUTER(router, "barcodeSegmentRule", barcodeSegmentRule);
 ADDROUTER(router, "productBarcodeRule", productBarcodeRule);
 //k3 拓展模型
 ADDROUTER(router, "k3_SAL_SaleOrderExt", k3_SAL_SaleOrderExt);
@@ -113,6 +126,7 @@ ADDROUTER(router, "k3_PRD_PickMtrlExt", k3_PRD_PickMtrlExt);
 ADDROUTER(router, "k3_PUR_RequisitionBillExt", k3_PUR_RequisitionBillExt);
 ADDROUTER(router, "k3_SAL_OutStockExt", k3_SAL_OutStockExt);
 ADDROUTER(router, "k3_SAL_DeliveryNoticeExt", k3_SAL_DeliveryNoticeExt);
+ADDROUTER(router, "k3_SAL_SaleOrder_CustInfo", k3_SAL_SaleOrder_CustInfo);
 
 //检测模块
 ADDROUTER(router, "InspectionLastData", InspectionLastData);

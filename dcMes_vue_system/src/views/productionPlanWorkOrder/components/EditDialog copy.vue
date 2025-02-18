@@ -40,18 +40,24 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="客户行号" prop="custPO">
-                        <zr-select v-if="form.saleOrderId" v-model="form.custPO" collection="k3_SAL_SaleOrder_CustInfo"
-                            :search-fields="['FCustPO', 'FCustPOLineNo']" label-key="FCustPO" value-key="FCustPO"
-                            sub-key="FCustPOLineNo" :multiple="false" :additional-query="custLineQuery"
-                            placeholder="请选择客户PO号" @select="handleCustLineSelect">
+                        <zr-select v-if="form.saleOrderId" 
+                            v-model="form.custPO" 
+                            collection="k3_SAL_SaleOrder_CustInfo"
+                            :search-fields="['FCustPO', 'FCustPOLineNo']"
+                            label-key="FCustPO"
+                            sub-key="FCustPOLineNo"
+                            :multiple="false"
+                            :additional-query="custLineQuery"
+                            placeholder="请选择客户PO号"
+                            @select="handleCustLineSelect">
                             <template #option="{ item }">
                                 <div class="item-option">
                                     <div class="item-info">
                                         <span class="name">PO号: {{ item.FCustPO }}</span>
                                         <el-tag size="mini" type="primary">行号: {{ item.FCustPOLineNo }}</el-tag>
-                                        <div class="sub-info">
-                                            <small>SAP: {{ item.FSapId }}</small>
-                                        </div>
+                                    </div>
+                                    <div class="sub-info">
+                                        <small>SAP: {{ item.FSapId }}</small>
                                     </div>
                                 </div>
                             </template>
@@ -169,15 +175,23 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="计划开始时间" prop="planStartTime">
-                        <el-date-picker v-model="form.planStartTime" type="datetime" placeholder="选择计划开始时间"
-                            :picker-options="startTimeOptions" style="width: 100%">
+                        <el-date-picker 
+                            v-model="form.planStartTime" 
+                            type="datetime" 
+                            placeholder="选择计划开始时间"
+                            :picker-options="startTimeOptions"
+                            style="width: 100%">
                         </el-date-picker>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="计划结束时间" prop="planEndTime">
-                        <el-date-picker v-model="form.planEndTime" type="datetime" placeholder="选择计划结束时间"
-                            :picker-options="endTimeOptions" style="width: 100%">
+                        <el-date-picker 
+                            v-model="form.planEndTime" 
+                            type="datetime" 
+                            placeholder="选择计划结束时间"
+                            :picker-options="endTimeOptions"
+                            style="width: 100%">
                         </el-date-picker>
                     </el-form-item>
                 </el-col>
@@ -201,7 +215,8 @@
                     v-if="form.status === 'IN_PROGRESS'">
                     暂停生产
                 </el-button>
-                <el-button type="danger" @click="handleCancelProduction" v-if="form.status === 'PENDING'">
+                <el-button type="danger" @click="handleCancelProduction" 
+                    v-if="form.status === 'PENDING'">
                     工单作废
                 </el-button>
             </template>
@@ -493,12 +508,12 @@ export default {
             this.$refs.form.validate(async valid => {
                 if (valid) {
                     // 验证工单数量
-                    if (this.dialogStatus === 'create' &&
+                    if (this.dialogStatus === 'create' && 
                         (this.totalPlanProductionQuantity + this.form.planProductionQuantity) > this.form.planQuantity) {
                         this.$message.error('所有工单数量总和不能超过计划生产数量');
                         return;
                     }
-
+                    
                     this.submitLoading = true
                     try {
                         const formData = { ...this.form }

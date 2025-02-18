@@ -7,7 +7,13 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
     saleOrderNo: { type: String }, // 销售单号
     productionOrderId: { type: mongoose.Schema.ObjectId, ref: "k3_PRD_MO" }, // 关联生产订单
     productionOrderNo: { type: String }, // 生产单号
+
+
     
+    custPO: { type: String }, // 客户PO号
+    custPOLineNo: { type: String }, // 客户PO行号
+    sapId: { type: String }, // sapID
+
     // 产品信息
     materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 关联物料表
     materialNumber: { type: String }, // 物料编码

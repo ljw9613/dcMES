@@ -237,6 +237,7 @@
                         <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
                         <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
                         <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button type="text" size="small" @click="handleCustInfo(scope.row)">客户信息</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -288,6 +289,13 @@
             :sale-order-data="currentOrderData" @saved="handleExtSaved">
         </sale-order-ext-dialog>
 
+        <sale-order-cust-info-dialog
+            :visible.sync="custInfoDialogVisible"
+            :sale-order-id="currentOrderId"
+            :sale-order-data="currentOrderData"
+            @saved="handleCustInfoSaved"
+        />
+
     </div>
 </template>
 
@@ -296,12 +304,14 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { syncSAL_SaleOrder, getSyncStatus } from "@/api/K3Data";
 import SaleOrderExtDialog from './components/SaleOrderExtDialog.vue'
 import HirInput from '@/components/hirInput/index.vue'
+import SaleOrderCustInfoDialog from './components/SaleOrderCustInfoDialog.vue'
 
 export default {
     name: 'SaleOrder',
     components: {
         SaleOrderExtDialog,
-        HirInput
+        HirInput,
+        SaleOrderCustInfoDialog
     },
     computed: {
         localPrintTemplate: {
@@ -375,7 +385,7 @@ export default {
             printDialogVisible: false,
             printData: {},
             printTemplate: {},
-
+            custInfoDialogVisible: false
         }
     },
     methods: {
@@ -1056,6 +1066,17 @@ export default {
             this.printDialogVisible = false
             this.currentOrderId = ''
             this.currentOrderData = {}
+        },
+
+        // 打开客户信息弹窗
+        handleCustInfo(row) {
+            this.currentOrderId = row._id
+            this.currentOrderData = row
+            this.custInfoDialogVisible = true
+        },
+        // 客户信息保存成功的回调
+        handleCustInfoSaved() {
+            this.fetchData() // 刷新列表数据
         }
     },
     created() {

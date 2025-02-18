@@ -268,11 +268,26 @@ export default {
         async handleSubmit() {
             //查询产线编码是否重复
             let lineCode = this.form.lineCode;
-            let lineCodeData = await getData('production_line', { query: { lineCode: lineCode } });
-            if (lineCodeData.data.length > 0) {
-                this.$message.error('产线编码已存在')
-                return
+            // 编辑模式下，排除当前产线的数据
+            if (this.dialogStatus === 'create') {
+                let lineCodeData = await getData('production_line', { query: { lineCode: lineCode } });
+                if (lineCodeData.data.length > 0) {
+                    this.$message.error('产线编码已存在')
+                    return
+                }
+            } else {
+                let lineCodeData = await getData('production_line', { 
+                    query: { 
+                        lineCode: lineCode,
+                        _id: { $ne: this.form._id } // 排除当前产线
+                    } 
+                });
+                if (lineCodeData.data.length > 0) {
+                    this.$message.error('产线编码已存在')
+                    return
+                }
             }
+            
             this.$refs.form.validate(async valid => {
                 if (valid) {
                     this.submitLoading = true

@@ -341,7 +341,7 @@ export default {
             reconnectAttempts: 0, // 添加重连尝试次数计数
             maxReconnectAttempts: 5, // 最大重连尝试次数
             batchForm: {
-                batchSize: 10, // 默认批次数量
+                batchSize: 50, // 默认批次数量
             },
             batchSizeLocked: false, // 新增：控制批次数量是否锁定
             scannedList: [], // 已扫描条码列表
@@ -1926,7 +1926,7 @@ export default {
 
                 // 重置状态
                 this.batchSizeLocked = false;
-                this.batchForm.batchSize = 10; // 重置为默认值
+                this.batchForm.batchSize = 50; // 重置为默认值
 
                 this.$message.success('已取消批次数量设置');
             } catch (error) {

@@ -12,13 +12,66 @@
             <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
                 <el-row :gutter="20">
                     <el-col :span="6">
-                        <el-form-item label="主条码">
-                            <el-input v-model="searchForm.barcode" placeholder="请输入主条码" clearable></el-input>
+                        <el-form-item label="产品条码">
+                            <el-input v-model="searchForm.barcode" placeholder="请输入产品条码" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="物料编码">
                             <el-input v-model="searchForm.materialCode" placeholder="请输入物料编码" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="销售订单">
+                            <zr-select v-model="searchForm.saleOrderNo" collection="k3_SAL_SaleOrder"
+                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
+                                placeholder="请输入销售单号" clearable style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.FBillNo }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.FBillNo }} - {{ item.FSaleOrgId_FName }}
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="生产订单">
+                            <zr-select v-model="searchForm.productionOrderNo" collection="k3_PRD_MO"
+                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
+                                placeholder="请输入生产单号" clearable style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.FBillNo }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.FBillNo }} - {{ item.FUseOrgId_FName }}
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+
+                <el-row :gutter="20">
+                    <el-col :span="6">
+                        <el-form-item label="产品规格">
+                            <el-input v-model="searchForm.productModel" placeholder="请输入产品规格" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="业务类型">
+                            <el-select v-model="searchForm.businessType" placeholder="请选择业务类型" clearable
+                                style="width: 100%">
+                                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -65,7 +118,7 @@
         <div class="screen1">
             <div class="screen_content">
                 <div class="screen_content_first">
-                    <i class="el-icon-tickets">主条码生产流程列表</i>
+                    <i class="el-icon-tickets">产品条码生产流程列表</i>
                     <div>
                         <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
                         <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
@@ -81,7 +134,7 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             :cell-style="{ textAlign: 'center' }" @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
-                <el-table-column label="主条码" prop="barcode">
+                <el-table-column label="产品条码" prop="barcode">
                     <template slot-scope="scope">
                         {{ scope.row.barcode }}
                     </template>
@@ -118,6 +171,61 @@
                         {{ formatDate(scope.row.endTime) || '-' }}
                     </template>
                 </el-table-column>
+
+                <el-table-column label="工单信息" width="150">
+                    <template slot-scope="scope">
+                        <div v-if="scope.row.productionPlanWorkOrderId">
+                            <el-link type="primary" @click="handleView(scope.row)">
+                                {{ scope.row.productionPlanWorkOrderId.workOrderNo }}
+                            </el-link>
+                            <el-tag size="mini"
+                                :type="getWorkOrderStatusType(scope.row.productionPlanWorkOrderId.status)">
+                                {{ getWorkOrderStatusText(scope.row.productionPlanWorkOrderId.status) }}
+                            </el-tag>
+                        </div>
+                        <span v-else>-</span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="订单信息" width="200">
+                    <template slot-scope="scope">
+                        <div v-if="scope.row.productionPlanWorkOrderId">
+                            <div>
+                                <span>销售单号：</span>
+                                <el-tag size="mini" type="info">
+                                    {{ scope.row.productionPlanWorkOrderId.saleOrderNo || '-' }}
+                                </el-tag>
+                            </div>
+                            <div>
+                                <span>生产单号：</span>
+                                <el-tag size="mini" type="info">
+                                    {{ scope.row.productionPlanWorkOrderId.productionOrderNo || '-' }}
+                                </el-tag>
+                            </div>
+                        </div>
+                        <span v-else>-</span>
+                    </template>
+                </el-table-column>
+
+                <!-- <el-table-column label="生产数量" width="200">
+                    <template slot-scope="scope">
+                        <div v-if="scope.row.productionPlanWorkOrderId">
+                            <div>计划数量：{{ scope.row.productionPlanWorkOrderId.planQuantity || 0 }}</div>
+                            <div>工单数量：{{ scope.row.productionPlanWorkOrderId.planProductionQuantity || 0 }}</div>
+                            <div>
+                                <el-tooltip content="投入数量/产出数量" placement="top">
+                                    <div>
+                                        <span>{{ scope.row.productionPlanWorkOrderId.inputQuantity || 0 }}</span>
+                                        <span> / </span>
+                                        <span>{{ scope.row.productionPlanWorkOrderId.outputQuantity || 0 }}</span>
+                                    </div>
+                                </el-tooltip>
+                            </div>
+                        </div>
+                        <span v-else>-</span>
+                    </template>
+                </el-table-column> -->
+
                 <el-table-column label="操作" fixed="right" width="200">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
@@ -132,7 +240,8 @@
 
         <!-- 在template最后添加弹窗组件 -->
         <el-dialog :title="'工艺流程详情 - ' + dataForm.barcode" :visible.sync="dialogFormVisible" width="80%"
-            class="process-flow-dialog" :close-on-click-modal="false">
+            class="process-flow-dialog" :close-on-click-modal="false" :before-close="handleDialogClose"
+            @closed="handleDialogClosed">
             <div class="process-flow-container">
                 <!-- 右侧工序流程 -->
                 <div class="process-section">
@@ -222,7 +331,7 @@
                                                             :type="getProcessStatusType(scope.row.status)">
                                                             {{ scope.row.processName }}
                                                             <el-tag size="mini" type="info">{{ scope.row.processCode
-                                                                }}</el-tag>
+                                                            }}</el-tag>
                                                         </el-tag>
                                                     </div>
                                                 </template>
@@ -426,7 +535,7 @@
                         <!-- <el-table-column label="条码类型" width="120">
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.isMainBarcode ? 'primary' : 'success'">
-                                    {{ scope.row.isMainBarcode ? '主条码' : '子条码' }}
+                                    {{ scope.row.isMainBarcode ? '产品条码' : '子条码' }}
                                 </el-tag>
                             </template>
                         </el-table-column> -->
@@ -471,12 +580,17 @@
 
         <!-- 导出选项弹窗 -->
         <el-dialog title="导出选项" :visible.sync="exportDialogVisible" width="400px" :close-on-click-modal="false">
-            <el-form :model="exportForm" label-width="0px">
+            <el-form :model="exportForm" label-width="0px" class="export-form">
                 <el-form-item>
-                    <el-radio-group v-model="exportForm.exportOption"
-                        style="width: 100%; height: 100%;align-items: center;display: flex;flex-wrap: wrap; justify-content: space-around;">
-                        <el-radio-button border label="search" value="search"></el-radio-button>
-                        <el-radio-button border label="all" value="all"></el-radio-button>
+                    <el-radio-group v-model="exportForm.exportOption" class="export-radio-group">
+                        <el-radio-button label="search" class="export-radio-button">
+                            <i class="el-icon-search"></i>
+                            <span>导出搜索结果</span>
+                        </el-radio-button>
+                        <el-radio-button label="all" class="export-radio-button">
+                            <i class="el-icon-document"></i>
+                            <span>导出全部数据</span>
+                        </el-radio-button>
                     </el-radio-group>
                 </el-form-item>
             </el-form>
@@ -507,11 +621,16 @@ export default {
         ProcessStepList,
         InspectionList
     },
+    dicts: ['businessType'],
     data() {
         return {
             searchForm: {
                 barcode: '',
                 materialCode: '',
+                saleOrderNo: '',
+                productionOrderNo: '',
+                productModel: '',
+                businessType: '',
                 status: '',
                 dateRange: [],
                 progress: ''
@@ -608,17 +727,17 @@ export default {
         async handleUnbind(row) {
             try {
                 // TODO 国内查询维修记录
-                // let barcodeRepair = await getData('product_repair', {
-                //     query: {
-                //         barcode: this.dataForm.barcode,
-                //         status: 'PENDING_REVIEW'
-                //     }
-                // });
+                let barcodeRepair = await getData('product_repair', {
+                    query: {
+                        barcode: this.dataForm.barcode,
+                        status: 'PENDING_REVIEW'
+                    }
+                });
 
-                // if (barcodeRepair.data.length === 0) {
-                //     this.$message.warning('请先创建维修记录，再进行解绑操作');
-                //     return;
-                // }
+                if (barcodeRepair.data.length === 0) {
+                    this.$message.warning('请先创建维修记录，再进行解绑操作');
+                    return;
+                }
 
                 //检测
 
@@ -741,7 +860,7 @@ export default {
         async fetchData() {
             this.listLoading = true;
             try {
-                let req = this.searchData();
+                let req = await this.searchData();
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
@@ -879,26 +998,23 @@ export default {
         // 查看详情
         async handleView(row) {
             try {
-                console.log(row, 'row');
                 this.listLoading = true;
                 const result = await getData('material_process_flow', {
                     query: { _id: row._id }
                 });
-                console.log(result, 'result');
-                if (result.code === 200 && result.data.length > 0) {
-                    this.dataForm = result.data[0];
-                    // 处理流程图数据
 
+                if (result.code === 200 && result.data.length > 0) {
+                    this.dataForm = JSON.parse(JSON.stringify(result.data[0])); // 深拷贝数据
                     this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
-                    this.dialogFormVisible = true;
 
                     // 获取解绑记录
                     const unbindRecord = await getData('unbindRecord', {
                         query: { flowRecordId: row._id },
                         populate: JSON.stringify([{ path: 'operatorId' }])
                     });
-                    console.log(unbindRecord, 'unbindRecord');
+
                     this.unbindRecord = unbindRecord.data;
+                    this.dialogFormVisible = true;
                 } else {
                     this.$message.error('获取详情失败');
                 }
@@ -957,72 +1073,95 @@ export default {
             }
         },
         // 构建查询条件
-        searchData() {
+        async searchData() {
             let req = {
                 query: {
-                    $and: [
-                        // {materialCode:{$in:[
-                        //     "1313102002",
-                        //     "1313102004",
-                        //     "1108102018",
-                        //     "1108102010",
-                        //     "1108102014",
-                        //     "1108102011",
-                        //     "1108102012",
-                        //     "1108102013",
-                        //     "1108102016",
-                        //     "1108102025",
-                        //     "1108102027",
-                        //     "1108102003",
-                        //     "1108102007",
-                        //     "1108102004",
-                        //     "1108102002",
-                        //     "1108102001",
-                        //     "1108102005",
-                        //     "1108102009",
-                        //     "1108102029",
-                        //     "1108102020"
-                        // ]}}
-                    ]
-                }
+                    $and: []
+                },
+                // 添加关联查询
+                populate: JSON.stringify([
+                    {
+                        path: 'productionPlanWorkOrderId',
+                        select: 'workOrderNo saleOrderNo productionOrderNo planQuantity planProductionQuantity inputQuantity outputQuantity status'
+                    }
+                ])
             };
 
-            Object.entries(this.searchForm).forEach(([key, value]) => {
-                if (value) {
-                    switch (key) {
-                        case 'barcode':
-                        case 'materialCode':
-                            if (value.trim()) {
-                                // 对特殊字符进行转义
-                                const escapedValue = value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                req.query.$and.push({ [key]: { $regex: escapedValue, $options: 'i' } });
-                            }
-                            break;
-                        case 'status':
-                            req.query.$and.push({ [key]: value });
-                            break;
-                        case 'progress':
-                            if (value !== '') {
-                                req.query.$and.push({ progress: value });
-                            }
-                            break;
-                        case 'dateRange':
-                            if (Array.isArray(value) && value.length === 2) {
-                                req.query.$and.push({
-                                    startTime: {
-                                        $gte: value[0] + ' 00:00:00',
-                                        $lte: value[1] + ' 23:59:59'
-                                    }
-                                });
-                            }
-                            break;
+            // 处理基础查询条件
+            if (this.searchForm.barcode && this.searchForm.barcode.trim()) {
+                req.query.$and.push({
+                    barcode: { $regex: this.searchForm.barcode.trim(), $options: 'i' }
+                });
+            }
+            if (this.searchForm.materialCode && this.searchForm.materialCode.trim()) {
+                req.query.$and.push({
+                    materialCode: { $regex: this.searchForm.materialCode.trim(), $options: 'i' }
+                });
+            }
+            if (this.searchForm.productModel && this.searchForm.productModel.trim()) {
+                req.query.$and.push({
+                    materialSpec: { $regex: this.searchForm.productModel.trim(), $options: 'i' }
+                });
+            }
+            if (this.searchForm.businessType) {
+                req.query.$and.push({ businessType: this.searchForm.businessType });
+            }
+            if (this.searchForm.status) {
+                req.query.$and.push({ status: this.searchForm.status });
+            }
+
+            // 处理日期范围查询
+            if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
+                req.query.$and.push({
+                    startTime: {
+                        $gte: new Date(this.searchForm.dateRange[0]),
+                        $lte: new Date(this.searchForm.dateRange[1])
                     }
+                });
+            }
+
+            // 处理销售订单和生产订单查询
+            if (this.searchForm.saleOrderNo || this.searchForm.productionOrderNo) {
+                try {
+                    // 先查询工单
+                    const workOrderQuery = { $or: [] };
+                    if (this.searchForm.saleOrderNo) {
+                        workOrderQuery.$or.push({ saleOrderNo: this.searchForm.saleOrderNo });
+                    }
+                    if (this.searchForm.productionOrderNo) {
+                        workOrderQuery.$or.push({ productionOrderNo: this.searchForm.productionOrderNo });
+                    }
+
+                    const workOrderResult = await getData('production_plan_work_order', {
+                        query: workOrderQuery,
+                        select: '_id'
+                    });
+
+                    if (workOrderResult.code === 200 && workOrderResult.data) {
+                        const workOrderIds = workOrderResult.data.map(wo => wo._id);
+                        req.query.$and.push({
+                            productionPlanWorkOrderId: { $in: workOrderIds }
+                        });
+                    } else {
+                        // 如果没有找到匹配的工单，添加一个不可能匹配的条件
+                        req.query.$and.push({
+                            productionPlanWorkOrderId: null
+                        });
+                    }
+                } catch (error) {
+                    console.error('查询工单失败:', error);
+                    // 发生错误时添加一个不可能匹配的条件
+                    req.query.$and.push({
+                        productionPlanWorkOrderId: null
+                    });
                 }
-            });
+            }
 
             if (!req.query.$and.length) {
                 delete req.query.$and;
             }
+
+            console.log(req, 'req');
 
             return req;
         },
@@ -1034,6 +1173,10 @@ export default {
             this.searchForm = {
                 barcode: '',
                 materialCode: '',
+                saleOrderNo: '',
+                productionOrderNo: '',
+                productModel: '',
+                businessType: '',
                 status: '',
                 dateRange: [],
                 progress: ''
@@ -1323,7 +1466,7 @@ export default {
 
             this.searchLoading = true;
             try {
-                // 查询主条码
+                // 查询产品条码
                 const searchQuery = {
                     query: {
                         'processNodes.barcode': this.searchBarcode
@@ -1544,9 +1687,9 @@ export default {
                         break;
                     case 'search':
                         let req = this.searchData();
-                        req.page = this.currentPage;
-                        req.skip = (this.currentPage - 1) * this.pageSize;
-                        req.limit = this.pageSize;
+                        // req.page = this.currentPage;
+                        // req.skip = (this.currentPage - 1) * this.pageSize;
+                        // req.limit = this.pageSize;
                         req.sort = { createAt: -1 };
                         req.count = true;
                         const searchResult = await getData("material_process_flow", req);
@@ -1760,7 +1903,7 @@ export default {
                             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                         });
 
-                        // 文件名格式：物料编码_物料名称_主条码.xlsx
+                        // 文件名格式：物料编码_物料名称_产品条码.xlsx
                         const fileName = `${row.materialCode}_${row.materialName}_${row.barcode}.xlsx`;
 
                         // 下载文件
@@ -1780,7 +1923,60 @@ export default {
                 console.error('导出失败:', error);
                 this.$message.error('导出失败: ' + error.message);
             }
-        }
+        },
+        // 处理弹窗关闭前的操作
+        handleDialogClose(done) {
+            this.dataForm = {
+                barcode: '',
+                materialCode: '',
+                materialName: '',
+                materialSpec: '',
+                craftVersion: '',
+                startTime: null,
+                planCompletionTime: null,
+                endTime: null,
+                status: 'PENDING',
+                progress: 0,
+                processNodes: [],
+                remark: ''
+            };
+            this.processedFlowChartData = [];
+            this.activeTab = 'process';
+            done();
+        },
+
+        // 处理弹窗关闭后的操作
+        handleDialogClosed() {
+            this.dialogFormVisible = false;
+            this.unbindRecord = [];
+        },
+
+        // 获取业务类型文本
+        getBusinessTypeText(type) {
+            const found = this.dict.type.businessType.find(item => item.value === type);
+            return found ? found.label : type;
+        },
+        // 添加工单状态样式方法
+        getWorkOrderStatusType(status) {
+            const statusMap = {
+                'PENDING': 'info',
+                'IN_PROGRESS': 'warning',
+                'COMPLETED': 'success',
+                'CANCELLED': 'danger'
+            }
+            return statusMap[status] || 'info'
+        },
+
+        // 添加工单状态文本方法
+        getWorkOrderStatusText(status) {
+            const statusMap = {
+                'PENDING': '待生产',
+                'IN_PROGRESS': '生产中',
+                'COMPLETED': '已完成',
+                'CANCELLED': '已取消'
+            }
+            return statusMap[status] || status
+        },
     },
     created() {
         this.fetchData();
@@ -2392,5 +2588,79 @@ export default {
 .el-tooltip__popper {
     max-width: 300px;
     line-height: 1.5;
+}
+
+// 添加一些样式
+.el-tag+.el-tag {
+    margin-left: 4px;
+}
+
+.el-link {
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.el-table {
+    .cell {
+        .el-tag {
+            margin: 2px 0;
+        }
+    }
+}
+
+.export-form {
+    padding: 20px;
+    
+    .export-radio-group {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        
+        .export-radio-button {
+            height: 80px;
+            width: 160px;
+            
+            ::v-deep .el-radio-button__inner {
+                height: 100%;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                border: 1px solid #DCDFE6;
+                transition: all 0.3s;
+                
+                &:hover {
+                    background-color: #f5f7fa;
+                    border-color: #409EFF;
+                }
+                
+                i {
+                    font-size: 24px;
+                    margin-bottom: 8px;
+                    color: #606266;
+                }
+                
+                span {
+                    font-size: 14px;
+                    color: #606266;
+                }
+            }
+            
+            &.is-active {
+                ::v-deep .el-radio-button__inner {
+                    background-color: #ecf5ff;
+                    border-color: #409EFF;
+                    box-shadow: 0 0 8px rgba(64, 158, 255, 0.2);
+                    
+                    i, span {
+                        color: #409EFF;
+                    }
+                }
+            }
+        }
+    }
 }
 </style>
