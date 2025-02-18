@@ -100,6 +100,19 @@
                         </el-option>
                     </el-select>
                 </el-form-item>
+                
+                <!-- 添加字段映射输入框 -->
+                <template v-if="currentWorkOrder && Object.keys(generateForm.fieldValues).length > 0">
+                    <el-divider content-position="left">字段映射值</el-divider>
+                    <el-form-item v-for="(value, field) in generateForm.fieldValues" 
+                                 :key="field" 
+                                 :label="getFieldLabel(field)" 
+                                 :prop="`fieldValues.${field}`">
+                        <el-input v-model="generateForm.fieldValues[field]" 
+                                  :placeholder="`请输入${getFieldLabel(field)}`" />
+                    </el-form-item>
+                </template>
+
                 <el-form-item label="生成数量" prop="quantity">
                     <el-input-number v-model="generateForm.quantity" :min="1" :max="maxQuantity" />
                     <span style="margin-left: 10px; color: #909399">
@@ -159,12 +172,14 @@ export default {
             generateForm: {
                 workOrderId: '',
                 startNumber: 1,
-                quantity: 1
+                quantity: 1,
+                fieldValues: {}  // 添加字段映射值对象
             },
             generateRules: {
                 workOrderId: [{ required: true, message: '请选择工单', trigger: 'change' }],
+                quantity: [{ required: true, message: '请输入生成数量', trigger: 'blur' }],
                 startNumber: [{ required: true, message: '请输入起始序号', trigger: 'blur' }],
-                quantity: [{ required: true, message: '请输入生成数量', trigger: 'blur' }]
+                // fieldValues 的验证规则会在 handleWorkOrderChange 中动态添加
             },
             workOrderOptions: [],
             maxQuantity: 0,
@@ -283,6 +298,43 @@ export default {
                     return;
                 }
 
+                // 获取规则详情
+                const ruleDetail = await getData('BarcodeSegmentRule', {
+                    query: {
+                        _id: ruleResult.data[0].ruleId,
+                        enabled: true
+                    }
+                });
+
+                if (!ruleDetail.data || !ruleDetail.data.length) {
+                    this.$message.error('获取条码规则详情失败');
+                    return;
+                }
+
+                const rule = ruleDetail.data[0];
+
+                // 重置 fieldValues 对象
+                this.$set(this.generateForm, 'fieldValues', {});
+                
+                // 初始化字段映射值对象
+                rule.segments.forEach(segment => {
+                    if (segment.type === 'fieldMapping') {
+                        this.$set(this.generateForm.fieldValues, segment.config.mappingField, '');
+                    }
+                });
+
+                // 动态添加验证规则
+                const fieldRules = {};
+                Object.keys(this.generateForm.fieldValues).forEach(field => {
+                    fieldRules[`fieldValues.${field}`] = [
+                        { required: true, message: `请输入${this.getFieldLabel(field)}`, trigger: 'blur' }
+                    ];
+                });
+                this.generateRules = {
+                    ...this.generateRules,
+                    ...fieldRules
+                };
+
                 // 获取已生成的条码数量和最大序号（排除已作废的）
                 const [countResult, maxSerialResult] = await Promise.all([
                     getData('preProductionBarcode', {
@@ -318,128 +370,151 @@ export default {
             }
         },
 
-        // 生成条码
-        generateBarcode(rule, workOrder, serialNumber) {
-            let barcode = '';
-            
-            // 确保 rule 和 segments 存在
-            if (!rule || !rule.segments || !Array.isArray(rule.segments)) {
-                console.error('Invalid rule structure:', rule);
-                throw new Error('无效的条码规则结构');
-            }
-            
-            // 遍历规则的每个段落
-            for (const segment of rule.segments) {
-                let segmentValue = '';
-                const config = segment.config || {};
-                
-                // 根据段落类型生成对应的值
-                switch (segment.type) {
-                    case 'constant':
-                        segmentValue = config.constantValue || '';
-                        break;
-                        
-                    case 'fieldMapping':
-                        if (config.mappingField && workOrder) {
-                            // 根据字段名获取对应的值
-                            const fieldValue = workOrder[config.mappingField];
-                            // 查找映射关系
-                            if (config.fieldMappings && Array.isArray(config.fieldMappings)) {
-                                const mapping = config.fieldMappings.find(m => m && m.value === fieldValue);
-                                segmentValue = mapping ? mapping.code : (fieldValue || '');
-                            } else {
-                                segmentValue = fieldValue || '';
-                            }
-                        }
-                        break;
-                        
-                    case 'date':
-                        // 使用工单的计划开始时间
-                        const planDate = new Date(workOrder.planStartTime);
-                        let dateStr = '';
-                        
-                        if (config.dateFormat) {
-                            if (config.dateFormat.includes('YYYY')) {
-                                const year = planDate.getFullYear().toString();
-                                if (config.yearMappings && Array.isArray(config.yearMappings)) {
-                                    const yearMapping = config.yearMappings.find(m => m && m.value === year);
-                                    dateStr += yearMapping ? yearMapping.code : year;
-                                } else {
-                                    dateStr += year;
-                                }
-                            }
-                            
-                            if (config.dateFormat.includes('MM')) {
-                                const month = (planDate.getMonth() + 1).toString().padStart(2, '0');
-                                if (config.monthMappings && Array.isArray(config.monthMappings)) {
-                                    const monthMapping = config.monthMappings.find(m => m && m.value === month);
-                                    dateStr += monthMapping ? monthMapping.code : month;
-                                } else {
-                                    dateStr += month;
-                                }
-                            }
+        // 修改 generateBarcode 方法
+        async generateBarcode(rule, workOrder, serialNumber) {
+            try {
+                const segments = []
 
-                            if (config.dateFormat.includes('DD')) {
-                                const day = planDate.getDate().toString().padStart(2, '0');
-                                dateStr += day;
-                            }
-                        }
-                        
-                        segmentValue = dateStr;
-                        break;
-                        
-                    case 'sequence':
-                        // 将序号转换为指定长度的字符串
-                        let seqStr = serialNumber.toString().padStart(config.length || 1, '0');
-                        
-                        // 如果有数字映射，应用映射规则
-                        if (config.numberMappings && Array.isArray(config.numberMappings)) {
-                            const digits = seqStr.split('');
+                // 确保 rule 和 segments 存在
+                if (!rule || !rule.segments || !Array.isArray(rule.segments)) {
+                    console.error('Invalid rule structure:', rule);
+                    throw new Error('无效的条码规则结构');
+                }
+                
+                // 遍历规则的每个段落
+                for (const segment of rule.segments) {
+                    let segmentValue = '';
+                    const config = segment.config || {};
+                    
+                    // 根据段落类型生成对应的值
+                    switch (segment.type) {
+                        case 'constant':
+                            segmentValue = config.constantValue || '';
+                            break;
                             
-                            // 对每个位置应用映射
-                            for (let i = 0; i < digits.length; i++) {
-                                const position = i + 1; // 位置从1开始
-                                const digit = digits[i];
+                        case 'fieldMapping':
+                            if (config.mappingField && workOrder) {
+                                // 从 fieldValues 中获取值
+                                const fieldValue = workOrder[config.mappingField] || '';
+                                // 查找映射关系
+                                if (config.fieldMappings && Array.isArray(config.fieldMappings)) {
+                                    const mapping = config.fieldMappings.find(m => m && m.value === fieldValue);
+                                    segmentValue = mapping ? mapping.code : fieldValue;
+                                } else {
+                                    segmentValue = fieldValue;
+                                }
+                            }
+                            break;
+                            
+                        case 'date':
+                            // 使用工单的计划开始时间
+                            const planDate = new Date(workOrder.planStartTime);
+                            let dateStr = '';
+                            
+                            if (config.dateFormat) {
+                                if (config.dateFormat.includes('YYYY')) {
+                                    const year = planDate.getFullYear().toString();
+                                    if (config.yearMappings && Array.isArray(config.yearMappings)) {
+                                        const yearMapping = config.yearMappings.find(m => m && m.value === year);
+                                        dateStr += yearMapping ? yearMapping.code : year;
+                                    } else {
+                                        dateStr += year;
+                                    }
+                                }
                                 
-                                // 查找当前位置的映射规则
-                                const mapping = config.numberMappings.find(m => 
-                                    m.position === position && m.value === digit
-                                );
-                                
-                                if (mapping) {
-                                    digits[i] = mapping.code;
+                                if (config.dateFormat.includes('MM')) {
+                                    const month = (planDate.getMonth() + 1).toString().padStart(2, '0');
+                                    if (config.monthMappings && Array.isArray(config.monthMappings)) {
+                                        const monthMapping = config.monthMappings.find(m => m && m.value === month);
+                                        dateStr += monthMapping ? monthMapping.code : month;
+                                    } else {
+                                        dateStr += month;
+                                    }
+                                }
+
+                                if (config.dateFormat.includes('DD')) {
+                                    const day = planDate.getDate().toString().padStart(2, '0');
+                                    dateStr += day;
                                 }
                             }
                             
-                            seqStr = digits.join('');
-                        }
-                        
-                        segmentValue = seqStr;
-                        break;
-                        
-                    default:
-                        console.warn(`未知的段落类型: ${segment.type}`);
-                        break;
+                            segmentValue = dateStr;
+                            break;
+                            
+                        case 'sequence':
+                            // 确保序号是数字类型
+                            const seqNum = parseInt(serialNumber, 10);
+                            if (isNaN(seqNum)) {
+                                throw new Error('无效的序号值');
+                            }
+                            
+                            // 将序号转换为指定长度的字符串
+                            let seqStr = seqNum.toString().padStart(config.length || 1, config.padChar || '0');
+                            
+                            // 如果有数字映射，应用映射规则
+                            if (config.numberMappings && Array.isArray(config.numberMappings)) {
+                                const digits = seqStr.split('');
+                                
+                                // 对每个位置应用映射
+                                for (let i = 0; i < digits.length; i++) {
+                                    const position = i + 1; // 位置从1开始
+                                    const digit = digits[i];
+                                    
+                                    // 查找当前位置的映射规则
+                                    const mapping = config.numberMappings.find(m => 
+                                        m && m.position === position && m.value === digit
+                                    );
+                                    
+                                    if (mapping && mapping.code) {
+                                        digits[i] = mapping.code;
+                                    }
+                                }
+                                
+                                seqStr = digits.join('');
+                            }
+                            
+                            segmentValue = seqStr;
+                            break;
+                            
+                        default:
+                            console.warn(`未知的段落类型: ${segment.type}`);
+                            break;
+                    }
+                    
+                    // 添加前缀和后缀
+                    if (config.showPrefix && config.prefix) {
+                        segmentValue = config.prefix + segmentValue;
+                    }
+                    if (config.showSuffix && config.suffix) {
+                        segmentValue = segmentValue + config.suffix;
+                    }
+                    
+                    segments.push(segmentValue);
                 }
                 
-                // 添加前缀和后缀
-                if (config.showPrefix && config.prefix) {
-                    segmentValue = config.prefix + segmentValue;
-                }
-                if (config.showSuffix && config.suffix) {
-                    segmentValue = segmentValue + config.suffix;
-                }
+                // 返回拼接后的条码
+                return segments.join('');
                 
-                barcode += segmentValue;
+            } catch (error) {
+                console.error('生成条码失败:', error);
+                throw new Error(`生成条码失败: ${error.message}`);
             }
-            
-            return barcode;
         },
 
-        // 提交生成
+        // 修改 submitGenerate 方法中调用 generateBarcode 的部分
         async submitGenerate() {
             try {
                 await this.$refs.generateForm.validate();
+
+                // 验证字段映射值是否都已填写
+                const emptyFields = Object.entries(this.generateForm.fieldValues)
+                    .filter(([_, value]) => !value)
+                    .map(([field]) => this.getFieldLabel(field));
+
+                if (emptyFields.length > 0) {
+                    this.$message.warning(`请填写以下字段：${emptyFields.join('、')}`);
+                    return;
+                }
 
                 if (this.generateForm.quantity > this.maxQuantity) {
                     this.$message.warning('生成数量超过剩余可生成数量');
@@ -472,35 +547,21 @@ export default {
                     return;
                 }
 
-                // 修改这里：使用数组中的第一个规则
                 const rule = ruleDetail.data[0];
-
-                // 验证规则结构
-                if (!rule.segments || !Array.isArray(rule.segments) || rule.segments.length === 0) {
-                    this.$message.error('条码规则段落配置无效');
-                    console.error('Invalid rule segments:', rule);
-                    return;
-                }
-
-                // 打印规则信息以便调试
-                console.log('Rule detail:', {
-                    ruleId: rule._id,
-                    name: rule.name,
-                    code: rule.code,
-                    segmentsCount: rule.segments.length,
-                    segments: rule.segments.map(s => ({
-                        type: s.type,
-                        name: s.name,
-                        config: s.config
-                    }))
-                });
 
                 // 构建条码记录
                 const barcodes = [];
                 for (let i = 0; i < this.generateForm.quantity; i++) {
                     try {
                         const serialNumber = this.generateForm.startNumber + i;
-                        const barcode = this.generateBarcode(rule, this.currentWorkOrder, serialNumber);
+                        const barcode = await this.generateBarcode(
+                            rule,
+                            {
+                                ...this.currentWorkOrder,
+                                ...this.generateForm.fieldValues // 使用手动输入的值覆盖工单中的值
+                            },
+                            serialNumber
+                        );
 
                         if (!barcode) {
                             throw new Error('生成的条码为空');
@@ -523,9 +584,6 @@ export default {
                         });
                     } catch (error) {
                         console.error(`生成第 ${i + 1} 个条码时出错:`, error);
-                        console.error('当前规则:', rule);
-                        console.error('当前工单:', this.currentWorkOrder);
-                        console.error('当前序号:', this.generateForm.startNumber + i);
                         throw error;
                     }
                 }
@@ -656,6 +714,20 @@ export default {
         resetForm() {
             this.$refs.searchForm.resetFields()
             this.search()
+        },
+
+        // 添加获取字段标签的方法
+        getFieldLabel(field) {
+            const fieldLabelMap = {
+                'diNumber': 'DI号',
+                'workOrderNo': '工单号',
+                'productCode': '产品编码',
+                'batchNo': '批次号',
+                'factory': '工厂',
+                'productLine': '产线'
+                // 可以根据需要添加更多字段映射
+            };
+            return fieldLabelMap[field] || field;
         }
     }
 }
