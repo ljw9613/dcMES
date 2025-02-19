@@ -1462,10 +1462,10 @@ export default {
                         }
 
                         // 如果是托盘工序且有物料，给出警告
-                        if (this.processForm.processType === 'F' && materialIds.length > 0) {
-                            this.$message.warning('托盘工序不应包含物料，请手动清除物料数据');
-                            return;
-                        }
+                        // if (this.processForm.processType === 'F' && materialIds.length > 0) {
+                        //     this.$message.warning('托盘工序不应包含物料，请手动清除物料数据');
+                        //     return;
+                        // }
 
                         // 构建工序数据
                         const processData = {
@@ -1545,10 +1545,10 @@ export default {
 
         handleAddMaterial() {
             // 检查工序类型是否为 F
-            if (this.processForm.processType === 'F') {
-                this.$message.warning('托盘工序不能添加物料');
-                return;
-            }
+            // if (this.processForm.processType === 'F') {
+            //     this.$message.warning('托盘工序不能添加物料');
+            //     return;
+            // }
 
             this.materialDialog.title = '新增物料'
             this.materialDialog.visible = true

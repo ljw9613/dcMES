@@ -834,7 +834,7 @@ export default {
 
                 // 3. 构建流程图数据
                 this.flowChartDialogVisible = true;
-                const flowData = await this.buildFlowChartData(row._id, new Set());
+                const flowData = await this.buildFlowChartData(row._id, new Set(), false);
                 console.log('构建的流程图数据:', flowData);
 
                 this.processedFlowChartData = [flowData]; // 修改这里，直接传入数组形式
@@ -848,11 +848,16 @@ export default {
         },
 
         // 构建流程图数据
-        async buildFlowChartData(materialId, visited = new Set()) {
-            if (visited.has(materialId)) {
+        async buildFlowChartData(materialId, visited = new Set(), isSubMaterial = false) {
+            // 只有作为主物料时才需要检查是否访问过
+            if (!isSubMaterial && visited.has(materialId)) {
                 return null;
             }
-            visited.add(materialId);
+            
+            // 将物料添加到已访问集合（仅当作为主物料时）
+            if (!isSubMaterial) {
+                visited.add(materialId);
+            }
 
             try {
                 // 获取物料信息
@@ -880,8 +885,6 @@ export default {
                 }
 
                 const craft = craftResponse.data[0];
-
-                // 添加工艺信息
                 nodeData.craftName = craft.craftName;
 
                 // 获取工序信息
@@ -909,7 +912,12 @@ export default {
                             if (processMaterialsResponse.data && processMaterialsResponse.data.length > 0) {
                                 const materialsData = await Promise.all(
                                     processMaterialsResponse.data.map(async relation => {
-                                        const childFlow = await this.buildFlowChartData(relation.materialId, visited);
+                                        // 对于子物料，传入 isSubMaterial = true
+                                        const childFlow = await this.buildFlowChartData(
+                                            relation.materialId, 
+                                            visited, 
+                                            true
+                                        );
                                         if (childFlow) {
                                             childFlow.materialRelationType = relation.relationType;
                                             childFlow.isComponent = relation.isComponent;

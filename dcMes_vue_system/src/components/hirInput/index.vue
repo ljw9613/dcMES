@@ -76,6 +76,10 @@ export default {
         placeholder: {
             type: String,
             default: '请选择打印模板'
+        },
+        printDataList: {
+            type: Array,
+            default: () => []
         }
     },
     data() {
@@ -232,6 +236,56 @@ export default {
                 this.$message.error('静默打印失败');
             }
         },
+
+        // 添加批量打印方法
+        handleBatchPrint() {
+            if (!this.isTemplateInitialized || !this.hiprintTemplate) {
+                this.$message.warning('请先选择打印模板');
+                return;
+            }
+
+            try {
+                if (!Array.isArray(this.printDataList) || this.printDataList.length === 0) {
+                    this.$message.warning('打印数据列表为空');
+                    return;
+                }
+
+                hiprint.print({
+                    templates: this.printDataList.map(data => ({
+                        template: this.hiprintTemplate,
+                        data: data
+                    }))
+                });
+            } catch (error) {
+                console.error('批量打印失败:', error);
+                this.$message.error('批量打印失败');
+            }
+        },
+
+        // 添加批量静默打印方法
+        handleBatchSilentPrint() {
+            if (!this.isTemplateInitialized || !this.hiprintTemplate) {
+                this.$message.warning('请先选择打印模板');
+                return;
+            }
+
+            try {
+                if (!Array.isArray(this.printDataList) || this.printDataList.length === 0) {
+                    this.$message.warning('打印数据列表为空');
+                    return;
+                }
+
+                hiprint.print2({
+                    templates: this.printDataList.map(data => ({
+                        template: this.hiprintTemplate,
+                        data: data
+                    }))
+                });
+            } catch (error) {
+                console.error('批量静默打印失败:', error);
+                this.$message.error('批量静默打印失败');
+            }
+        }
     },
 }
 </script>

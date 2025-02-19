@@ -216,8 +216,7 @@
 
               <!-- 添加日期映射 -->
               <el-form-item label="日期映射">
-                <el-button size="small" type="primary"
-                  @click="addMapping(segment.config.dayMappings)">添加映射</el-button>
+                <el-button size="small" type="primary" @click="addMapping(segment.config.dayMappings)">添加映射</el-button>
                 <el-table :data="segment.config.dayMappings" border style="margin-top: 10px">
                   <el-table-column label="实际日期" prop="value">
                     <template slot-scope="scope">
@@ -309,9 +308,7 @@
                   <el-form-item label="值转换">
                     <el-switch v-model="segment.config.enableTransform" />
                     <template v-if="segment.config.enableTransform">
-                      <el-input 
-                        v-model="segment.config.transformValue" 
-                        placeholder="请输入转换后的值"
+                      <el-input v-model="segment.config.transformValue" placeholder="请输入转换后的值"
                         style="width: 200px; margin-left: 10px;">
                       </el-input>
                     </template>
@@ -752,12 +749,12 @@ export default {
           dateFormat: 'YYYY',
           yearMappings: [],
           monthMappings: [],
-          dayMappings: [], // 添加日期映射数组
+          dayMappings: [],
           startValue: 1,
           length: 1,
           padChar: '0',
           numberMappings: [],
-          fieldMappings: []  // 添加字段映射数组
+          fieldMappings: []
         }
       }
 
@@ -791,8 +788,8 @@ export default {
         config.numberMappings = []
       }
       config.numberMappings.push({
-        position: 1, // 默认第一位
-        value: config.padChar || '0', // 默认值设为填充字符
+        position: 1,
+        value: config.padChar || '0',
         code: ''
       })
     },
@@ -807,32 +804,21 @@ export default {
           name: segment.name,
           type: segment.type,
           config: {
-            // 基础配置
             prefix: segment.config.prefix || '',
             suffix: segment.config.suffix || '',
-            showPrefix: segment.config.showPrefix || true,
-            showSuffix: segment.config.showSuffix || true,
-
-            // 固定值配置
+            showPrefix: segment.config.showPrefix !== undefined ? segment.config.showPrefix : true,
+            showSuffix: segment.config.showSuffix !== undefined ? segment.config.showSuffix : true,
             constantValue: segment.type === 'constant' ? (segment.config.constantValue || '') : '',
-
-            // 字段映射配置
             mappingField: segment.type === 'fieldMapping' ? (segment.config.mappingField || '') : '',
-            fieldMappings: segment.type === 'fieldMapping' ? (segment.config.fieldMappings || []) : [], // 添加字段映射规则
-
-            // 日期配置
+            fieldMappings: segment.type === 'fieldMapping' ? (segment.config.fieldMappings || []) : [],
             dateFormat: segment.type === 'date' ? (segment.config.dateFormat || 'YYYY') : '',
             yearMappings: segment.type === 'date' ? (segment.config.yearMappings || []) : [],
             monthMappings: segment.type === 'date' ? (segment.config.monthMappings || []) : [],
             dayMappings: segment.type === 'date' ? (segment.config.dayMappings || []) : [],
-
-            // 流水号配置
             startValue: segment.type === 'sequence' ? (segment.config.startValue || 1) : 1,
             length: segment.type === 'sequence' ? (segment.config.length || 1) : 1,
             padChar: segment.type === 'sequence' ? (segment.config.padChar || '0') : '0',
             numberMappings: segment.type === 'sequence' ? (segment.config.numberMappings || []) : [],
-
-            // 新增：转换配置
             enableTransform: segment.type === 'constant' ? (segment.config.enableTransform || false) : false,
             transformValue: segment.type === 'constant' ? (segment.config.transformValue || '') : '',
           }
@@ -841,7 +827,7 @@ export default {
         // 确保每个segment都有完整的config结构
         const formattedRule = {
           ...this.currentRule,
-          totalLength: Number(this.currentRule.totalLength) || 0,  // 确保totalLength是数字类型
+          totalLength: Number(this.currentRule.totalLength) || 0,
           segments: formattedSegments
         }
 
@@ -914,37 +900,60 @@ export default {
 
     async generateBarcode(rule, params) {
       try {
-        const segments = []
-        const basicValues = []
-        const transformedValues = []
-        let hasTransform = false
+        const segments = [];
+        const displayValues = [];
+        const printValues = [];
+        const transformedValues = [];
+        let hasTransform = false;
 
         for (const segment of rule.segments) {
-          const segmentResult = await this.generateSegmentValue(segment, params)
+          const segmentResult = await this.generateSegmentValue(segment, params);
           segments.push({
             name: segment.name,
             value: segmentResult.basic,
             transformedValue: segmentResult.transformed,
             config: segment.config
-          })
-          
-          basicValues.push(segmentResult.basic)
-          transformedValues.push(segmentResult.transformed || segmentResult.basic)
-          
+          });
+
+          // 生成展示条码（始终包含前缀后缀）
+          let displayValue = segmentResult.basic;
+          if (segment.config.prefix && segment.config.showPrefix) {
+            displayValue = segment.config.prefix + displayValue;
+          }
+          if (segment.config.suffix && segment.config.showSuffix) {
+            displayValue = displayValue + segment.config.suffix;
+          }
+          displayValues.push(displayValue);
+
+          // 生成打印条码
+          let printValue = segmentResult.basic;
+          if (segment.config.prefix && segment.config.showPrefix) {
+            printValue = segment.config.prefix + printValue;
+          }
+          if (segment.config.suffix && segment.config.showSuffix) {
+            printValue = segment.config.suffix + printValue;
+          }
+          printValues.push(printValue);
+
+          // 处理转换值
           if (segmentResult.transformed) {
-            hasTransform = true
+            hasTransform = true;
+            transformedValues.push(segmentResult.transformed);
+          } else {
+            transformedValues.push(displayValue);
           }
         }
 
         return {
           result: {
-            basic: basicValues.join(''),
+            displayBarcode: displayValues.join(''),
+            printBarcode: printValues.join(''),
             transformed: hasTransform ? transformedValues.join('') : null
           },
           breakdown: segments
-        }
+        };
       } catch (error) {
-        throw new Error(`生成条码失败: ${error.message}`)
+        throw new Error(`生成条码失败: ${error.message}`);
       }
     },
 
@@ -962,9 +971,7 @@ export default {
           break
 
         case 'fieldMapping':
-          // 使用fieldValues中的值
           basic = params.fieldValues[segment.config.mappingField] || ''
-          // 应用映射规则
           if (segment.config.fieldMappings && segment.config.fieldMappings.length) {
             const mapping = segment.config.fieldMappings.find(m => m.value === basic)
             if (mapping) {
@@ -982,14 +989,14 @@ export default {
           break
       }
 
-      // 添加前缀和后缀 - 移除showPrefix和showSuffix的判断
-      if (segment.config.prefix) {
+      // 修改前缀和后缀的添加逻辑，考虑 showPrefix 和 showSuffix
+      if (segment.config.prefix && segment.config.showPrefix) {
         basic = segment.config.prefix + basic
         if (transformed !== null) {
           transformed = segment.config.prefix + transformed
         }
       }
-      if (segment.config.suffix) {
+      if (segment.config.suffix && segment.config.showSuffix) {
         basic = basic + segment.config.suffix
         if (transformed !== null) {
           transformed = transformed + segment.config.suffix
@@ -1019,23 +1026,19 @@ export default {
     },
 
     applyNumberMappings(value, mappings) {
-      // 实现数字映射逻辑
       return mappings.reduce((result, mapping) => {
         return result.replace(mapping.value, mapping.code)
       }, value)
     },
 
     formatSequenceWithPositionMapping(sequence, config) {
-      // 1. 先将序列号转为字符串并进行填充
       let value = String(sequence).padStart(config.length, config.padChar)
 
-      // 2. 应用位置映射（对填充后的字符进行映射）
       if (config.numberMappings && config.numberMappings.length) {
         const chars = value.split('')
         config.numberMappings.forEach(mapping => {
           if (mapping.position && mapping.position <= chars.length) {
             const pos = mapping.position - 1
-            // 修改这里：直接比较当前位置的字符（包括填充字符）
             if (chars[pos] === mapping.value) {
               chars[pos] = mapping.code
             }
@@ -1051,10 +1054,8 @@ export default {
     moveSegment(index, direction) {
       const segments = this.currentRule.segments;
       if (direction === 'up' && index > 0) {
-        // 上移
         [segments[index], segments[index - 1]] = [segments[index - 1], segments[index]];
       } else if (direction === 'down' && index < segments.length - 1) {
-        // 下移
         [segments[index], segments[index + 1]] = [segments[index + 1], segments[index]];
       }
     },
@@ -1062,14 +1063,12 @@ export default {
     // 在流水号配置发生变化时更新映射规则的默认值
     handlePadCharChange(segment) {
       if (segment.config.numberMappings && segment.config.numberMappings.length) {
-        // 更新所有使用旧填充字符作为映射值的规则
         segment.config.numberMappings.forEach(mapping => {
           if (mapping.value === segment.config.oldPadChar) {
             mapping.value = segment.config.padChar
           }
         })
       }
-      // 保存当前填充字符，用于下次比较
       segment.config.oldPadChar = segment.config.padChar
     },
 
@@ -1148,7 +1147,6 @@ export default {
       }
 
       try {
-        // 1. 检查当前规则是否已绑定这些物料
         const selectedMaterials = this.materialForm.materialId;
         const existingMaterials = this.boundMaterials.map(item => item.materialId);
         const duplicates = selectedMaterials.filter(id => existingMaterials.includes(id));
@@ -1158,16 +1156,14 @@ export default {
           return;
         }
 
-        // 2. 检查这些物料是否已经绑定了其他规则
         const existingBindings = await getData('barcodeSegmentRuleMaterial', {
           query: {
             materialId: { $in: selectedMaterials },
-            ruleId: { $ne: this.currentSegmentRule._id } // 排除当前规则
+            ruleId: { $ne: this.currentSegmentRule._id }
           }
         });
 
         if (existingBindings.data && existingBindings.data.length > 0) {
-          // 获取已绑定的物料信息
           const boundMaterialInfo = existingBindings.data.map(binding =>
             `${binding.materialNumber}(${binding.materialName}) - 已绑定规则: ${binding.ruleName}`
           );
@@ -1179,12 +1175,10 @@ export default {
           return;
         }
 
-        // 获取选中物料的详细信息
         const materialsInfo = await getData('k3_BD_MATERIAL', {
           query: { _id: { $in: selectedMaterials } }
         });
 
-        // 构建绑定数据
         const bindData = materialsInfo.data.map(material => ({
           materialId: material._id,
           materialNumber: material.FNumber,
@@ -1304,7 +1298,7 @@ export default {
     .barcode-group {
       .barcode-item {
         margin-bottom: 15px;
-        
+
         &:last-child {
           margin-bottom: 0;
         }
@@ -1343,7 +1337,7 @@ export default {
 
         .segment-value {
           font-weight: 500;
-          
+
           template {
             color: #409EFF;
             margin-left: 10px;

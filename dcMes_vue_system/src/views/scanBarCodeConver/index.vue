@@ -1585,7 +1585,7 @@ export default {
                     this.showPopup = true;
 
                     let printData = {
-                        barcode: this.scanForm.mainBarcode,
+                        printBarcode: this.scanForm.mainBarcode,
                     }
                     this.printData = printData;
                     this.$nextTick(() => {

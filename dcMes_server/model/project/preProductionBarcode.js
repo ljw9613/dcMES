@@ -17,6 +17,7 @@ const preProductionBarcodeSchema = new mongoose.Schema({
     
     // 条码信息
     barcode: { type: String, required: true, unique: true }, // 生成的条码
+    printBarcode: { type: String, required: true, unique: true }, // 打印条码
     serialNumber: { type: Number, required: true }, // 序号（用于排序）
     
     // 状态信息

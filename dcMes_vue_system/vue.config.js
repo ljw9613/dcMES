@@ -26,19 +26,19 @@ module.exports = {
    * Detail: https://cli.vuejs.org/config/#publicpath
    */
 
-  publicPath: "/dcMes/",
-  outputDir: "../dcMes_server/admin",
+  // publicPath: "/dcMes/",
+  // outputDir: "../dcMes_server/admin",
   // publicPath: "/dcMesManage/",
   // outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesCs/",
   // outputDir: "../dcMes_server/adminCs",
-   //  publicPath: "/dcMesVN/",
-    // outputDir: "../dcMes_server/adminVN",
+  publicPath: "/dcMesVN/",
+  outputDir: "../dcMes_server/adminVN",
   assetsDir: "static",
   lintOnSave: process.env.NODE_ENV === "development",
   productionSourceMap: false,
   devServer: {
-    host: '0.0.0.0',  // 添加这一行
+    host: "0.0.0.0", // 添加这一行
     port: port,
     open: true,
     overlay: {
@@ -74,13 +74,15 @@ module.exports = {
         "@": resolve("src")
       }
     },
-    module:{
-      rules:[{
-          test:/\.mjs$/,
+    module: {
+      rules: [
+        {
+          test: /\.mjs$/,
           include: /node_modules/,
           type: "javascript/auto"
-      }]
-  },
+        }
+      ]
+    },
     optimization: {
       minimizer: [
         new TerserPlugin({

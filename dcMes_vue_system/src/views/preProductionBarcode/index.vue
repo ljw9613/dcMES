@@ -20,7 +20,7 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="条码">
+                        <el-form-item label="展示条码">
                             <el-input v-model="searchForm.barcode" placeholder="请输入条码" clearable></el-input>
                         </el-form-item>
                     </el-col>
@@ -70,7 +70,8 @@
                 @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="55" />
                 <el-table-column label="序号" prop="serialNumber" width="80" />
-                <el-table-column label="条码" prop="barcode" />
+                <el-table-column label="展示条码" prop="barcode" />
+                <el-table-column label="打印条码" prop="printBarcode" />
                 <el-table-column label="工单号" prop="workOrderNo" />
                 <el-table-column label="物料编码" prop="materialNumber" />
                 <el-table-column label="物料名称" prop="materialName" />
@@ -92,9 +93,6 @@
                     <template slot-scope="{row}">
                         <el-button v-if="row.status === 'PENDING'" type="text" size="small" @click="handleVoid(row)">
                             作废
-                        </el-button>
-                        <el-button type="text" size="small" @click="handleDetail(row)">
-                            详情
                         </el-button>
                         <el-button type="text" size="small" @click="handlePrint(row)">
                             打印
@@ -155,7 +153,7 @@
             </div>
         </el-dialog>
 
-        <!-- 添加批量打印对话框 -->
+        <!-- 修改批量打印对话框 -->
         <el-dialog title="批量打印" :visible.sync="batchPrintDialogVisible" width="70%">
             <div class="batch-print-container">
                 <div class="print-settings">
@@ -164,9 +162,8 @@
                             <span>当前搜索结果共 {{ printDataList.length }} 条记录</span>
                         </el-form-item>
                         <el-form-item label="打印模板">
-                            <hir-input ref="batchPrintHirInput" 
-                                :printData="currentPrintData" 
-                                :default-template="localPrintTemplate"
+                            <hir-input ref="batchPrintHirInput" :print-data="currentPrintData"
+                                :print-data-list="printDataList" :default-template="localPrintTemplate"
                                 @template-change="handleTemplateChange" />
                         </el-form-item>
                     </el-form>
@@ -497,7 +494,8 @@ export default {
         // 修改 generateBarcode 方法
         async generateBarcode(rule, workOrder, serialNumber) {
             try {
-                const segments = []
+                const displaySegments = [];
+                const printSegments = [];
 
                 // 确保 rule 和 segments 存在
                 if (!rule || !rule.segments || !Array.isArray(rule.segments)) {
@@ -609,19 +607,35 @@ export default {
                             break;
                     }
 
-                    // 添加前缀和后缀
+                    // 分别处理展示条码和打印条码
+                    let displayValue = segmentValue;
+                    let printValue = segmentValue;
+
+                    // 展示条码：始终显示前缀和后缀
+                    if (config.prefix) {
+                        displayValue = config.prefix + displayValue;
+                    }
+                    if (config.suffix) {
+                        displayValue = displayValue + config.suffix;
+                    }
+
+                    // 打印条码：根据配置决定是否显示前缀和后缀
                     if (config.showPrefix && config.prefix) {
-                        segmentValue = config.prefix + segmentValue;
+                        printValue = config.prefix + printValue;
                     }
                     if (config.showSuffix && config.suffix) {
-                        segmentValue = segmentValue + config.suffix;
+                        printValue = printValue + config.suffix;
                     }
 
-                    segments.push(segmentValue);
+                    displaySegments.push(displayValue);
+                    printSegments.push(printValue);
                 }
 
-                // 返回拼接后的条码
-                return segments.join('');
+                // 返回不同的展示条码和打印条码
+                return {
+                    displayBarcode: displaySegments.join(''),
+                    printBarcode: printSegments.join('')
+                };
 
             } catch (error) {
                 console.error('生成条码失败:', error);
@@ -672,16 +686,16 @@ export default {
                 for (let i = 0; i < this.generateForm.quantity; i++) {
                     try {
                         const serialNumber = this.generateForm.startNumber + i;
-                        const barcode = await this.generateBarcode(
+                        const barcodeResult = await this.generateBarcode(
                             rule,
                             {
                                 ...this.currentWorkOrder,
-                                ...this.generateForm.fieldValues // 使用手动输入的值覆盖工单中的值
+                                ...this.generateForm.fieldValues
                             },
                             serialNumber
                         );
 
-                        if (!barcode) {
+                        if (!barcodeResult.displayBarcode) {
                             throw new Error('生成的条码为空');
                         }
 
@@ -694,7 +708,8 @@ export default {
                             ruleId: rule._id,
                             ruleName: rule.name,
                             ruleCode: rule.code,
-                            barcode,
+                            barcode: barcodeResult.displayBarcode, // 展示用条码
+                            printBarcode: barcodeResult.printBarcode, // 打印用条码
                             serialNumber,
                             batchNo: this.generateForm.batchNo,
                             status: 'PENDING',
@@ -711,7 +726,7 @@ export default {
                 const existingBarcodes = await getData('preProductionBarcode', {
                     query: {
                         barcode: { $in: barcodes.map(item => item.barcode) },
-                        status: { $ne: 'VOIDED' }  // 排除已作废的条码
+                        status: { $ne: 'VOIDED' }
                     }
                 });
 
@@ -730,12 +745,38 @@ export default {
                 }
 
                 await addData('preProductionBarcode', barcodes);
-                this.$message.success('条码生成成功');
+                this.$message.success(`成功生成 ${barcodes.length} 个条码`);
+
+                // 重置生成表单和相关数据
+                this.resetGenerateForm();
+                // 关闭弹窗
                 this.generateDialogVisible = false;
+                // 刷新列表
                 this.fetchData();
+
             } catch (error) {
                 console.error('生成条码失败:', error);
                 this.$message.error('生成条码失败: ' + error.message);
+            }
+        },
+
+        // 添加重置方法
+        resetGenerateForm() {
+            // 重置表单数据
+            this.generateForm = {
+                workOrderId: '',
+                quantity: 1,
+                startNumber: 1,
+                batchNo: '',
+                fieldValues: {}
+            };
+
+            // 清除工单相关信息
+            this.currentWorkOrder = null;
+
+            // 重置表单验证
+            if (this.$refs.generateForm) {
+                this.$refs.generateForm.resetFields();
             }
         },
 
@@ -845,11 +886,12 @@ export default {
         },
 
         handlePrint(row) {
-            let printData = row;
+            let printData = { ...row };
             printData.createAt = this.formatDate(row.createAt);
-            // 构建二维码数据
-            printData.qrcode = `${row.barcode}#${row.workOrderNo}#${row.materialNumber}#${row.materialName}`;
+            // 使用打印条码进行打印
+            printData.printBarcodeText = row.printBarcode.substring(row.printBarcode.length - 13) // 截取后13位
             this.printData = printData;
+            console.log(this.printData)
             this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints();
             });
@@ -902,20 +944,20 @@ export default {
                 this.printDataList = result.data.map(item => ({
                     ...item,
                     createAt: this.formatDate(item.createAt),
-                    qrcode: `${item.barcode}#${item.workOrderNo}#${item.materialNumber}#${item.materialName}`
+                    printBarcodeText: item.printBarcode.substring(item.printBarcode.length - 13) // 截取后13位
                 }));
 
                 // 重置分页
                 this.printCurrentPage = 1;
-                
+
                 // 设置第一条数据作为模板预览数据
                 this.currentPrintData = this.printDataList[0];
-                
+
                 // 如果有本地存储的模板，使用存储的模板
                 if (this.localPrintTemplate) {
                     this.printTemplate = this.localPrintTemplate;
                 }
-                
+
                 // 显示打印对话框
                 this.batchPrintDialogVisible = true;
             } catch (error) {
@@ -926,7 +968,7 @@ export default {
             }
         },
 
-        // 执行批量打印
+        // 修改 executeBatchPrint 方法
         async executeBatchPrint() {
             if (!this.printDataList.length) {
                 this.$message.warning('没有可打印的数据');
@@ -940,16 +982,23 @@ export default {
 
             this.printing = true;
             try {
-                // 循环打印每条数据
-                for (const data of this.printDataList) {
-                    this.currentPrintData = data;
-                    await this.$nextTick();
-                    // 直接调用打印方法
-                    await this.$refs.batchPrintHirInput.handlePrints();
-                }
+                // 准备打印数据列表
+                const printList = this.printDataList.map(data => ({
+                    ...data,
+                    createAt: this.formatDate(data.createAt),
+                    printBarcodeText: data.printBarcode.substring(data.printBarcode.length - 13)
+                }));
 
-                this.$message.success('批量打印完成');
-                this.batchPrintDialogVisible = false;
+                // 使用 hirInput 组件的批量打印方法
+                await this.$nextTick();
+                if (this.$refs.batchPrintHirInput) {
+                    // 使用浏览器打印
+                    await this.$refs.batchPrintHirInput.handleBatchPrint();
+                    this.$message.success('浏览器打印完成');
+                    this.batchPrintDialogVisible = false;
+                } else {
+                    throw new Error('打印组件未初始化');
+                }
             } catch (error) {
                 console.error('批量打印失败:', error);
                 this.$message.error('批量打印失败: ' + error.message);
