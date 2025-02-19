@@ -145,7 +145,7 @@
                 <el-form-item :label="'前缀'" :prop="'segments.' + index + '.config.prefix'">
                   <el-input v-model="segment.config.prefix" placeholder="如: (01)">
                     <template slot="append">
-                      <el-checkbox v-model="segment.config.showPrefix">是否显示</el-checkbox>
+                      <el-checkbox v-model="segment.config.showPrefix">是否打印</el-checkbox>
                     </template>
                   </el-input>
                 </el-form-item>
@@ -154,7 +154,7 @@
                 <el-form-item :label="'后缀'" :prop="'segments.' + index + '.config.suffix'">
                   <el-input v-model="segment.config.suffix" placeholder="如: (H1)">
                     <template slot="append">
-                      <el-checkbox v-model="segment.config.showSuffix">是否显示</el-checkbox>
+                      <el-checkbox v-model="segment.config.showSuffix">是否打印</el-checkbox>
                     </template>
                   </el-input>
                 </el-form-item>
@@ -209,6 +209,30 @@
                     <template slot-scope="scope">
                       <el-button type="text"
                         @click="removeMapping(segment.config.monthMappings, scope.$index)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-form-item>
+
+              <!-- 添加日期映射 -->
+              <el-form-item label="日期映射">
+                <el-button size="small" type="primary"
+                  @click="addMapping(segment.config.dayMappings)">添加映射</el-button>
+                <el-table :data="segment.config.dayMappings" border style="margin-top: 10px">
+                  <el-table-column label="实际日期" prop="value">
+                    <template slot-scope="scope">
+                      <el-input v-model="scope.row.value" placeholder="如: 1" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="映射代码" prop="code">
+                    <template slot-scope="scope">
+                      <el-input v-model="scope.row.code" placeholder="如: A" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100">
+                    <template slot-scope="scope">
+                      <el-button type="text"
+                        @click="removeMapping(segment.config.dayMappings, scope.$index)">删除</el-button>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -273,23 +297,42 @@
             </template>
 
             <template v-if="segment.type === 'constant'">
-              <el-form-item :label="'固定值'" :prop="'segments.' + index + '.config.constantValue'">
-                <el-input v-model="segment.config.constantValue" placeholder="如: 01" />
-              </el-form-item>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item :label="'固定值'" :prop="'segments.' + index + '.config.constantValue'">
+                    <el-input v-model="segment.config.constantValue" placeholder="如: 01" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="值转换">
+                    <el-switch v-model="segment.config.enableTransform" />
+                    <template v-if="segment.config.enableTransform">
+                      <el-input 
+                        v-model="segment.config.transformValue" 
+                        placeholder="请输入转换后的值"
+                        style="width: 200px; margin-left: 10px;">
+                      </el-input>
+                    </template>
+                  </el-form-item>
+                </el-col>
+              </el-row>
             </template>
 
             <template v-if="segment.type === 'fieldMapping'">
               <el-form-item :label="'映射字段'" :prop="'segments.' + index + '.config.mappingField'">
                 <el-select v-model="segment.config.mappingField" style="width: 100%">
                   <el-option-group label="订单信息">
-                    <el-option label="DI号" value="diNumber" />
+                    <!-- <el-option label="DI号" value="diNumber" />
                     <el-option label="工单号" value="workOrderNo" />
                     <el-option label="产品编码" value="productCode" />
-                    <el-option label="批次号" value="batchNo" />
+                    <el-option label="批次号" value="batchNo" /> -->
+                    <el-option label="客户PO号" value="custPO" />
                   </el-option-group>
                   <el-option-group label="生产信息">
-                    <el-option label="工厂" value="factory" />
-                    <el-option label="产线" value="productLine" />
+                    <!-- <el-option label="工厂" value="factory" /> -->
+                    <el-option label="产线" value="lineNum" />
                   </el-option-group>
                 </el-select>
               </el-form-item>
@@ -383,23 +426,35 @@
               <span>生成结果</span>
             </div>
             <div class="test-result-content">
-              <div class="barcode-preview">{{ testResult }}</div>
+              <div class="barcode-group">
+                <div class="barcode-item">
+                  <div class="barcode-label">基础条码:</div>
+                  <div class="barcode-preview">{{ testResult.basic }}</div>
+                </div>
+                <div class="barcode-item" v-if="testResult.transformed">
+                  <div class="barcode-label">转换条码:</div>
+                  <div class="barcode-preview">{{ testResult.transformed }}</div>
+                </div>
+              </div>
               <el-divider content-position="left">段落明细</el-divider>
               <div class="segment-breakdown">
                 <el-row v-for="(segment, index) in segmentBreakdown" :key="index" class="segment-detail">
                   <el-col :span="6" class="segment-label">{{ segment.name }}:</el-col>
                   <el-col :span="18">
-                    <div class="segment-value">{{ segment.value }}</div>
+                    <div class="segment-value">
+                      {{ segment.value }}
+                      <template v-if="segment.transformedValue">
+                        → {{ segment.transformedValue }}
+                      </template>
+                    </div>
                     <div class="segment-info" v-if="segment.config.prefix || segment.config.suffix">
                       <small>
                         <template v-if="segment.config.prefix">
                           前缀: {{ segment.config.prefix }}
-                          ({{ segment.config.showPrefix ? '显示' : '不显示' }})
                         </template>
                         <template v-if="segment.config.prefix && segment.config.suffix"> | </template>
                         <template v-if="segment.config.suffix">
                           后缀: {{ segment.config.suffix }}
-                          ({{ segment.config.showSuffix ? '显示' : '不显示' }})
                         </template>
                       </small>
                     </div>
@@ -691,10 +746,13 @@ export default {
           showPrefix: true,
           showSuffix: true,
           constantValue: '',
+          enableTransform: false,
+          transformValue: '',
           mappingField: '',
           dateFormat: 'YYYY',
           yearMappings: [],
           monthMappings: [],
+          dayMappings: [], // 添加日期映射数组
           startValue: 1,
           length: 1,
           padChar: '0',
@@ -766,12 +824,17 @@ export default {
             dateFormat: segment.type === 'date' ? (segment.config.dateFormat || 'YYYY') : '',
             yearMappings: segment.type === 'date' ? (segment.config.yearMappings || []) : [],
             monthMappings: segment.type === 'date' ? (segment.config.monthMappings || []) : [],
+            dayMappings: segment.type === 'date' ? (segment.config.dayMappings || []) : [],
 
             // 流水号配置
             startValue: segment.type === 'sequence' ? (segment.config.startValue || 1) : 1,
             length: segment.type === 'sequence' ? (segment.config.length || 1) : 1,
             padChar: segment.type === 'sequence' ? (segment.config.padChar || '0') : '0',
-            numberMappings: segment.type === 'sequence' ? (segment.config.numberMappings || []) : []
+            numberMappings: segment.type === 'sequence' ? (segment.config.numberMappings || []) : [],
+
+            // 新增：转换配置
+            enableTransform: segment.type === 'constant' ? (segment.config.enableTransform || false) : false,
+            transformValue: segment.type === 'constant' ? (segment.config.transformValue || '') : '',
           }
         }))
 
@@ -852,21 +915,32 @@ export default {
     async generateBarcode(rule, params) {
       try {
         const segments = []
+        const basicValues = []
+        const transformedValues = []
+        let hasTransform = false
 
         for (const segment of rule.segments) {
-          const segmentValue = await this.generateSegmentValue(segment, params)
+          const segmentResult = await this.generateSegmentValue(segment, params)
           segments.push({
             name: segment.name,
-            value: segmentValue,
+            value: segmentResult.basic,
+            transformedValue: segmentResult.transformed,
             config: segment.config
           })
+          
+          basicValues.push(segmentResult.basic)
+          transformedValues.push(segmentResult.transformed || segmentResult.basic)
+          
+          if (segmentResult.transformed) {
+            hasTransform = true
+          }
         }
 
-        // 直接拼接所有段落的值
-        const result = segments.map(s => s.value).join('')
-
         return {
-          result,
+          result: {
+            basic: basicValues.join(''),
+            transformed: hasTransform ? transformedValues.join('') : null
+          },
           breakdown: segments
         }
       } catch (error) {
@@ -874,45 +948,58 @@ export default {
       }
     },
 
-    // 生成段落值的方法
+    // 修改生成段落值的方法
     async generateSegmentValue(segment, params) {
-      let value = ''
+      let basic = ''
+      let transformed = null
 
       switch (segment.type) {
         case 'constant':
-          value = segment.config.constantValue
+          basic = segment.config.constantValue
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            transformed = segment.config.transformValue
+          }
           break
 
         case 'fieldMapping':
           // 使用fieldValues中的值
-          value = params.fieldValues[segment.config.mappingField] || ''
+          basic = params.fieldValues[segment.config.mappingField] || ''
           // 应用映射规则
           if (segment.config.fieldMappings && segment.config.fieldMappings.length) {
-            const mapping = segment.config.fieldMappings.find(m => m.value === value)
+            const mapping = segment.config.fieldMappings.find(m => m.value === basic)
             if (mapping) {
-              value = mapping.code
+              basic = mapping.code
             }
           }
           break
 
         case 'date':
-          value = this.formatDateWithMappings(params.date, segment.config)
+          basic = this.formatDateWithMappings(params.date, segment.config)
           break
 
         case 'sequence':
-          value = this.formatSequenceWithPositionMapping(params.sequence, segment.config)
+          basic = this.formatSequenceWithPositionMapping(params.sequence, segment.config)
           break
       }
 
-      // 添加前缀和后缀
-      if (segment.config.prefix && segment.config.showPrefix) {
-        value = segment.config.prefix + value
+      // 添加前缀和后缀 - 移除showPrefix和showSuffix的判断
+      if (segment.config.prefix) {
+        basic = segment.config.prefix + basic
+        if (transformed !== null) {
+          transformed = segment.config.prefix + transformed
+        }
       }
-      if (segment.config.suffix && segment.config.showSuffix) {
-        value = value + segment.config.suffix
+      if (segment.config.suffix) {
+        basic = basic + segment.config.suffix
+        if (transformed !== null) {
+          transformed = transformed + segment.config.suffix
+        }
       }
 
-      return value
+      return {
+        basic,
+        transformed
+      }
     },
 
     formatDateWithMappings(date, format) {
@@ -923,6 +1010,9 @@ export default {
       }
       if (format.monthMappings && format.monthMappings.length) {
         value = this.applyNumberMappings(value, format.monthMappings)
+      }
+      if (format.dayMappings && format.dayMappings.length) {
+        value = this.applyNumberMappings(value, format.dayMappings)
       }
 
       return value
@@ -1211,14 +1301,29 @@ export default {
   }
 
   .test-result-content {
-    .barcode-preview {
-      font-size: 24px;
-      font-family: monospace;
-      text-align: center;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      margin-bottom: 20px;
+    .barcode-group {
+      .barcode-item {
+        margin-bottom: 15px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .barcode-label {
+          font-size: 14px;
+          color: #606266;
+          margin-bottom: 5px;
+        }
+
+        .barcode-preview {
+          font-size: 24px;
+          font-family: monospace;
+          text-align: center;
+          padding: 20px;
+          background: #f8f9fa;
+          border-radius: 4px;
+        }
+      }
     }
 
     .segment-breakdown {
@@ -1238,6 +1343,11 @@ export default {
 
         .segment-value {
           font-weight: 500;
+          
+          template {
+            color: #409EFF;
+            margin-left: 10px;
+          }
         }
 
         .segment-info {

@@ -1,23 +1,12 @@
 <template>
-  <el-dialog 
-    :title="title" 
-    :visible.sync="dialogVisible"
-    width="1000px"
-    @close="handleClose"
-  >
+  <el-dialog :title="title" :visible.sync="dialogVisible" width="1000px" @close="handleClose">
     <!-- 工具栏 -->
     <div class="toolbar">
       <el-button type="primary" size="small" @click="handleAdd">新增客户订单信息</el-button>
     </div>
 
     <!-- 表格 -->
-    <el-table
-      v-loading="loading"
-      :data="tableData"
-      border
-      size="small"
-      style="width: 100%; margin-top: 10px;"
-    >
+    <el-table v-loading="loading" :data="tableData" border size="small" style="width: 100%; margin-top: 10px;">
       <el-table-column prop="FCustCode" label="客户编码" min-width="120"></el-table-column>
       <el-table-column prop="FCustName" label="客户名称" min-width="150"></el-table-column>
       <el-table-column prop="FCustPO" label="客户PO号" min-width="120"></el-table-column>
@@ -41,20 +30,9 @@
     </el-table>
 
     <!-- 编辑弹窗 -->
-    <el-dialog
-      :title="editTitle"
-      :visible.sync="editDialogVisible"
-      width="650px"
-      append-to-body
-      @close="handleEditClose"
-    >
-      <el-form 
-        ref="editForm" 
-        :model="formData" 
-        :rules="rules" 
-        label-width="120px"
-        size="small"
-      >
+    <el-dialog :title="editTitle" :visible.sync="editDialogVisible" width="650px" append-to-body
+      @close="handleEditClose">
+      <el-form ref="editForm" :model="formData" :rules="rules" label-width="120px" size="small">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="客户PO号" prop="FCustPO">
@@ -93,12 +71,7 @@
         </el-row>
 
         <el-form-item label="备注" prop="FRemark">
-          <el-input 
-            type="textarea" 
-            v-model="formData.FRemark" 
-            :rows="3"
-            placeholder="请输入备注信息"
-          ></el-input>
+          <el-input type="textarea" v-model="formData.FRemark" :rows="3" placeholder="请输入备注信息"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -111,6 +84,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from '@/api/data'
+import { query } from 'quill';
 
 export default {
   name: 'SaleOrderCustInfoDialog',
@@ -230,12 +204,12 @@ export default {
         type: 'warning'
       }).then(async () => {
         try {
-          const result = await removeData('k3_SAL_SaleOrder_CustInfo', 
-          {
-            query: {
-              _id: row._id
-            }
-          })
+          const result = await removeData('k3_SAL_SaleOrder_CustInfo',
+            {
+              query: {
+                _id: row._id
+              }
+            })
           if (result.code === 200) {
             this.$message.success('删除成功')
             this.fetchData()
@@ -244,7 +218,7 @@ export default {
           console.error('删除失败:', error)
           this.$message.error('删除失败')
         }
-      }).catch(() => {})
+      }).catch(() => { })
     },
 
     // 提交表单
@@ -261,8 +235,12 @@ export default {
           if (this.isEdit) {
             result = await updateData(
               'k3_SAL_SaleOrder_CustInfo',
-              this.formData._id,
-              params
+              {
+                query: {
+                  _id: this.formData._id
+                },
+                update: params
+              }
             )
           } else {
             result = await addData('k3_SAL_SaleOrder_CustInfo', params)
@@ -305,9 +283,10 @@ export default {
 .toolbar {
   margin-bottom: 10px;
 }
+
 .el-dialog {
   .el-form {
     padding: 20px;
   }
 }
-</style> 
+</style>

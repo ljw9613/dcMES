@@ -32,6 +32,8 @@ const barcodeSegmentRuleSchema = new mongoose.Schema({
       
       // 固定值配置
       constantValue: { type: String },
+      enableTransform: { type: Boolean, default: false }, // 新增：是否启用转换
+      transformValue: { type: String }, // 新增：转换后的值
       
       // 字段映射配置
       mappingField: { type: String },
@@ -48,6 +50,10 @@ const barcodeSegmentRuleSchema = new mongoose.Schema({
       }],
       monthMappings: [{
         value: { type: String }, // 实际月份，如 "1"
+        code: { type: String }   // 映射代码，如 "A"
+      }],
+      dayMappings: [{
+        value: { type: String }, // 实际日期，如 "1"
         code: { type: String }   // 映射代码，如 "A"
       }],
       

@@ -60,7 +60,7 @@
                         @click="handleBatchDelete">
                         批量删除
                     </el-button>
-                    <!-- <el-button @click="dayinForm">ZRMES打印模板</el-button> -->
+                    <el-button @click="dayinForm">ZRMES打印模板</el-button>
                 </el-form-item>
             </el-form>
         </el-card>

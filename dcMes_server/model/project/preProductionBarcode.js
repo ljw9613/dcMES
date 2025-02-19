@@ -25,6 +25,8 @@ const preProductionBarcodeSchema = new mongoose.Schema({
         enum: ['PENDING', 'USED', 'VOIDED'], // 待使用、已使用、已作废
         default: 'PENDING'
     },
+    // 批次号
+    batchNo: { type: String },
     
     // 作废信息
     voidReason: { type: String }, // 作废原因

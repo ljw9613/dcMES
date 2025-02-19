@@ -1,5 +1,7 @@
 <template>
     <div class="app-container">
+
+
         <!-- 搜索表单 -->
         <el-card class="filter-container">
             <div slot="header" class="clearfix">
@@ -23,6 +25,13 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
+                        <el-form-item label="批次号">
+                            <el-input v-model="searchForm.batchNo" placeholder="请输入批次号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="6">
                         <el-form-item label="状态">
                             <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 100%">
                                 <el-option label="待使用" value="PENDING" />
@@ -39,15 +48,24 @@
                     <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
                         @click="handleBatchVoid">批量作废</el-button>
                     <el-button type="success" @click="handleExport">导出数据</el-button>
+                    <el-button type="primary" icon="el-icon-printer" @click="handleBatchPrint">批量打印</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
+        <!-- 在工具栏按钮区域添加打印组件 -->
+        <div class="screen1">
+            <div class="screen_content">
+                <div class="screen_content_first">
+                    <i class="el-icon-tickets">预生产条码列表</i>
+                    <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
+                        @template-change="handleTemplateChange" />
+                </div>
+            </div>
+        </div>
+
         <!-- 条码列表 -->
         <el-card class="list-container">
-            <div slot="header" class="clearfix">
-                <span>预生产条码列表</span>
-            </div>
             <el-table v-loading="listLoading" :data="barcodeList" border style="width: 100%"
                 @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="55" />
@@ -57,6 +75,7 @@
                 <el-table-column label="物料编码" prop="materialNumber" />
                 <el-table-column label="物料名称" prop="materialName" />
                 <el-table-column label="规则名称" prop="ruleName" />
+                <el-table-column label="批次号" prop="batchNo" width="160" />
                 <el-table-column label="状态" width="100">
                     <template slot-scope="{row}">
                         <el-tag :type="getStatusType(row.status)">
@@ -76,6 +95,9 @@
                         </el-button>
                         <el-button type="text" size="small" @click="handleDetail(row)">
                             详情
+                        </el-button>
+                        <el-button type="text" size="small" @click="handlePrint(row)">
+                            打印
                         </el-button>
                     </template>
                 </el-table-column>
@@ -100,18 +122,6 @@
                         </el-option>
                     </el-select>
                 </el-form-item>
-                
-                <!-- 添加字段映射输入框 -->
-                <template v-if="currentWorkOrder && Object.keys(generateForm.fieldValues).length > 0">
-                    <el-divider content-position="left">字段映射值</el-divider>
-                    <el-form-item v-for="(value, field) in generateForm.fieldValues" 
-                                 :key="field" 
-                                 :label="getFieldLabel(field)" 
-                                 :prop="`fieldValues.${field}`">
-                        <el-input v-model="generateForm.fieldValues[field]" 
-                                  :placeholder="`请输入${getFieldLabel(field)}`" />
-                    </el-form-item>
-                </template>
 
                 <el-form-item label="生成数量" prop="quantity">
                     <el-input-number v-model="generateForm.quantity" :min="1" :max="maxQuantity" />
@@ -121,6 +131,9 @@
                 </el-form-item>
                 <el-form-item label="起始序号" prop="startNumber">
                     <el-input-number disabled v-model="generateForm.startNumber" :min="1" />
+                </el-form-item>
+                <el-form-item label="批次号" prop="batchNo">
+                    <el-input v-model="generateForm.batchNo" placeholder="请输入批次号" :disabled="true" />
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -141,14 +154,60 @@
                 <el-button type="primary" @click="submitVoid">确定作废</el-button>
             </div>
         </el-dialog>
+
+        <!-- 添加批量打印对话框 -->
+        <el-dialog title="批量打印" :visible.sync="batchPrintDialogVisible" width="70%">
+            <div class="batch-print-container">
+                <div class="print-settings">
+                    <el-form :model="printSettings" label-width="100px">
+                        <el-form-item label="打印数量">
+                            <span>当前搜索结果共 {{ printDataList.length }} 条记录</span>
+                        </el-form-item>
+                        <el-form-item label="打印模板">
+                            <hir-input ref="batchPrintHirInput" 
+                                :printData="currentPrintData" 
+                                :default-template="localPrintTemplate"
+                                @template-change="handleTemplateChange" />
+                        </el-form-item>
+                    </el-form>
+                </div>
+                <div class="print-list">
+                    <el-table :data="printDataList" height="400" border style="width: 100%">
+                        <el-table-column type="index" label="序号" width="50" />
+                        <el-table-column prop="barcode" label="条码" />
+                        <el-table-column prop="workOrderNo" label="工单号" />
+                        <el-table-column prop="materialNumber" label="物料编码" />
+                        <el-table-column prop="materialName" label="物料名称" />
+                        <el-table-column prop="batchNo" label="批次号" />
+                        <el-table-column label="状态" width="100">
+                            <template slot-scope="{row}">
+                                <el-tag :type="getStatusType(row.status)">
+                                    {{ getStatusText(row.status) }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="batchPrintDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="executeBatchPrint" :loading="printing">
+                    开始打印
+                </el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData } from "@/api/data";
+import HirInput from '@/components/hirInput'
 
 export default {
     name: 'PreProductionBarcode',
+    components: {
+        HirInput
+    },
     data() {
         return {
             // 搜索表单
@@ -156,7 +215,8 @@ export default {
                 workOrderNo: '',
                 materialNumber: '',
                 barcode: '',
-                status: ''
+                status: '',
+                batchNo: ''
             },
 
             // 列表数据
@@ -173,7 +233,8 @@ export default {
                 workOrderId: '',
                 startNumber: 1,
                 quantity: 1,
-                fieldValues: {}  // 添加字段映射值对象
+                fieldValues: {},
+                batchNo: ''
             },
             generateRules: {
                 workOrderId: [{ required: true, message: '请选择工单', trigger: 'change' }],
@@ -193,12 +254,51 @@ export default {
             },
             voidRules: {
                 reason: [{ required: true, message: '请输入作废原因', trigger: 'blur' }]
+            },
+            printData: {},
+            printTemplate: null,
+
+            // 批量打印相关
+            batchPrintDialogVisible: false,
+            printDataList: [],
+            printing: false,
+            currentPrintData: {},
+        }
+    },
+
+    computed: {
+        localPrintTemplate: {
+            get() {
+                try {
+                    const savedTemplate = localStorage.getItem('printTemplate_preProductionBarcode');
+                    return savedTemplate ? JSON.parse(savedTemplate) : null;
+                } catch (error) {
+                    console.error('解析缓存模板失败:', error);
+                    return null;
+                }
+            },
+            set(value) {
+                try {
+                    localStorage.setItem('printTemplate_preProductionBarcode', JSON.stringify(value));
+                } catch (error) {
+                    console.error('保存模板到缓存失败:', error);
+                }
             }
         }
     },
 
     created() {
         this.fetchData()
+
+        // 加载本地缓存的打印模板
+        const savedTemplate = this.localPrintTemplate;
+        if (savedTemplate) {
+            this.$nextTick(() => {
+                if (this.$refs.hirInput) {
+                    this.$refs.hirInput.handleTemplateChange(savedTemplate);
+                }
+            });
+        }
     },
 
     methods: {
@@ -232,10 +332,12 @@ export default {
                     page: this.currentPage,
                     limit: this.pageSize,
                     skip: (this.currentPage - 1) * this.pageSize,
-                    sort: { serialNumber: 1 }
+                    sort: { createAt: -1 }, // 按创建时间倒序排序
+                    count: true
                 })
+
                 this.barcodeList = result.data
-                this.total = result.total
+                this.total = result.countnum
             } catch (error) {
                 console.error('获取数据失败:', error)
                 this.$message.error('获取数据失败')
@@ -259,6 +361,9 @@ export default {
             if (this.searchForm.status) {
                 query.status = this.searchForm.status
             }
+            if (this.searchForm.batchNo) {
+                query.batchNo = { $regex: this.searchForm.batchNo, $options: 'i' }
+            }
             return query
         },
 
@@ -270,6 +375,11 @@ export default {
                     query: { status: { $in: ['PENDING', 'IN_PROGRESS'] } }
                 })
                 this.workOrderOptions = result.data
+
+                // 生成批次号：当前时间戳
+                const timestamp = new Date().getTime()
+                this.generateForm.batchNo = `B${timestamp}`
+
                 this.generateDialogVisible = true
             } catch (error) {
                 console.error('获取工单列表失败:', error)
@@ -282,7 +392,14 @@ export default {
             try {
                 // 获取工单详情
                 const workOrder = this.workOrderOptions.find(item => item._id === workOrderId);
+                //获取产线编号
+                const lineNum = await getData('production_line', {
+                    query: { _id: workOrder.productionLineId }
+                })
+                workOrder.lineNum = lineNum.data[0].lineNum
+
                 this.currentWorkOrder = workOrder;
+                console.log(this.currentWorkOrder, 'this.currentWorkOrder')
 
                 // 验证物料是否绑定了条码规则
                 const ruleResult = await getData('barcodeSegmentRuleMaterial', {
@@ -315,25 +432,32 @@ export default {
 
                 // 重置 fieldValues 对象
                 this.$set(this.generateForm, 'fieldValues', {});
-                
-                // 初始化字段映射值对象
+
+                // 检查并收集缺失的字段
+                const missingFields = [];
+
+                // 从工单中获取字段映射值并检查
                 rule.segments.forEach(segment => {
-                    if (segment.type === 'fieldMapping') {
-                        this.$set(this.generateForm.fieldValues, segment.config.mappingField, '');
+                    if (segment.type === 'fieldMapping' && segment.config.mappingField) {
+                        const fieldValue = this.currentWorkOrder[segment.config.mappingField];
+                        if (fieldValue === undefined || fieldValue === null || fieldValue === '') {
+                            missingFields.push({
+                                field: segment.config.mappingField,
+                                label: segment.config.label || segment.config.mappingField
+                            });
+                        } else {
+                            this.$set(this.generateForm.fieldValues, segment.config.mappingField, fieldValue);
+                        }
                     }
                 });
 
-                // 动态添加验证规则
-                const fieldRules = {};
-                Object.keys(this.generateForm.fieldValues).forEach(field => {
-                    fieldRules[`fieldValues.${field}`] = [
-                        { required: true, message: `请输入${this.getFieldLabel(field)}`, trigger: 'blur' }
-                    ];
-                });
-                this.generateRules = {
-                    ...this.generateRules,
-                    ...fieldRules
-                };
+                // 如果有缺失字段，显示提示并重置工单选择
+                if (missingFields.length > 0) {
+                    const missingFieldsStr = missingFields.map(f => f.label).join('、');
+                    this.$message.warning(`工单缺少必要字段：${missingFieldsStr}，请完善工单信息后再生成条码`);
+                    this.generateForm.workOrderId = '';
+                    return;
+                }
 
                 // 获取已生成的条码数量和最大序号（排除已作废的）
                 const [countResult, maxSerialResult] = await Promise.all([
@@ -380,18 +504,18 @@ export default {
                     console.error('Invalid rule structure:', rule);
                     throw new Error('无效的条码规则结构');
                 }
-                
+
                 // 遍历规则的每个段落
                 for (const segment of rule.segments) {
                     let segmentValue = '';
                     const config = segment.config || {};
-                    
+
                     // 根据段落类型生成对应的值
                     switch (segment.type) {
                         case 'constant':
                             segmentValue = config.constantValue || '';
                             break;
-                            
+
                         case 'fieldMapping':
                             if (config.mappingField && workOrder) {
                                 // 从 fieldValues 中获取值
@@ -405,12 +529,11 @@ export default {
                                 }
                             }
                             break;
-                            
+
                         case 'date':
-                            // 使用工单的计划开始时间
-                            const planDate = new Date(workOrder.planStartTime);
+                            const planDate = new Date();
                             let dateStr = '';
-                            
+
                             if (config.dateFormat) {
                                 if (config.dateFormat.includes('YYYY')) {
                                     const year = planDate.getFullYear().toString();
@@ -421,7 +544,7 @@ export default {
                                         dateStr += year;
                                     }
                                 }
-                                
+
                                 if (config.dateFormat.includes('MM')) {
                                     const month = (planDate.getMonth() + 1).toString().padStart(2, '0');
                                     if (config.monthMappings && Array.isArray(config.monthMappings)) {
@@ -434,53 +557,58 @@ export default {
 
                                 if (config.dateFormat.includes('DD')) {
                                     const day = planDate.getDate().toString().padStart(2, '0');
-                                    dateStr += day;
+                                    if (config.dayMappings && Array.isArray(config.dayMappings)) {
+                                        const dayMapping = config.dayMappings.find(m => m && m.value === day);
+                                        dateStr += dayMapping ? dayMapping.code : day;
+                                    } else {
+                                        dateStr += day;
+                                    }
                                 }
                             }
-                            
+
                             segmentValue = dateStr;
                             break;
-                            
+
                         case 'sequence':
                             // 确保序号是数字类型
                             const seqNum = parseInt(serialNumber, 10);
                             if (isNaN(seqNum)) {
                                 throw new Error('无效的序号值');
                             }
-                            
+
                             // 将序号转换为指定长度的字符串
                             let seqStr = seqNum.toString().padStart(config.length || 1, config.padChar || '0');
-                            
+
                             // 如果有数字映射，应用映射规则
                             if (config.numberMappings && Array.isArray(config.numberMappings)) {
                                 const digits = seqStr.split('');
-                                
+
                                 // 对每个位置应用映射
                                 for (let i = 0; i < digits.length; i++) {
                                     const position = i + 1; // 位置从1开始
                                     const digit = digits[i];
-                                    
+
                                     // 查找当前位置的映射规则
-                                    const mapping = config.numberMappings.find(m => 
+                                    const mapping = config.numberMappings.find(m =>
                                         m && m.position === position && m.value === digit
                                     );
-                                    
+
                                     if (mapping && mapping.code) {
                                         digits[i] = mapping.code;
                                     }
                                 }
-                                
+
                                 seqStr = digits.join('');
                             }
-                            
+
                             segmentValue = seqStr;
                             break;
-                            
+
                         default:
                             console.warn(`未知的段落类型: ${segment.type}`);
                             break;
                     }
-                    
+
                     // 添加前缀和后缀
                     if (config.showPrefix && config.prefix) {
                         segmentValue = config.prefix + segmentValue;
@@ -488,13 +616,13 @@ export default {
                     if (config.showSuffix && config.suffix) {
                         segmentValue = segmentValue + config.suffix;
                     }
-                    
+
                     segments.push(segmentValue);
                 }
-                
+
                 // 返回拼接后的条码
                 return segments.join('');
-                
+
             } catch (error) {
                 console.error('生成条码失败:', error);
                 throw new Error(`生成条码失败: ${error.message}`);
@@ -505,16 +633,6 @@ export default {
         async submitGenerate() {
             try {
                 await this.$refs.generateForm.validate();
-
-                // 验证字段映射值是否都已填写
-                const emptyFields = Object.entries(this.generateForm.fieldValues)
-                    .filter(([_, value]) => !value)
-                    .map(([field]) => this.getFieldLabel(field));
-
-                if (emptyFields.length > 0) {
-                    this.$message.warning(`请填写以下字段：${emptyFields.join('、')}`);
-                    return;
-                }
 
                 if (this.generateForm.quantity > this.maxQuantity) {
                     this.$message.warning('生成数量超过剩余可生成数量');
@@ -578,6 +696,7 @@ export default {
                             ruleCode: rule.code,
                             barcode,
                             serialNumber,
+                            batchNo: this.generateForm.batchNo,
                             status: 'PENDING',
                             creator: this.$store.state.user.name,
                             createAt: new Date()
@@ -590,7 +709,7 @@ export default {
 
                 // 检查条码是否已存在（排除已作废的）
                 const existingBarcodes = await getData('preProductionBarcode', {
-                    query: { 
+                    query: {
                         barcode: { $in: barcodes.map(item => item.barcode) },
                         status: { $ne: 'VOIDED' }  // 排除已作废的条码
                     }
@@ -604,7 +723,7 @@ export default {
                         serialNumber: item.serialNumber,
                         status: item.status
                     }));
-                    
+
                     console.error('重复的条码:', duplicates);
                     this.$message.error(`存在重复的条码，请调整起始序号。重复条码: ${duplicates.map(d => d.barcode).join(', ')}`);
                     return;
@@ -678,6 +797,7 @@ export default {
                     '物料编码': item.materialNumber,
                     '物料名称': item.materialName,
                     '规则名称': item.ruleName,
+                    '批次号': item.batchNo,
                     '状态': this.getStatusText(item.status),
                     '创建时间': this.formatDate(item.createAt),
                     '作废原因': item.voidReason || '',
@@ -713,22 +833,130 @@ export default {
 
         resetForm() {
             this.$refs.searchForm.resetFields()
-            this.search()
+            this.searchForm = {
+                workOrderNo: '',
+                materialNumber: '',
+                barcode: '',
+                status: '',
+                batchNo: ''
+            }
+            this.currentPage = 1
+            this.fetchData()
         },
 
-        // 添加获取字段标签的方法
-        getFieldLabel(field) {
-            const fieldLabelMap = {
-                'diNumber': 'DI号',
-                'workOrderNo': '工单号',
-                'productCode': '产品编码',
-                'batchNo': '批次号',
-                'factory': '工厂',
-                'productLine': '产线'
-                // 可以根据需要添加更多字段映射
-            };
-            return fieldLabelMap[field] || field;
-        }
+        handlePrint(row) {
+            let printData = row;
+            printData.createAt = this.formatDate(row.createAt);
+            // 构建二维码数据
+            printData.qrcode = `${row.barcode}#${row.workOrderNo}#${row.materialNumber}#${row.materialName}`;
+            this.printData = printData;
+            this.$nextTick(() => {
+                this.$refs.hirInput.handlePrints();
+            });
+        },
+
+        handleTemplateChange(template) {
+            if (!template) return;
+
+            try {
+                this.printTemplate = template;
+                this.localPrintTemplate = template;
+                this.$message.success('打印模板已保存到本地');
+            } catch (error) {
+                console.error('保存打印模板失败:', error);
+                this.$message.error('保存打印模板失败');
+            }
+        },
+
+        // 处理每页显示数量变化
+        handleSizeChange(val) {
+            this.pageSize = val
+            this.fetchData()
+        },
+
+        // 处理页码变化
+        handleCurrentChange(val) {
+            this.currentPage = val
+            this.fetchData()
+        },
+
+        // 处理批量打印按钮点击
+        async handleBatchPrint() {
+            this.printing = false;
+            this.printDataLoading = true;
+            try {
+                // 获取当前搜索条件下的所有数据
+                const query = this.buildQuery();
+                const result = await getData('preProductionBarcode', {
+                    query,
+                    sort: { createAt: -1 },
+                    limit: 1000
+                });
+
+                if (!result.data || result.data.length === 0) {
+                    this.$message.warning('没有可打印的数据');
+                    return;
+                }
+
+                // 处理打印数据
+                this.printDataList = result.data.map(item => ({
+                    ...item,
+                    createAt: this.formatDate(item.createAt),
+                    qrcode: `${item.barcode}#${item.workOrderNo}#${item.materialNumber}#${item.materialName}`
+                }));
+
+                // 重置分页
+                this.printCurrentPage = 1;
+                
+                // 设置第一条数据作为模板预览数据
+                this.currentPrintData = this.printDataList[0];
+                
+                // 如果有本地存储的模板，使用存储的模板
+                if (this.localPrintTemplate) {
+                    this.printTemplate = this.localPrintTemplate;
+                }
+                
+                // 显示打印对话框
+                this.batchPrintDialogVisible = true;
+            } catch (error) {
+                console.error('获取打印数据失败:', error);
+                this.$message.error('获取打印数据失败');
+            } finally {
+                this.printDataLoading = false;
+            }
+        },
+
+        // 执行批量打印
+        async executeBatchPrint() {
+            if (!this.printDataList.length) {
+                this.$message.warning('没有可打印的数据');
+                return;
+            }
+
+            if (!this.printTemplate) {
+                this.$message.warning('请先设置打印模板');
+                return;
+            }
+
+            this.printing = true;
+            try {
+                // 循环打印每条数据
+                for (const data of this.printDataList) {
+                    this.currentPrintData = data;
+                    await this.$nextTick();
+                    // 直接调用打印方法
+                    await this.$refs.batchPrintHirInput.handlePrints();
+                }
+
+                this.$message.success('批量打印完成');
+                this.batchPrintDialogVisible = false;
+            } catch (error) {
+                console.error('批量打印失败:', error);
+                this.$message.error('批量打印失败: ' + error.message);
+            } finally {
+                this.printing = false;
+            }
+        },
     }
 }
 </script>
@@ -744,6 +972,11 @@ export default {
     .list-container {
         margin-bottom: 20px;
     }
+
+    .pagination-container {
+        margin-top: 20px;
+        text-align: right;
+    }
 }
 
 .el-tag {
@@ -753,5 +986,44 @@ export default {
 
 .dialog-footer {
     text-align: right;
+}
+
+.screen1 {
+    height: auto;
+    margin: 2vw 0;
+    width: 100%;
+    border: 1px solid #ebeef5;
+    border-radius: 5px;
+}
+
+.screen_content_first {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.el-icon-tickets {
+    line-height: 30px;
+}
+
+.batch-print-container {
+    .print-settings {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f5f7fa;
+        border-radius: 4px;
+    }
+
+    .print-list {
+        margin-top: 20px;
+    }
+}
+
+.dialog-footer {
+    text-align: right;
+    margin-top: 20px;
 }
 </style>
