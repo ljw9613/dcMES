@@ -190,6 +190,9 @@
 
         <div slot="footer" class="dialog-footer">
             <template v-if="dialogStatus === 'edit'">
+                <el-button type="success" v-if="form.status === 'IN_PROGRESS'" @click="handleOtherProduction">
+                    补工单
+                </el-button>
                 <el-button type="info" v-if="form.status === 'IN_PROGRESS'" @click="handleOneKeyProduction">
                     一键生产
                 </el-button>
@@ -575,7 +578,53 @@ export default {
                 this.form.custPO = item.FCustPO
                 this.form.sapId = item.FSapId
             }
-        }
+        },
+        async handleOtherProduction() {
+            try {
+                // 检查原工单是否存在报废产品
+                if (this.form.inputQuantity-this.form.outputQuantity <=0) {
+                    this.$message.warning('当前工单没有报废产品，无需补单');
+                    return;
+                }
+
+                const result = await this.$confirm(
+                    `当前工单报废数量为 ${this.form.inputQuantity-this.form.outputQuantity}，将创建补单数量为 ${this.form.inputQuantity-this.form.outputQuantity} 的工单，是否继续？`, 
+                    '创建补单确认', 
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }
+                );
+
+                if (result) {
+                    // 创建补单数据
+                    const supplementForm = {
+                        ...this.form,
+                        _id: undefined, // 清除ID,作为新记录
+                        workOrderNo: 'P' + new Date().getFullYear().toString() + 
+                            (new Date().getMonth() + 1).toString().padStart(2, '0') + 
+                            new Date().getDate().toString().padStart(2, '0') + 
+                            Date.now().toString(),
+                        status: 'PENDING',
+                        businessType: 'SUPPLEMENT', // 补单类型
+                        planProductionQuantity: this.form.inputQuantity-this.form.outputQuantity, // 补单数量等于报废数量
+                        inputQuantity: 0,
+                        outputQuantity: 0,
+                        originalWorkOrderNo:this.form.workOrderNo,//关联原工单号
+                        originalWorkOrderId: this.form._id, // 关联原工单ID
+                        supplementQuantity:this.form.inputQuantity-this.form.outputQuantity,//补单数量
+                        remark: `补单-原工单号:${this.form.workOrderNo}`
+                    };
+
+                    this.$emit('submit', supplementForm);
+                    this.handleClose();
+                }
+            } catch (error) {
+                console.error('创建补单失败:', error);
+                this.$message.error('创建补单失败');
+            }
+        },
     }
 }
 </script>

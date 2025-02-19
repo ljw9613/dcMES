@@ -33,7 +33,7 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
     }, // 工单状态
     businessType: { 
         type: String,
-        enum: ['NORMAL', 'REWORK', 'SAMPLE', 'OTHER'],
+        enum: ['NORMAL', 'REWORK', 'SAMPLE', 'OTHER','SUPPLEMENT'],
         default: 'NORMAL'
     }, // 业务类型
     
@@ -49,7 +49,12 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
     planEndTime: { type: Date, required: true }, // 计划结束生产时间
     actualStartTime: { type: Date }, // 实际开始生产时间
     actualEndTime: { type: Date }, // 实际结束生产时间
-    
+
+    //补单信息
+    originalWorkOrderNo: { type: String },//原计划工单号
+    originalWorkOrderId:{ type: mongoose.Schema.ObjectId, ref: "production_plan_work_order" },//原计划工单id
+    supplementQuantity:{ type: Number }, // 补单数量
+
     // 基础字段
     remark: { type: String }, // 备注
     createBy: { type: String },

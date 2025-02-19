@@ -668,7 +668,8 @@ export default {
         // 提交表单
         async handleSubmit(formData) {
             try {
-                if (this.dialogStatus === 'create') {
+                console.log(formData,'formData')
+                if (this.dialogStatus === 'create'||!formData._id) {
                     await addData('production_plan_work_order', formData)
                     this.$message.success('添加成功')
                 } else {
@@ -755,21 +756,21 @@ export default {
         },
 
         // 提交表单事件
-        async handleSubmit(formData) {
-            try {
-                if (this.dialogStatus === 'create') {
-                    await addData('production_plan_work_order', formData)
-                    this.$message.success('新增成功')
-                } else {
-                    await updateData('production_plan_work_order', { query: { _id: formData._id }, update: formData })
-                    this.$message.success('更新成功')
-                }
-                this.fetchData()
-            } catch (error) {
-                console.error('操作失败:', error)
-                this.$message.error('操作失败')
-            }
-        }
+        // async handleSubmit(formData) {
+        //     try {
+        //         if (this.dialogStatus === 'create') {
+        //             await addData('production_plan_work_order', formData)
+        //             this.$message.success('新增成功')
+        //         } else {
+        //             await updateData('production_plan_work_order', { query: { _id: formData._id }, update: formData })
+        //             this.$message.success('更新成功')
+        //         }
+        //         this.fetchData()
+        //     } catch (error) {
+        //         console.error('操作失败:', error)
+        //         this.$message.error('操作失败')
+        //     }
+        // }
     },
     created() {
         this.fetchData();
