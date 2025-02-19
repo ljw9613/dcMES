@@ -43,3 +43,11 @@ export function getAllProcessSteps(materialId) {
         method: 'get'
     })
 }
+
+// /api/v1/exportBOM
+export function exportBOM(materialId) {
+    return request({
+        url: `/exportBOM?materialId=${materialId}`,
+        method: 'get'
+    })
+}

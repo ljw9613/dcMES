@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="dialogTitle" :visible.sync="visible" width="60%" @close="handleClose">
+    <el-dialog :title="dialogTitle" :visible.sync="visible" v-if="visible" width="60%" @close="handleClose">
         <el-form ref="form" :model="form" :rules="rules" label-width="120px" size="small">
             <el-row :gutter="20">
                 <el-col :span="12">
@@ -39,6 +39,30 @@
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
+                    <el-form-item label="客户行号" prop="custPO">
+                        <zr-select v-if="form.saleOrderId" v-model="form.custPO" collection="k3_SAL_SaleOrder_CustInfo"
+                            :search-fields="['FCustPO', 'FCustPOLineNo']" label-key="FCustPO" value-key="FCustPO"
+                            sub-key="FCustPOLineNo" :multiple="false" :additional-query="custLineQuery"
+                            placeholder="请选择客户PO号" @select="handleCustLineSelect">
+                            <template #option="{ item }">
+                                <div class="item-option">
+                                    <div class="item-info">
+                                        <span class="name">PO号: {{ item.FCustPO }}</span>
+                                        <el-tag size="mini" type="primary">行号: {{ item.FCustPOLineNo }}</el-tag>
+                                        <div class="sub-info">
+                                            <small>SAP: {{ item.FSapId }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </zr-select>
+                        <el-input v-else v-model="form.custPOLineNo" disabled placeholder="请先选择销售单号" />
+                    </el-form-item>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+                <el-col :span="12">
                     <el-form-item label="生产单号" prop="productionOrderId">
                         <zr-select v-if="form.saleOrderId" v-model="form.productionOrderId" collection="k3_PRD_MO"
                             :search-fields="['FBillNo']" label-key="FBillNo" sub-key="FMaterialName" :multiple="false"
@@ -59,9 +83,6 @@
                         <el-input v-else v-model="form.productionOrderNo" :disabled="true" placeholder="请先选择销售单号" />
                     </el-form-item>
                 </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产品" prop="materialId">
                         <zr-select v-if="form.productionOrderId" v-model="form.materialId" collection="k3_BD_MATERIAL"
@@ -85,6 +106,9 @@
                         <el-input v-else v-model="form.materialName" :disabled="true" placeholder="请先选择生产单号" />
                     </el-form-item>
                 </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产线" prop="productionLineId">
                         <zr-select v-model="form.productionLineId" collection="production_line"
@@ -122,9 +146,8 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="工单数量" prop="planProductionQuantity">
-                        <el-input-number v-model="form.planProductionQuantity" :min="0" :max="totalRemainingQuantity"
-                            controls-position="right" style="width: 100%"
-                            :disabled="form.status !== 'PENDING'"></el-input-number>
+                        <el-input-number v-model="form.planProductionQuantity" :min="0" controls-position="right"
+                            style="width: 100%" :disabled="form.status !== 'PENDING'"></el-input-number>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -147,14 +170,14 @@
                 <el-col :span="12">
                     <el-form-item label="计划开始时间" prop="planStartTime">
                         <el-date-picker v-model="form.planStartTime" type="datetime" placeholder="选择计划开始时间"
-                            style="width: 100%">
+                            :picker-options="startTimeOptions" style="width: 100%">
                         </el-date-picker>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="计划结束时间" prop="planEndTime">
                         <el-date-picker v-model="form.planEndTime" type="datetime" placeholder="选择计划结束时间"
-                            style="width: 100%">
+                            :picker-options="endTimeOptions" style="width: 100%">
                         </el-date-picker>
                     </el-form-item>
                 </el-col>
@@ -178,8 +201,7 @@
                     v-if="form.status === 'IN_PROGRESS'">
                     暂停生产
                 </el-button>
-                <el-button type="danger" @click="handleCancelProduction" :disabled="form.status !== 'IN_PROGRESS'"
-                    v-if="form.status === 'IN_PROGRESS'">
+                <el-button type="danger" @click="handleCancelProduction" v-if="form.status === 'PENDING'">
                     工单作废
                 </el-button>
             </template>
@@ -242,7 +264,10 @@ export default {
                 outputQuantity: 0,
                 planStartTime: '',
                 planEndTime: '',
-                remark: ''
+                remark: '',
+                custPOLineNo: '',
+                custPO: '',
+                sapId: '',
             },
             rules: {
                 workOrderNo: [{ required: true, message: '请输入工单号', trigger: 'blur' }],
@@ -255,11 +280,22 @@ export default {
                 planQuantity: [{ required: true, message: '请输入计划数量', trigger: 'blur' }],
                 planProductionQuantity: [{ required: true, message: '请输入计划生产数量', trigger: 'blur' }],
                 planStartTime: [{ required: true, message: '请选择计划开始时间', trigger: 'change' }],
-                planEndTime: [{ required: true, message: '请选择计划结束时间', trigger: 'change' }]
+                planEndTime: [{ required: true, message: '请选择计划结束时间', trigger: 'change' }],
+                custPOLineNo: [{ required: true, message: '请选择客户行号', trigger: 'change' }],
             },
             submitLoading: false,
             workDialogVisible: false,
-            workTableData: []
+            workTableData: [],
+            startTimeOptions: {
+                disabledDate(time) {
+                    return time.getTime() < Date.now() - 8.64e7; // 禁用当前日期之前的日期
+                }
+            },
+            endTimeOptions: {
+                disabledDate(time) {
+                    return time.getTime() < Date.now() - 8.64e7; // 禁用当前日期之前的日期
+                }
+            }
         }
     },
     computed: {
@@ -277,6 +313,11 @@ export default {
                 FMaterialId: this.form.materialId
             } : {}
         },
+        custLineQuery() {
+            return this.form.saleOrderId ? {
+                FSaleOrderId: this.form.saleOrderId
+            } : {}
+        },
         canStart() {
             return this.form.status === 'PENDING' || this.form.status === 'PAUSED'
         }
@@ -289,6 +330,7 @@ export default {
         },
         rowData: {
             handler(val) {
+                console.log(val, 'this.rowDatahandler')
                 if (val && this.visible) {
                     this.initFormData()
                 }
@@ -323,8 +365,22 @@ export default {
                 this.$message.error('获取工序数据失败')
             }
         },
-        initFormData() {
+        async initFormData() {
             if (this.dialogStatus === 'edit') {
+                console.log(this.rowData, 'this.rowData')
+                // 查询所有当前生产订单的计划生产数量
+                let planWorkOrder = await getData('production_plan_work_order', { query: { productionOrderId: this.rowData.productionOrderId }, select: 'planProductionQuantity outputQuantity' });
+                let planProductionQuantity = 0;
+                let outputQuantity = 0;
+                console.log(planWorkOrder.data, 'planWorkOrder.data')
+                planWorkOrder.data.forEach(item => {
+                    planProductionQuantity += item.planProductionQuantity;
+                    outputQuantity += item.outputQuantity;
+                });
+                this.totalPlanProductionQuantity = planProductionQuantity;
+                this.totalOutputQuantity = outputQuantity;
+                this.totalRemainingQuantity = Math.max(0, this.rowData.planQuantity - this.totalPlanProductionQuantity);
+                console.log(this.form, 'this.form')
                 this.form = { ...this.rowData }
             } else {
                 this.form = {
@@ -348,7 +404,10 @@ export default {
                     outputQuantity: 0,
                     planStartTime: '',
                     planEndTime: '',
-                    remark: ''
+                    remark: '',
+                    custPOLineNo: '',
+                    custPO: '',
+                    sapId: '',
                 }
             }
         },
@@ -431,9 +490,15 @@ export default {
             this.$refs.form && this.$refs.form.resetFields()
         },
         handleSubmit() {
-
             this.$refs.form.validate(async valid => {
                 if (valid) {
+                    // 验证工单数量
+                    if (this.dialogStatus === 'create' &&
+                        (this.totalPlanProductionQuantity + this.form.planProductionQuantity) > this.form.planQuantity) {
+                        this.$message.error('所有工单数量总和不能超过计划生产数量');
+                        return;
+                    }
+
                     this.submitLoading = true
                     try {
                         const formData = { ...this.form }
@@ -503,6 +568,13 @@ export default {
                 this.form.status = 'CANCELLED'
                 this.handleSubmit()
             }).catch(() => { })
+        },
+        handleCustLineSelect(item) {
+            if (item) {
+                this.form.custPOLineNo = item.FCustPOLineNo
+                this.form.custPO = item.FCustPO
+                this.form.sapId = item.FSapId
+            }
         }
     }
 }

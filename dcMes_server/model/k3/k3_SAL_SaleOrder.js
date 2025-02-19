@@ -68,6 +68,7 @@ var salesOrderSchema = new mongoose.Schema({
 
   //物料信息
   FMaterialId: { type: String }, // 物料ID  (必填项)
+  FMaterialId_FNumber: { type: String }, // 物料编码
   FMaterialName: { type: String }, // 物料名称
   FMaterialModel: { type: String }, // 规格型号
   FMaterialType: { type: String }, // 存货类别

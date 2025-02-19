@@ -57,7 +57,7 @@ const productRepairSchema = new mongoose.Schema({
 });
 
 // 添加索引
-productRepairSchema.index({ barcode: 1 }, { unique: true });
+productRepairSchema.index({ barcode: 1 });
 productRepairSchema.index({ batchNumber: 1 });
 productRepairSchema.index({ status: 1 });
 productRepairSchema.index({ createAt: -1 });

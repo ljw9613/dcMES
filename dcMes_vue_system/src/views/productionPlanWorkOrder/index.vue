@@ -136,7 +136,7 @@
         <div class="screen1">
             <div class="screen_content">
                 <div class="screen_content_first">
-                    <i class="el-icon-tickets">生产管理列表</i>
+                    <i class="el-icon-tickets">生产计划工单列表</i>
                 </div>
             </div>
         </div>
@@ -210,7 +210,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="已排产数量" width="100">
+                <!-- <el-table-column label="已排产数量" width="100">
                     <template slot-scope="scope">
                         {{ totalPlanQuantity(scope.row) }}
                     </template>
@@ -226,7 +226,7 @@
                     <template slot-scope="scope">
                         {{ totalRemainingQuantity(scope.row) }}
                     </template>
-                </el-table-column>
+                </el-table-column> -->
 
                 <el-table-column label="工单数量" width="100">
                     <template slot-scope="scope">
@@ -332,7 +332,7 @@ export default {
                 return 0;
             }
         },
-        
+
         // 返回计算outputQuantity总和的函数
         totalOutputQuantity() {
             return (row) => {
@@ -351,14 +351,14 @@ export default {
                 try {
                     // 确保 FQty 是数字
                     const totalQty = parseFloat(row.FQty) || 0;
-                    
+
                     const cache = this.quantityMap.get(row._id);
                     if (cache) {
                         // 确保 planQuantity 是数字
                         const planQty = parseFloat(cache.planQuantity) || 0;
                         return Math.max(0, totalQty - planQty);
                     }
-                    
+
                     this.calculateAndCacheQuantities(row);
                     return totalQty; // 首次返回转换后的总需求量
                 } catch (error) {
@@ -373,20 +373,20 @@ export default {
         async calculateAndCacheQuantities(row) {
             try {
                 const result = await getData('production_plan_work_order', {
-                    query: { 
+                    query: {
                         productionOrderId: row._id,
                         status: { $ne: 'CANCELLED' } // 排除已取消的工单
                     },
                     select: 'planProductionQuantity outputQuantity'
                 });
-                
+
                 const totals = result.data.reduce((acc, item) => {
                     return {
                         planQuantity: acc.planQuantity + (item.planProductionQuantity || 0),
                         outputQuantity: acc.outputQuantity + (item.outputQuantity || 0)
                     };
                 }, { planQuantity: 0, outputQuantity: 0 });
-                
+
                 this.quantityMap.set(row._id, totals);
                 this.$forceUpdate();
             } catch (error) {
@@ -408,7 +408,8 @@ export default {
         getStatusType(status) {
             const statusMap = {
                 'PENDING': 'info',
-                'IN_PROGRESS': 'warning',
+                'PAUSED': 'warning',
+                'IN_PROGRESS': 'primary',
                 'COMPLETED': 'success',
                 'CANCELLED': 'danger'
             }
@@ -419,6 +420,7 @@ export default {
         getStatusText(status) {
             const statusMap = {
                 'PENDING': '待生产',
+                'PAUSED': '已暂停',
                 'IN_PROGRESS': '生产中',
                 'COMPLETED': '已完成',
                 'CANCELLED': '已取消'
@@ -499,6 +501,7 @@ export default {
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.sort = { planStartTime: -1 };
                 req.count = true;
 
                 const result = await getData("production_plan_work_order", req);
@@ -642,16 +645,6 @@ export default {
             this.dialogFormVisible = true;
         },
 
-        // 编辑
-        handleEdit(row) {
-            this.dialogStatus = 'edit'
-            this.dataForm = JSON.parse(JSON.stringify(row))
-            this.$nextTick(() => {
-                console.log(this.dataForm)
-                this.dialogFormVisible = true
-            })
-        },
-
         // 删除
         handleDelete(row) {
             this.$confirm('确认要删除该生产订单吗?', '提示', {
@@ -698,15 +691,20 @@ export default {
 
         // 编辑按钮点击事件
         handleEdit(row) {
+            console.log(row, 'this.row')
             this.dialogStatus = 'edit'
             this.dataForm = JSON.parse(JSON.stringify(row))
-            this.dialogFormVisible = true
+            console.log(this.dataForm, 'this.dataForm')
+            this.$nextTick(() => {
+                console.log(this.dataForm)
+                this.dialogFormVisible = true
+            })
         },
 
         // 查看按钮点击事件
         handleView(row) {
             // 可以根据需要实现查看详情的逻辑
-            this.$message.info('查看详情功能待实现')
+            // this.$message.info('查看详情功能待实现')
         },
 
         // 删除按钮点击事件

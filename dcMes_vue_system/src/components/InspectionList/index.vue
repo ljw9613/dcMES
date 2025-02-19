@@ -31,153 +31,10 @@
               <el-popover v-if="result" placement="right" width="500" trigger="hover">
                 <div class="test-details">
                   <!-- 通用信息 -->
-                  <div class="detail-section">
-                    <div class="section-title">基础信息</div>
-                    <div v-if="result.startDate">日期：{{ result.startDate }}</div>
-                    <div v-if="result.workstation">工位号：{{ result.workstation }}</div>
-                    <div v-if="result.productModel">产品型号：{{ result.productModel }}</div>
-                  </div>
-
-                  <!-- 面罩灯板测试 -->
-                  <div class="detail-section" v-if="hasLampBoardTestData(result)">
-                    <div class="section-title">面罩灯板测试</div>
-                    <div v-if="result.red">红色：{{ result.red }}</div>
-                    <div v-if="result.blue">蓝色：{{ result.blue }}</div>
-                    <div v-if="result.infrared">红外：{{ result.infrared }}</div>
-                    <div v-if="result.red2">红色2：{{ result.red2 }}</div>
-                    <div v-if="result.blue2">蓝色2：{{ result.blue2 }}</div>
-                    <div v-if="result.infrared2">红外2：{{ result.infrared2 }}</div>
-                  </div>
-
-                  <!-- 面罩半成品测试 -->
-                  <div class="detail-section" v-if="hasSemiFinishedTestData(result)">
-                    <div class="section-title">面罩半成品测试</div>
-                    <div v-if="result.udiCode">UDI码：{{ result.udiCode }}</div>
-                    <div v-if="result.lampBoardQrCode">灯板二维码：{{ result.lampBoardQrCode }}</div>
-                    <div v-if="result.batteryCellCode">电芯码：{{ result.batteryCellCode }}</div>
-                    <div v-if="result.chargingBoardPcbaCode">充电板PCBA码：{{
-                      result.chargingBoardPcbaCode }}</div>
-                    <div v-if="result.maskPcbaCode">面罩PCBA码：{{ result.maskPcbaCode }}</div>
-                    <div v-if="result.controllerPcbaCode">手控器PCBA码：{{ result.controllerPcbaCode
-                      }}</div>
-                    <div v-if="result.controllerSoftwareVersion">手控器软件版本：{{
-                      result.controllerSoftwareVersion }}</div>
-                    <div v-if="result.maskSoftwareVersion">面罩软件版本：{{ result.maskSoftwareVersion
-                      }}</div>
-                    <div v-if="result.controllerFactoryQrCode">手控器出厂二维码：{{
-                      result.controllerFactoryQrCode }}</div>
-                    <div v-if="result.faceDetectionProgramVersion">面部探测程序版本：{{
-                      result.faceDetectionProgramVersion }}</div>
-                    <div v-if="result.circuitFaultCode">电路故障码：{{ result.circuitFaultCode }}
-                    </div>
-
-                    <!-- 光波参数 -->
-                    <div class="sub-section">
-                      <div class="sub-title">光波参数</div>
-                      <div v-if="result.redLightWavelength">红灯波长：{{ result.redLightWavelength }}
-                      </div>
-                      <div v-if="result.blueLightWavelength">蓝灯波长：{{ result.blueLightWavelength
-                        }}</div>
-                      <div v-if="result.infraredLightWavelength">红外灯波长：{{
-                        result.infraredLightWavelength }}</div>
-                      <div v-if="result.redLightCurrent">红灯电流：{{ result.redLightCurrent }}</div>
-                      <div v-if="result.blueLightCurrent">蓝灯电流：{{ result.blueLightCurrent }}
-                      </div>
-                      <div v-if="result.infraredLightCurrent">红外灯电流：{{
-                        result.infraredLightCurrent }}</div>
-                      <div v-if="result.msiLightCurrent">MSI灯电流：{{ result.msiLightCurrent }}
-                      </div>
-                    </div>
-
-                    <!-- 电池参数 -->
-                    <div class="sub-section">
-                      <div class="sub-title">电池参数</div>
-                      <div v-if="result.batteryVoltage">电池电压：{{ result.batteryVoltage }}</div>
-                      <div v-if="result.dischargeCurrent">放电电流：{{ result.dischargeCurrent }}
-                      </div>
-                      <div v-if="result.batteryPower">电池电量：{{ result.batteryPower }}</div>
-                      <div v-if="result.batteryCell1Voltage">电芯1电压：{{ result.batteryCell1Voltage
-                        }}</div>
-                      <div v-if="result.batteryCell2Voltage">电芯2电压：{{ result.batteryCell2Voltage
-                        }}</div>
-                    </div>
-
-                    <!-- 传感器参数 -->
-                    <div class="sub-section">
-                      <div class="sub-title">传感器参数</div>
-                      <div v-if="result.faceSensorStatus">面部传感器状态：{{ result.faceSensorStatus }}
-                      </div>
-                      <div v-if="result.faceSensorValue">面部传感器值：{{ result.faceSensorValue }}
-                      </div>
-                      <div v-if="result.fanCurrent">风扇电流：{{ result.fanCurrent }}</div>
-                    </div>
-                  </div>
-
-                  <!-- 面罩温度测试 -->
-                  <div class="detail-section" v-if="hasTemperatureTestData(result)">
-                    <div class="section-title">面罩温度测试</div>
-                    <div v-if="result.instrumentNtcDifferenceBeforeCooling">制冷前NTC差值：{{
-                      result.instrumentNtcDifferenceBeforeCooling }}</div>
-                    <div v-if="result.productAndInstrumentNtc1Difference">产品NTC1和仪器NTC1差值：{{
-                      result.productAndInstrumentNtc1Difference }}</div>
-                    <div v-if="result.productAndInstrumentNtc2Difference">产品NTC2和仪器NTC2差值：{{
-                      result.productAndInstrumentNtc2Difference }}</div>
-                    <div v-if="result.coolingStatus">制冷状态：{{ result.coolingStatus }}</div>
-                    <div v-if="result.coolingSetTemperature">制冷设置温度：{{
-                      result.coolingSetTemperature }}</div>
-                  </div>
-
-                  <!-- 耐压测试 -->
-                  <div class="detail-section" v-if="hasVoltageWithstandTestData(result)">
-                    <div class="section-title">耐压测试</div>
-                    <div v-if="result.chargingTest">充电测试：{{ result.chargingTest }}</div>
-                    <div v-if="result.withstandVoltageTest">耐压测试：{{ result.withstandVoltageTest
-                      }}</div>
-                  </div>
-
-                  <!-- 模板整机灯光 -->
-                  <div class="detail-section" v-if="hasFullMachineTestData(result)">
-                    <div class="section-title">整机灯光测试</div>
-                    <div v-if="result.cellCode">电芯码：{{ result.cellCode }}</div>
-                    <div v-if="result.handheldControllerPcbaCode">手控器PCBA码：{{
-                      result.handheldControllerPcbaCode }}</div>
-                    <div v-if="result.handheldSoftwareVersion">手控器软件版本：{{
-                      result.handheldSoftwareVersion }}</div>
-                    <div v-if="result.handheldFactoryQrCode">手控器出厂二维码：{{
-                      result.handheldFactoryQrCode }}</div>
-                    <div v-if="result.batteryCapacity">电池电量：{{ result.batteryCapacity }}</div>
-                    <div v-if="result.cell1Voltage">电芯1电压：{{ result.cell1Voltage }}</div>
-                    <div v-if="result.cell2Voltage">电芯2电压：{{ result.cell2Voltage }}</div>
-                    <div v-if="result.meterChargingCurrent">仪表充电电流：{{
-                      result.meterChargingCurrent }}</div>
-                  </div>
-
-                  <!-- 电子秤重量 -->
-                  <div class="detail-section" v-if="hasWeightData(result)">
-                    <div class="section-title">电子秤重量</div>
-                    <div v-if="result.weight">称重重量：{{ result.weight }}</div>
-                  </div>
-
-                  <!-- 遥控测试 -->
-                  <div class="detail-section" v-if="hasRemoteControlTestData(result)">
-                    <div class="section-title">遥控测试</div>
-                    <div v-if="result.showSerialNo">显示序列号：{{ result.showSerialNo }}</div>
-                    <div v-if="result.chkPowerOn">上电开机：{{ result.chkPowerOn }}</div>
-                    <div v-if="result.enterDebugMode">进入调试模式：{{ result.enterDebugMode }}</div>
-                    <div v-if="result.readAllKeyOff">按键关闭状态：{{ result.readAllKeyOff }}</div>
-                    <div v-if="result.readK4K5">左右键状态：{{ result.readK4K5 }}</div>
-                    <div v-if="result.readPotentiometer">编码开关：{{ result.readPotentiometer }}
-                    </div>
-                    <div v-if="result.chkUiVersion">软件版本：{{ result.chkUiVersion }}</div>
-                    <div v-if="result.chkUiTx">通讯口校验：{{ result.chkUiTx }}</div>
-                  </div>
-
-                  <!-- 测试结果 -->
-                  <div class="detail-section" v-if="result.passFail">
-                    <div class="section-title">测试结果</div>
-                    <div v-if="result.passFail">测试结果：{{ result.passFail }}</div>
-                    <div v-if="result.testTime">测试耗时：{{ result.testTime }}秒</div>
-                    <div v-if="result.startTime">开始时间：{{ result.startTime }}</div>
+                  <div v-if="inspectionDataHandle(result).length">
+                    <el-tag style="margin: 3px" v-for="tag in inspectionDataHandle(result)" :key="tag">
+                      {{ tag }}
+                    </el-tag>
                   </div>
                 </div>
                 <div class="result-main" slot="reference">
@@ -464,7 +321,9 @@ export default {
     // 新增方法
     inspectionDataHandle(row) {
       let data = []
+      console.log("🚀 ~ inspectionDataHandle ~ row:", row)
       for (let inspectionFieldEnumKey in inspectionFieldEnum) {
+        console.log("🚀 ~ inspectionDataHandle ~ inspectionFieldEnumKey:", inspectionFieldEnumKey)
         inspectionFieldEnumKey !== "error" && !this.isBlank(row[inspectionFieldEnumKey]) && (data.push(`${inspectionFieldEnum[inspectionFieldEnumKey]}：${row[inspectionFieldEnumKey]}`))
       }
       return data
@@ -477,8 +336,39 @@ export default {
         (Array.isArray(value) && value.length === 0) ||
         (typeof value === 'object' && Object.keys(value).length === 0)
       )
+    },
+    hasPositiveNegativeTest(testDetails) {
+      return testDetails.positiveNegativeResult;
+    },
+    hasRotationSpeedTest(testDetails) {
+      return testDetails.revolutionSpeedTestValue ||
+        testDetails.rotationSpeedRpmIntegerPart ||
+        testDetails.rotationDirectionResult;
+    },
+    hasVacuumTest(testDetails) {
+      return testDetails.vacuumTestValue ||
+        testDetails.floorBrushVacuumLowValue ||
+        testDetails.floorBrushVacuumMediumValue ||
+        testDetails.floorBrushVacuumHighValue;
+    },
+    hasCurrentVoltageTest(testDetails) {
+      return testDetails.currentLowValue ||
+        testDetails.currentMediumValue ||
+        testDetails.currentHighValue ||
+        testDetails.currentValueAInteger ||
+        testDetails.voltageValueVInteger ||
+        testDetails.batteryPackVoltageDifferenceVInteger;
+    },
+    hasStatusLightTest(testDetails) {
+      return testDetails.chargingLightStartStatusResult ||
+        testDetails.screenRunningStatusResult ||
+        testDetails.chargingLightChargingStatusResult;
+    },
+    formatTestResult(result) {
+      if (result === '1' || result === 1) return '合格';
+      if (result === '2' || result === 2) return '不合格';
+      return result;
     }
-
   },
   computed: {
 

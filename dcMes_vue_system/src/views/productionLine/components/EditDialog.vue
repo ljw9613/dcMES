@@ -182,7 +182,7 @@ export default {
                 lineName: [{ required: true, message: '请输入产线名称', trigger: 'blur' }],
                 state: [{ required: true, message: '请选择状态', trigger: 'change' }],
                 // workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
-                cardNum: [{ required: true, message: '请输入接收器卡号', trigger: 'blur' }]
+                // cardNum: [{ required: true, message: '请输入接收器卡号', trigger: 'blur' }]
             },
             submitLoading: false,
 
@@ -265,7 +265,29 @@ export default {
             this.$emit('update:visible', false)
             this.$refs.form && this.$refs.form.resetFields()
         },
-        handleSubmit() {
+        async handleSubmit() {
+            //查询产线编码是否重复
+            let lineCode = this.form.lineCode;
+            // 编辑模式下，排除当前产线的数据
+            if (this.dialogStatus === 'create') {
+                let lineCodeData = await getData('production_line', { query: { lineCode: lineCode } });
+                if (lineCodeData.data.length > 0) {
+                    this.$message.error('产线编码已存在')
+                    return
+                }
+            } else {
+                let lineCodeData = await getData('production_line', { 
+                    query: { 
+                        lineCode: lineCode,
+                        _id: { $ne: this.form._id } // 排除当前产线
+                    } 
+                });
+                if (lineCodeData.data.length > 0) {
+                    this.$message.error('产线编码已存在')
+                    return
+                }
+            }
+            
             this.$refs.form.validate(async valid => {
                 if (valid) {
                     this.submitLoading = true

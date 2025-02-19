@@ -28,6 +28,14 @@ const inspectionDataSchema = new mongoose.Schema(
       description: "扫码数据绑定记录",
     },
     error: { type: Boolean, default: false, description: "错误标志" },
+    dataUpload: { type: Boolean, description: "是否上传数据" },
+    dataUploadTime: { type: Date, description: "上传数据时间" },
+
+    // 添可设备字段
+    downBound: { type: String, description: "下限" },
+    upBound: { type: String, description: "上限" },
+    testItemResult: { type: String, description: "结果" },
+    testItemUnit: { type: String, description: "单位" },
 
     // 面罩检验设备通用字段
     startDate: { type: String, description: "日期" },
@@ -152,7 +160,7 @@ const inspectionDataSchema = new mongoose.Schema(
 
     // 电子秤重量
     weight: { type: String, description: "称重重量" },
-    lineNumber: { type: String, description: "线体号" },
+    lineNumber: { type: String, description: "线体" },
 
     // 遥控
     showSerialNo: { type: String, description: "0.4 SHOW SERIALNO 显示序列号" },
@@ -282,6 +290,250 @@ const inspectionDataSchema = new mongoose.Schema(
     passFail: { type: String, description: "PASS/Fail 测试结果" },
     testTime: { type: String, description: "测试耗时（秒）" },
     startTime: { type: String, description: "测试起始时间" },
+
+    // 添可检验设备
+    testDate: { type: String, description: "日期" },
+    positiveNegativeResult: { type: String, description: "正反结果" },
+    revolutionSpeedTestValue: { type: String, description: "转速测试值" },
+    vacuumTestValue: { type: String, description: "真空测试值" },
+
+    // 添可跑机
+    setBauds: { type: String, description: "SetBauds" },
+    robotToPhotoPoint: { type: String, description: "机器人到拍照点" },
+    pressCylinder: { type: String, description: "压紧气缸" },
+    fakePackageCylinder: { type: String, description: "假包气缸" },
+    communicationBoardPowered: { type: String, description: "通讯板通电" },
+    testMode: { type: String, description: "测试模式" },
+    readMainboardVersion: { type: String, description: "读主板版本号" },
+    waitForRobotInPlace: { type: String, description: "等待机器人到位" },
+    screenAllRed: { type: String, description: "屏幕全红" },
+    allRedCheck: { type: String, description: "全红检测" },
+    screenAllBlue: { type: String, description: "屏幕全蓝" },
+    allBlueCheck: { type: String, description: "全蓝检测" },
+    buttonSilkscreenCheck: { type: String, description: "按键丝印检测" },
+    powerButtonRelease: { type: String, description: "开机按钮松开" },
+    gearSwitchButtonRelease: { type: String, description: "档位切换按钮松开" },
+    dustEmissionIntensity: { type: String, description: "灰尘发射强度" },
+    dustReceptionIntensity: { type: String, description: "灰尘接收强度" },
+    robotToGearPoint: { type: String, description: "机器人到档位点" },
+    dustCylinderOut: { type: String, description: "灰尘气缸出" },
+    dustCylinderBack: { type: String, description: "灰尘气缸回" },
+    dustCylinderOut2: { type: String, description: "灰尘气缸出" },
+    dustCount: { type: String, description: "灰尘个数" },
+    waitForRobotInPlace2: { type: String, description: "等待机器人到位" },
+    gearSwitchCylinderOut: { type: String, description: "档位切换气缸出" },
+    dustReceptionIntensity2: { type: String, description: "灰尘接收强度" },
+    dustCylinderBack2: { type: String, description: "灰尘气缸回" },
+    gearSwitchButtonPress: { type: String, description: "档位切换按钮按下" },
+    gearSwitchCylinderBack: { type: String, description: "档位切换气缸回" },
+    robotToStandbyPoint: { type: String, description: "机器人到待机点" },
+    clearLogs: { type: String, description: "清除日志" },
+    snWrite: { type: String, description: "SN写入" },
+    snRead: { type: String, description: "SN读取" },
+    normalMode: { type: String, description: "正常模式" },
+    communicationBoardPowerOff: { type: String, description: "通讯板断电" },
+    resetCylinder: { type: String, description: "复位气缸" },
+
+    // plc数据
+    pcScan: { type: String, description: "扫码" },
+    scanReceiveToPc: { type: String, description: "扫码接收至PC" },
+    floorBrushDirectionResult: { type: String, description: "地刷方向结果" },
+    floorBrushVacuumLowValue: { type: String, description: "地刷吸尘低值" },
+    floorBrushVacuumHighValue: { type: String, description: "地刷吸尘高值" },
+    floorBrushVacuumMediumValue: { type: String, description: "地刷吸尘中值" },
+    currentLowValue: { type: String, description: "当前低值" },
+    currentHighValue: { type: String, description: "当前高值" },
+    currentMediumValue: { type: String, description: "当前中值" },
+    testCompleteToPcComplete1EmergencyStop2DevicePopupNoUpload3PcReadTo0: {
+      type: String,
+      description: "测试完成至PC，1紧急停止2设备弹出未上传3 PC读至0",
+    },
+    floorBrushVacuumLowValueUpperLimit: {
+      type: String,
+      description: "地刷吸尘低值上限",
+    },
+    floorBrushVacuumLowValueLowerLimit: {
+      type: String,
+      description: "地刷吸尘低值下限",
+    },
+    floorBrushVacuumHighValueUpperLimit: {
+      type: String,
+      description: "地刷吸尘高值上限",
+    },
+    floorBrushVacuumHighValueLowerLimit: {
+      type: String,
+      description: "地刷吸尘高值下限",
+    },
+    floorBrushVacuumMediumValueUpperLimit: {
+      type: String,
+      description: "地刷吸尘中值上限",
+    },
+    floorBrushVacuumMediumValueLowerLimit: {
+      type: String,
+      description: "地刷吸尘中值下限",
+    },
+    currentLowValueUpperLimit: { type: String, description: "当前低值上限" },
+    currentLowValueLowerLimit: { type: String, description: "当前低值下限" },
+    currentHighValueUpperLimit: { type: String, description: "当前高值上限" },
+    currentHighValueLowerLimit: { type: String, description: "当前高值下限" },
+    currentMediumValueUpperLimit: { type: String, description: "当前中值上限" },
+    currentMediumValueLowerLimit: { type: String, description: "当前中值下限" },
+    floorBrushVacuumLowTestUse1NotUse0Use: {
+      type: String,
+      description: "地刷吸尘低测试使用1不使用0",
+    },
+    floorBrushVacuumHighTestUse1NotUse0Use: {
+      type: String,
+      description: "地刷吸尘高测试使用1不使用0",
+    },
+    floorBrushVacuumMediumTestUse1NotUse0Use: {
+      type: String,
+      description: "地刷吸尘中测试使用1不使用0",
+    },
+    currentLowTestUse1NotUse0Use: {
+      type: String,
+      description: "当前低测试使用1不使用0",
+    },
+    currentHighTestUse1NotUse0Use: {
+      type: String,
+      description: "当前高测试使用1不使用0",
+    },
+    currentMediumTestUse1NotUse0Use: {
+      type: String,
+      description: "当前中测试使用1不使用0",
+    },
+    floorBrushDirectionUse1NotUse0Use: {
+      type: String,
+      description: "地刷方向使用1不使用0",
+    },
+
+    scanReceive1ToPc: { type: String, description: "扫码接收至PC" },
+    chargingLightStartStatusResult1Ok2Ng: {
+      type: String,
+      description: "充电灯启动状态结果1合格2不合格",
+    },
+    screenRunningStatusResult1Ok2Ng: {
+      type: String,
+      description: "屏幕运行状态结果1合格2不合格",
+    },
+    rotationDirectionResult1Ok2Ng: {
+      type: String,
+      description: "旋转方向结果1合格2不合格",
+    },
+    rotationSpeedRpmIntegerPart: {
+      type: String,
+      description: "旋转速度RPM整数部分",
+    },
+    stallResult1Ok2Ng: { type: String, description: "卡住结果1合格2不合格" },
+    chargingLightChargingStatusResult1Ok2Ng: {
+      type: String,
+      description: "充电灯充电状态结果1合格2不合格",
+    },
+    currentValueAInteger: { type: String, description: "电流值A整数" },
+    voltageValueVInteger: { type: String, description: "电压值V整数" },
+    batteryPackVoltageDifferenceVInteger: {
+      type: String,
+      description: "电池包电压差V整数",
+    },
+    currentUpperLimitInteger: { type: String, description: "电流上限整数" },
+    currentLowerLimitInteger: { type: String, description: "电流下限整数" },
+    voltageUpperLimitInteger: { type: String, description: "电压上限整数" },
+    voltageLowerLimitInteger: { type: String, description: "电压下限整数" },
+    rotationSpeedUpperLimitInteger: {
+      type: String,
+      description: "旋转速度上限整数",
+    },
+    rotationSpeedLowerLimitInteger: {
+      type: String,
+      description: "旋转速度下限整数",
+    },
+    batteryPackVoltageDifferenceUpperLimitInteger: {
+      type: String,
+      description: "电池包电压差上限整数",
+    },
+    batteryPackVoltageDifferenceLowerLimitInteger: {
+      type: String,
+      description: "电池包电压差下限整数",
+    },
+    rotationSpeedTestUse1NotUse0Use: {
+      type: String,
+      description: "旋转速度测试使用1不使用0",
+    },
+    chargingLightStartStatus1NotUse0Use: {
+      type: String,
+      description: "充电灯启动状态1不使用0",
+    },
+    screenRunningLight1NotUse0Use: {
+      type: String,
+      description: "屏幕运行灯1不使用0",
+    },
+    stallResult1NotUse0Use: { type: String, description: "卡住结果1不使用0" },
+    chargingLight1NotUse0Use: { type: String, description: "充电灯1不使用0" },
+    rotationDirectionResultDirection1NotUse0Use: {
+      type: String,
+      description: "旋转方向结果方向1不使用0",
+    },
+    chargingCurrentResult1NotUse0Use: {
+      type: String,
+      description: "充电电流结果1不使用0",
+    },
+    voltage1NotUse0Use: { type: String, description: "电压1不使用0" },
+    batteryPackVoltageDifference1NotUse0Use: {
+      type: String,
+      description: "电池包电压差1不使用0",
+    },
+    stall1NotUse0Use: { type: String, description: "卡住1不使用0" },
+    // 遥控器2
+    按钮开机: { type: String },
+    "SN比对 系统录入": { type: String },
+    "通讯barcode比对 CellSerialization[String] = **********************************":
+      { type: String },
+    "通讯barcode比对 UIPCBACode[String] = **********************************": {
+      type: String,
+    },
+    "通讯barcode比对 ChargePCBACode[String] = **********************************":
+      { type: String },
+    DebugMode: { type: String },
+    "开路电压(OCV) 7V ~ 7·4V": { type: String },
+    "开路电压(OCV) 电压信号": { type: String },
+    "开路电压(OCV) 通讯电压误差±200mV": { type: String },
+    "开路电压(OCV) 电芯电压": { type: String },
+    "开路电压(OCV) 电芯压差": { type: String },
+    "UI Version SoftwareVersion[String] = ****FW300*******WILLOW-2S1P": {
+      type: String,
+    },
+    "Cell&NTC NTCVoltage[mV,U2] ∈ 800mV ~ 3130mV": { type: String },
+    "Cell&NTC VCell-1[mV,U2] ∈ 3500mV ~ 3700mV": { type: String },
+    "Cell&NTC VCell-2[mV,U2] ∈ 3500mV ~ 3700mV": { type: String },
+    "Cell&NTC Voltage[mV,U2] ∈ 7000mV ~ 7400mV": { type: String },
+    "放电测试(Discharge)1A X1,P4, Discharge/1A": { type: String },
+    "放电测试(Discharge)1A 电流 0·8A ~ 1·2A": { type: String },
+    "放电测试(Discharge)1A 电流信号": { type: String },
+    "放电测试(Discharge)1A 通讯电流误差±190mA": { type: String },
+    "过流保护(OCP)8A 单点过流P4, Discharge/8A": { type: String },
+    "过流保护(OCP)8A 保护规格 0·5mS ~ 500mS": { type: String },
+    "测量电压(V) X1,0V ~ 0·5V": { type: String },
+    "通讯电流 DischargingCurrent[mA,U2] ∈ 0mA ~ 300mA": { type: String },
+    "请先开机,按住K4K5后按下按钮": { type: String },
+    "通讯K4K5 K4[U2] = 1": { type: String },
+    "通讯K4K5 K5[U2] = 1": { type: String },
+    "延时(Delay) 等待1500mS": { type: String },
+    旋钮顺时针逆时针并按下按钮: { type: String },
+    "旋钮判断 ClockwiseCount[U2] > 0": { type: String },
+    "旋钮判断 CounterclockwiseCount[U2] > 0": { type: String },
+    电源输出: { type: String },
+    "延时(Delay) 等待6000mS": { type: String },
+    "充电通讯电流电压 ChargerCurrent[mA,U2] ∈ 730mA ~ 950mA": { type: String },
+    "充电通讯电流电压 ChargerVoltage[mV,U2] ∈ 4500mV ~ 5700mV": {
+      type: String,
+    },
+    "SOC SOC[%,U2] ∈ 35% ~ 43%": { type: String },
+    "交流内阻(ACIR) 40mΩ ~ 600mΩ": { type: String },
+    电源关闭: { type: String },
+    "延时(Delay) 等待2000mS": { type: String },
+    "充电测试自检电流 X1,P1, Charge/5·7V/2A": { type: String },
+    "充电测试自检电流 电流 1·4A ~ 1·9A": { type: String },
+    闭关DebugMode: { type: String },
   },
   {
     timestamps: { createdAt: "createTime", updatedAt: "updateTime" },

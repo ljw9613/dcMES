@@ -70,6 +70,7 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">打印模板列表</i>
+                    <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate" @template-change="handleTemplateChange" />
                 </div>
             </div>
         </div>
@@ -82,12 +83,12 @@
                 <el-table-column label="模板编号" prop="templateCode" />
                 <el-table-column label="模板类型" prop="templateType">
                     <template slot-scope="scope">
-                        <el-tag>{{ scope.row.templateType }}</el-tag>
+                        <dict-tag :options="dict.type.templateType" :value="scope.row.templateType" />
                     </template>
                 </el-table-column>
                 <el-table-column label="业务类型" prop="businessType">
                     <template slot-scope="scope">
-                        <el-tag type="warning">{{ scope.row.businessType }}</el-tag>
+                        <dict-tag :options="dict.type.businessType" :value="scope.row.businessType" />
                     </template>
                 </el-table-column>
                 <el-table-column label="纸张大小" prop="config.paperSize" />
@@ -117,6 +118,9 @@
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
+                        <!-- <el-button type="text" size="small" @click="handlePreview(scope.row)">
+                            <i class="el-icon-view"></i> 预览
+                        </el-button> -->
                         <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
@@ -137,13 +141,15 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
 import { Designer } from "@sv-print/vue";
+import HirInput from '@/components/hirInput'
 
 export default {
     name: 'printTemplate',
     dicts: ['templateType', 'businessType'],
     components: {
         EditDialog,
-        Designer
+        Designer,
+        HirInput
     },
     data() {
         return {
@@ -165,7 +171,32 @@ export default {
             dialogStatus: '',
             selection: [],
             dataForm: {},
-            template: {}
+            template: {},
+            previewVisible: false,
+            previewTemplate: null,
+            previewData: {},
+            printData: {},
+            printTemplate: null,
+        }
+    },
+    computed: {
+        localPrintTemplate: {
+            get() {
+                try {
+                    const savedTemplate = localStorage.getItem('printTemplate_template');
+                    return savedTemplate ? JSON.parse(savedTemplate) : null;
+                } catch (error) {
+                    console.error('解析缓存模板失败:', error);
+                    return null;
+                }
+            },
+            set(value) {
+                try {
+                    localStorage.setItem('printTemplate_template', JSON.stringify(value));
+                } catch (error) {
+                    console.error('保存模板到缓存失败:', error);
+                }
+            }
         }
     },
     methods: {
@@ -303,9 +334,39 @@ export default {
             }).catch(() => { });
         },
 
+        async getTemplateCode(templateType) {
+            try {
+                // 获取同类型的所有模板
+                const result = await getData("printTemplate", {
+                    query: { templateType: templateType }
+                });
+                
+                // 获取当前日期作为编号前缀 (YYYYMMDD)
+                // const date = new Date();
+                // const year = date.getFullYear();
+                // const month = String(date.getMonth() + 1).padStart(2, '0');
+                // const day = String(date.getDate()).padStart(2, '0');
+                // const datePrefix = `${year}${month}${day}`;
+                
+                // 生成序列号 (3位数，从001开始)
+                const sequence = String(result.data.length + 1).padStart(3, '0');
+                
+                // 返回格式: 模板类型-日期-序号 (例如: PACK-20240319-001)
+                return `${templateType}-${sequence}`;
+                // return `${templateType}-${datePrefix}-${sequence}`;
+            } catch (error) {
+                console.error('获取模板编号失败:', error);
+                throw error;
+            }
+        },
+
         async handleSubmit(formData) {
             try {
                 if (this.dialogStatus === 'create') {
+                    // 生成模板编号
+                    const templateCode = await this.getTemplateCode(formData.templateType);
+                    formData.templateCode = templateCode;
+                    
                     await addData('printTemplate', formData);
                     this.$message.success('添加成功');
                 } else {
@@ -387,10 +448,53 @@ export default {
             console.log(e);
         },
 
+        handlePreview(row) {
+            let templateTypeObj = this.dict.type.templateType.find(function(item) {
+                return item.value === row.templateType;
+            });
+            let businessTypeObj = this.dict.type.businessType.find(function(item) {
+                return item.value === row.businessType;
+            });
 
+            let printData = {
+                ...row,
+                createAt: this.formatDate(row.createAt),
+                templateType: templateTypeObj ? templateTypeObj.label : row.templateType,
+                businessType: businessTypeObj ? businessTypeObj.label : row.businessType,
+                status: row.status ? '启用' : '禁用'
+            };
+            
+            this.printData = printData;
+            this.$nextTick(() => {
+                this.$refs.hirInput.handlePrints();
+            });
+        },
+
+        handleTemplateChange(template) {
+            if (!template) return;
+            
+            try {
+                this.printTemplate = template;
+                this.localPrintTemplate = template;
+                this.$message.success('打印模板已保存到本地');
+            } catch (error) {
+                console.error('保存打印模板失败:', error);
+                this.$message.error('保存打印模板失败');
+            }
+        }
     },
     created() {
         this.fetchData();
+        
+        // 加载本地缓存的打印模板
+        const savedTemplate = this.localPrintTemplate;
+        if (savedTemplate) {
+            this.$nextTick(() => {
+                if (this.$refs.hirInput) {
+                    this.$refs.hirInput.handleTemplateChange(savedTemplate);
+                }
+            });
+        }
     }
 }
 </script>

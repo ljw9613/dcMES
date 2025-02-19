@@ -1,0 +1,1417 @@
+{
+    "panels": [
+      {
+        "index": 0,
+        "name": "销售订单打印模板",
+        "paperType": "A4",
+        "height": 297,
+        "width": 210,
+        "paperHeader": 20,
+        "paperFooter": 780,
+        "printElements": [
+          {
+            "options": {
+              "left": 234,
+              "top": 27,
+              "height": 18,
+              "width": 120,
+              "title": "内部订单",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "fontSize": 12.75,
+              "textAlign": "justify",
+              "textContentVerticalAlign": "middle",
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 82.5,
+              "height": 18,
+              "width": 80,
+              "title": "产品名称",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderTop": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "field": "FMaterialName",
+              "testData": "FMaterialName",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderTop": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "title": "文本",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 201,
+              "top": 100.5,
+              "height": 18,
+              "width": 80,
+              "title": "客户型号",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderTop": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 280.5,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "field": "FMaterialModel",
+              "testData": "FMaterialModel",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderTop": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "title": "文本",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 379.5,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "title": "客户代码",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderTop": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 478.5,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "field": "FCustId_FNumber",
+              "testData": "FCustId_FNumber",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderTop": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "title": "文本",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 100.5,
+              "height": 18,
+              "width": 80,
+              "title": "数量",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "field": "FQty",
+              "testData": "FQty",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "title": "文本",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 201,
+              "top": 100.5,
+              "height": 18,
+              "width": 80,
+              "title": "客户订单号",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 280.5,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "field": "F_TFQJ_khpo",
+              "testData": "F_TFQJ_khpo",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "title": "文本",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 379.5,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "title": "交货日期",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 478.5,
+              "top": 100.5,
+              "height": 18,
+              "width": 100,
+              "field": "FDate",
+              "testData": "FDate",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "title": "文本",
+              "coordinateSync": false,
+              "widthHeightSync": false,
+              "qrCodeLevel": 0
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 118.5,
+              "height": 18,
+              "width": 80,
+              "title": "认证要求",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 118.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FCertification",
+              "testData": "FCertification",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 136.5,
+              "height": 18,
+              "width": 80,
+              "title": "产品颜色",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 136.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FProductColor",
+              "testData": "FProductColor",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 154.5,
+              "height": 18,
+              "width": 80,
+              "title": "电压功率",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 154.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FVoltageRatio",
+              "testData": "FVoltageRatio",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 172.5,
+              "height": 49.5,
+              "width": 80,
+              "title": "规格",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 172.5,
+              "height": 31.5,
+              "width": 476.5,
+              "field": "FMinSpec",
+              "testData": "FMinSpec",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 204,
+              "height": 31.5,
+              "width": 150,
+              "field": "FMinSpecImage",
+              "testData": "",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle"
+            },
+            "printElementType": {
+              "title": "图片",
+              "type": "image"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 222,
+              "height": 34.5,
+              "width": 80,
+              "title": "商标",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 222,
+              "height": 34.5,
+              "width": 476.5,
+              "field": "FTrademark",
+              "testData": "FTrademark",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 256.5,
+              "height": 18,
+              "width": 80,
+              "title": "印刷位置",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 256.5,
+              "height": 18,
+              "width": 180,
+              "field": "FPrintPosition",
+              "testData": "FPrintPosition",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 282,
+              "top": 256.5,
+              "height": 18,
+              "width": 80,
+              "title": "印刷颜色",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 362,
+              "top": 256.5,
+              "height": 18,
+              "width": 216.5,
+              "field": "FPrintColor",
+              "testData": "FPrintColor",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 274.5,
+              "height": 18,
+              "width": 80,
+              "title": "备损件",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 274.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FAccessories",
+              "testData": "FAccessories",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 292.5,
+              "height": 18,
+              "width": 80,
+              "title": "PE袋要求",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 292.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FPEBagReq",
+              "testData": "FPEBagReq",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 310.5,
+              "height": 18,
+              "width": 80,
+              "title": "说明书",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 310.5,
+              "height": 18,
+              "width": 180,
+              "field": "FManual",
+              "testData": "FManual",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 282,
+              "top": 310.5,
+              "height": 18,
+              "width": 80,
+              "title": "自封袋",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 362,
+              "top": 310.5,
+              "height": 18,
+              "width": 216.5,
+              "field": "FSelfSeal",
+              "testData": "FSelfSeal",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 334.5,
+              "height": 18,
+              "width": 80,
+              "title": "铭牌",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 334.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FMinSpec",
+              "testData": "FMinSpec",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 334.5,
+              "height": 18,
+              "width": 150,
+              "field": "FMinSpecImage",
+              "testData": "",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle"
+            },
+            "printElementType": {
+              "title": "图片",
+              "type": "image"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 382.5,
+              "height": 18,
+              "width": 80,
+              "title": "UDI码",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 382.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FUDI",
+              "testData": "FUDI",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 406.5,
+              "height": 18,
+              "width": 80,
+              "title": "彩盒",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 406.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FColorBox",
+              "testData": "FColorBox",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 430.5,
+              "height": 18,
+              "width": 80,
+              "title": "序列号规则",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 430.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FSerialRule",
+              "testData": "FSerialRule",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 454.5,
+              "height": 18,
+              "width": 80,
+              "title": "形制",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 454.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FShape",
+              "testData": "FShape",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 478.5,
+              "height": 18,
+              "width": 80,
+              "title": "托盘标贴",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 478.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FBoxLabel",
+              "testData": "FBoxLabel",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 478.5,
+              "height": 18,
+              "width": 150,
+              "field": "FBoxLabelImage",
+              "testData": "",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle"
+            },
+            "printElementType": {
+              "title": "图片",
+              "type": "image"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 526.5,
+              "height": 18,
+              "width": 80,
+              "title": "托盘标贴及包装方式",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 526.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FBoxLabelPackage",
+              "testData": "FBoxLabelPackage",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 550.5,
+              "height": 18,
+              "width": 80,
+              "title": "其他要求",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 550.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FOtherReq",
+              "testData": "FOtherReq",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 574.5,
+              "height": 18,
+              "width": 80,
+              "title": "批准",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 574.5,
+              "height": 18,
+              "width": 100,
+              "field": "FApprover",
+              "testData": "FApprover",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 202,
+              "top": 574.5,
+              "height": 18,
+              "width": 80,
+              "title": "审核",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 282,
+              "top": 574.5,
+              "height": 18,
+              "width": 100,
+              "field": "FReviewer",
+              "testData": "FReviewer",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 382,
+              "top": 574.5,
+              "height": 18,
+              "width": 80,
+              "title": "确认",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 462,
+              "top": 746.5,
+              "height": 18,
+              "width": 116.5,
+              "field": "FConfirmer",
+              "testData": "FConfirmer",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 770.5,
+              "height": 18,
+              "width": 80,
+              "title": "技术部确认",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 770.5,
+              "height": 18,
+              "width": 476.5,
+              "hideTitle": true,
+              "textAlign": "left",
+              "textContentVerticalAlign": "top",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "content": "对应BOM：${FBOM}\n其他：${FOtherTechConfirm}"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 980.5,
+              "height": 18,
+              "width": 80,
+              "title": "批准",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 980.5,
+              "height": 18,
+              "width": 100,
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "content": "-"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 202,
+              "top": 980.5,
+              "height": 18,
+              "width": 80,
+              "title": "审核",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 282,
+              "top": 980.5,
+              "height": 18,
+              "width": 100,
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "content": "-"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 382,
+              "top": 980.5,
+              "height": 18,
+              "width": 80,
+              "title": "确认",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 462,
+              "top": 980.5,
+              "height": 18,
+              "width": 116.5,
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75",
+              "content": "-"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 1004.5,
+              "height": 18,
+              "width": 80,
+              "title": "满足适用的法规要求",
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderLeft": "solid",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 102,
+              "top": 1004.5,
+              "height": 18,
+              "width": 476.5,
+              "field": "FRegulationReq",
+              "testData": "FRegulationReq",
+              "hideTitle": true,
+              "textAlign": "center",
+              "textContentVerticalAlign": "middle",
+              "borderRight": "solid",
+              "borderBottom": "solid",
+              "borderWidth": "0.75"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          },
+          {
+            "options": {
+              "left": 22.00000000000003,
+              "top": 1204.5,
+              "height": 18,
+              "width": 556.5,
+              "hideTitle": true,
+              "textAlign": "justify",
+              "textContentVerticalAlign": "middle",
+              "content": "法规负责人日期：________________                管理者代表日期：________________"
+            },
+            "printElementType": {
+              "title": "文本",
+              "type": "text"
+            }
+          }
+        ],
+        "paperNumberContinue": true,
+        "backgroundColor": "#f1ebff",
+        "overPrintOptions": {},
+        "watermarkOptions": {}
+      }
+    ]
+  }

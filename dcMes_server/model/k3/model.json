@@ -465,8 +465,12 @@
         "description": "物料ID"
       },
       {
+        "name": "FMaterialId_FNumber",
+        "description": "物料编码",
+        "entityNameconvert": true
+      },
+      {
         "name": "FMaterialName",
-
         "description": "物料名称"
       },
       {

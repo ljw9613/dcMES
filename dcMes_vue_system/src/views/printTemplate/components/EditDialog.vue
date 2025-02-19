@@ -10,19 +10,19 @@
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                    <el-form-item label="模板编号" prop="templateCode">
-                        <el-input v-model="form.templateCode" placeholder="请输入模板编号"></el-input>
+                    <el-form-item label="模板类型" prop="templateType">
+                        <el-select v-model="form.templateType" placeholder="请选择模板类型" style="width: 100%">
+                            <el-option v-for="dict in dict.type.templateType" :key="dict.value" :label="dict.label"
+                                :value="dict.value" />
+                        </el-select>
                     </el-form-item>
                 </el-col>
             </el-row>
 
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="模板类型" prop="templateType">
-                        <el-select v-model="form.templateType" placeholder="请选择模板类型" style="width: 100%">
-                            <el-option v-for="dict in dict.type.templateType" :key="dict.value" :label="dict.label"
-                                :value="dict.value" />
-                        </el-select>
+                    <el-form-item label="模板编号" prop="templateCode">
+                        <el-input v-model="form.templateCode" disabled placeholder="系统自动生成"></el-input>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
@@ -154,7 +154,6 @@ export default {
             },
             rules: {
                 templateName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-                templateCode: [{ required: true, message: '请输入模板编号', trigger: 'blur' }],
                 businessType: [{ required: true, message: '请选择业务类型', trigger: 'change' }],
                 'config.paperSize': [{ required: true, message: '请选择纸张大小', trigger: 'change' }],
                 'config.orientation': [{ required: true, message: '请选择打印方向', trigger: 'change' }],
@@ -217,6 +216,10 @@ export default {
                     this.submitLoading = true
                     try {
                         const formData = { ...this.form }
+                        // 新增时不需要传递 templateCode
+                        if (this.dialogStatus === 'create') {
+                            delete formData.templateCode
+                        }
                         this.$emit('submit', formData)
                         this.handleClose()
                     } catch (error) {

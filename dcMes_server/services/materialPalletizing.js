@@ -69,9 +69,19 @@ class MaterialPalletizingService {
       if (!pallet) {
         let palletCode = "YDC-SN-" + new Date().getTime();
 
-        if (typeof totalQuantity === 'number' && typeof productionPlan.planProductionQuantity === 'number' && typeof productionPlan.outputQuantity === 'number') {
-          if (totalQuantity > productionPlan.planProductionQuantity - productionPlan.outputQuantity) {
-            totalQuantity = productionPlan.planProductionQuantity - productionPlan.outputQuantity;
+        if (
+          typeof totalQuantity === "number" &&
+          typeof productionPlan.planProductionQuantity === "number" &&
+          typeof productionPlan.outputQuantity === "number"
+        ) {
+          if (
+            totalQuantity >
+            productionPlan.planProductionQuantity -
+              productionPlan.outputQuantity
+          ) {
+            totalQuantity =
+              productionPlan.planProductionQuantity -
+              productionPlan.outputQuantity;
           }
         }
 
@@ -313,15 +323,33 @@ class MaterialPalletizingService {
           createBy: userId,
         });
 
-        // 解绑单个条码
-        // 1. 重置工序状态
-        await materialProcessFlowService.unbindProcessComponents(
-          barcode,
-          pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
-          userId,
-          "托盘解绑", // 添加解绑原因
-          true // 不解绑后续工序
-        );
+        // 查找主条码对应的流程记录
+        const flowRecord = await MaterialProcessFlow.findOne({
+          barcode: barcode,
+        });
+        if (flowRecord) {
+          // 查找工序节点
+          const processNode = flowRecord.processNodes.find(
+            (node) =>
+              node.processStepId &&
+              node.processStepId.toString() ===
+                pallet.processStepId.toString() &&
+              node.nodeType === "PROCESS_STEP"
+          );
+
+          // 验证工序节点状态
+          if (processNode && processNode.status == "COMPLETED") {
+            // 解绑单个条码
+            // 1. 重置工序状态
+            await materialProcessFlowService.unbindProcessComponents(
+              barcode,
+              pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
+              userId,
+              "托盘解绑", // 添加解绑原因
+              true // 不解绑后续工序
+            );
+          }
+        }
 
         // 2. 从托盘条码列表中移除
         pallet.palletBarcodes = pallet.palletBarcodes.filter(
