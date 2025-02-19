@@ -21,7 +21,7 @@
                     <el-col :span="4">
                         <el-form-item label="处理方案">
                             <el-select v-model="searchForm.solution" clearable placeholder="请选择处理方案"
-                                style="width: 100%">
+                                style="width: 100%" @change="handleSolutionChange">
                                 <el-option v-for="dict in dict.type.repair_solution" :key="dict.value"
                                     :label="dict.label" :value="dict.value" />
                             </el-select>
@@ -57,6 +57,19 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
+                    <!-- 当处理方案为部件更换时显示以下字段 -->
+                    <template v-if="searchForm.solution === 'COMPONENT_REPLACEMENT'">
+                        <el-col :span="4">
+                            <el-form-item label="原产品条码">
+                                <el-input v-model="searchForm.originalBarcode" placeholder="请输入原产品条码" clearable></el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="4">
+                            <el-form-item label="新产品条码">
+                                <el-input v-model="searchForm.newBarcode" placeholder="请输入新产品条码" clearable></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </template>
                 </el-row>
 
                 <el-form-item>
@@ -254,6 +267,9 @@ export default {
             searchForm: {
                 barcode: "",
                 materialSpec: "",
+                solution: "",
+                originalBarcode: "",
+                newBarcode: "",
                 batchNumber: "",
                 status: "",
                 materialNumber: "",
@@ -349,6 +365,15 @@ export default {
                 req.query.$and.push({ materialNumber: { $regex: this.searchForm.materialNumber, $options: 'i' } });
             }
 
+            if (this.searchForm.solution === 'COMPONENT_REPLACEMENT') {
+                if (this.searchForm.originalBarcode) {
+                    req.query.$and.push({ originalBarcode: { $regex: this.searchForm.originalBarcode, $options: 'i' } });
+                }
+                if (this.searchForm.newBarcode) {
+                    req.query.$and.push({ newBarcode: { $regex: this.searchForm.newBarcode, $options: 'i' } });
+                }
+            }
+
             if (!req.query.$and.length) {
                 delete req.query.$and;
             }
@@ -359,10 +384,14 @@ export default {
         resetForm() {
             this.$refs.searchForm.resetFields();
             this.searchForm = {
-                lineCode: '',
-                lineName: '',
-                lineNum: '',
-                state: ''
+                barcode: '',
+                materialSpec: '',
+                solution: '',
+                originalBarcode: '',
+                newBarcode: '',
+                batchNumber: '',
+                status: '',
+                materialNumber: '',
             };
             this.currentPage = 1;
             this.fetchData();
@@ -749,7 +778,13 @@ export default {
             } finally {
                 this.exportLoading = false;
             }
-        }
+        },
+        handleSolutionChange(value) {
+            if (value !== 'COMPONENT_REPLACEMENT') {
+                this.searchForm.originalBarcode = '';
+                this.searchForm.newBarcode = '';
+            }
+        },
     },
     created() {
         this.fetchData();

@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const productRepairSchema = new mongoose.Schema({
   // 产品基本信息
   barcode: { type: String, required: true }, // 产品条码
-
+  newBarcode: { type: String }, // 更换后的产品条码
+  oldBarcode:{ type: String }, // 更换前的产品条码
   //产品名称
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 关联物料表
   materialNumber: { type: String }, // 物料编码

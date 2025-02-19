@@ -64,28 +64,49 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
       let formData = Object.fromEntries(
         Object.entries(form).filter(([key]) => key !== "barcodes")
       );
-      const updatedRepair = await productRepair.findByIdAndUpdate(
-        form._id,
-        {
-          barcode: form.barcodes[form.barcodes.length - 1],
-          ...formData,
-          updateBy: userId,
-          updateTime: new Date(),
-        },
-        { new: true }
-      );
+      delete formData.newBarcode;
+      delete formData.oldBarcode;
+      delete formData.barcode;
 
-      if (!updatedRepair) {
-        return res.status(404).json({
-          code: 404,
-          message: "未找到要更新的维修单",
-        });
+      let errors = [];
+      let successRecords = [];
+
+      // 循环处理每个条码
+      for (const barcodeData of form.barcodes) {
+        try {
+          const updatedRepair = await productRepair.findByIdAndUpdate(
+            form._id,
+            {
+              barcode: barcodeData.barcode,
+              oldBarcode: barcodeData.oldBarcode || null,
+              newBarcode: barcodeData.newBarcode || null,
+              ...formData,
+              updateBy: userId,
+              updateTime: new Date(),
+            },
+            { new: true }
+          );
+
+          if (!updatedRepair) {
+            errors.push(`条码 ${barcodeData.barcode} 更新失败：未找到要更新的维修单`);
+            continue;
+          }
+
+          successRecords.push(updatedRepair);
+        } catch (error) {
+          errors.push(`条码 ${barcodeData.barcode} 更新失败：${error.message}`);
+        }
       }
 
       res.json({
         code: 200,
-        message: "维修单更新成功",
-        data: updatedRepair,
+        message: successRecords.length > 0 ? "维修单更新成功" : "维修单更新失败",
+        data: {
+          successCount: successRecords.length,
+          totalCount: form.barcodes.length,
+          errors: errors,
+          updatedRecords: successRecords
+        }
       });
     } else {
       //新增
@@ -119,7 +140,9 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
           }
 
           const newRepair = new productRepair({
-            barcode,
+            barcode:barcode.barcode,
+            newBarcode:barcode.newBarcode?barcode.newBarcode:undefined,
+            oldBarcode:barcode.oldBarcode?barcode.oldBarcode:undefined,
             productionPlanWorkOrderId:
               materialProcessFlowData.productionPlanWorkOrderId?._id,
             workOrderNo:
