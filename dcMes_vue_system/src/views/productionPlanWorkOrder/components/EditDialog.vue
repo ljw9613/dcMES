@@ -284,7 +284,7 @@ export default {
                 planProductionQuantity: [{ required: true, message: '请输入计划生产数量', trigger: 'blur' }],
                 planStartTime: [{ required: true, message: '请选择计划开始时间', trigger: 'change' }],
                 planEndTime: [{ required: true, message: '请选择计划结束时间', trigger: 'change' }],
-                custPOLineNo: [{ required: true, message: '请选择客户行号', trigger: 'change' }],
+                custPO: [{ required: true, message: '请选择客户行号', trigger: 'change' }],
             },
             submitLoading: false,
             workDialogVisible: false,

@@ -116,6 +116,12 @@ export default {
         ],
         FCustPOLineNo: [
           { required: true, message: '请输入客户PO行号', trigger: 'blur' }
+        ],
+        FSapId: [
+          { required: true, message: '请输入SAP ID', trigger: 'blur' }
+        ],
+        FPurchaseOrderNo: [
+          { required: true, message: '请输入采购订单号', trigger: 'blur' }
         ]
       }
     }

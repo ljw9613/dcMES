@@ -1294,6 +1294,7 @@ class MaterialProcessFlowService {
    * @param {string} mainBarcode - 主条码
    * @param {string} processStepId - 工序ID
    * @param {string} batchDocNumber - 批次单据号
+   * @param {Array} componentScans - 子物料信息
    * @param {string} userId - 用户ID
    * @param {string} lineId - 产线ID
    */
@@ -1301,6 +1302,7 @@ class MaterialProcessFlowService {
     mainBarcode,
     processStepId,
     batchDocNumber,
+    componentScans,
     userId,
     lineId
   ) {
@@ -1344,6 +1346,153 @@ class MaterialProcessFlowService {
           `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
         );
       }
+
+        // 获取该工序下所有需要扫码的物料节点
+        const materialNodes = flowRecord.processNodes.filter(
+          (node) =>
+            node.parentNodeId === processNode.nodeId &&
+            node.nodeType === "MATERIAL" &&
+            node.requireScan
+        );
+  
+        // 如果提供了 componentScans，验证扫码数量是否匹配
+        if (componentScans && componentScans.length > 0) {
+          if (componentScans.length !== materialNodes.length) {
+            throw new Error(
+              `扫码数量与要求不符，需要扫描 ${materialNodes.length} 个物料，实际扫描 ${componentScans.length} 个`
+            );
+          }
+  
+          // 检查条码是否有重复
+          const uniqueBarcodes = new Set(componentScans.map((scan) => scan.barcode));
+          if (uniqueBarcodes.size !== componentScans.length) {
+            throw new Error("存在重复扫描的条码");
+          }
+  
+          // 添加关键物料条码重复使用和批次用量检查
+          for (const scan of componentScans) {
+            const matchingNode = materialNodes.find(
+              (node) => node.materialId.toString() === scan.materialId.toString()
+            );
+  
+            if (matchingNode) {
+              // 检查批次用量限制
+              if (matchingNode.isBatch && matchingNode.batchQuantity > 0) {
+                const batchUsageFlows = await MaterialProcessFlow.find({
+                  processNodes: {
+                    $elemMatch: {
+                      barcode: scan.barcode,
+                      status: "COMPLETED",
+                    },
+                  },
+                });
+  
+                const usageCount = batchUsageFlows.length;
+                if (usageCount >= matchingNode.batchQuantity) {
+                  throw new Error(
+                    `批次物料条码 ${scan.barcode} 已达到使用次数限制(${matchingNode.batchQuantity}次)`
+                  );
+                }
+              }
+  
+              // 关键物料检查
+              if (matchingNode.isKeyMaterial) {
+                const existingFlows = await MaterialProcessFlow.find({
+                  processNodes: {
+                    $elemMatch: {
+                      barcode: scan.barcode,
+                      isKeyMaterial: true,
+                      status: "COMPLETED",
+                    },
+                  },
+                });
+  
+                if (existingFlows.length > 0) {
+                  const otherFlows = existingFlows.filter(
+                    (flow) => flow.barcode !== mainBarcode
+                  );
+  
+                  if (otherFlows.length > 0) {
+                    const usageDetails = otherFlows.map((flow) => ({
+                      mainBarcode: flow.barcode,
+                      materialCode: flow.materialCode,
+                      materialName: flow.materialName,
+                      scanTime: flow.processNodes.find(
+                        (n) => n.barcode === scan.barcode
+                      )?.scanTime,
+                    }));
+  
+                    throw new Error(
+                      `关键物料条码 ${scan.barcode} 已被其他流程使用:\n${usageDetails
+                        .map(
+                          (detail) =>
+                            `- 主条码: ${detail.mainBarcode}\n  物料: ${
+                              detail.materialName
+                            }(${detail.materialCode})\n  使用时间: ${detail.scanTime?.toLocaleString()}`
+                        )
+                        .join("\n")}`
+                    );
+                  }
+                }
+              }
+            }
+          }
+  
+          // 更新物料节点信息
+          flowRecord.processNodes = flowRecord.processNodes.map((node) => {
+            if (
+              node.parentNodeId === processNode.nodeId &&
+              node.nodeType === "MATERIAL"
+            ) {
+              if (node.requireScan) {
+                const matchingScan = componentScans.find(
+                  (scan) => scan.materialId.toString() === node.materialId.toString()
+                );
+                let relatedBill = "";
+                if (
+                  matchingScan.barcode.includes("-") &&
+                  matchingScan.barcode.length < 30
+                ) {
+                  relatedBill = matchingScan.barcode.split("-")[1];
+                }
+                if (matchingScan) {
+                  return {
+                    ...node,
+                    barcode: matchingScan.barcode,
+                    relatedBill: relatedBill,
+                    status: "COMPLETED",
+                    scanTime: new Date(),
+                    endTime: new Date(),
+                    updateBy: userId,
+                  };
+                }
+              }
+            }
+            return node;
+          });
+  
+          // 更新 materialBarcodeBatch 表
+          for (const scan of componentScans) {
+            try {
+              await mongoose.model("materialBarcodeBatch").updateOne(
+                {
+                  batchId: scan.barcode,
+                  isUsed: false,
+                },
+                {
+                  $set: {
+                    isUsed: true,
+                    updateBy: userId,
+                    updateAt: new Date(),
+                  },
+                }
+              );
+            } catch (error) {
+              console.warn(`更新条码批次使用状态失败: ${scan.barcode}`, error);
+            }
+          }
+        }
+  
 
       // 在更新节点状态之前，检查是否为首道或末道工序
       const processPosition = this.checkProcessPosition(
@@ -1454,6 +1603,7 @@ class MaterialProcessFlowService {
         }
       }
 
+    
       // 保存更新
       await flowRecord.save();
 

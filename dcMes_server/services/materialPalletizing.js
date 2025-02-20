@@ -17,6 +17,7 @@ class MaterialPalletizingService {
    * @param {String} materialSpec - 物料规格
    * @param {String} boxBarcode - 箱条码(可选)
    * @param {Number} totalQuantity - 托盘条码批次数量
+   * @param {Array} componentScans - 子物料信息
    */
   static async handlePalletBarcode(
     lineId,
@@ -29,7 +30,8 @@ class MaterialPalletizingService {
     mainBarcode,
     boxBarcode,
     totalQuantity,
-    userId
+    userId,
+    componentScans
   ) {
     try {
       // 首先查找进行中的产线计划
@@ -219,6 +221,7 @@ class MaterialPalletizingService {
         mainBarcode,
         processStepId,
         pallet.palletCode,
+        componentScans,
         userId,
         lineId
       );

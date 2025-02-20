@@ -16,6 +16,7 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
       boxBarcode = null,
       totalQuantity,
       userId,
+      componentScans
     } = req.body;
 
     // 参数验证
@@ -37,7 +38,8 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
       mainBarcode,
       boxBarcode,
       totalQuantity,
-      userId
+      userId,
+      componentScans
     );
     return res.status(200).json({
       code: 200,
