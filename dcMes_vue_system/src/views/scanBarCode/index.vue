@@ -1274,26 +1274,29 @@ export default {
                     if (materialCode === this.mainMaterialCode) {
                         // 添加主物料条码顺序检查
                         try {
-                            const preProductionResponse = await getData('preProductionBarcode', {
-                                query: {
-                                    materialNumber: materialCode,
-                                    status: 'PENDING'  // 只查询待使用的条码
-                                },
-                                sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
-                                limit: 1
-                            });
+                            // 判断是否为第一道工序
+                            if (this.processStepData && this.processStepData.sort === 1) {
+                                const preProductionResponse = await getData('preProductionBarcode', {
+                                    query: {
+                                        materialNumber: materialCode,
+                                        status: 'PENDING'  // 只查询待使用的条码
+                                    },
+                                    sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
+                                    limit: 1
+                                });
 
-                            if (preProductionResponse.data && preProductionResponse.data.length > 0) {
-                                const expectedBarcode = preProductionResponse.data[0].barcode;
-                                if (value !== expectedBarcode) {
-                                    this.$message.error(`请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`);
-                                    this.popupType = 'ng';
-                                    this.showPopup = true;
-                                    tone(tmyw);
-                                    return;
+                                if (preProductionResponse.data && preProductionResponse.data.length > 0) {
+                                    const expectedBarcode = preProductionResponse.data[0].barcode;
+                                    if (value !== expectedBarcode) {
+                                        this.$message.error(`请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`);
+                                        this.popupType = 'ng';
+                                        this.showPopup = true;
+                                        tone(tmyw);
+                                        return;
+                                    }
                                 }
                             }
-                            // 如果没有找到对应的预生产条码记录，继续正常流程
+                            // 如果不是第一道工序或没有找到对应的预生产条码记录，继续正常流程
                         } catch (error) {
                             console.warn('检查主物料条码顺序失败:', error);
                             // 如果查询失败，不阻止正常流程
@@ -1534,7 +1537,7 @@ export default {
                     }
                 });
 
-                // 只清除工序相关��localStorage,保留产线相关的缓存
+                // 只清除工序相关localStorage,保留产线相关的缓存
                 localStorage.removeItem('mainMaterialId');
                 localStorage.removeItem('processStepId');
                 localStorage.removeItem('materialName');

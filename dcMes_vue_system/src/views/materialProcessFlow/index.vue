@@ -24,8 +24,8 @@
                     <el-col :span="6">
                         <el-form-item label="销售订单">
                             <zr-select v-model="searchForm.saleOrderNo" collection="k3_SAL_SaleOrder"
-                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
-                                placeholder="请输入销售单号" clearable style="width: 100%">
+                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo"
+                                :multiple="false" placeholder="请输入销售单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
@@ -42,8 +42,8 @@
                     <el-col :span="6">
                         <el-form-item label="生产订单">
                             <zr-select v-model="searchForm.productionOrderNo" collection="k3_PRD_MO"
-                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
-                                placeholder="请输入生产单号" clearable style="width: 100%">
+                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo"
+                                :multiple="false" placeholder="请输入生产单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
@@ -331,7 +331,7 @@
                                                             :type="getProcessStatusType(scope.row.status)">
                                                             {{ scope.row.processName }}
                                                             <el-tag size="mini" type="info">{{ scope.row.processCode
-                                                            }}</el-tag>
+                                                                }}</el-tag>
                                                         </el-tag>
                                                     </div>
                                                 </template>
@@ -370,6 +370,25 @@
                                                             <template slot-scope="innerScope">
                                                                 <span v-if="innerScope.row.barcode">{{
                                                                     innerScope.row.barcode }}</span>
+                                                                <span v-else class="no-barcode">-</span>
+                                                            </template>
+                                                        </el-table-column>
+                                                        <el-table-column label="关联单据" min-width="200">
+                                                            <template slot-scope="innerScope">
+                                                                <template v-if="innerScope.row.relatedBill">
+                                                                    <div>
+                                                                        <span>单号：{{ innerScope.row.relatedBill }}</span>
+                                                                        <el-tag v-if="innerScope.row.purchaseInfo && innerScope.row.purchaseInfo.supplierName" 
+                                                                            size="mini" 
+                                                                            type="success">
+                                                                            {{ innerScope.row.purchaseInfo.supplierName }}
+                                                                        </el-tag>
+                                                                    </div>
+                                                                    <div v-if="innerScope.row.purchaseInfo" class="supplier-info">
+                                                                        <span>供应商编码：</span>
+                                                                        <span class="supplier-code">{{ innerScope.row.purchaseInfo.supplierCode }}</span>
+                                                                    </div>
+                                                                </template>
                                                                 <span v-else class="no-barcode">-</span>
                                                             </template>
                                                         </el-table-column>
@@ -412,6 +431,16 @@
                                             min-width="150"></el-table-column>
                                         <el-table-column label="规格型号" prop="materialSpec"
                                             min-width="120"></el-table-column>
+                                        <el-table-column label="相关单号" prop="relatedBill" min-width="120"></el-table-column>
+                                        <el-table-column label="供应商" prop="purchaseInfo" min-width="120">
+                                            <template slot-scope="scope">
+                                                <el-tag v-if="scope.row.purchaseInfo && scope.row.purchaseInfo.supplierName" 
+                                                    size="mini" 
+                                                    type="success">
+                                                    {{ scope.row.purchaseInfo.supplierName }}
+                                                </el-tag>
+                                            </template>
+                                        </el-table-column>
                                         <el-table-column label="状态" width="100">
                                             <template slot-scope="scope">
                                                 <el-tag :type="getProcessStatusType(scope.row.status)">
@@ -675,40 +704,10 @@ export default {
                 exportOption: 'current' // 默认选择当前页
             },
             exportLoading: false, // 导出按钮loading状态
+            processedMaterialBarcodeData: [], // 添加这个数据属性
         }
     },
     computed: {
-        processedMaterialBarcodeData() {
-            if (!this.dataForm.processNodes) return [];
-
-            // 创建工序映射
-            const processMap = new Map();
-            this.dataForm.processNodes.forEach(node => {
-                if (node.nodeType === 'PROCESS_STEP') {
-                    processMap.set(node.nodeId, {
-                        processName: node.processName,
-                        processCode: node.processCode
-                    });
-                }
-            });
-
-            // 过滤并处理物料数据
-            return this.dataForm.processNodes
-                .filter(node => node.nodeType === 'MATERIAL' && node.barcode) // 只显示有条码的物料
-                .map(node => {
-                    // 获取工序信息
-                    const processInfo = node.parentNodeId ? processMap.get(node.parentNodeId) : null;
-                    return {
-                        ...node,
-                        processName: processInfo ? processInfo.processName : '-',
-                        processCode: processInfo ? processInfo.processCode : ''
-                    };
-                })
-                .sort((a, b) => {
-                    // 按扫码时间降序排序
-                    return new Date(b.scanTime || 0) - new Date(a.scanTime || 0);
-                });
-        },
         // 格式化后的解绑记录
         formattedUnbindRecord() {
             return this.unbindRecord.map(record => ({
@@ -1004,16 +1003,16 @@ export default {
                 });
 
                 if (result.code === 200 && result.data.length > 0) {
-                    this.dataForm = JSON.parse(JSON.stringify(result.data[0])); // 深拷贝数据
+                    this.dataForm = JSON.parse(JSON.stringify(result.data[0]));
                     this.processedFlowChartData = this.processNodes(this.dataForm.processNodes);
 
-                    // 获取解绑记录
-                    const unbindRecord = await getData('unbindRecord', {
-                        query: { flowRecordId: row._id },
-                        populate: JSON.stringify([{ path: 'operatorId' }])
-                    });
+                    // 等待物料条码数据处理完成
+                    this.processedMaterialBarcodeData = await this.handleProcessedMaterialBarcodeData(this.dataForm);
 
-                    this.unbindRecord = unbindRecord.data;
+                    // 获取解绑记录
+                    await this.getUnbindRecords();
+                    
+                    // 最后再显示对话框
                     this.dialogFormVisible = true;
                 } else {
                     this.$message.error('获取详情失败');
@@ -1524,38 +1523,6 @@ export default {
             }
         },
 
-        handleProcessedMaterialBarcodeData(dataForm) {
-            if (!dataForm.processNodes) return [];
-
-            // 创建工序映射
-            const processMap = new Map();
-            dataForm.processNodes.forEach(node => {
-                if (node.nodeType === 'PROCESS_STEP') {
-                    processMap.set(node.nodeId, {
-                        processName: node.processName,
-                        processCode: node.processCode
-                    });
-                }
-            });
-
-            // 过滤并处理物料数据
-            return dataForm.processNodes
-                .filter(node => node.nodeType === 'MATERIAL' && node.barcode) // 只显示有条码的物料
-                .map(node => {
-                    // 获取工序信息
-                    const processInfo = node.parentNodeId ? processMap.get(node.parentNodeId) : null;
-                    return {
-                        ...node,
-                        processName: processInfo ? processInfo.processName : '-',
-                        processCode: processInfo ? processInfo.processCode : ''
-                    };
-                })
-                .sort((a, b) => {
-                    // 按扫码时间降序排序
-                    return new Date(b.scanTime || 0) - new Date(a.scanTime || 0);
-                });
-        },
-
         // 打开导出选项弹窗
         handleAllExport() {
             this.exportDialogVisible = true;
@@ -1731,7 +1698,7 @@ export default {
 
                         if (result.code === 200 && result.data.length > 0) {
                             const detailData = result.data[0];
-                            const materialBarcodeData = this.handleProcessedMaterialBarcodeData(detailData);
+                            const materialBarcodeData = await this.handleProcessedMaterialBarcodeData(detailData);
 
                             if (materialBarcodeData.length === 0) {
                                 continue;
@@ -1842,7 +1809,7 @@ export default {
                         const detailData = result.data[0];
 
                         // 使用相同的处理方法获取物料条码信息数据
-                        const materialBarcodeData = this.handleProcessedMaterialBarcodeData(detailData);
+                        const materialBarcodeData = await this.handleProcessedMaterialBarcodeData(detailData);
 
                         if (materialBarcodeData.length === 0) {
                             this.$message.warning('该记录没有可导出的条码数据');
@@ -1856,6 +1823,9 @@ export default {
                             '物料编码': item.materialCode || '-',
                             '物料名称': item.materialName || '-',
                             '规格型号': item.materialSpec || '-',
+                            '相关单号': item.relatedBill || '-',
+                            '供应商': item.purchaseInfo ? item.purchaseInfo.supplierName : '-',
+                            '供应商编码': item.purchaseInfo ? item.purchaseInfo.supplierCode : '-',
                             '状态': this.getProcessStatusText(item.status) || '-',
                             '所属工序': `${item.processName || ''} ${item.processCode ? `(${item.processCode})` : ''}`,
                             '扫码时间': item.scanTime ? this.formatDate(item.scanTime) : '-'
@@ -1977,6 +1947,74 @@ export default {
             }
             return statusMap[status] || status
         },
+
+        // 获取采购订单信息
+        async getPurchaseOrderInfo(relatedBill) {
+            try {
+                const result = await getData('k3_PUR_PurchaseOrder', {
+                    query: { FBillNo: relatedBill },
+                    // populate: JSON.stringify([{ path: 'FSupplierId' }])
+                });
+                console.log(result, 'result');
+
+                if (result.code === 200 && result.data.length > 0) {
+                    const purchaseOrder = result.data[0];
+                    return {
+                        supplierName: purchaseOrder.FSupplierId
+                            && purchaseOrder.FSupplierId.Name || '-',
+                        supplierCode: purchaseOrder.FSupplierId
+                            && purchaseOrder.FSupplierId.Number || '-'
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('获取采购订单信息失败:', error);
+                return null;
+            }
+        },
+
+        // 修改处理物料数据的方法
+        async handleProcessedMaterialBarcodeData(dataForm) {
+            if (!dataForm.processNodes) return [];
+
+            const processMap = new Map();
+            dataForm.processNodes.forEach(node => {
+                if (node.nodeType === 'PROCESS_STEP') {
+                    processMap.set(node.nodeId, {
+                        processName: node.processName,
+                        processCode: node.processCode
+                    });
+                }
+            });
+
+            // 添加日志输出
+            console.log('开始处理物料节点');
+
+            const materialNodes = dataForm.processNodes
+                .filter(node => node.nodeType === 'MATERIAL' && node.barcode);
+
+            const processedNodes = await Promise.all(
+                materialNodes.map(async (node) => {
+                    const processInfo = node.parentNodeId ? processMap.get(node.parentNodeId) : null;
+                    let purchaseInfo = null;
+                    
+                    if (node.relatedBill) {
+                        console.log('获取采购订单信息:', node.relatedBill);
+                        purchaseInfo = await this.getPurchaseOrderInfo(node.relatedBill);
+                        console.log('采购订单信息结果:', purchaseInfo);
+                    }
+
+                    return {
+                        ...node,
+                        processName: processInfo ? processInfo.processName : '-',
+                        processCode: processInfo ? processInfo.processCode : '',
+                        purchaseInfo: purchaseInfo
+                    };
+                })
+            );
+
+            return processedNodes.sort((a, b) => new Date(b.scanTime || 0) - new Date(a.scanTime || 0));
+        }
     },
     created() {
         this.fetchData();
@@ -2610,17 +2648,17 @@ export default {
 
 .export-form {
     padding: 20px;
-    
+
     .export-radio-group {
         width: 100%;
         display: flex;
         justify-content: center;
         gap: 20px;
-        
+
         .export-radio-button {
             height: 80px;
             width: 160px;
-            
+
             ::v-deep .el-radio-button__inner {
                 height: 100%;
                 width: 100%;
@@ -2631,36 +2669,47 @@ export default {
                 border-radius: 8px;
                 border: 1px solid #DCDFE6;
                 transition: all 0.3s;
-                
+
                 &:hover {
                     background-color: #f5f7fa;
                     border-color: #409EFF;
                 }
-                
+
                 i {
                     font-size: 24px;
                     margin-bottom: 8px;
                     color: #606266;
                 }
-                
+
                 span {
                     font-size: 14px;
                     color: #606266;
                 }
             }
-            
+
             &.is-active {
                 ::v-deep .el-radio-button__inner {
                     background-color: #ecf5ff;
                     border-color: #409EFF;
                     box-shadow: 0 0 8px rgba(64, 158, 255, 0.2);
-                    
-                    i, span {
+
+                    i,
+                    span {
                         color: #409EFF;
                     }
                 }
             }
         }
+    }
+}
+
+.supplier-info {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #909399;
+
+    .supplier-code {
+        margin-left: 4px;
     }
 }
 </style>
