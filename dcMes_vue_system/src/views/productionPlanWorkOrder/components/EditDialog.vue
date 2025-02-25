@@ -190,7 +190,7 @@
 
         <div slot="footer" class="dialog-footer">
             <template v-if="dialogStatus === 'edit'">
-                <el-button type="success" v-if="form.status === 'IN_PROGRESS'" @click="handleOtherProduction">
+                <el-button type="success" v-if="form.status === 'PAUSED'" @click="handleOtherProduction">
                     补工单
                 </el-button>
                 <el-button type="info" v-if="form.status === 'IN_PROGRESS'" @click="handleOneKeyProduction">
@@ -214,6 +214,14 @@
         <work-dialog v-if="workDialogVisible && dialogStatus === 'edit'" :line-id="form.productionLineId"
             :visible.sync="workDialogVisible" :material-id="form.materialId" :productionPlanWorkOrderId="form._id"
             :work-table-data="workTableData" />
+        <div v-if="isSupplement" class="supplement-tag">补单</div>
+        <el-table v-if="supplementData.length" :data="supplementData">
+            <el-table-column prop="workOrderNo" label="补单号" />
+            <el-table-column prop="planProductionQuantity" label="补单数量" />
+            <el-table-column prop="inputQuantity" label="投入数量" />
+            <el-table-column prop="outputQuantity" label="产出数量" />
+            <el-table-column prop="remark" label="备注" />
+        </el-table>
     </el-dialog>
 </template>
 
@@ -298,7 +306,9 @@ export default {
                 disabledDate(time) {
                     return time.getTime() < Date.now() - 8.64e7; // 禁用当前日期之前的日期
                 }
-            }
+            },
+            isSupplement: false,
+            supplementData: [],
         }
     },
     computed: {
@@ -385,6 +395,11 @@ export default {
                 this.totalRemainingQuantity = Math.max(0, this.rowData.planQuantity - this.totalPlanProductionQuantity);
                 console.log(this.form, 'this.form')
                 this.form = { ...this.rowData }
+                
+                // 新增：查询补单数据
+                const supplementWorkOrders = await getData('production_plan_work_order', { query: { originalWorkOrderId: this.rowData._id } });
+                this.supplementData = supplementWorkOrders.data;
+                this.isSupplement = this.rowData.businessType === 'SUPPLEMENT'; // 判断当前单据是否为补单
             } else {
                 this.form = {
                     workOrderNo: 'P' + new Date().getFullYear().toString() + (new Date().getMonth() + 1).toString().padStart(2, '0') + new Date().getDate().toString().padStart(2, '0') + Date.now().toString(),
@@ -581,15 +596,21 @@ export default {
         },
         async handleOtherProduction() {
             try {
+                // 检查投入数量是否等于工单数量
+                if (this.form.inputQuantity !== this.form.planProductionQuantity) {
+                    this.$message.warning('投入数量必须等于工单数量才能进行补单');
+                    return;
+                }
+
                 // 检查原工单是否存在报废产品
-                if (this.form.inputQuantity-this.form.outputQuantity <=0) {
+                if (this.form.inputQuantity - this.form.outputQuantity <= 0) {
                     this.$message.warning('当前工单没有报废产品，无需补单');
                     return;
                 }
 
                 const result = await this.$confirm(
-                    `当前工单报废数量为 ${this.form.inputQuantity-this.form.outputQuantity}，将创建补单数量为 ${this.form.inputQuantity-this.form.outputQuantity} 的工单，是否继续？`, 
-                    '创建补单确认', 
+                    `当前工单报废数量为 ${this.form.inputQuantity-this.form.outputQuantity}，将创建补单数量为 ${this.form.inputQuantity-this.form.outputQuantity} 的工单，是否继续？`,
+                    '创建补单确认',
                     {
                         confirmButtonText: '确定',
                         cancelButtonText: '取消',

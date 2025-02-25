@@ -213,14 +213,14 @@
                         </el-row>
 
                         <!-- 添加子物料扫描区域 -->
-                        <div class="section-header">
+                        <div class="section-header" v-if="processMaterials.length > 0">
                             <div class="header-left">
                                 <i class="el-icon-box"></i>
                                 <span>子物料扫描</span>
                             </div>
                         </div>
 
-                        <el-row :gutter="20" class="material-section">
+                        <el-row :gutter="20" class="material-section" v-if="processMaterials.length > 0">
                             <el-col :span="12" v-for="material in processMaterials" :key="material._id">
                                 <el-card class="material-card" shadow="hover">
                                     <div class="material-info">
@@ -1360,7 +1360,7 @@ export default {
 
                                     if (batchResponse.data && batchResponse.data.length > 0) {
                                         const expectedBatchId = batchResponse.data[0].batchId;
-                                        if (value !== expectedBatchId) {
+                                        if (cleanValue !== expectedBatchId) {
                                             this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
                                             tone(tmyw)
                                             return;
@@ -1380,13 +1380,13 @@ export default {
                                     const cachedBarcode = localStorage.getItem(cacheKey);
 
                                     // 如果扫描的是新的批次条码
-                                    if (cachedBarcode !== value) {
+                                    if (cachedBarcode !== cleanValue) {
                                         // 查询新批次条码的使用次数
-                                        const count = await this.queryBatchUsageCount(value, material._id);
+                                        const count = await this.queryBatchUsageCount(cleanValue, material._id);
 
                                         // 如果设置了使用次数限制且已达到限制
                                         if (material.batchQuantity && count >= material.batchQuantity && material.batchQuantity > 0) {
-                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
+                                            this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
                                             this.popupType = 'ng';
                                             this.showPopup = true;
@@ -1394,7 +1394,7 @@ export default {
                                         }
 
                                         // 更新缓存和使用次数
-                                        localStorage.setItem(cacheKey, value);
+                                        localStorage.setItem(cacheKey, cleanValue);
                                         localStorage.setItem(usageKey, count.toString());
                                         this.$set(this.batchUsageCount, material._id, count);
                                     } else {
@@ -1407,7 +1407,7 @@ export default {
                                             localStorage.removeItem(usageKey);
                                             this.$set(this.scanForm.barcodes, material._id, '');
                                             this.$set(this.validateStatus, material._id, false);
-                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
+                                            this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
 
                                             return;
@@ -1415,7 +1415,7 @@ export default {
                                     }
                                 }
 
-                                this.$set(this.scanForm.barcodes, material._id, value);
+                                this.$set(this.scanForm.barcodes, material._id, cleanValue);
                                 this.$set(this.validateStatus, material._id, true);
 
                                 // 处理子物料条码
@@ -1429,7 +1429,7 @@ export default {
                                         <div style="line-height: 1.5">
                                             <div>物料名称: ${material.materialName}</div>
                                             <div>物料编码: ${material.materialCode}</div>
-                                            <div>条码: ${value}</div>
+                                            <div>条码: ${cleanValue}</div>
                                             ${isValidResult.relatedBill ? `<div>关联单号: ${isValidResult.relatedBill}</div>` : ''}
                                         </div>
                                     `,

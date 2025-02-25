@@ -331,7 +331,7 @@
                                                             :type="getProcessStatusType(scope.row.status)">
                                                             {{ scope.row.processName }}
                                                             <el-tag size="mini" type="info">{{ scope.row.processCode
-                                                                }}</el-tag>
+                                                            }}</el-tag>
                                                         </el-tag>
                                                     </div>
                                                 </template>
@@ -378,15 +378,19 @@
                                                                 <template v-if="innerScope.row.relatedBill">
                                                                     <div>
                                                                         <span>单号：{{ innerScope.row.relatedBill }}</span>
-                                                                        <el-tag v-if="innerScope.row.purchaseInfo && innerScope.row.purchaseInfo.supplierName" 
-                                                                            size="mini" 
-                                                                            type="success">
-                                                                            {{ innerScope.row.purchaseInfo.supplierName }}
+                                                                        <el-tag
+                                                                            v-if="innerScope.row.purchaseInfo && innerScope.row.purchaseInfo.supplierName"
+                                                                            size="mini" type="success">
+                                                                            {{ innerScope.row.purchaseInfo.supplierName
+                                                                            }}
                                                                         </el-tag>
                                                                     </div>
-                                                                    <div v-if="innerScope.row.purchaseInfo" class="supplier-info">
+                                                                    <div v-if="innerScope.row.purchaseInfo"
+                                                                        class="supplier-info">
                                                                         <span>供应商编码：</span>
-                                                                        <span class="supplier-code">{{ innerScope.row.purchaseInfo.supplierCode }}</span>
+                                                                        <span class="supplier-code">{{
+                                                                            innerScope.row.purchaseInfo.supplierCode
+                                                                            }}</span>
                                                                     </div>
                                                                 </template>
                                                                 <span v-else class="no-barcode">-</span>
@@ -431,12 +435,13 @@
                                             min-width="150"></el-table-column>
                                         <el-table-column label="规格型号" prop="materialSpec"
                                             min-width="120"></el-table-column>
-                                        <el-table-column label="相关单号" prop="relatedBill" min-width="120"></el-table-column>
+                                        <el-table-column label="相关单号" prop="relatedBill"
+                                            min-width="120"></el-table-column>
                                         <el-table-column label="供应商" prop="purchaseInfo" min-width="120">
                                             <template slot-scope="scope">
-                                                <el-tag v-if="scope.row.purchaseInfo && scope.row.purchaseInfo.supplierName" 
-                                                    size="mini" 
-                                                    type="success">
+                                                <el-tag
+                                                    v-if="scope.row.purchaseInfo && scope.row.purchaseInfo.supplierName"
+                                                    size="mini" type="success">
                                                     {{ scope.row.purchaseInfo.supplierName }}
                                                 </el-tag>
                                             </template>
@@ -1011,7 +1016,7 @@ export default {
 
                     // 获取解绑记录
                     await this.getUnbindRecords();
-                    
+
                     // 最后再显示对话框
                     this.dialogFormVisible = true;
                 } else {
@@ -1653,7 +1658,8 @@ export default {
                         }
                         break;
                     case 'search':
-                        let req = this.searchData();
+                        let req = await this.searchData();
+                        console.log(req);
                         // req.page = this.currentPage;
                         // req.skip = (this.currentPage - 1) * this.pageSize;
                         // req.limit = this.pageSize;
@@ -1997,11 +2003,44 @@ export default {
                 materialNodes.map(async (node) => {
                     const processInfo = node.parentNodeId ? processMap.get(node.parentNodeId) : null;
                     let purchaseInfo = null;
-                    
+
                     if (node.relatedBill) {
                         console.log('获取采购订单信息:', node.relatedBill);
                         purchaseInfo = await this.getPurchaseOrderInfo(node.relatedBill);
                         console.log('采购订单信息结果:', purchaseInfo);
+                    }
+
+                    //第二种获取相关采购订单信息
+                    if (purchaseInfo === null) {
+                        try {
+
+                            //  通过销售订单号和物料编码查询采购订单
+
+                            const purchaseOrderResult = await getData('k3_PUR_PurchaseOrder', {
+                                query: {
+                                    $and: [
+                                        // 匹配物料编码
+                                        { 'FPOOrderEntry.FMaterialId.Number': node.materialCode },
+                                        // 匹配销售订单号
+                                        {
+                                            'FPOOrderEntry.DEMANDBILLNO': dataForm.productionPlanWorkOrderId &&
+                                                dataForm.productionPlanWorkOrderId.saleOrderNo
+                                        }
+                                    ]
+                                }
+                            });
+                            
+                            if (purchaseOrderResult.code === 200 && purchaseOrderResult.data.length > 0) {
+                                const purchaseOrder = purchaseOrderResult.data[0];
+                                purchaseInfo = {
+                                    supplierName: purchaseOrder.FSupplierId && purchaseOrder.FSupplierId.Name || '-',
+                                    supplierCode: purchaseOrder.FSupplierId && purchaseOrder.FSupplierId.Number || '-'
+                                };
+                                console.log('通过销售订单关联查询到采购订单供应商信息:', purchaseInfo);
+                            }
+                        } catch (error) {
+                            console.error('获取关联采购订单信息失败:', error);
+                        }
                     }
 
                     return {

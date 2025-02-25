@@ -40,7 +40,7 @@
                   <byui-icon :icon="['fas', 'qrcode']" />
                 </span>
                 <el-input v-model="loginForm.encryptedId" placeholder="请使用扫描枪扫描二维码" ref="scanInput"
-                  :disabled="inputLoading" @input="handleScanInput" @change="handleScanChange">
+                  :disabled="inputLoading" @keyup.enter.native="handleQrcodeLogin" @input="handleScanInput">
                   <template slot="append">
                     <i v-if="inputLoading" class="el-icon-loading"></i>
                   </template>
@@ -245,33 +245,15 @@ export default {
       }
     },
     handleScanInput(val) {
-      console.log('handleScanInput', val);
       if (this.loginType !== 'qrcode') return;
-
       this.scanBuffer = val;
-      this.inputLoading = this.$loading({
-        lock: true,
-        text: 'Loading',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.7)'
-      });
-
+      
+      // 移除自动提交的定时器逻辑
       if (this.scanTimer) {
         clearTimeout(this.scanTimer);
+        this.scanTimer = null;
       }
-
-      this.scanTimer = setTimeout(() => {
-        if (this.scanBuffer) {
-          this.loginForm.encryptedId = this.scanBuffer.trim();
-          this.handleQrcodeLogin();
-        }
-        this.inputLoading.close();
-        this.scanBuffer = '';
-      }, 1000);
     },
-    handleScanChange(val) {
-      // 移除 change 事件的直接处理，统一由 input 事件处理
-    }
   },
   mounted() {
     if (this.loginType === 'qrcode') {

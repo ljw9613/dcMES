@@ -264,6 +264,18 @@
                     </template>
                 </el-table-column>
 
+                <el-table-column label="原单数量" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.originalWorkOrderId ? scope.row.supplementQuantity : 0 }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="补单标识" width="100">
+                    <template slot-scope="scope">
+                        <span v-if="scope.row.originalWorkOrderNo">补单</span>
+                        <span v-else>正常单</span>
+                    </template>
+                </el-table-column>
 
                 <el-table-column label="操作" width="180" fixed="right">
                     <template slot-scope="scope">

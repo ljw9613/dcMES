@@ -71,7 +71,17 @@
                 <el-table-column type="selection" width="55" />
                 <el-table-column label="序号" prop="serialNumber" width="80" />
                 <el-table-column label="展示条码" prop="barcode" />
+                <el-table-column label="转换条码" prop="transformedBarcode">
+                    <template slot-scope="{row}">
+                        {{ row.transformedBarcode || '-' }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="打印条码" prop="printBarcode" />
+                <el-table-column label="转换打印条码" prop="transformedPrintBarcode">
+                    <template slot-scope="{row}">
+                        {{ row.transformedPrintBarcode || '-' }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="工单号" prop="workOrderNo" />
                 <el-table-column label="物料编码" prop="materialNumber" />
                 <el-table-column label="物料名称" prop="materialName" />
@@ -84,6 +94,18 @@
                         </el-tag>
                     </template>
                 </el-table-column>
+                <el-table-column label="作废信息" width="300">
+                    <template slot-scope="{row}">
+                        <template v-if="row.status === 'VOIDED'">
+                            <div>作废人: {{ row.voidBy || '-' }}</div>
+                            <div>作废时间: {{ formatDate(row.voidAt) || '-' }}</div>
+                            <el-tooltip v-if="row.voidReason" :content="row.voidReason" placement="top">
+                                <div class="ellipsis">作废原因: {{ row.voidReason }}</div>
+                            </el-tooltip>
+                        </template>
+                        <span v-else>-</span>
+                    </template>
+                </el-table-column>
                 <el-table-column label="创建时间" width="160">
                     <template slot-scope="scope">
                         {{ formatDate(scope.row.createAt) }}
@@ -93,6 +115,9 @@
                     <template slot-scope="{row}">
                         <el-button v-if="row.status === 'PENDING'" type="text" size="small" @click="handleVoid(row)">
                             作废
+                        </el-button>
+                        <el-button v-if="row.status === 'VOIDED'" type="text" size="small" @click="handleRecover(row)">
+                            恢复
                         </el-button>
                         <el-button type="text" size="small" @click="handlePrint(row)">
                             打印
@@ -121,6 +146,11 @@
                     </el-select>
                 </el-form-item>
 
+                <!-- 添加产线编码显示 -->
+                <el-form-item label="产线编码">
+                    <el-input v-model="generateForm.lineNum" disabled />
+                </el-form-item>
+
                 <el-form-item label="生成数量" prop="quantity">
                     <el-input-number v-model="generateForm.quantity" :min="1" :max="maxQuantity" />
                     <span style="margin-left: 10px; color: #909399">
@@ -130,8 +160,8 @@
                 <el-form-item label="起始序号" prop="startNumber">
                     <el-input-number disabled v-model="generateForm.startNumber" :min="1" />
                 </el-form-item>
-                <el-form-item label="批次号" prop="batchNo">
-                    <el-input v-model="generateForm.batchNo" placeholder="请输入批次号" :disabled="true" />
+                <el-form-item label="打印批次" prop="batchNo">
+                    <el-input v-model="generateForm.batchNo" placeholder="请输入打印批次" :disabled="true" />
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -157,6 +187,56 @@
         <el-dialog title="批量打印" :visible.sync="batchPrintDialogVisible" width="70%">
             <div class="batch-print-container">
                 <div class="print-settings">
+                    <!-- 添加搜索条件 -->
+                    <el-form :model="printSearchForm" ref="printSearchForm" label-width="100px">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="工单号">
+                                    <el-input v-model="printSearchForm.workOrderNo" placeholder="请输入工单号"
+                                        clearable></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="物料编码">
+                                    <el-input v-model="printSearchForm.materialNumber" placeholder="请输入物料编码"
+                                        clearable></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="条码">
+                                    <el-input v-model="printSearchForm.barcode" placeholder="请输入条码"
+                                        clearable></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="批次号">
+                                    <el-input v-model="printSearchForm.batchNo" placeholder="请输入批次号"
+                                        clearable></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="状态">
+                                    <el-select v-model="printSearchForm.status" placeholder="请选择状态" clearable
+                                        style="width: 100%">
+                                        <el-option label="待使用" value="PENDING" />
+                                        <el-option label="已使用" value="USED" />
+                                        <el-option label="已作废" value="VOIDED" />
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item>
+                                    <el-button type="primary" @click="searchPrintData">查询</el-button>
+                                    <el-button @click="resetPrintSearch">重置</el-button>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+
+                    <el-divider></el-divider>
+
                     <el-form :model="printSettings" label-width="100px">
                         <el-form-item label="打印数量">
                             <span>当前搜索结果共 {{ printDataList.length }} 条记录</span>
@@ -175,7 +255,8 @@
                         <el-table-column prop="workOrderNo" label="工单号" />
                         <el-table-column prop="materialNumber" label="物料编码" />
                         <el-table-column prop="materialName" label="物料名称" />
-                        <el-table-column prop="batchNo" label="批次号" />
+                        <el-table-column prop="lineNum" label="产线编码" />
+                        <el-table-column prop="batchNo" label="打印批次" />
                         <el-table-column label="状态" width="100">
                             <template slot-scope="{row}">
                                 <el-tag :type="getStatusType(row.status)">
@@ -231,7 +312,8 @@ export default {
                 startNumber: 1,
                 quantity: 1,
                 fieldValues: {},
-                batchNo: ''
+                batchNo: '',
+                lineNum: '',
             },
             generateRules: {
                 workOrderId: [{ required: true, message: '请选择工单', trigger: 'change' }],
@@ -260,6 +342,14 @@ export default {
             printDataList: [],
             printing: false,
             currentPrintData: {},
+            // 添加打印搜索表单
+            printSearchForm: {
+                workOrderNo: '',
+                materialNumber: '',
+                barcode: '',
+                status: 'PENDING', // 默认待使用状态
+                batchNo: ''
+            },
         }
     },
 
@@ -329,7 +419,7 @@ export default {
                     page: this.currentPage,
                     limit: this.pageSize,
                     skip: (this.currentPage - 1) * this.pageSize,
-                    sort: { createAt: -1 }, // 按创建时间倒序排序
+                    sort: { createAt: -1, serialNumber: -1 },
                     count: true
                 })
 
@@ -353,7 +443,7 @@ export default {
                 query.materialNumber = { $regex: this.searchForm.materialNumber, $options: 'i' }
             }
             if (this.searchForm.barcode) {
-                query.barcode = { $regex: this.searchForm.barcode, $options: 'i' }
+                query.barcode = this.searchForm.barcode
             }
             if (this.searchForm.status) {
                 query.status = this.searchForm.status
@@ -369,7 +459,7 @@ export default {
             try {
                 // 获取未完成的工单列表
                 const result = await getData('production_plan_work_order', {
-                    query: { status: { $in: ['PENDING', 'IN_PROGRESS'] } }
+                    // query: { status: { $in: ['PENDING', 'IN_PROGRESS'] } }
                 })
                 this.workOrderOptions = result.data
 
@@ -389,14 +479,21 @@ export default {
             try {
                 // 获取工单详情
                 const workOrder = this.workOrderOptions.find(item => item._id === workOrderId);
-                //获取产线编号
-                const lineNum = await getData('production_line', {
-                    query: { _id: workOrder.productionLineId }
-                })
-                workOrder.lineNum = lineNum.data[0].lineNum
 
+                // 获取产线编号
+                const lineResult = await getData('production_line', {
+                    query: { _id: workOrder.productionLineId }
+                });
+
+                if (!lineResult.data || !lineResult.data.length) {
+                    this.$message.warning('未找到工单对应的产线信息');
+                    return;
+                }
+
+                const lineNum = lineResult.data[0].lineNum;
+                this.generateForm.lineNum = lineNum;
+                workOrder.lineNum = lineNum;
                 this.currentWorkOrder = workOrder;
-                console.log(this.currentWorkOrder, 'this.currentWorkOrder')
 
                 // 验证物料是否绑定了条码规则
                 const ruleResult = await getData('barcodeSegmentRuleMaterial', {
@@ -461,14 +558,14 @@ export default {
                     getData('preProductionBarcode', {
                         query: {
                             workOrderId,
-                            status: { $ne: 'VOIDED' }
+                            // status: { $ne: 'VOIDED' }
                         },
                         count: true
                     }),
                     getData('preProductionBarcode', {
                         query: {
-                            workOrderId,
-                            status: { $ne: 'VOIDED' }
+                            'segmentBreakdown.value': lineNum,
+                            // status: { $ne: 'VOIDED' }
                         },
                         sort: { serialNumber: -1 },
                         limit: 1
@@ -494,147 +591,89 @@ export default {
         // 修改 generateBarcode 方法
         async generateBarcode(rule, workOrder, serialNumber) {
             try {
-                const displaySegments = [];
-                const printSegments = [];
-
-                // 确保 rule 和 segments 存在
-                if (!rule || !rule.segments || !Array.isArray(rule.segments)) {
-                    console.error('Invalid rule structure:', rule);
-                    throw new Error('无效的条码规则结构');
-                }
+                const segments = [];
+                const displayValues = [];
+                const printValues = [];
+                const transformedValues = [];
+                const transformedPrintValues = [];
+                let hasTransform = false;
 
                 // 遍历规则的每个段落
                 for (const segment of rule.segments) {
-                    let segmentValue = '';
-                    const config = segment.config || {};
+                    // 生成段落值
+                    const segmentResult = await this.generateSegmentValue(segment, {
+                        date: new Date(),
+                        sequence: serialNumber,
+                        fieldValues: workOrder
+                    });
 
-                    // 根据段落类型生成对应的值
-                    switch (segment.type) {
-                        case 'constant':
-                            segmentValue = config.constantValue || '';
-                            break;
+                    // 保存段落明细
+                    segments.push({
+                        name: segment.name,
+                        value: segmentResult.basic,
+                        transformedValue: segmentResult.transformed,
+                        config: segment.config
+                    });
 
-                        case 'fieldMapping':
-                            if (config.mappingField && workOrder) {
-                                // 从 fieldValues 中获取值
-                                const fieldValue = workOrder[config.mappingField] || '';
-                                // 查找映射关系
-                                if (config.fieldMappings && Array.isArray(config.fieldMappings)) {
-                                    const mapping = config.fieldMappings.find(m => m && m.value === fieldValue);
-                                    segmentValue = mapping ? mapping.code : fieldValue;
-                                } else {
-                                    segmentValue = fieldValue;
-                                }
-                            }
-                            break;
+                    // 基础值处理
+                    let baseValue = segmentResult.basic;
+                    let displayValue = baseValue;
+                    let printValue = baseValue;
 
-                        case 'date':
-                            const planDate = new Date();
-                            let dateStr = '';
-
-                            if (config.dateFormat) {
-                                if (config.dateFormat.includes('YYYY')) {
-                                    const year = planDate.getFullYear().toString();
-                                    if (config.yearMappings && Array.isArray(config.yearMappings)) {
-                                        const yearMapping = config.yearMappings.find(m => m && m.value === year);
-                                        dateStr += yearMapping ? yearMapping.code : year;
-                                    } else {
-                                        dateStr += year;
-                                    }
-                                }
-
-                                if (config.dateFormat.includes('MM')) {
-                                    const month = (planDate.getMonth() + 1).toString().padStart(2, '0');
-                                    if (config.monthMappings && Array.isArray(config.monthMappings)) {
-                                        const monthMapping = config.monthMappings.find(m => m && m.value === month);
-                                        dateStr += monthMapping ? monthMapping.code : month;
-                                    } else {
-                                        dateStr += month;
-                                    }
-                                }
-
-                                if (config.dateFormat.includes('DD')) {
-                                    const day = planDate.getDate().toString().padStart(2, '0');
-                                    if (config.dayMappings && Array.isArray(config.dayMappings)) {
-                                        const dayMapping = config.dayMappings.find(m => m && m.value === day);
-                                        dateStr += dayMapping ? dayMapping.code : day;
-                                    } else {
-                                        dateStr += day;
-                                    }
-                                }
-                            }
-
-                            segmentValue = dateStr;
-                            break;
-
-                        case 'sequence':
-                            // 确保序号是数字类型
-                            const seqNum = parseInt(serialNumber, 10);
-                            if (isNaN(seqNum)) {
-                                throw new Error('无效的序号值');
-                            }
-
-                            // 将序号转换为指定长度的字符串
-                            let seqStr = seqNum.toString().padStart(config.length || 1, config.padChar || '0');
-
-                            // 如果有数字映射，应用映射规则
-                            if (config.numberMappings && Array.isArray(config.numberMappings)) {
-                                const digits = seqStr.split('');
-
-                                // 对每个位置应用映射
-                                for (let i = 0; i < digits.length; i++) {
-                                    const position = i + 1; // 位置从1开始
-                                    const digit = digits[i];
-
-                                    // 查找当前位置的映射规则
-                                    const mapping = config.numberMappings.find(m =>
-                                        m && m.position === position && m.value === digit
-                                    );
-
-                                    if (mapping && mapping.code) {
-                                        digits[i] = mapping.code;
-                                    }
-                                }
-
-                                seqStr = digits.join('');
-                            }
-
-                            segmentValue = seqStr;
-                            break;
-
-                        default:
-                            console.warn(`未知的段落类型: ${segment.type}`);
-                            break;
+                    // 展示条码处理（默认显示前缀和后缀）
+                    if (segment.config.prefix) {
+                        displayValue = segment.config.prefix + displayValue;
                     }
-
-                    // 分别处理展示条码和打印条码
-                    let displayValue = segmentValue;
-                    let printValue = segmentValue;
-
-                    // 展示条码：始终显示前缀和后缀
-                    if (config.prefix) {
-                        displayValue = config.prefix + displayValue;
+                    if (segment.config.suffix) {
+                        displayValue = displayValue + segment.config.suffix;
                     }
-                    if (config.suffix) {
-                        displayValue = displayValue + config.suffix;
-                    }
+                    displayValues.push(displayValue);
 
-                    // 打印条码：根据配置决定是否显示前缀和后缀
-                    if (config.showPrefix && config.prefix) {
-                        printValue = config.prefix + printValue;
+                    // 打印条码处理（只在showPrefix/showSuffix为true时显示）
+                    if (segment.config.prefix && segment.config.showPrefix === true) {
+                        printValue = segment.config.prefix + printValue;
                     }
-                    if (config.showSuffix && config.suffix) {
-                        printValue = printValue + config.suffix;
+                    if (segment.config.suffix && segment.config.showSuffix === true) {
+                        printValue = printValue + segment.config.suffix;
                     }
+                    printValues.push(printValue);
 
-                    displaySegments.push(displayValue);
-                    printSegments.push(printValue);
+                    // 转换值处理
+                    if (segmentResult.transformed) {
+                        hasTransform = true;
+                        let transformedBase = segmentResult.transformed;
+                        let transformedValue = transformedBase;
+                        let transformedPrintValue = transformedBase;
+
+                        // 转换后的展示条码
+                        if (segment.config.prefix) {
+                            transformedValue = segment.config.prefix + transformedValue;
+                        }
+                        if (segment.config.suffix) {
+                            transformedValue = transformedValue + segment.config.suffix;
+                        }
+                        transformedValues.push(transformedValue);
+
+                        // 转换后的打印条码
+                        if (segment.config.prefix && segment.config.showPrefix === true) {
+                            transformedPrintValue = segment.config.prefix + transformedPrintValue;
+                        }
+                        if (segment.config.suffix && segment.config.showSuffix === true) {
+                            transformedPrintValue = transformedPrintValue + segment.config.suffix;
+                        }
+                        transformedPrintValues.push(transformedPrintValue);
+                    } else {
+                        transformedValues.push(displayValue);
+                        transformedPrintValues.push(printValue);
+                    }
                 }
 
-                // 返回不同的展示条码和打印条码
                 return {
-                    displayBarcode: displaySegments.join(''),
-                    printBarcode: printSegments.join('')
+                    barcode: displayValues.join(''),
+                    printBarcode: printValues.join(''),
+                    transformedBarcode: hasTransform ? transformedValues.join('') : null,
+                    transformedPrintBarcode: hasTransform ? transformedPrintValues.join('') : null,
+                    segmentBreakdown: segments
                 };
 
             } catch (error) {
@@ -695,7 +734,7 @@ export default {
                             serialNumber
                         );
 
-                        if (!barcodeResult.displayBarcode) {
+                        if (!barcodeResult.barcode) {
                             throw new Error('生成的条码为空');
                         }
 
@@ -708,10 +747,19 @@ export default {
                             ruleId: rule._id,
                             ruleName: rule.name,
                             ruleCode: rule.code,
-                            barcode: barcodeResult.displayBarcode, // 展示用条码
-                            printBarcode: barcodeResult.printBarcode, // 打印用条码
+                            // 基础条码
+                            barcode: barcodeResult.barcode,
+                            printBarcode: barcodeResult.printBarcode,
+                            // 转换后的条码
+                            transformedBarcode: barcodeResult.transformedBarcode,
+                            transformedPrintBarcode: barcodeResult.transformedPrintBarcode,
+                            // 段落明细
+                            segmentBreakdown: barcodeResult.segmentBreakdown,
                             serialNumber,
                             batchNo: this.generateForm.batchNo,
+                            // 添加产线相关信息
+                            lineNum: this.generateForm.lineNum,
+                            productionLineId: this.currentWorkOrder.productionLineId,
                             status: 'PENDING',
                             creator: this.$store.state.user.name,
                             createAt: new Date()
@@ -725,33 +773,36 @@ export default {
                 // 检查条码是否已存在（排除已作废的）
                 const existingBarcodes = await getData('preProductionBarcode', {
                     query: {
-                        barcode: { $in: barcodes.map(item => item.barcode) },
+                        $or: [
+                            { barcode: { $in: barcodes.map(item => item.barcode) } },
+                            { transformedBarcode: { $in: barcodes.map(item => item.transformedBarcode).filter(Boolean) } }
+                        ],
                         status: { $ne: 'VOIDED' }
                     }
                 });
 
                 if (existingBarcodes.data && existingBarcodes.data.length > 0) {
-                    // 获取重复的条码详情
                     const duplicates = existingBarcodes.data.map(item => ({
                         barcode: item.barcode,
+                        transformedBarcode: item.transformedBarcode,
                         workOrderNo: item.workOrderNo,
                         serialNumber: item.serialNumber,
                         status: item.status
                     }));
 
                     console.error('重复的条码:', duplicates);
-                    this.$message.error(`存在重复的条码，请调整起始序号。重复条码: ${duplicates.map(d => d.barcode).join(', ')}`);
+                    this.$message.error(
+                        `存在重复的条码，请调整起始序号。重复条码: ${duplicates.map(d => d.transformedBarcode || d.barcode).join(', ')}`
+                    );
                     return;
                 }
 
                 await addData('preProductionBarcode', barcodes);
                 this.$message.success(`成功生成 ${barcodes.length} 个条码`);
 
-                // 重置生成表单和相关数据
+                // 重置表单和关闭对话框
                 this.resetGenerateForm();
-                // 关闭弹窗
                 this.generateDialogVisible = false;
-                // 刷新列表
                 this.fetchData();
 
             } catch (error) {
@@ -768,7 +819,8 @@ export default {
                 quantity: 1,
                 startNumber: 1,
                 batchNo: '',
-                fieldValues: {}
+                fieldValues: {},
+                lineNum: '',
             };
 
             // 清除工单相关信息
@@ -808,7 +860,9 @@ export default {
                         status: 'VOIDED',
                         voidReason: this.voidForm.reason,
                         voidBy: this.$store.state.user.name,
-                        voidAt: new Date()
+                        voidAt: new Date(),
+                        updater: this.$store.state.user.name,
+                        updateAt: new Date()
                     }
                 })
 
@@ -857,10 +911,35 @@ export default {
             }
         },
 
-        // 其他辅助方法
-        formatDate(date) {
+        // 格式化日期
+        formatDate(date, format = 'YYYY-MM-DD HH:mm:ss') {
             if (!date) return ''
-            return new Date(date).toLocaleString()
+            if (!format) return ''
+
+            try {
+                const d = new Date(date)
+                if (isNaN(d.getTime())) return ''
+
+                const year = d.getFullYear()
+                const month = String(d.getMonth() + 1).padStart(2, '0')
+                const day = String(d.getDate()).padStart(2, '0')
+                const hours = String(d.getHours()).padStart(2, '0')
+                const minutes = String(d.getMinutes()).padStart(2, '0')
+                const seconds = String(d.getSeconds()).padStart(2, '0')
+
+                let result = format
+                    .replace('YYYY', year)
+                    .replace('MM', month)
+                    .replace('DD', day)
+                    .replace('HH', hours)
+                    .replace('mm', minutes)
+                    .replace('ss', seconds)
+
+                return result
+            } catch (error) {
+                console.error('日期格式化错误:', error)
+                return ''
+            }
         },
 
         handleSelectionChange(selection) {
@@ -925,18 +1004,24 @@ export default {
         // 处理批量打印按钮点击
         async handleBatchPrint() {
             this.printing = false;
-            this.printDataLoading = true;
+            this.batchPrintDialogVisible = true;
+            // 打开对话框后立即执行一次搜索
+            await this.searchPrintData();
+        },
+
+        // 搜索打印数据
+        async searchPrintData() {
             try {
-                // 获取当前搜索条件下的所有数据
-                const query = this.buildQuery();
+                const query = this.buildPrintQuery();
                 const result = await getData('preProductionBarcode', {
                     query,
-                    sort: { createAt: -1 },
+                    sort: { serialNumber: -1 },
                     limit: 1000
                 });
 
                 if (!result.data || result.data.length === 0) {
-                    this.$message.warning('没有可打印的数据');
+                    this.$message.warning('没有找到符合条件的数据');
+                    this.printDataList = [];
                     return;
                 }
 
@@ -944,28 +1029,160 @@ export default {
                 this.printDataList = result.data.map(item => ({
                     ...item,
                     createAt: this.formatDate(item.createAt),
-                    printBarcodeText: item.printBarcode.substring(item.printBarcode.length - 13) // 截取后13位
+                    printBarcodeText: item.printBarcode.substring(item.printBarcode.length - 13)
                 }));
-
-                // 重置分页
-                this.printCurrentPage = 1;
 
                 // 设置第一条数据作为模板预览数据
                 this.currentPrintData = this.printDataList[0];
 
-                // 如果有本地存储的模板，使用存储的模板
-                if (this.localPrintTemplate) {
-                    this.printTemplate = this.localPrintTemplate;
-                }
-
-                // 显示打印对话框
-                this.batchPrintDialogVisible = true;
             } catch (error) {
                 console.error('获取打印数据失败:', error);
                 this.$message.error('获取打印数据失败');
-            } finally {
-                this.printDataLoading = false;
+                this.printDataList = [];
             }
+        },
+
+        // 构建打印查询条件
+        buildPrintQuery() {
+            const query = {};
+
+            if (this.printSearchForm.workOrderNo) {
+                query.workOrderNo = { $regex: this.printSearchForm.workOrderNo, $options: 'i' };
+            }
+            if (this.printSearchForm.materialNumber) {
+                query.materialNumber = { $regex: this.printSearchForm.materialNumber, $options: 'i' };
+            }
+            if (this.printSearchForm.barcode) {
+                query.barcode = { $regex: this.printSearchForm.barcode, $options: 'i' };
+            }
+            if (this.printSearchForm.status) {
+                query.status = this.printSearchForm.status;
+            }
+            if (this.printSearchForm.batchNo) {
+                query.batchNo = { $regex: this.printSearchForm.batchNo, $options: 'i' };
+            }
+
+            return query;
+        },
+
+        // 重置打印搜索条件
+        resetPrintSearch() {
+            this.$refs.printSearchForm.resetFields();
+            this.printSearchForm = {
+                workOrderNo: '',
+                materialNumber: '',
+                barcode: '',
+                status: 'PENDING', // 重置时保持默认待使用状态
+                batchNo: ''
+            };
+            this.searchPrintData();
+        },
+
+        async generateSegmentValue(segment, params) {
+            let basic = ''
+            let transformed = null
+
+            switch (segment.type) {
+                case 'constant':
+                    basic = segment.config.constantValue
+                    // 常量类型的转换处理
+                    if (segment.config.enableTransform && segment.config.transformValue) {
+                        transformed = segment.config.transformValue
+                    }
+                    break
+
+                case 'fieldMapping':
+                    basic = params.fieldValues[segment.config.mappingField] || ''
+                    // 字段映射的转换处理
+                    if (segment.config.fieldMappings && segment.config.fieldMappings.length) {
+                        const mapping = segment.config.fieldMappings.find(m => m.value === basic)
+                        if (mapping) {
+                            basic = mapping.code
+                            // 如果有转换值，使用转换值
+                            if (mapping.transformValue) {
+                                transformed = mapping.transformValue
+                            }
+                        }
+                    }
+                    break
+
+                case 'date':
+                    basic = this.formatDateWithMappings(params.date, segment.config)
+                    // 日期类型的转换处理
+                    if (segment.config.enableTransform && segment.config.transformValue) {
+                        transformed = this.formatDateWithMappings(params.date, {
+                            ...segment.config,
+                            transformValue: segment.config.transformValue
+                        })
+                    }
+                    break
+
+                case 'sequence':
+                    // 如果是序列号类型，且配置了按产线重置
+                    if (segment.config.resetByLine) {
+                        basic = this.formatSequenceWithPositionMapping(params.sequence, {
+                            ...segment.config,
+                            lineNum: params.fieldValues.lineNum
+                        });
+                    } else {
+                        basic = this.formatSequenceWithPositionMapping(params.sequence, segment.config);
+                    }
+
+                    if (segment.config.enableTransform && segment.config.transformValue) {
+                        transformed = this.formatSequenceWithPositionMapping(params.sequence, {
+                            ...segment.config,
+                            transformValue: segment.config.transformValue,
+                            lineNum: params.fieldValues.lineNum
+                        });
+                    }
+                    break
+            }
+
+            return {
+                basic,
+                transformed
+            }
+        },
+
+        formatDateWithMappings(date, format) {
+            let value = this.formatDate(date, format.dateFormat)
+
+            if (format.yearMappings && format.yearMappings.length) {
+                value = this.applyNumberMappings(value, format.yearMappings)
+            }
+            if (format.monthMappings && format.monthMappings.length) {
+                value = this.applyNumberMappings(value, format.monthMappings)
+            }
+            if (format.dayMappings && format.dayMappings.length) {
+                value = this.applyNumberMappings(value, format.dayMappings)
+            }
+
+            return value
+        },
+
+        applyNumberMappings(value, mappings) {
+            return mappings.reduce((result, mapping) => {
+                return result.replace(mapping.value, mapping.code)
+            }, value)
+        },
+
+        formatSequenceWithPositionMapping(sequence, config) {
+            let value = String(sequence).padStart(config.length, config.padChar)
+
+            if (config.numberMappings && config.numberMappings.length) {
+                const chars = value.split('')
+                config.numberMappings.forEach(mapping => {
+                    if (mapping.position && mapping.position <= chars.length) {
+                        const pos = mapping.position - 1
+                        if (chars[pos] === mapping.value) {
+                            chars[pos] = mapping.code
+                        }
+                    }
+                })
+                value = chars.join('')
+            }
+
+            return value
         },
 
         // 修改 executeBatchPrint 方法
@@ -1004,6 +1221,51 @@ export default {
                 this.$message.error('批量打印失败: ' + error.message);
             } finally {
                 this.printing = false;
+            }
+        },
+
+        // 修改 handleRecover 方法
+        async handleRecover(row) {
+            try {
+                await this.$confirm('确定要恢复这条记录吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                // 查询是否有对应的维修记录且为报废
+                const repairResult = await getData('product_repair', {
+                    query: {
+                        barcode: row.printBarcode,
+                        solution: '报废' // 假设报废状态为 SCRAPPED
+                    }
+                });
+
+                if (repairResult.data && repairResult.data.length > 0) {
+                    this.$message.error('该条码已被维修报废，无法恢复');
+                    return;
+                }
+
+                // 如果没有报废记录，则进行恢复
+                await updateData('preProductionBarcode', {
+                    query: { _id: row._id },
+                    update: {
+                        status: 'PENDING',
+                        voidReason: null,
+                        voidBy: null,
+                        voidAt: null,
+                        updater: this.$store.state.user.name,
+                        updateAt: new Date()
+                    }
+                });
+
+                this.$message.success('恢复成功');
+                this.fetchData();
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('恢复失败:', error);
+                    this.$message.error('恢复失败: ' + (error.message || '未知错误'));
+                }
             }
         },
     }
@@ -1069,10 +1331,21 @@ export default {
     .print-list {
         margin-top: 20px;
     }
+
+    .el-divider {
+        margin: 20px 0;
+    }
 }
 
 .dialog-footer {
     text-align: right;
     margin-top: 20px;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; // 设置最大宽度
 }
 </style>

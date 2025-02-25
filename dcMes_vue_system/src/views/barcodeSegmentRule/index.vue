@@ -426,11 +426,19 @@
               <div class="barcode-group">
                 <div class="barcode-item">
                   <div class="barcode-label">基础条码:</div>
-                  <div class="barcode-preview">{{ testResult.basic }}</div>
+                  <div class="barcode-preview">{{ testResult.displayBarcode }}</div>
+                </div>
+                <div class="barcode-item">
+                  <div class="barcode-label">基础打印条码:</div>
+                  <div class="barcode-preview">{{ testResult.printBarcode }}</div>
                 </div>
                 <div class="barcode-item" v-if="testResult.transformed">
                   <div class="barcode-label">转换条码:</div>
                   <div class="barcode-preview">{{ testResult.transformed }}</div>
+                </div>
+                <div class="barcode-item" v-if="testResult.transformedPrintBarcode">
+                  <div class="barcode-label">转换打印条码:</div>
+                  <div class="barcode-preview">{{ testResult.transformedPrintBarcode }}</div>
                 </div>
               </div>
               <el-divider content-position="left">段落明细</el-divider>
@@ -902,12 +910,15 @@ export default {
       try {
         const segments = [];
         const displayValues = [];
-        const printValues = [];
+        const basicPrintValues = [];
         const transformedValues = [];
+        const transformedPrintValues = [];
         let hasTransform = false;
 
         for (const segment of rule.segments) {
           const segmentResult = await this.generateSegmentValue(segment, params);
+          
+          // 保存原始值用于显示明细
           segments.push({
             name: segment.name,
             value: segmentResult.basic,
@@ -915,40 +926,66 @@ export default {
             config: segment.config
           });
 
-          // 生成展示条码（始终包含前缀后缀）
-          let displayValue = segmentResult.basic;
-          if (segment.config.prefix && segment.config.showPrefix) {
+          // 基础值处理
+          let baseValue = segmentResult.basic;
+          let displayValue = baseValue;
+          let basicPrintValue = baseValue;
+          
+          // 展示条码（只在showPrefix/showSuffix为true或未定义时显示前缀后缀）
+          if (segment.config.prefix) {
             displayValue = segment.config.prefix + displayValue;
           }
-          if (segment.config.suffix && segment.config.showSuffix) {
+          if (segment.config.suffix) {
             displayValue = displayValue + segment.config.suffix;
           }
           displayValues.push(displayValue);
 
-          // 生成打印条码
-          let printValue = segmentResult.basic;
-          if (segment.config.prefix && segment.config.showPrefix) {
-            printValue = segment.config.prefix + printValue;
+          // 基础打印条码（只在showPrefix/showSuffix为true时显示）
+          console.log(segment.config.prefix, segment.config.showPrefix,'===')
+          if (segment.config.prefix && segment.config.showPrefix === true) {
+            basicPrintValue = segment.config.prefix + basicPrintValue;
           }
-          if (segment.config.suffix && segment.config.showSuffix) {
-            printValue = segment.config.suffix + printValue;
+          if (segment.config.suffix && segment.config.showSuffix === true) {
+            basicPrintValue = basicPrintValue + segment.config.suffix;
           }
-          printValues.push(printValue);
+          basicPrintValues.push(basicPrintValue);
 
-          // 处理转换值
+          // 转换值处理
           if (segmentResult.transformed) {
             hasTransform = true;
-            transformedValues.push(segmentResult.transformed);
+            let transformedBase = segmentResult.transformed;
+            let transformedValue = transformedBase;
+            let transformedPrintValue = transformedBase;
+
+            // 转换后的展示条码（遵循相同的显示规则）
+            if (segment.config.prefix) {
+              transformedValue = segment.config.prefix + transformedValue;
+            }
+            if (segment.config.suffix) {
+              transformedValue = transformedValue + segment.config.suffix;
+            }
+            transformedValues.push(transformedValue);
+
+            // 转换后的打印条码（只在showPrefix/showSuffix为true时显示）
+            if (segment.config.prefix && segment.config.showPrefix === true) {
+              transformedPrintValue = segment.config.prefix + transformedPrintValue;
+            }
+            if (segment.config.suffix && segment.config.showSuffix === true) {
+              transformedPrintValue = transformedPrintValue + segment.config.suffix;
+            }
+            transformedPrintValues.push(transformedPrintValue);
           } else {
             transformedValues.push(displayValue);
+            transformedPrintValues.push(basicPrintValue);
           }
         }
 
         return {
           result: {
             displayBarcode: displayValues.join(''),
-            printBarcode: printValues.join(''),
-            transformed: hasTransform ? transformedValues.join('') : null
+            printBarcode: basicPrintValues.join(''),
+            transformed: hasTransform ? transformedValues.join('') : null,
+            transformedPrintBarcode: hasTransform ? transformedPrintValues.join('') : null
           },
           breakdown: segments
         };
@@ -987,20 +1024,6 @@ export default {
         case 'sequence':
           basic = this.formatSequenceWithPositionMapping(params.sequence, segment.config)
           break
-      }
-
-      // 修改前缀和后缀的添加逻辑，考虑 showPrefix 和 showSuffix
-      if (segment.config.prefix && segment.config.showPrefix) {
-        basic = segment.config.prefix + basic
-        if (transformed !== null) {
-          transformed = segment.config.prefix + transformed
-        }
-      }
-      if (segment.config.suffix && segment.config.showSuffix) {
-        basic = basic + segment.config.suffix
-        if (transformed !== null) {
-          transformed = transformed + segment.config.suffix
-        }
       }
 
       return {

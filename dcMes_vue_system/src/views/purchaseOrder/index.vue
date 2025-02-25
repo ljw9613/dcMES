@@ -7,6 +7,10 @@
                     <el-input v-model="searchForm.FBillNo" placeholder="请输入订单编号" clearable></el-input>
                 </el-form-item>
 
+                <el-form-item label="销售订单号">
+                    <el-input v-model="searchForm.DEMANDBILLNO" placeholder="请输入销售订单号" clearable></el-input>
+                </el-form-item>
+
                 <el-form-item label="供应商编号">
                     <el-input v-model="searchForm.FSupplierId.Number" placeholder="请输入供应商编号" clearable></el-input>
                 </el-form-item>
@@ -82,6 +86,9 @@
                 <el-table-column type="expand">
                     <template slot-scope="props">
                         <el-table :data="props.row.FPOOrderEntry || []" border style="width: 100%">
+                            <!-- 添加销售订单号列 -->
+                            <el-table-column label="销售订单号" prop="DEMANDBILLNO" min-width="120" />
+                            
                             <!-- 物料信息 -->
                             <el-table-column label="物料编码" min-width="120">
                                 <template slot-scope="scope">
@@ -283,6 +290,7 @@ export default {
         return {
             searchForm: {
                 FBillNo: '',
+                DEMANDBILLNO: '',
                 FSupplierId: {
                     Number: ''
                 },
@@ -509,6 +517,15 @@ export default {
                 req.query.$and.push({ FBillNo: { $regex: this.searchForm.FBillNo.trim(), $options: 'i' } });
             }
 
+            if (this.searchForm.DEMANDBILLNO) {
+                req.query.$and.push({ 
+                    'FPOOrderEntry.DEMANDBILLNO': { 
+                        $regex: this.searchForm.DEMANDBILLNO.trim(), 
+                        $options: 'i' 
+                    } 
+                });
+            }
+
             if (this.searchForm.FSupplierId.Number) {
                 req.query.$and.push({ 'FSupplierId.Number': { $regex: this.searchForm.FSupplierId.Number.trim(), $options: 'i' } });
             }
@@ -599,6 +616,7 @@ export default {
             this.$refs.searchForm.resetFields();
             this.searchForm = {
                 FBillNo: '',
+                DEMANDBILLNO: '',
                 FSupplierId: {
                     Number: ''
                 },

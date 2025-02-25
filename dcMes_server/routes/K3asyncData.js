@@ -15,28 +15,22 @@ const schedule = require("node-schedule");
 const asyncK3Schedule = async () => {
   console.log("定时同步金蝶云数据开启");
 
-  // 每天凌晨2点执行备份
+  // 每天凌晨3点执行备份
   schedule.scheduleJob("0 3 * * *", async () => {
     try {
       // 计算昨天的日期范围
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 1);
-      startDate.setHours(0, 0, 0, 0); // 设置为昨天的开始时间
+      startDate.setHours(0, 0, 0, 0);
 
       const endDate = new Date();
       endDate.setDate(endDate.getDate() - 1);
-      endDate.setHours(23, 59, 59, 999); // 设置为昨天的结束时间
-
-      // // 计算6个月前的日期
-      // const startDate = new Date();
-      // startDate.setMonth(startDate.getMonth() - 6);
-      // const endDate = new Date();
-      // endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setHours(23, 59, 59, 999);
 
       const filterString = [
         {
           FieldName: "FDocumentStatus",
-          Compare: "StatusEqualto",
+          Compare: "StatusEqualto", 
           Value: "C",
           Left: "",
           Right: "",
@@ -59,22 +53,28 @@ const asyncK3Schedule = async () => {
           Logic: "0",
         },
       ];
+
+      // 基础数据同步
+      await syncK3Data("k3_BD_MATERIAL", "BD_MATERIAL", "FMATERIALID", filterString);
+      await syncK3Data("K3_BD_STOCK", "BD_STOCK", "FStockId", filterString);
+
+      // 销售相关单据同步
+      await syncK3Data("k3_SAL_SaleOrder", "SAL_SaleOrder", "FID", filterString);
+      await syncK3Data("K3_SAL_DeliveryNotice", "SAL_DELIVERYNOTICE", "FID", filterString);
+      await syncK3Data("K3_SAL_OutStock", "SAL_OUTSTOCK", "FID", filterString);
+
+      // 生产相关单据同步
       await syncK3Data("k3_PRD_MO", "PRD_MO", "FID", filterString);
-      await syncK3Data(
-        "k3_SAL_SaleOrder",
-        "SAL_SaleOrder",
-        "FID",
-        filterString
-      );
-      await syncK3Data(
-        "k3_BD_MATERIAL",
-        "BD_MATERIAL",
-        "FMATERIALID",
-        filterString
-      );
+      await syncK3Data("K3_PRD_PickMtrl", "PRD_PickMtrl", "FID", filterString);
+      await syncK3Data("K3_PRD_InStock", "PRD_INSTOCK", "FID", filterString);
+
+      // 采购相关单据同步
+      await syncK3Data("K3_PUR_RequisitionBill", "PUR_Requisition", "FID", filterString);
+      await syncK3Data("K3_PUR_PurchaseOrder", "PUR_PurchaseOrder", "FID", filterString);
+
       console.log("同步金蝶云数据完成");
     } catch (error) {
-      console.error("执行 MaterialProcessFlow 备份任务失败:", error);
+      console.error("执行金蝶云数据同步任务失败:", error);
     }
   });
 };
@@ -1240,6 +1240,9 @@ async function syncPurchaseOrderData(modelName, filterString, syncTask) {
             FReceiveOrgId: entry.ReceiveOrgId?.Number,
             // 备注
             FNote: entry.Note,
+
+            DEMANDBILLNO:entry.DEMANDBILLNO,
+            DEMANDTYPE:entry.DEMANDTYPE
           })),
         };
 

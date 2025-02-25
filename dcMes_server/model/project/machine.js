@@ -53,9 +53,18 @@ var machineSchema = new mongoose.Schema(
       ref: "processStep",
       description: "当前工序ID",
     },
-    productionPlanWorkOrderId: { type: mongoose.Schema.ObjectId, ref: "production_plan_work_order", description: "工单ID" },
+    productionPlanWorkOrderId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "production_plan_work_order",
+      description: "工单ID",
+    },
+
+    upperLimit: { type: Number, default: null, description: "检验值上限" },
+    lowerLimit: { type: Number, default: null, description: "检验值下限" },
 
     status: { type: Boolean, default: false, description: "在线状态" },
+
+    isNeedMaintain: { type: Boolean, default: 0, description: "是否需要维修检验" },
 
     createTime: { type: Date, default: Date.now, description: "创建时间" },
     updateTime: { type: Date, default: null, description: "更新时间" },

@@ -46,11 +46,16 @@ router.post("/api/v1/scan-components", async (req, res) => {
       processStepId, // 工序ID
       componentScans, // 子物料条码数组
       userId, // 用户ID
-      lineId // 产线ID
+      lineId, // 产线ID
     } = req.body;
 
     // 参数验证
-    if (!mainBarcode || !processStepId || !lineId || !Array.isArray(componentScans)) {
+    if (
+      !mainBarcode ||
+      !processStepId ||
+      !lineId ||
+      !Array.isArray(componentScans)
+    ) {
       return res.status(200).json({
         success: false,
         message: "缺少必要参数或参数格式错误",
@@ -203,26 +208,27 @@ router.post("/api/v1/initialize-machine-barcode", async (req, res) => {
 /**
  * 导出BOM结构
  */
-router.get('/api/v1/exportBOM', async (req, res) => {
-    try {
-        const { materialId } = req.query;
-        if (!materialId) {
-            return res.status(400).json({ error: '缺少必要参数: materialId' });
-        }
-
-        const bomData = await MaterialProcessFlowService.exportFlattenedBOMStructure(materialId);
-        res.json({ data: bomData });
-    } catch (error) {
-        console.error('导出BOM失败:', error);
-        res.status(500).json({ error: error.message });
+router.get("/api/v1/exportBOM", async (req, res) => {
+  try {
+    const { materialId } = req.query;
+    if (!materialId) {
+      return res.status(400).json({ error: "缺少必要参数: materialId" });
     }
+
+    const bomData =
+      await MaterialProcessFlowService.exportFlattenedBOMStructure(materialId);
+    res.json({ data: bomData });
+  } catch (error) {
+    console.error("导出BOM失败:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 修复流程进度和状态
 router.post("/api/v1/fix-flow-progress", async (req, res) => {
   try {
     const { barcode } = req.body;
-    
+
     if (!barcode) {
       return res.status(200).json({
         success: false,
@@ -236,7 +242,7 @@ router.post("/api/v1/fix-flow-progress", async (req, res) => {
       code: 200,
       success: true,
       data: result,
-      message: "流程进度修复成功"
+      message: "流程进度修复成功",
     });
   } catch (error) {
     res.status(200).json({
@@ -251,7 +257,7 @@ router.post("/api/v1/fix-flow-progress", async (req, res) => {
 router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
   try {
     const { barcodes } = req.body;
-    
+
     if (!Array.isArray(barcodes) || barcodes.length === 0) {
       return res.status(200).json({
         success: false,
@@ -262,17 +268,19 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
     const results = [];
     for (const barcode of barcodes) {
       try {
-        const result = await MaterialProcessFlowService.fixFlowProgress(barcode);
+        const result = await MaterialProcessFlowService.fixFlowProgress(
+          barcode
+        );
         results.push({
           barcode,
           success: true,
-          ...result
+          ...result,
         });
       } catch (error) {
         results.push({
           barcode,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -281,7 +289,7 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
       code: 200,
       success: true,
       data: results,
-      message: "批量修复完成"
+      message: "批量修复完成",
     });
   } catch (error) {
     res.status(200).json({
@@ -295,15 +303,8 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
 // 设备扫码提交
 router.post("/api/v1/machine-scan-components", async (req, res) => {
   try {
-    const {
-      mainBarcode, // 主条码
-      processStepId, // 工序ID
-      barcodes, // 子物料条码数组 [barcode1, barcode2, ...]
-      userId, // 用户ID
-      lineId // 产线ID
-    } = req.body;
-    console.log(req.body);
-
+    const { mainBarcode, processStepId, barcodes, userId, lineId } = req.body;
+    console.log("req.body===", req.body);
     // 参数验证
     if (!mainBarcode || !processStepId || !lineId || !Array.isArray(barcodes)) {
       return res.status(200).json({
@@ -313,27 +314,22 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
     }
 
     // 获取工序关联的物料列表
-    const processMaterials = await ProcessMaterial.find({ 
+    const processMaterials = await ProcessMaterial.find({
       processStepId,
-      scanOperation: true // 只获取需要扫码的物料
-    }).populate('materialId');
+      scanOperation: true,
+    }).populate("materialId");
 
-    if (!processMaterials || processMaterials.length === 0) {
-      return res.status(200).json({
-        success: false,
-        message: "未找到工序关联的物料信息",
-      });
-    }
+    console.log(
+      "需要扫描的工序物料列表:",
+      processMaterials.map((pm) => ({
+        materialCode: pm.materialId.FNumber,
+        materialName: pm.materialId.FName,
+        quantity: pm.quantity,
+        unit: pm.unit,
+      }))
+    );
 
-    // 验证扫码数量是否匹配
-    if (barcodes.length !== processMaterials.length) {
-      return res.status(200).json({
-        success: false,
-        message: `扫码数量与要求不符，需要扫描 ${processMaterials.length} 个物料，实际扫描 ${barcodes.length} 个`,
-      });
-    }
-
-    // 检查条码是否有重复
+    // 检查重复条码
     const uniqueBarcodes = new Set(barcodes);
     if (uniqueBarcodes.size !== barcodes.length) {
       return res.status(200).json({
@@ -342,192 +338,141 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
       });
     }
 
-    // 获取所有条码对应的物料信息
-    const barcodeResults = await Promise.all(barcodes.map(async (barcode) => {
-      // 获取所有可能的条码规则
-      const materialIds = processMaterials.map(pm => pm.materialId._id);
-      
-      // 1. 获取产品关联的条码规则
-      const productRules = await productBarcodeRule.find({
-        productId: { $in: materialIds }
-      }).populate({
-        path: 'barcodeRule',
-        match: { enabled: true }
-      });
+    // 1. 获取工序物料对应的条码规则
+    const materialRules = [];
+    for (const material of processMaterials) {
+      console.log(`获取物料 ${material.materialId.FNumber} 的规则`);
 
-      // 2. 获取全局条码规则
+      // 获取物料特定规则
+      const productSpecificRules = await productBarcodeRule
+        .find({
+          productId: material.materialId._id,
+        })
+        .populate({
+          path: "barcodeRule",
+          match: { enabled: true },
+        });
+
+      // 获取全局规则
       const globalRules = await barcodeRule.find({
         enabled: true,
-        isGlobal: true
+        isGlobal: true,
       });
 
-      // 处理和合并规则
-      let rules = [];
-
-      // 处理产品关联的规则
-      rules = productRules
-        .filter(item => item.barcodeRule) // 过滤掉无效的规则
-        .map(item => ({
-          ...item.barcodeRule.toObject(),
+      // 处理物料特定规则
+      const specificRules = productSpecificRules
+        .filter((item) => item.barcodeRule)
+        .map((item) => ({
+          rule: item.barcodeRule.toObject(),
           priority: item.barcodeRule.priority || 0,
-          isProductSpecific: true // 标记为产品特定规则
+          isProductSpecific: true,
+          material: {
+            _id: material.materialId._id,
+            FNumber: material.materialId.FNumber,
+            FName: material.materialId.FName,
+          },
         }));
 
-      // 添加全局规则（确保优先级最低）
-      const globalRulesFormatted = globalRules.map(rule => ({
-        ...rule.toObject(),
-        priority: -1, // 设置最低优先级
-        isProductSpecific: false // 标记为全局规则
+      // 处理全局规则
+      const globalRulesForMaterial = globalRules.map((rule) => ({
+        rule: rule.toObject(),
+        priority: -1,
+        isProductSpecific: false,
+        material: {
+          _id: material.materialId._id,
+          FNumber: material.materialId.FNumber,
+          FName: material.materialId.FName,
+        },
       }));
-      rules = rules.concat(globalRulesFormatted);
 
-      // 按优先级排序（从高到低）
-      rules.sort((a, b) => b.priority - a.priority);
+      // 合并规则并保持物料关联
+      materialRules.push(...specificRules, ...globalRulesForMaterial);
+    }
 
-      console.log('条码规则列表:', {
-        productRules: rules.filter(r => r.isProductSpecific),
-        globalRules: rules.filter(r => !r.isProductSpecific)
-      });
-      console.log(rules);
+    // 按优先级排序
+    materialRules.sort((a, b) => b.priority - a.priority);
 
-      let validationResult = null;
-      
-      // 对每个物料尝试所有规则
-      for (const material of processMaterials) {
-        // 跳过验证结果已找到的情况
-        if (validationResult && validationResult.isValid) break;
+    console.log(
+      "物料规则映射:",
+      materialRules.map((mr) => ({
+        materialCode: mr.material.FNumber,
+        materialName: mr.material.FName,
+        ruleName: mr.rule.name,
+        isProductSpecific: mr.isProductSpecific,
+        priority: mr.priority,
+      }))
+    );
 
-        for (const rule of rules) {
-          let isValid = true;
+    // 记录已匹配的物料编码
+    const matchedMaterialCodes = new Set();
+    const componentScans = [];
+    const processedResults = [];
+    const failedBarcodes = [];
 
-          // 验证规则
-          for (const validation of rule.validationRules) {
-            if (!validation.enabled) continue;
+    // 对每个条码进行验证和匹配
+    for (const barcode of barcodes) {
+      console.log(`\n开始处理条码: ${barcode}`);
+      let matched = false;
 
-            switch (validation.type) {
-              case "length":
-                isValid = barcode.length === validation.params.length;
-                break;
-              case "prefix":
-                isValid = barcode.startsWith(validation.params.value);
-                break;
-              case "regex":
-                try {
-                  const regex = new RegExp(validation.params.pattern);
-                  isValid = regex.test(barcode);
-                } catch (e) {
-                  console.error("正则表达式错误:", e);
-                  isValid = false;
-                }
-                break;
-            }
+      // 遍历所有规则进行匹配
+      for (const materialRule of materialRules) {
+        // 跳过已匹配物料的规则
+        if (matchedMaterialCodes.has(materialRule.material.FNumber)) {
+          console.log(`物料 ${materialRule.material.FNumber} 已经匹配过，跳过`);
+          continue;
+        }
 
-            if (!isValid) break;
-          }
+        console.log(
+          `尝试规则: ${materialRule.rule.name} 匹配物料: ${materialRule.material.FNumber}`
+        );
 
-          // 如果验证规则通过，执行提取规则
-          if (isValid) {
-            let materialCode = null;
-            let relatedBill = null;
+        // 验证条码
+        const validationResult = await validateBarcodeWithRule(
+          barcode,
+          materialRule.rule,
+          materialRule.material
+        );
 
-            for (const config of rule.extractionConfigs) {
-              let extractValue = barcode;
+        if (validationResult.isValid) {
+          console.log(`条码验证成功!`);
+          console.log(`- 匹配规则: ${materialRule.rule.name}`);
+          console.log(`- 物料编码: ${materialRule.material.FNumber}`);
+          console.log(`- 物料名称: ${materialRule.material.FName}`);
 
-              for (const step of config.steps) {
-                if (!step.enabled) continue;
-
-                switch (step.type) {
-                  case "split":
-                    const parts = extractValue.split(step.params.separator);
-                    extractValue = parts[step.params.index] || "";
-                    break;
-                  case "substring":
-                    extractValue = extractValue.substring(
-                      step.params.start,
-                      step.params.end
-                    );
-                    break;
-                  case "regex":
-                    try {
-                      const regex = new RegExp(step.params.pattern);
-                      const matches = extractValue.match(regex);
-                      if (matches && matches[step.params.group]) {
-                        extractValue = matches[step.params.group];
-                      } else {
-                        extractValue = "";
-                      }
-                    } catch (e) {
-                      console.error("正则提取错误:", e);
-                      extractValue = "";
-                    }
-                    break;
-                }
-              }
-
-              // 存储提取结果
-              switch (config.target) {
-                case "materialCode":
-                  materialCode = extractValue;
-                  break;
-                case "DI":
-                  // 如果提取到DI，需要验证并获取对应的物料编码
-                  const diResult = await MaterialProcessFlowService.validateDICode(
-                    extractValue,
-                    material.materialId
-                  );
-                  if (diResult.isValid) {
-                    materialCode = diResult.materialCode;
-                  } else {
-                    isValid = false;
-                  }
-                  break;
-                case "relatedBill":
-                  relatedBill = extractValue;
-                  break;
-              }
-            }
-
-            // 验证提取的物料编码是否匹配
-            if (materialCode === material.materialId.FNumber) {
-              validationResult = {
-                isValid: true,
-                materialCode,
-                relatedBill,
-                ruleName: rule.name,
-                ruleType: rule.isProductSpecific ? "product" : "global",
-              };
-              break;
-            }
-          }
+          matchedMaterialCodes.add(materialRule.material.FNumber);
+          componentScans.push({
+            materialId: materialRule.material._id,
+            barcode: barcode,
+          });
+          processedResults.push({
+            barcode,
+            materialCode: materialRule.material.FNumber,
+            materialName: materialRule.material.FName,
+            ruleName: materialRule.rule.name,
+            ruleType: materialRule.rule.type,
+          });
+          matched = true;
+          break;
         }
       }
 
-      if (!validationResult || !validationResult.isValid) {
-        throw new Error(`条码 ${barcode} 验证失败：不符合任何已配置的规则或物料不匹配`);
+      if (!matched) {
+        console.log(`条码 ${barcode} 未能匹配任何物料规则`);
+        failedBarcodes.push(barcode);
       }
-
-      return {
-        barcode,
-        materialCode: validationResult.materialCode
-      };
-    }));
-
-    // 匹配条码和物料ID
-    const componentScans = [];
-    for (const barcodeResult of barcodeResults) {
-      const matchingMaterial = processMaterials.find(material => 
-        material.materialId.FNumber === barcodeResult.materialCode
-      );
-
-      if (!matchingMaterial) {
-        throw new Error(`条码 ${barcodeResult.barcode} 对应的物料编码 ${barcodeResult.materialCode} 不属于当前工序要求扫描的物料`);
-      }
-
-      componentScans.push({
-        materialId: matchingMaterial.materialId._id,
-        barcode: barcodeResult.barcode
-      });
     }
+
+    // 如果没有任何条码匹配成功
+    // if (componentScans.length === 0) {
+    //   return res.status(200).json({
+    //     success: false,
+    //     message: "没有条码匹配成功",
+    //     failedBarcodes,
+    //   });
+    // }
+
+    console.log("\n所有条码处理结果:", processedResults);
+    console.log("componentScans:", componentScans);
 
     // 调用扫码处理方法
     const result = await MaterialProcessFlowService.scanProcessComponents(
@@ -542,12 +487,168 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
       code: 200,
       success: true,
       data: result,
+      processedResults,
+      failedBarcodes,
+    });
+  } catch (error) {
+    console.error("处理扫码请求失败:", error);
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * 验证条码是否符合规则并提取物料编码
+ * @param {string} barcode - 需要验证的条码
+ * @param {Object} rule - 条码规则对象
+ * @param {Object} material - 物料对象
+ * @returns {Object} 验证结果，包含isValid和materialCode
+ */
+async function validateBarcodeWithRule(barcode, rule, material) {
+  try {
+    console.log(`\n验证条码: ${barcode}`);
+    console.log(`规则名称: ${rule.name}`);
+    console.log(`物料编码: ${material.FNumber}`);
+
+    // 基础验证
+    if (!barcode || !rule || !material) {
+      console.log("基础验证失败: 缺少必要参数");
+      return { isValid: false };
+    }
+
+    // 验证规则数组
+    if (rule.validationRules && Array.isArray(rule.validationRules)) {
+      for (const validationRule of rule.validationRules) {
+        if (!validationRule.enabled) continue;
+
+        console.log(`执行验证规则: ${validationRule.name}`);
+
+        switch (validationRule.type) {
+          case "length":
+            if (
+              validationRule.params.length &&
+              barcode.length !== validationRule.params.length
+            ) {
+              console.log(
+                `长度验证失败: 期望 ${validationRule.params.length}, 实际 ${barcode.length}`
+              );
+              return { isValid: false };
+            }
+            break;
+
+          case "prefix":
+            if (
+              validationRule.params.expectedValue &&
+              !barcode.startsWith(validationRule.params.expectedValue)
+            ) {
+              console.log(
+                `前缀验证失败: 期望前缀 ${validationRule.params.expectedValue}`
+              );
+              return { isValid: false };
+            }
+            break;
+
+          case "pattern":
+            if (validationRule.params.pattern) {
+              const regex = new RegExp(validationRule.params.pattern);
+              if (!regex.test(barcode)) {
+                console.log(
+                  `正则验证失败: 不匹配模式 ${validationRule.params.pattern}`
+                );
+                return { isValid: false };
+              }
+            }
+            break;
+
+          case "substring":
+            if (
+              validationRule.params.start !== undefined &&
+              validationRule.params.end !== undefined &&
+              validationRule.params.expectedValue
+            ) {
+              const substring = barcode.substring(
+                validationRule.params.start,
+                validationRule.params.end || undefined
+              );
+              if (substring !== validationRule.params.expectedValue) {
+                console.log(
+                  `子串验证失败: 期望 ${validationRule.params.expectedValue}, 实际 ${substring}`
+                );
+                return { isValid: false };
+              }
+            }
+            break;
+        }
+      }
+    }
+
+    // 提取物料编码（如果有配置）
+    let extractedMaterialCode = null;
+    if (rule.extractionConfigs && Array.isArray(rule.extractionConfigs)) {
+      for (const config of rule.extractionConfigs) {
+        if (config.target === "materialCode" && Array.isArray(config.steps)) {
+          let value = barcode;
+          for (const step of config.steps) {
+            if (!step.enabled) continue;
+
+            switch (step.type) {
+              case "substring":
+                value = value.substring(
+                  step.params.start,
+                  step.params.end || undefined
+                );
+                break;
+              // 可以添加其他提取步骤类型
+            }
+          }
+          extractedMaterialCode = value;
+          break;
+        }
+      }
+    }
+
+    // 如果提取到物料编码，验证是否匹配
+    if (
+      extractedMaterialCode !== null &&
+      extractedMaterialCode !== material.FNumber
+    ) {
+      console.log(
+        `物料编码不匹配: 提取到 ${extractedMaterialCode}, 期望 ${material.FNumber}`
+      );
+      return { isValid: false };
+    }
+
+    console.log("验证通过!");
+    return {
+      isValid: true,
+      materialCode: material.FNumber,
+      extractedMaterialCode,
+    };
+  } catch (error) {
+    console.error("条码验证失败:", error);
+    return { isValid: false };
+  }
+}
+
+// 批量更新关联单据
+router.post("/api/v1/batch-update-related-bills", async (req, res) => {
+  try {
+    console.log("批量更新关联单据");
+    const result = await MaterialProcessFlowService.batchUpdateRelatedBills();
+    res.json({
+      code: 200,
+      success: true,
+      message: "批量更新关联单据成功",
+      data: result
     });
   } catch (error) {
     res.status(200).json({
       code: 500,
       success: false,
-      message: error.message,
+      message: error.message
     });
   }
 });

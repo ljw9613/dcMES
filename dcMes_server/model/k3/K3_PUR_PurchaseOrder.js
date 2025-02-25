@@ -164,7 +164,11 @@ const purchaseOrderSchema = new Schema(
       FRequireOrgId: String,
       FReceiveOrgId: String,
       // 备注
-      FNote: String
+      FNote: String,
+
+      //销售订单
+      DEMANDBILLNO:String,
+      DEMANDTYPE:String
     }]
   },
   {

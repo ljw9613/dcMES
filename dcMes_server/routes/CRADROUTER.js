@@ -36,6 +36,7 @@ const productBarcodeRule = require("../model/project/productBarcodeRule");
 const materialBarcodeBatch = require("../model/project/materialBarcodeBatch");
 const barcodeSegmentRuleMaterial = require("../model/project/barcodeSegmentRuleMaterial");
 const preProductionBarcode = require("../model/project/preProductionBarcode");
+const udiSamplingInspectionFlow = require("../model/project/udiSamplingInspectionFlow");
 
 
 //wms模型
@@ -91,6 +92,7 @@ ADDROUTER(router, "scanRecord", scanRecord);
 ADDROUTER(router, "processMaterials", processMaterials);
 ADDROUTER(router, "material_process_flow", materialProcessFlow);
 ADDROUTER(router, "sampling_nspection_flow", SamplingInspectionFlow);
+ADDROUTER(router, "udi_sampling_inspection_flow", udiSamplingInspectionFlow);
 ADDROUTER(router, "production_plan_work_order", productionPlanWorkOrder);
 ADDROUTER(router, "production_line", productionLine);
 ADDROUTER(router, "equipmentInformation", equipmentInformation);
@@ -123,6 +125,7 @@ ADDROUTER(router, "productDiNum", productDiNum);
 ADDROUTER(router, "barcodeRule", barcodeRule);
 ADDROUTER(router, "barcodeSegmentRule", barcodeSegmentRule);
 ADDROUTER(router, "productBarcodeRule", productBarcodeRule);
+
 //k3 拓展模型
 ADDROUTER(router, "k3_SAL_SaleOrderExt", k3_SAL_SaleOrderExt);
 ADDROUTER(router, "k3_PRD_PickMtrlExt", k3_PRD_PickMtrlExt);

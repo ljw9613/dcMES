@@ -373,6 +373,14 @@ export default {
                 localStorage.setItem('productLineName', value)
             }
         },
+        lineNum: {
+            get() {
+                return localStorage.getItem('lineNum') || ''
+            },
+            set(value) {
+                localStorage.setItem('lineNum', value)
+            }
+        },
         autoInitMode: {
             get() {
                 return localStorage.getItem('autoInit') === 'true'
@@ -465,6 +473,7 @@ export default {
                         if (lineId) {
                             this.productLineId = lineId._id;
                             this.productLineName = lineId.lineName;
+                            this.lineNum = lineId.lineNum;
                             this.formData.lineName = lineId.lineName;
                         }
                         this.$message.success('自动初始化工序成功');
@@ -613,10 +622,12 @@ export default {
             }
         },
         handleProductionLineSelect(item) {
+            console.log(item,'item=============')
             if (item) {
                 this.formData.lineName = item.lineName;
                 this.formData.productLine = item._id;
                 // 添加产线信息缓存
+                localStorage.setItem('lineNum', item.lineNum);
                 localStorage.setItem('productLineName', item.lineName);
                 localStorage.setItem('productLineId', item._id);
             }
@@ -1028,6 +1039,7 @@ export default {
                                         break;
                                 }
                             }
+                            console.log(extractValue,'extractValue')
 
                             // 根据目标字段存储提取结果
                             switch (config.target) {
@@ -1211,7 +1223,8 @@ export default {
 
             this.scanTimer = setTimeout(async () => {
                 try {
-                    const cleanValue = value.trim().replace(/[\r\n]/g, '');
+                    // 更严格地清理输入值中的所有空格和换行符
+                    const cleanValue = value.replace(/[\s\r\n]/g, '');
                     if (!cleanValue) return;
 
 
@@ -1279,6 +1292,7 @@ export default {
                                 const preProductionResponse = await getData('preProductionBarcode', {
                                     query: {
                                         materialNumber: materialCode,
+                                        lineNum: this.lineNum, // 添加产线编码条件
                                         status: 'PENDING'  // 只查询待使用的条码
                                     },
                                     sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
@@ -1286,8 +1300,8 @@ export default {
                                 });
 
                                 if (preProductionResponse.data && preProductionResponse.data.length > 0) {
-                                    const expectedBarcode = preProductionResponse.data[0].barcode;
-                                    if (value !== expectedBarcode) {
+                                    const expectedBarcode = preProductionResponse.data[0].printBarcode;
+                                    if (cleanValue !== expectedBarcode) {
                                         this.$message.error(`请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`);
                                         this.popupType = 'ng';
                                         this.showPopup = true;
@@ -1303,10 +1317,10 @@ export default {
                         }
 
                         // 验证通过，继续原有逻辑
-                        this.scanForm.mainBarcode = value;
+                        this.scanForm.mainBarcode = cleanValue;
                         this.validateStatus.mainBarcode = true;
                         
-                        await this.handleMainBarcode(value);
+                        await this.handleMainBarcode(cleanValue);
 
                         tone(smcg);
                         this.$notify({
@@ -1316,7 +1330,7 @@ export default {
                                 <div style="line-height: 1.5">
                                     <div>物料名称: ${this.mainMaterialName}</div>
                                     <div>物料编码: ${materialCode}</div>
-                                    <div>条码: ${value}</div>
+                                    <div>条码: ${cleanValue}</div>
                                 </div>
                             `,
                             type: 'success',
@@ -1330,30 +1344,30 @@ export default {
                     if (!matched) {
                         for (const material of this.processMaterials) {
                             if (material.materialCode === materialCode) {
-                                // 新增：检查materialBarcodeBatch表中是否存在该物料编码的未使用条码
-                                try {
-                                    const batchResponse = await getData('materialBarcodeBatch', {
-                                        query: {
-                                            materialCode: materialCode,
-                                            isUsed: false
-                                        },
-                                        sort: { createAt: 1 }, // 按创建时间正序排序，获取最早的未使用条码
-                                        limit: 1
-                                    });
+                                // TODO 国内新增：检查materialBarcodeBatch表中是否存在该物料编码的未使用条码
+                                // try {
+                                //     const batchResponse = await getData('materialBarcodeBatch', {
+                                //         query: {
+                                //             materialCode: materialCode,
+                                //             isUsed: false
+                                //         },
+                                //         sort: { createAt: 1 }, // 按创建时间正序排序，获取最早的未使用条码
+                                //         limit: 1
+                                //     });
 
-                                    if (batchResponse.data && batchResponse.data.length > 0) {
-                                        const expectedBatchId = batchResponse.data[0].batchId;
-                                        if (value !== expectedBatchId) {
-                                            this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
-                                            tone(tmyw)
-                                            return;
-                                        }
-                                    }
-                                    // 如果没有找到对应的批次记录，继续正常流程
-                                } catch (error) {
-                                    console.warn('检查批次条码顺序失败:', error);
-                                    // 如果查询失败，不阻止正常流程
-                                }
+                                //     if (batchResponse.data && batchResponse.data.length > 0) {
+                                //         const expectedBatchId = batchResponse.data[0].batchId;
+                                //         if (cleanValue !== expectedBatchId) {
+                                //             this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
+                                //             tone(tmyw)
+                                //             return;
+                                //         }
+                                //     }
+                                //     // 如果没有找到对应的批次记录，继续正常流程
+                                // } catch (error) {
+                                //     console.warn('检查批次条码顺序失败:', error);
+                                //     // 如果查询失败，不阻止正常流程
+                                // }
 
 
                                 // 如果是批次物料
@@ -1363,13 +1377,13 @@ export default {
                                     const cachedBarcode = localStorage.getItem(cacheKey);
 
                                     // 如果扫描的是新的批次条码
-                                    if (cachedBarcode !== value) {
+                                    if (cachedBarcode !== cleanValue) {
                                         // 查询新批次条码的使用次数
-                                        const count = await this.queryBatchUsageCount(value, material._id);
+                                        const count = await this.queryBatchUsageCount(cleanValue, material._id);
 
                                         // 如果设置了使用次数限制且已达到限制
                                         if (material.batchQuantity && count >= material.batchQuantity && material.batchQuantity > 0) {
-                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
+                                            this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
                                             this.popupType = 'ng';
                                             this.showPopup = true;
@@ -1377,7 +1391,7 @@ export default {
                                         }
 
                                         // 更新缓存和使用次数
-                                        localStorage.setItem(cacheKey, value);
+                                        localStorage.setItem(cacheKey, cleanValue);
                                         localStorage.setItem(usageKey, count.toString());
                                         this.$set(this.batchUsageCount, material._id, count);
                                     } else {
@@ -1390,7 +1404,7 @@ export default {
                                             localStorage.removeItem(usageKey);
                                             this.$set(this.scanForm.barcodes, material._id, '');
                                             this.$set(this.validateStatus, material._id, false);
-                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
+                                            this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
                                             tone(pcwlxz);
 
                                             return;
@@ -1398,7 +1412,7 @@ export default {
                                     }
                                 }
 
-                                this.$set(this.scanForm.barcodes, material._id, value);
+                                this.$set(this.scanForm.barcodes, material._id, cleanValue);
                                 this.$set(this.validateStatus, material._id, true);
 
                                 // 处理子物料条码
@@ -1412,7 +1426,7 @@ export default {
                                         <div style="line-height: 1.5">
                                             <div>物料名称: ${material.materialName}</div>
                                             <div>物料编码: ${material.materialCode}</div>
-                                            <div>条码: ${value}</div>
+                                            <div>条码: ${cleanValue}</div>
                                             ${isValidResult.relatedBill ? `<div>关联单号: ${isValidResult.relatedBill}</div>` : ''}
                                         </div>
                                     `,

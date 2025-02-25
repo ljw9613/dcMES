@@ -432,16 +432,13 @@ export default {
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
-                req.sort = { FNumber: 1 };
+                req.sort = { FCreateDate: -1 };
                 req.count = true;
 
                 const result = await getData("k3_SAL_SaleOrder", req);
 
                 if (result.code === 200) {
-                    // 直接使用原始数据,不需要映射转换
                     this.tableList = result.data;
-                    console.log("111111111", result);
-                    console.log("222222222", this.tableList);
                     this.total = result.countnum || result.data.length;
                 } else {
                     this.$message.error(result.msg || '获取数据失败');

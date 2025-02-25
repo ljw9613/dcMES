@@ -7,9 +7,12 @@
                     <span>
                         <i class="el-icon-setting"></i>
                         工序设置</span>
-                    <el-switch v-model="autoInit" active-text="自动" inactive-text="手动" class="print-switch"
-                        @change="handleAutoInitChange">
-                    </el-switch>
+                    <div class="switch-group">
+                        <el-switch v-model="autoInit" active-text="自动" inactive-text="手动" class="print-switch"
+                            @change="handleAutoInitChange">
+                        </el-switch>
+
+                    </div>
                 </div>
                 <el-form :model="formData" label-width="100px">
                     <!-- 产品型号 -->
@@ -121,6 +124,9 @@
                                 <i class="el-icon-goods"></i>
                                 <span>主物料</span>
                             </div>
+                            <el-switch v-model="enableConversion" active-text="转化" inactive-text="普通"
+                                class="print-switch" @change="handleConversionChange">
+                            </el-switch>
                             <div class="print-batch-btn">
                                 <hir-input ref="hirInput" :default-template="localPrintTemplate"
                                     @template-change="handleTemplateChange" :show-preview="true"
@@ -308,6 +314,9 @@ export default {
 
             craftInfo: {},
             processStepData: {}, // 保存工序信息
+            enableConversion: false, // 添加转化开关状态
+
+            printData:{}
         }
     },
     computed: {
@@ -401,7 +410,15 @@ export default {
                     console.error('保存模板到缓存失败:', error);
                 }
             }
-        }
+        },
+        conversionMode: {
+            get() {
+                return localStorage.getItem('enableConversion') === 'true'
+            },
+            set(value) {
+                localStorage.setItem('enableConversion', value)
+            }
+        },
     },
     watch: {
         // 监听缓存ID变化，获取相关数据
@@ -1154,7 +1171,7 @@ export default {
             this.currentFlowId = null;
         },
 
-        // 修改统一扫描处理方法中的相关部分
+        // 修改统一扫描处理方法
         async handleUnifiedScan(value) {
             if (!value) return;
 
@@ -1162,7 +1179,7 @@ export default {
                 clearTimeout(this.scanTimer);
             }
 
-            //当打印模板未选择时提醒
+            // 检查打印模板
             if (!this.$refs.hirInput.selectedTemplate) {
                 this.unifiedScanInput = '';
                 this.$refs.scanInput.focus();
@@ -1175,14 +1192,12 @@ export default {
                     const cleanValue = value.trim().replace(/[\r\n]/g, '');
                     if (!cleanValue) return;
 
-
-
                     const isValidResult = await this.validateBarcode(cleanValue);
                     if (!isValidResult.isValid) {
                         this.popupType = 'ng';
                         this.showPopup = true;
                         setTimeout(() => {
-                            tone(tmyw); // 延迟播放错误提示音
+                            tone(tmyw);
                         }, 300);
                         this.$notify({
                             title: '条码验证失败',
@@ -1196,205 +1211,66 @@ export default {
                         return;
                     }
 
-
-
                     const materialCode = isValidResult.materialCode;
-                    let matched = false;
 
-                    // TODO 国内检查非成品条码检测是否有未完成的维修记录
-                    if (this.craftInfo && ((!this.craftInfo.isProduct) || (this.craftInfo.materialCode !== materialCode))) {
-                        // "PENDING_REVIEW", "REVIEWED", "VOIDED"
-                        console.log('非成品条码检测是否有未完成的维修记录');
-                        const repairRecord = await getData('product_repair', {
-                            query: { barcode: cleanValue },
-                            sort: { _id: -1 }
-                        });
-                        if (repairRecord.data.length > 0) {
-                            if (repairRecord.data[0].status == 'PENDING_REVIEW') {
-                                this.unifiedScanInput = '';
-                                this.$refs.scanInput.focus();
-                                this.$message.error('该条码存在未完成的维修记录');
-                                this.popupType = 'ng';
-                                this.showPopup = true;
-                                tone(dwx);
-                                return;
-                            }
-                            if (repairRecord.data[0].status == 'REVIEWED' && repairRecord.data[0].repairResult !== 'QUALIFIED') {
-                                this.unifiedScanInput = '';
-                                this.$refs.scanInput.focus();
-                                this.$message.error('该条码已完成维修,但维修结果为不合格');
-                                this.popupType = 'ng';
-                                this.showPopup = true;
-                                tone(wxsb);
-                                return;
+                    // 检查是否匹配主物料
+                    if (materialCode === this.mainMaterialCode) {
+                        // 设置主条码
+                        this.scanForm.mainBarcode = cleanValue;
+                        this.validateStatus.mainBarcode = true;
+                        await this.handleMainBarcode(cleanValue);
+
+                        // 获取转化后的条码（如果启用了转化模式）
+                        let transformedBarcode = cleanValue;
+                        if (this.enableConversion) {
+                            const prePrintData = await getData('preProductionBarcode', {
+                                query: { printBarcode: cleanValue }
+                            });
+                            if (prePrintData.data && prePrintData.data.length > 0) {
+                                transformedBarcode = prePrintData.data[0].transformedPrintBarcode || cleanValue;
                             }
                         }
-                    }
 
-                    // 检查主物料
-                    if (materialCode === this.mainMaterialCode) {
-                        this.scanForm.mainBarcode = value;
-                        this.validateStatus.mainBarcode = true;
-                        await this.handleMainBarcode(value);
+                        // 自动填充所有子物料条码
+                        this.processMaterials.forEach(material => {
+                            if (material.scanOperation) {
+                                this.$set(this.scanForm.barcodes, material._id, transformedBarcode);
+                                this.$set(this.validateStatus, material._id, true);
+                            }
+                        });
 
                         tone(smcg);
                         this.$notify({
-                            title: '主物料扫描成功',
+                            title: '扫描成功',
                             dangerouslyUseHTMLString: true,
                             message: `
                                 <div style="line-height: 1.5">
                                     <div>物料名称: ${this.mainMaterialName}</div>
                                     <div>物料编码: ${materialCode}</div>
-                                    <div>条码: ${value}</div>
+                                    <div>条码: ${cleanValue}</div>
+                                    ${this.enableConversion ? `<div>转化条码: ${transformedBarcode}</div>` : ''}
                                 </div>
                             `,
                             type: 'success',
                             duration: 3000,
                             position: 'top-right'
                         });
-                        matched = true;
-                    }
 
-                    // 检查子物料
-                    if (!matched) {
-                        for (const material of this.processMaterials) {
-                            if (material.materialCode === materialCode) {
-                                // 如果是批次物料
-                                if (material.isBatch) {
-                                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                                    const usageKey = `${cacheKey}_usage`;
-                                    const cachedBarcode = localStorage.getItem(cacheKey);
-
-                                    // 如果扫描的是新的批次条码
-                                    if (cachedBarcode !== value) {
-                                        // 查询新批次条码的使用次数
-                                        const count = await this.queryBatchUsageCount(value, material._id);
-
-                                        // 如果设置了使用次数限制且已达到限制
-                                        if (material.batchQuantity && count >= material.batchQuantity && material.batchQuantity > 0) {
-                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
-                                            tone(pcwlxz);
-                                            this.popupType = 'ng';
-                                            this.showPopup = true;
-                                            return;
-                                        }
-
-                                        // 更新缓存和使用次数
-                                        localStorage.setItem(cacheKey, value);
-                                        localStorage.setItem(usageKey, count.toString());
-                                        this.$set(this.batchUsageCount, material._id, count);
-                                    } else {
-                                        // 使用现有批次条码
-                                        const currentUsage = parseInt(localStorage.getItem(usageKey) || '0');
-
-                                        // 只有当达到使用限制时才清除
-                                        if (material.batchQuantity && currentUsage >= material.batchQuantity && material.batchQuantity > 0) {
-                                            localStorage.removeItem(cacheKey);
-                                            localStorage.removeItem(usageKey);
-                                            this.$set(this.scanForm.barcodes, material._id, '');
-                                            this.$set(this.validateStatus, material._id, false);
-                                            this.$message.warning(`批次物料条码 ${value} 已达到使用次数限制 ${material.batchQuantity}次`);
-                                            tone(pcwlxz);
-                                            return;
-                                        }
-                                    }
-                                }
-
-                                this.$set(this.scanForm.barcodes, material._id, value);
-                                this.$set(this.validateStatus, material._id, true);
-
-                                // 处理子物料条码
-                                await this.handleSubBarcode(material._id, materialCode);
-
-                                tone(smcg);
-                                this.$notify({
-                                    title: '子物料扫描成功',
-                                    dangerouslyUseHTMLString: true,
-                                    message: `
-                                        <div style="line-height: 1.5">
-                                            <div>物料名称: ${material.materialName}</div>
-                                            <div>物料编码: ${material.materialCode}</div>
-                                            <div>条码: ${value}</div>
-                                            ${isValidResult.relatedBill ? `<div>关联单号: ${isValidResult.relatedBill}</div>` : ''}
-                                        </div>
-                                    `,
-                                    type: 'success',
-                                    duration: 3000,
-                                    position: 'top-right'
-                                });
-                                matched = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!matched) {
-                        this.$message.error('条码不匹配');
+                        // 所有条码都已扫描完成，自动提交
+                        await this.handleConfirm();
+                    } else {
+                        this.$message.error('条码不匹配主物料');
                         this.popupType = 'ng';
                         this.showPopup = true;
                         setTimeout(() => {
-                            tone(tmyw); // 延迟播放错误提示音
+                            tone(tmyw);
                         }, 300);
-                        this.unifiedScanInput = '';
-                        this.$refs.scanInput.focus();
-                        return;
-                    }
-
-                    // 检查是否所有需要扫描的条码都已扫描
-                    const allScanned = Object.values(this.validateStatus).every(status => {
-                        const material = this.processMaterials.find(m =>
-                            this.validateStatus[m._id] === status && !m.scanOperation
-                        );
-                        return material ? true : status === true;
-                    });
-
-                    if (allScanned) {
-                        this.$notify({
-                            title: '扫描完成',
-                            dangerouslyUseHTMLString: true,
-                            message: `
-                                <div style="line-height: 1.5">
-                                    <div>所有物料已扫描完成</div>
-                                    <div style="color: #67C23A">正在发送确认提交...</div>
-                                </div>
-                            `,
-                            type: 'success',
-                            duration: 3000,
-                            position: 'top-right'
-                        });
-
-                        // 所有条码都已扫描完成,进行scanComponents提交
-                        await this.handleConfirm();
-                    } else {
-                        // 显示剩余需要扫描的物料
-                        const remainingMaterials = this.processMaterials
-                            .filter(material =>
-                                !this.validateStatus[material._id] && material.scanOperation
-                            )
-                            .map(material => `${material.materialName}(${material.materialCode})`)
-                            .join('\n');
-
-                        if (remainingMaterials) {
-                            this.$notify({
-                                title: '继续扫描',
-                                dangerouslyUseHTMLString: true,
-                                message: `
-                                    <div style="line-height: 1.5">
-                                        <div>请继续扫描以下物料：</div>
-                                        <div style="color: #E6A23C; white-space: pre-line">${remainingMaterials}</div>
-                                    </div>
-                                `,
-                                type: 'info',
-                                duration: 3000,
-                                position: 'top-right'
-                            });
-                        }
                     }
 
                 } catch (error) {
                     console.error('扫描处理失败:', error);
                     setTimeout(() => {
-                        tone(tmyw); // 延迟播放错误提示音
+                        tone(tmyw);
                     }, 1000);
                     this.$notify({
                         title: '扫描失败',
@@ -1439,7 +1315,7 @@ export default {
                     }
                 });
 
-                // 只清除工序相关��localStorage,保留产线相关的缓存
+                // 只清除工序相关localStorage,保留产线相关的缓存
                 localStorage.removeItem('mainMaterialId');
                 localStorage.removeItem('processStepId');
                 localStorage.removeItem('materialName');
@@ -1587,7 +1463,26 @@ export default {
                     let printData = {
                         printBarcode: this.scanForm.mainBarcode,
                     }
+
+                    //查询是否有相关的打印数据
+                    const prePrintData = await getData('preProductionBarcode', {
+                        query: { printBarcode: this.scanForm.mainBarcode }
+                    });
+
+                    if (prePrintData.data && prePrintData.data.length > 0) {
+                        printData.printBarcode = prePrintData.data[0].printBarcode;
+                        printData.printBarcodeText = prePrintData.data[0].barcode;
+
+                        if (this.enableConversion) {
+                            printData.printBarcode = prePrintData.data[0].transformedPrintBarcode;
+                            printData.printBarcodeText = prePrintData.data[0].transformedBarcode;
+                        }
+
+                    }
+
+
                     this.printData = printData;
+                    console.log(this.printData, 'this.printData')
                     this.$nextTick(() => {
                         this.$refs.hirInput.handlePrints2();
                     });
@@ -1884,6 +1779,17 @@ export default {
                 this.$message.error('保存打印模板失败');
             }
         },
+        // 添加转化开关处理方法
+        handleConversionChange(value) {
+            this.enableConversion = value;
+            this.conversionMode = value; // 保存到本地存储
+            this.$message.success(`已${value ? '开启' : '关闭'}转化模式`);
+
+            if (value) {
+                // 如果开启转化模式，可以在这里添加相关逻辑
+                console.log('转化模式已开启');
+            }
+        },
     },
     async created() {
         // 从本地存储中恢复自动打印开关状态
@@ -1963,6 +1869,9 @@ export default {
             });
         }
 
+        // 从本地存储获取转化模式设置
+        const savedConversion = localStorage.getItem('enableConversion');
+        this.enableConversion = savedConversion === 'true';
     },
     mounted() {
 
@@ -2386,5 +2295,20 @@ export default {
 .batch-usage-tag {
     min-width: 60px;
     text-align: center;
+}
+
+/* 添加开关组样式 */
+.switch-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.print-switch {
+    margin-left: 10px;
+}
+
+.print-switch+.print-switch {
+    margin-left: 20px;
 }
 </style>

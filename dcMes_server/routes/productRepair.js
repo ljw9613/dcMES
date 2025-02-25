@@ -117,11 +117,11 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
       for (const barcode of form.barcodes) {
         try {
           const materialProcessFlowData = await materialProcessFlow
-            .findOne({ barcode })
+            .findOne({ barcode: barcode.barcode })
             .populate("productionPlanWorkOrderId");
 
           if (!materialProcessFlowData) {
-            errors.push(`条码 ${barcode} 未找到相关信息`);
+            errors.push(`条码 ${barcode.barcode} 未找到相关信息`);
             continue;
           }
 
@@ -135,14 +135,14 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
           });
 
           if (!!productRepairData) {
-            errors.push(`条码 ${barcode} 已创建,且状态为待审核,无法再次创建`);
+            errors.push(`条码 ${barcode.barcode} 已创建,且状态为待审核,无法再次创建`);
             continue;
           }
 
           const newRepair = new productRepair({
-            barcode:barcode.barcode,
-            newBarcode:barcode.newBarcode?barcode.newBarcode:undefined,
-            oldBarcode:barcode.oldBarcode?barcode.oldBarcode:undefined,
+            barcode: barcode.barcode,
+            newBarcode: barcode.newBarcode || undefined,
+            oldBarcode: barcode.oldBarcode || undefined,
             productionPlanWorkOrderId:
               materialProcessFlowData.productionPlanWorkOrderId?._id,
             workOrderNo:
@@ -167,7 +167,7 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
 
           successRecords.push(newRepair);
         } catch (error) {
-          errors.push(`条码 ${barcode} 创建失败: ${error.message}`);
+          errors.push(`条码 ${barcode.barcode} 创建失败: ${error.message}`);
         }
       }
 

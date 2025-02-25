@@ -71,7 +71,8 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">托盘组托列表</i>
-                    <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate" @template-change="handleTemplateChange" />
+                    <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
+                        @template-change="handleTemplateChange" />
                 </div>
             </div>
         </div>
@@ -165,7 +166,7 @@
                         {{ scope.row.productLineName }}
                         <el-tag size="mini" v-if="scope.row.productLineId && scope.row.productLineId.workshop">{{
                             scope.row.productLineId.workshop
-                            }}</el-tag>
+                        }}</el-tag>
                         <el-tag v-else>未记录生产车间</el-tag>
                     </template>
                 </el-table-column>
@@ -184,7 +185,7 @@
                 </el-table-column>
                 <el-table-column label="数量信息" align="center">
                     <template slot-scope="scope">
-                        <div>总数量: {{ scope.row.totalQuantity }}</div>
+                        <div>总数量: {{ scope.row.totalQuantity }} / {{ scope.row.palletBarcodes && scope.row.palletBarcodes.length }}</div>
                         <div v-if="scope.row.boxCount">箱数: {{ scope.row.boxCount }}</div>
                     </template>
                 </el-table-column>
@@ -195,8 +196,14 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center">
                     <template slot-scope="scope">
-                        <el-button type="text" style="color: red" v-if="hasInitializeTrayDocumentsPermission" @click="handleAllDelete(scope.row)">初始化单据</el-button>
-                        <el-button type="text" style="color: red" v-if="hasInitializeTrayDocumentsPermission" @click="Delete(scope.row)">删除单据</el-button>
+                        <el-button type="text" style="color: red" v-if="hasInitializeTrayDocumentsPermission"
+                            @click="handleAllDelete(scope.row)">初始化单据</el-button>
+                        <el-button type="text" style="color: red" v-if="hasInitializeTrayDocumentsPermission"
+                            @click="Delete(scope.row)">删除单据</el-button>
+                        <el-button type="text" style="color: #E6A23C" v-if="scope.row.status === 'STACKING'"
+                            @click="handleForceComplete(scope.row)">
+                            强制完成
+                        </el-button>
                         <el-button type="text" @click="handlePrint(scope.row)">打印单据</el-button>
                         <el-button type="text" style="color: orange" @click="showHistory(scope.row)">解绑记录</el-button>
                     </template>
@@ -763,7 +770,7 @@ export default {
 
         handleTemplateChange(template) {
             if (!template) return;
-            
+
             try {
                 this.printTemplate = template;
                 this.localPrintTemplate = template;
@@ -773,10 +780,35 @@ export default {
                 this.$message.error('保存打印模板失败');
             }
         },
+
+        handleForceComplete(row) {
+            this.$confirm('确认要强制完成该托盘的组托吗？此操作将修改当前数量为总数量。', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(async () => {
+                try {
+                    await updateData('material_palletizing', {
+                        query: { _id: row._id },
+                        update: {
+                            status: 'STACKED',
+                            totalQuantity: row.palletBarcodes.length
+                        }
+                    });
+                    this.$message.success('强制完成组托成功');
+                    this.fetchData();
+                } catch (error) {
+                    console.error('强制完成组托失败:', error);
+                    this.$message.error('强制完成组托失败');
+                }
+            }).catch(() => {
+                this.$message.info('已取消操作');
+            });
+        },
     },
     created() {
         this.fetchData();
-        
+
         // 加载本地缓存的打印模板
         const savedTemplate = this.localPrintTemplate;
         if (savedTemplate) {

@@ -45,6 +45,27 @@ router.post('/api/v1/material-barcode/create', async (req, res) => {
             });
         }
 
+        // 先查找是否有未使用的条码记录
+        const unusedBatch = await MaterialBarcodeBatch.findOne({ 
+            materialCode,
+            isUsed: false  // 假设模型中有 isUsed 字段标识是否使用
+        });
+
+        if (unusedBatch) {
+            // 如果找到未使用的条码，直接返回
+            return res.json({
+                code: 200,
+                success: true,
+                data: {
+                    batchId: unusedBatch.batchId,
+                    materialCode: unusedBatch.materialCode,
+                    ipAddress
+                },
+                message: '找到未使用的条码批次'
+            });
+        }
+
+        // 如果没有未使用的条码，创建新的批次号
         let batchId;
         let isUnique = false;
         let retryCount = 0;

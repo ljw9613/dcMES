@@ -189,10 +189,10 @@ export default {
       this.formData = {
         ...this.getInitialFormData(),
         FSaleOrderId: this.saleOrderId,
-        FBillNo: this.saleOrderData.FBillNo,
-        FCustId: this.saleOrderData.FCustId,
-        FCustCode: this.saleOrderData.FCustId_FNumber,
-        FCustName: this.saleOrderData.FCustId_FName
+        FBillNo: this.saleOrderData.FBillNo || '',
+        FCustId: this.saleOrderData.FCustId || '',
+        FCustCode: this.saleOrderData.FCustId_FNumber || '',
+        FCustName: this.saleOrderData.FCustId_FName || ''
       }
       this.editDialogVisible = true
     },

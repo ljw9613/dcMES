@@ -59,6 +59,45 @@
                 </el-col>
             </el-row>
 
+            <el-row :gutter="20" v-if="form.machineType === 'tianke电子秤'">
+                <el-col :span="12">
+                    <el-form-item label="检验值上限" prop="upperLimit">
+                        <el-input-number 
+                            v-model="form.upperLimit" 
+                            :precision="2"
+                            :step="0.1"
+                            :max="999999"
+                            placeholder="请输入检验值上限"
+                            style="width: 100%">
+                        </el-input-number>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="检验值下限" prop="lowerLimit">
+                        <el-input-number 
+                            v-model="form.lowerLimit" 
+                            :precision="2"
+                            :step="0.1"
+                            :max="999999"
+                            placeholder="请输入检验值下限"
+                            style="width: 100%">
+                        </el-input-number>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+                <el-col :span="24">
+                    <el-form-item label="是否需要维修检验" prop="isNeedMaintain">
+                        <el-switch
+                            v-model="form.isNeedMaintain"
+                            active-text="是"
+                            inactive-text="否">
+                        </el-switch>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+
             <el-form-item label="备注" prop="comment">
                 <el-input type="textarea" v-model="form.comment" placeholder="请输入备注信息"></el-input>
             </el-form-item>
@@ -153,13 +192,26 @@ export default {
                 machineCode: '',
                 machineIp: '',
                 principal: '',
-                comment: ''
+                comment: '',
+                upperLimit: null,
+                lowerLimit: null,
+                machineType: undefined,
+                isNeedMaintain: false,
             },
             rules: {
                 machineName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
                 machineCode: [{ required: true, message: '请输入设备编号', trigger: 'blur' }],
                 machineIp: [{ required: true, message: '请输入设备IP', trigger: 'blur' }],
-                principal: [{ required: true, message: '请输入负责人', trigger: 'blur' }]
+                principal: [{ required: true, message: '请输入负责人', trigger: 'blur' }],
+                upperLimit: [
+                    { required: true, message: '请输入检验值上限', trigger: 'blur' }
+                ],
+                lowerLimit: [
+                    { required: true, message: '请输入检验值下限', trigger: 'blur' }
+                ],
+                machineType: [
+                    { required: true, message: '请选择设备类型', trigger: 'change' }
+                ],
             },
             processStepOptions: [],
             submitLoading: false,
@@ -249,7 +301,11 @@ export default {
                     machineCode: '',
                     machineIp: '',
                     principal: '',
-                    comment: ''
+                    comment: '',
+                    upperLimit: null,
+                    lowerLimit: null,
+                    machineType: undefined,
+                    isNeedMaintain: false,
                 }
             }
         },
