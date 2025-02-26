@@ -1,0 +1,1 @@
+import{l}from"./language-D7yRWbpw.js";function g(e,r){const a=l();let n="";if(typeof e=="object"){switch(a.mainLanguage){case"chinese":n=e[r];break;case"english":n=e[r+"_en"];break}return n}else return"数据格式不支持"}export{g as l};

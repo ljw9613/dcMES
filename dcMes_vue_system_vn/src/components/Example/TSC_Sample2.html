@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+	<meta http-equiv="content-language" content="zh-cn" />
+	<meta name=COPYRIGHT content="Copyright (c) by TSC Auto ID Technology Co., Ltd.">
+	<!--<meta http-equiv="content-security-policy" content="connect-src 網址; child-src unsafe-inline">-->
+	<script src="./assert/js/base64.js"></script>
+	<script src="./assert/js/TSC.js"></script>
+	<style type="text/css">
+		* {
+			box-sizing: border-box;
+		}
+		html, body {
+			display: flex;
+			justify-content: center;
+
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			
+			background-color: #ece5ff;
+			font-family: 'Roboto', sans-serif;
+		}
+		.logo-div{
+			background-color: #ccccff;
+		}
+		.logo{
+			width: 500px;
+			display: table;
+			margin: 0 auto;
+		}
+		.container{
+			display: flex;
+			justify-content: center;
+		}
+		.ck-box {
+			width: 30px;
+			height: 30px;
+			position: relative;
+			font-size: 40px;
+		}
+		.ck-box-label {
+			font-size: 30px
+		}
+		.div-head{
+			align-items: center;
+			display: flex;
+		}
+		.interface-block{
+			background-color: #f0f0ff;
+			border:2px solid #ece5ff;
+			padding:20px
+		}
+		.btn{
+			font-size: 30px;
+			width:100%;
+		}
+		.select-usb{
+			width: 250px;
+			height: 30px;
+			font-size: 24px;
+		}
+		.select-driver{
+			width: 250px;
+			height: 30px;
+			font-size: 24px;
+		}
+		.input-label {
+			font-size: 30px
+		}
+		.input-ip {
+			width: 200px;
+			height: 30px;
+			font-size: 24px;
+		}
+	</style>
+</head>
+<body>
+
+	<div>
+		<div class="logo-div">
+			<img src="./assert/img/TSC_Logo.png" class="logo">
+		</div>
+		<div class = "container">
+			<div class="interface-block">
+				<div class = "div-head">
+					<input class="ck-box" type="checkbox" value="None" id="usb_check" onclick="usb_check_onclick()" checked />
+					<img src="./assert/img/usb.png" style="width: 40px;">
+					<label class="ck-box-label">USB Connection</label>
+				</div>
+				<div class="div-head" style="margin-top: 10px;">
+					<label  class="ck-box-label">Printers Name：</label>
+					<select size="1" id="usb_printers"  class="select-usb">
+					</select>
+				</div>
+			</div>
+			<div class="interface-block">
+				<div class = "div-head">
+					<input class="ck-box" type="checkbox" value="None" id="net_check" onclick="net_check_onclick()" />
+					<img src="./assert/img/net.png" style="width: 40px;">
+					<label class="ck-box-label">Network Connection</label>
+				</div>
+				<div>
+					<div class="div-head" style="margin-top: 10px;">
+						<label class="input-label">Printers IP Address：</label>
+						<input class="input-ip" type="input" value="" id="net_ip"/>
+					</div>
+					<div class="div-head" style="margin-top: 10px;">
+						<label class="input-label">Port Number：</label>
+						<input class="input-ip" type="input" value="9100" id="net_port"/>
+					</div>
+				</div>
+			</div>
+			<div class="interface-block">
+				<div class = "div-head">
+					<input class="ck-box" type="checkbox" value="None" id="driver_check" onclick="driver_check_onclick()" />
+					<label class="ck-box-label">Driver Connection</label>
+				</div>
+				<div class="div-head" style="margin-top: 10px;">
+					<label  class="ck-box-label">Driver Name：</label>
+					<select size="1" id="driver_printers"  class="select-driver">
+					</select>
+				</div>
+			</div>
+		</div>
+		<div class="interface-block">
+			<div>
+				<label class="ck-box-label">Generic Printing</label>
+			</div>
+			<div style="margin-top: 10px;">
+				<button class="btn" onclick="printTemplate_Onclick()">Print Template</button>
+			</div>
+			<div style="margin-top: 10px;">
+				<button class="btn" onclick="selftest_Onclick()">Printer Test Page</button>
+			</div>
+			<div style="margin-top: 10px;">
+				<button class="btn" onclick="printStatus_Onclick()">Get Printer Status</button>
+			</div>
+		</div>
+	</div>
+
+
+	<p id="demo"></p>
+
+	<script type="text/javascript">
+	const regexExp_IP = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+	const regexExp_Port = /^[1-9][0-9]*$/gi;
+	
+	var url = "ws://127.0.0.1:8888";
+	var usb_path;
+	
+	var usb_check = document.getElementById("usb_check");
+	var net_check = document.getElementById("net_check");
+	var driver_check = document.getElementById("driver_check");
+		
+	var usb_printers = document.getElementById("usb_printers");
+	var net_ip = document.getElementById("net_ip");
+	var net_port = document.getElementById("net_port");
+	var driver_printers = document.getElementById("driver_printers");
+	
+
+	window.onload=function(){
+		//Get usb list when onload
+		var obj = {"usb_list": []};
+		websocket_connection(obj);
+		
+		
+		//Get TSC PrintServer Version
+		var obj2 = {"about": []};
+		websocket_connection(obj2);
+		
+		//Get driver list when onload
+		var obj3 = {"driver_list": []};
+		websocket_connection(obj3);
+	}
+	
+	function usb_check_onclick() {
+		var usb_check = document.getElementById("usb_check");
+		var net_check = document.getElementById("net_check");
+		var driver_check = document.getElementById("driver_check");
+		usb_check.checked = true;
+		net_check.checked = false;
+		driver_check.checked = false;
+	}
+	
+	function net_check_onclick() {
+		var usb_check = document.getElementById("usb_check");
+		var net_check = document.getElementById("net_check");
+		var driver_check = document.getElementById("driver_check");
+		usb_check.checked = false;
+		net_check.checked = true;
+		driver_check.checked = false;
+	}
+	function driver_check_onclick() {
+		var usb_check = document.getElementById("usb_check");
+		var net_check = document.getElementById("net_check");
+		var driver_check = document.getElementById("driver_check");
+		usb_check.checked = false;
+		net_check.checked = false;
+		driver_check.checked = true;
+	}
+	function check_interface() {
+		if(usb_check.checked)
+		{
+			if(usb_printers.length <= 0)
+				return false;
+			else
+				return true;
+		}
+		else if(net_check.checked)
+		{
+			if(!regexExp_IP.test(net_ip.value))
+			{
+				regexExp_IP.lastIndex = 0;
+				regexExp_Port.lastIndex = 0;
+				alert("Invalid IP!");
+				return false;
+			}
+			else if(!regexExp_Port.test(net_port.value))
+			{
+				regexExp_IP.lastIndex = 0;
+				regexExp_Port.lastIndex = 0;
+				alert("Invalid Port!");
+				return false;
+			}
+			
+			regexExp_IP.lastIndex = 0;
+			regexExp_Port.lastIndex = 0;
+			return true;
+		}
+		else if(driver_check.checked)
+		{
+			if(driver_printers.length <= 0)
+				return false;
+			else
+				return true;
+		}
+		else
+			return false;
+	}
+	
+	function printTemplate_Onclick() {
+	
+		const u8 = new Uint8Array(2);
+		u8[0] = 13;
+		u8[1] = 10;
+		
+		
+		if(!check_interface())
+			return;
+			
+		var obj = {};
+		
+		init();
+		if(usb_check.checked)
+			openport_usb(usb_printers.value);
+		else if(net_check.checked)
+			openport_net(net_ip.value, net_port.value);
+		else if(driver_check.checked)
+			openport_driver(driver_printers.value);
+		
+		sendUint8Array(u8);
+		downloadpcx("D:\\Projects\\TSCPrintServer\\TSCPrintServer\\bin\\Debug\\Example\\assert\\file\\UL.PCX", "UL.PCX");
+		clearbuffer();
+		setup("100", "63", "4", "8", "0", "0", "0");
+		barcode("100", "150", "128", "200", "1", "0", "4", "4", "Barcode Test");
+		printerfont("100", "450", "3", "0", "3", "3", "Print Font Test");
+		windowsfont("100", "600", "100", "0", "3", "1", "Arial", "にっぽんごEnglish中文한글");
+		sendcommand_crlf("PUTPCX 800,150,\"UL.PCX\""); 
+		printlabel(1,1);
+		closeport();
+		
+		obj.functions_inorder = functions_inorder;
+		websocket_connection(obj);
+	}
+	
+	function selftest_Onclick() {
+		
+		if(!check_interface())
+			return;
+			
+		var obj = {};
+		
+		init();
+		if(usb_check.checked)
+			openport_usb(usb_printers.value);
+		else if(net_check.checked)
+			openport_net(net_ip.value, net_port.value);
+		else if(driver_check.checked)
+			openport_driver(driver_printers.value);
+		sendcommand_crlf("SELFTEST");
+		closeport();
+		
+		obj.functions_inorder = functions_inorder;
+		websocket_connection(obj);
+	}
+
+	function printStatus_Onclick() {
+		
+		if(!check_interface())
+			return;
+			
+		var obj = {};
+		
+		init();
+		if(usb_check.checked)
+			openport_usb(usb_printers.value);
+		else if(net_check.checked)
+			openport_net(net_ip.value, net_port.value);
+		else if(driver_check.checked)
+			openport_driver(driver_printers.value);
+		printerstatus();
+				printername();
+						printerserial();
+		closeport();
+		
+		obj.functions_inorder = functions_inorder;
+		websocket_connection(obj);
+	}
+
+
+	function websocket_connection(obj)
+	{
+		var websocket = new WebSocket(url);
+		websocket.onopen = function(e) {
+		  //alert("[open] Connection established");
+		  //alert("Sending to server");
+		  websocket.send(JSON.stringify(obj));
+		};
+
+		websocket.onmessage = function(event) {
+		  //alert(`[message] Data received from server: ${event.data}`);
+		  
+			if(event.data == "Finished")
+				websocket.close();
+			else
+			{
+				try {
+					const obj = JSON.parse(event.data);
+					if ('usb_list' in obj)
+					{
+						var combobox = document.getElementById("usb_printers");
+						if(obj.usb_list.length == 0)
+						{
+							alert(`Cannot find USB printer!`);
+						}
+						else
+						{
+							for(let i=0; i<obj.usb_list.length; i++)
+							{
+								var opt = document.createElement('option');
+								opt.value = obj.usb_list[i].USBPath;
+								opt.innerHTML = obj.usb_list[i].USBName + " (Path: " + Base64.decode(obj.usb_list[i].USBPath) + ")";
+								combobox.appendChild(opt);
+							}
+						}
+					}
+					if ('driver_list' in obj)
+					{
+						var combobox = document.getElementById("driver_printers");
+						if(obj.driver_list.length == 0)
+						{
+							alert(`Cannot find Driver printer!`);
+						}
+						else
+						{
+							for(let i=0; i<obj.driver_list.length; i++)
+							{
+								var opt = document.createElement('option');
+								opt.value = obj.driver_list[i].DriverName;
+								opt.innerHTML = obj.driver_list[i].DriverName;
+								combobox.appendChild(opt);
+							}
+						}
+					}
+					if ('Function_Failed' in obj)
+					{
+						alert(`Failed: ${obj.Function_Failed}`);
+					}
+					if ('printerstatus' in obj)
+					{
+						if(obj.printerstatus.length != 0)
+						{
+						
+							alert(`Printer Status:\r\n${obj.printerstatus.join("\r\n")}`);
+
+						}
+					}
+					if ('printername' in obj)
+					{
+						alert(`Printer Name: ${obj.printername}\r\n`);
+					}
+					if ('printerserial' in obj)
+					{
+						alert(`Printer Serial: ${obj.printerserial}\r\n`);
+					}
+					if ('about' in obj)
+					{
+						alert(`TSC PrintServer\r\nVersion: ${obj.about}\r\n`);
+					}
+				} catch (e) {
+					alert(`Invalid return value`);
+				}
+			}
+		};
+
+		websocket.onclose = function(event) {
+			if (event.code != 1000)
+			{
+				var reason = "";
+				if(event.code == 1001)
+					reason = "An endpoint is \"going away\", such as a server going down or a browser having navigated away from a page.";
+				else if(event.code == 1002)
+					reason = "An endpoint is terminating the connection due to a protocol error";
+				else if(event.code == 1003)
+					reason = "An endpoint is terminating the connection because it has received a type of data it cannot accept (e.g., an endpoint that understands only text data MAY send this if it receives a binary message).";
+				else if(event.code == 1004)
+					reason = "Reserved. The specific meaning might be defined in the future.";
+				else if(event.code == 1005)
+					reason = "No status code was actually present.";
+				else if(event.code == 1006)
+				   reason = "The connection was closed abnormally, e.g., without sending or receiving a Close control frame";
+				else if(event.code == 1007)
+					reason = "An endpoint is terminating the connection because it has received data within a message that was not consistent with the type of the message (e.g., non-UTF-8 [https://www.rfc-editor.org/rfc/rfc3629] data within a text message).";
+				else if(event.code == 1008)
+					reason = "An endpoint is terminating the connection because it has received a message that \"violates its policy\". This reason is given either if there is no other sutible reason, or if there is a need to hide specific details about the policy.";
+				else if(event.code == 1009)
+				   reason = "An endpoint is terminating the connection because it has received a message that is too big for it to process.";
+				else if(event.code == 1010) // Note that this status code is not used by the server, because it can fail the WebSocket handshake instead.
+					reason = "An endpoint (client) is terminating the connection because it has expected the server to negotiate one or more extension, but the server didn't return them in the response message of the WebSocket handshake. <br /> Specifically, the extensions that are needed are: " + event.reason;
+				else if(event.code == 1011)
+					reason = "A server is terminating the connection because it encountered an unexpected condition that prevented it from fulfilling the request.";
+				else if(event.code == 1015)
+					reason = "The connection was closed due to a failure to perform a TLS handshake (e.g., the server certificate can't be verified).";
+				else
+					reason = "Unknown reason";
+				
+					alert(`[close] Connection closed due to error, code=${event.code} reason=${reason}`);
+				}
+		};
+
+		websocket.onerror = function(error) {
+		  //alert(`[error] ${error.message}`);
+		};
+	}
+
+	</script>
+
+</body>
+</html>
