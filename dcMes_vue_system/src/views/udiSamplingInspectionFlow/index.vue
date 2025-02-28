@@ -1590,13 +1590,13 @@ export default {
         // 转换数据为Excel格式
         const excelData = resultData.map((item) => ({
           型号: item.materialName || "-",
-          客户订单: item.saleOrderNo ? item.saleOrderNo : "-",
+          客户订单: "/",
           UDI序列号: item.barcode
             ? item.barcode.substring(item.barcode.length - 12)
             : "-", //
           生产批号: item.batchNo || "-",
-          外箱UDI: item.barcodeValidation.printBarcode || "-", //
-          彩盒UDI: item.barcodeValidation.transformedBarcode || "-", //
+          外箱UDI: item.barcodeValidation.transformedBarcode || "-", //
+          彩盒UDI: item.barcodeValidation.printBarcode || "-", //
           产品UDI: item.barcode || "-", //
           生产日期: item.createAt ? this.formatDate(item.createAt) : "-",
         }));
