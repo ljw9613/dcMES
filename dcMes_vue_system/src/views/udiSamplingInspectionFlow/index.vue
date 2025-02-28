@@ -1618,22 +1618,22 @@ export default {
                 }
 
                 //查询对应的条码记录
-                const result2 = await getData('material_process_flow', {
-                    query: { barcode: this.scanForm.barcode }
-                });
+                // const result2 = await getData('material_process_flow', {
+                //     query: { barcode: this.scanForm.barcode }
+                // });
 
-                if (result2.code !== 200 || result2.data.length === 0) {
-                    this.$message.error('未找到该产品条码生产记录');
-                    this.scanForm.barcode = '';
-                    this.$refs.barcodeInput.focus();
-                    return;
-                }
+                // if (result2.code !== 200 || result2.data.length === 0) {
+                //     this.$message.error('未找到该产品条码生产记录');
+                //     this.scanForm.barcode = '';
+                //     this.$refs.barcodeInput.focus();
+                //     return;
+                // }
 
-                console.log(result2, 'result2');
+                // console.log(result2, 'result2');
 
                 if (result.code === 200 && result.data.length > 0) {
                     this.currentBarcodeData = result.data[0];
-                    this.currentBarcodeData.materialProcessFlowId = result2.data[0]._id;
+                    // this.currentBarcodeData.materialProcessFlowId = result2.data[0]._id;
                     this.showBarcodeValidation = true;
                     this.barcodeValidation.barcode = true;
 
