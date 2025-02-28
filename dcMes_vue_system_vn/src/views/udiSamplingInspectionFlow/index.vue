@@ -177,15 +177,14 @@
         <el-dialog title="导出选项" :visible.sync="exportDialogVisible" width="400px" :close-on-click-modal="false">
             <el-form :model="exportForm" label-width="0px">
                 <el-form-item>
-                    <el-radio-group v-model="exportForm.exportOption"
-                        style="width: 100%; height: 100%;align-items: center;display: flex;flex-wrap: wrap; justify-content: space-around;">
-                        <el-radio-button border label="search" value="search"></el-radio-button>
-                        <el-radio-button border label="all" value="all"></el-radio-button>
+                    <el-radio-group v-model="exportForm.exportOption" style="width: 100%; display: flex; justify-content: space-around;">
+                        <el-radio-button border label="按搜索结果导出" value="search"></el-radio-button>
+                        <el-radio-button border label="导出全部数据" value="all"></el-radio-button>
                     </el-radio-group>
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
-                <el-button @click="exportDialogVisible = false">取 消</el-button>
+                <el-button @click="exportDialogVisible = false" type="default">取 消</el-button>
                 <el-button type="primary" @click="confirmExport" :loading="exportLoading">
                     确 定
                 </el-button>
