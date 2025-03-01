@@ -1301,6 +1301,23 @@ export default {
                     let cleanValue = value.trim().replace(/[\r\n]/g, '');
                     if (!cleanValue) return;
 
+                    //是否为升级条码
+                    const preProductionResponse = await getData('preProductionBarcode', {
+                        query: {
+                            transformedPrintBarcode: cleanValue,
+                        },
+                        select: {
+                            transformedPrintBarcode: 1,
+                            printBarcode: 1,
+                        },
+                        limit: 1
+                    });
+
+                    if (preProductionResponse.data && preProductionResponse.data.length > 0) {
+                        console.log('升级条码:', preProductionResponse.data[0]);
+                        cleanValue = preProductionResponse.data[0].printBarcode;
+                    }
+
                     // 验证条码格式和获取物料编码
                     const isValidResult = await this.validateBarcode(cleanValue);
                     if (!isValidResult.isValid) {
@@ -2221,17 +2238,15 @@ export default {
             } catch (error) {
                 console.error('确认失败:', error);
 
-                // 重置扫描表单
-                this.resetScanForm();
-
-                // 清空物料匹配区域的数据
-                this.scanForm.mainBarcode = '';
-                this.validateStatus.mainBarcode = false;
+                // 清空主条码和子物料的扫描数据
+                this.resetScanForm(); // 清空扫描表单
+                this.scanForm.mainBarcode = ''; // 清空主条码
+                this.validateStatus.mainBarcode = false; // 重置主条码验证状态
 
                 // 清空所有子物料的扫描数据
                 this.processMaterials.forEach(material => {
-                    this.$set(this.scanForm.barcodes, material._id, '');
-                    this.$set(this.validateStatus, material._id, false);
+                    this.$set(this.scanForm.barcodes, material._id, ''); // 清空子物料条码
+                    this.$set(this.validateStatus, material._id, false); // 重置子物料验证状态
                 });
 
                 // 如果是批次物料相关的错误，清除批次物料缓存

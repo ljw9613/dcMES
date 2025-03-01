@@ -37,7 +37,7 @@
                                             <span>{{ item.FNumber }} - {{ item.FName }}</span>
                                             <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{
                                                 item.FUseOrgId_FName
-                                                }}</el-tag>
+                                            }}</el-tag>
                                         </div>
                                     </div>
                                 </template>
@@ -1325,6 +1325,30 @@ export default {
 
                     // 根据不同模式处理扫描值
                     if (this.scanMode === 'rfid') {
+                        // 查询RFID标签对应的主条码
+                        let rfidResponse = await getData('material_process_flow', {
+                            query: {
+                                'processNodes': {
+                                    $elemMatch: {
+                                        $and: [
+                                            { isRfid: { $eq: true } },  // 必须是RFID节点
+                                            { barcode: { $eq: cleanValue } }, // 必须匹配扫描的条码
+                                        ]
+                                    }
+                                }
+                            }
+                        });
+                        if (rfidResponse.data && rfidResponse.data.length > 0) {
+                            cleanValue = rfidResponse.data[0].barcode;
+                        } else {
+                            this.unifiedScanInput = '';
+                            this.$refs.scanInput.focus();
+                            this.$message.error('未找到该RFID标签对应的条码');
+                            this.popupType = 'ng';
+                            this.showPopup = true;
+                            tone(tmyw);
+                            return;
+                        }
                         // RFID模式下的特殊处理
                         // if (!cleanValue.startsWith('RF')) {
                         //     this.$message.error('无效的RFID标签格式');
@@ -1441,30 +1465,7 @@ export default {
                             }
                         }
 
-                        // 查询RFID标签对应的主条码
-                        let rfidResponse = await getData('material_process_flow', {
-                            query: {
-                                'processNodes': {
-                                    $elemMatch: {
-                                        $and: [
-                                            { isRfid: { $eq: true } },  // 必须是RFID节点
-                                            { barcode: { $eq: cleanValue } }, // 必须匹配扫描的条码
-                                        ]
-                                    }
-                                }
-                            }
-                        });
-                        if (rfidResponse.data && rfidResponse.data.length > 0) {
-                            cleanValue = rfidResponse.data[0].barcode;
-                        } else {
-                            this.unifiedScanInput = '';
-                            this.$refs.scanInput.focus();
-                            this.$message.error('未找到该RFID标签对应的条码');
-                            this.popupType = 'ng';
-                            this.showPopup = true;
-                            tone(tmyw);
-                            return;
-                        }
+
                     }
 
 

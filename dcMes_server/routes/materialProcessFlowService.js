@@ -653,4 +653,23 @@ router.post("/api/v1/batch-update-related-bills", async (req, res) => {
   }
 });
 
+// 验证最近10天的流程数据
+router.get("/api/v1/validate-recent-flows", async (req, res) => {
+  try {
+    const result = await MaterialProcessFlowService.validateRecentFlows();
+    res.json({
+      code: 200,
+      success: true,
+      data: result,
+      message: "验证完成"
+    });
+  } catch (error) {
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

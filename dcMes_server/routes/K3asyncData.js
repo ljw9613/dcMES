@@ -16,7 +16,7 @@ const asyncK3Schedule = async () => {
   console.log("定时同步金蝶云数据开启");
 
   // 每天凌晨3点执行备份
-  schedule.scheduleJob("0 3 * * *", async () => {
+  schedule.scheduleJob("0 12 * * *", async () => {
     try {
       // 计算昨天的日期范围
       const startDate = new Date();

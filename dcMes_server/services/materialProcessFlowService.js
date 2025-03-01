@@ -2520,6 +2520,105 @@ class MaterialProcessFlowService {
       throw error;
     }
   }
+
+  static async validateRecentFlows() {
+    try {
+      console.log('开始验证最近10天的流程数据...');
+      
+      // 获取最近10天的数据
+      const tenDaysAgo = new Date();
+      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+      const flows = await MaterialProcessFlow.find({
+        createdAt: { $gte: tenDaysAgo }
+      }).populate('materialId');
+
+      console.log(`共找到 ${flows.length} 条流程记录需要验证`);
+      const invalidRecords = [];
+      let processedCount = 0;
+
+      // 遍历每个流程记录
+      for (const flow of flows) {
+        processedCount++;
+        console.log(`\n正在处理第 ${processedCount}/${flows.length} 条记录`);
+        console.log(`主条码: ${flow.barcode}, 物料: ${flow.materialId?.FName}(${flow.materialId?.FNumber})`);
+
+        // 验证主条码
+        console.log('验证主条码...');
+        const mainBarcodeValidation = await this.validateBarcodeWithMaterial(
+          flow.barcode,
+          flow.materialId
+        );
+
+        if (!mainBarcodeValidation.isValid) {
+          console.log(`❌ 主条码验证失败: ${mainBarcodeValidation.error || '未知错误'}`);
+        } else {
+          console.log('✅ 主条码验证通过');
+        }
+
+        const invalidComponents = [];
+
+        // 检查每个工序节点的组件
+        if (flow.processNodes && flow.processNodes.length > 0) {
+          console.log(`\n开始验证工序节点组件, 共 ${flow.processNodes.length} 个节点`);
+          
+          for (const node of flow.processNodes) {
+            if (node.nodeType === 'MATERIAL' && node.barcode) {
+              console.log(`\n验证物料节点: ${node.materialName}(${node.materialCode})`);
+              console.log(`条码: ${node.barcode}`);
+              
+              // 获取组件物料信息
+              const componentMaterial = await Material.findById(node.materialId);
+              if (componentMaterial) {
+                const componentValidation = await this.validateBarcodeWithMaterial(
+                  node.barcode,
+                  componentMaterial
+                );
+
+                if (!componentValidation.isValid) {
+                  console.log(`❌ 组件条码验证失败: ${componentValidation.error || '未知错误'}`);
+                  invalidComponents.push({
+                    barcode: node.barcode,
+                    materialCode: componentMaterial.FNumber,
+                    materialName: componentMaterial.FName,
+                    processStepId: node.processStepId,
+                    processName: node.processName,
+                    error: componentValidation.error || '条码验证失败'
+                  });
+                } else {
+                  console.log('✅ 组件条码验证通过');
+                }
+              } else {
+                console.log(`⚠️ 未找到物料信息: ${node.materialId}`);
+              }
+            }
+          }
+        }
+
+        // 如果主条码或任何组件验证失败，添加到无效记录列表
+        if (!mainBarcodeValidation.isValid || invalidComponents.length > 0) {
+          invalidRecords.push({
+            mainBarcode: flow.barcode,
+            materialCode: flow.materialId.FNumber,
+            materialName: flow.materialId.FName,
+            createdAt: flow.createdAt,
+            mainBarcodeValid: mainBarcodeValidation.isValid,
+            mainBarcodeError: mainBarcodeValidation.error,
+            invalidComponents: invalidComponents
+          });
+        }
+      }
+
+      return {
+        totalChecked: flows.length,
+        invalidCount: invalidRecords.length,
+        invalidRecords
+      };
+    } catch (error) {
+      console.error('验证流程数据失败:', error);
+      throw new Error(`验证流程数据失败: ${error.message}`);
+    }
+  }
 }
 
 module.exports = MaterialProcessFlowService;
