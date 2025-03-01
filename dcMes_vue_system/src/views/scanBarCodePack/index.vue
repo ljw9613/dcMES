@@ -2400,6 +2400,8 @@ export default {
       }
 
       let workOrder = workOrderResult.data[0]
+      
+      console.log("🚀 ~ initializePackingBarcode ~ workOrder:", workOrder)
 
       // 生成条码逻辑
       const barcodeResult = await this.generateBarcode(
