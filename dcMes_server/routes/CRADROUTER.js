@@ -37,7 +37,7 @@ const materialBarcodeBatch = require("../model/project/materialBarcodeBatch");
 const barcodeSegmentRuleMaterial = require("../model/project/barcodeSegmentRuleMaterial");
 const preProductionBarcode = require("../model/project/preProductionBarcode");
 const udiSamplingInspectionFlow = require("../model/project/udiSamplingInspectionFlow");
-
+const packBarcode = require("../model/project/packBarcode");
 
 //wms模型
 const warehouseEntry = require("../model/warehouse/warehouseEntry");
@@ -118,7 +118,7 @@ ADDROUTER(router, "k3_SAL_OutStock", K3_SAL_OutStock);
 ADDROUTER(router, "materialBarcodeBatch", materialBarcodeBatch);
 ADDROUTER(router, "barcodeSegmentRuleMaterial", barcodeSegmentRuleMaterial);
 ADDROUTER(router, "preProductionBarcode", preProductionBarcode);
-
+ADDROUTER(router, "packBarcode", packBarcode);
 
 
 ADDROUTER(router, "productDiNum", productDiNum);

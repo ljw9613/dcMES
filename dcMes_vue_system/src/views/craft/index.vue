@@ -1385,10 +1385,12 @@ export default {
                     });
 
                     this.$message.success('删除成功');
-                    this.fetchProcessData();
 
                     // 3. 更新工序排序
-                    await this.reorderProcessSteps();
+                    await this.reorderProcessSteps();  // 添加此行以重新排序工序
+                
+                    this.fetchProcessData();
+                
                 } catch (error) {
                     console.error('删除失败:', error);
                     this.$message.error('删除失败: ' + error.message);
