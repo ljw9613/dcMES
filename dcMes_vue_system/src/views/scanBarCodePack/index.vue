@@ -2399,10 +2399,13 @@ export default {
         return;
       }
 
+      let workOrder = workOrderResult.data[0]
+
       // 生成条码逻辑
       const barcodeResult = await this.generateBarcode(
         rule,
         {
+          ...workOrder,
           lineNum: lineResult.data[0].lineNum,
         },
         serialNumber
