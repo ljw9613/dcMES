@@ -26,7 +26,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="展示条码">
+            <el-form-item label="明码">
               <el-input
                 v-model="searchForm.barcode"
                 placeholder="请输入条码"
@@ -110,14 +110,14 @@
       >
         <el-table-column type="selection" width="55" />
         <el-table-column label="序号" prop="serialNumber" width="80" />
-        <el-table-column label="展示条码" prop="barcode" />
-        <el-table-column label="转换条码" prop="transformedBarcode">
+        <el-table-column label="明码" prop="barcode" />
+        <el-table-column label="暗码" prop="printBarcode" />
+        <el-table-column label="转换明码" prop="transformedBarcode">
           <template slot-scope="{ row }">
             {{ row.transformedBarcode || "-" }}
           </template>
         </el-table-column>
-        <el-table-column label="打印条码" prop="printBarcode" />
-        <el-table-column label="转换打印条码" prop="transformedPrintBarcode">
+        <el-table-column label="转换暗码" prop="transformedPrintBarcode">
           <template slot-scope="{ row }">
             {{ row.transformedPrintBarcode || "-" }}
           </template>
@@ -798,7 +798,7 @@ export default {
           let displayValue = baseValue;
           let printValue = baseValue;
 
-          // 展示条码处理（默认显示前缀和后缀）
+          // 明码处理（默认显示前缀和后缀）
           if (segment.config.prefix) {
             displayValue = segment.config.prefix + displayValue;
           }
@@ -807,7 +807,7 @@ export default {
           }
           displayValues.push(displayValue);
 
-          // 打印条码处理（只在showPrefix/showSuffix为true时显示）
+          // 暗码处理（只在showPrefix/showSuffix为true时显示）
           if (segment.config.prefix && segment.config.showPrefix === true) {
             printValue = segment.config.prefix + printValue;
           }
@@ -823,7 +823,7 @@ export default {
             let transformedValue = transformedBase;
             let transformedPrintValue = transformedBase;
 
-            // 转换后的展示条码
+            // 转换后的明码
             if (segment.config.prefix) {
               transformedValue = segment.config.prefix + transformedValue;
             }
@@ -832,7 +832,7 @@ export default {
             }
             transformedValues.push(transformedValue);
 
-            // 转换后的打印条码
+            // 转换后的暗码
             if (segment.config.prefix && segment.config.showPrefix === true) {
               transformedPrintValue =
                 segment.config.prefix + transformedPrintValue;
@@ -1157,7 +1157,7 @@ export default {
     handlePrint(row) {
       let printData = { ...row };
       printData.createAt = this.formatDate(row.createAt);
-      // 使用打印条码进行打印
+      // 使用暗码进行打印
       printData.printBarcodeText = row.printBarcode.substring(
         row.printBarcode.length - 13
       ); // 截取后13位

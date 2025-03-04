@@ -13,6 +13,8 @@
       <el-table-column prop="FCustPOLineNo" label="客户PO行号" min-width="100"></el-table-column>
       <el-table-column prop="FSapId" label="SAP ID" min-width="120"></el-table-column>
       <el-table-column prop="FPurchaseOrderNo" label="采购订单号" min-width="120"></el-table-column>
+      <el-table-column prop="FCustMaterialName" label="客户物料名称" min-width="120"></el-table-column>
+      <el-table-column prop="FCustMaterialNameEn" label="客户物料名称（英文）" min-width="120"></el-table-column>
       <el-table-column prop="FStatus" label="状态" width="100">
         <template slot-scope="scope">
           <el-tag :type="scope.row.FStatus === 'ENABLE' ? 'success' : 'info'">
@@ -57,6 +59,17 @@
               <el-input v-model="formData.FPurchaseOrderNo" clearable></el-input>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="客户物料名称" prop="FCustMaterialName">
+              <el-input v-model="formData.FCustMaterialName" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="客户物料名称（英文）" prop="FCustMaterialNameEn">
+              <el-input v-model="formData.FCustMaterialNameEn" clearable></el-input>
+            </el-form-item>
+          </el-col>
+
         </el-row>
 
         <el-row :gutter="20">
@@ -122,6 +135,12 @@ export default {
         ],
         FPurchaseOrderNo: [
           { required: true, message: '请输入采购订单号', trigger: 'blur' }
+        ],
+        FCustMaterialName: [
+          { required: false, message: '请输入客户物料名称', trigger: 'blur' }
+        ],
+        FCustMaterialNameEn: [
+          { required: false, message: '请输入客户物料名称（英文）', trigger: 'blur' }
         ]
       }
     }

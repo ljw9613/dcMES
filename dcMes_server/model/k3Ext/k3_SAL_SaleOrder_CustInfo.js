@@ -20,6 +20,10 @@ var saleOrderCustInfoSchema = new mongoose.Schema({
   FCreateTime: { type: Date, default: Date.now }, // 创建时间
   FModifyTime: { type: Date }, // 修改时间
   FRemark: { type: String }, // 备注
+
+  // 客户物料名称、客户物料名称（英文）
+  FCustMaterialName: { type: String }, // 客户物料名称
+  FCustMaterialNameEn: { type: String }, // 客户物料名称（英文）
   
   // 状态信息
   FStatus: { type: String, default: 'ENABLE' }, // 状态：ENABLE-启用，DISABLE-禁用

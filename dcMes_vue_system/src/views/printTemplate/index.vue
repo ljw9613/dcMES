@@ -118,9 +118,9 @@
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
-                        <!-- <el-button type="text" size="small" @click="handlePreview(scope.row)">
-                            <i class="el-icon-view"></i> 预览
-                        </el-button> -->
+                        <el-button type="text" size="small" @click="handlePrint(scope.row)">
+                            <i class="el-icon-printer"></i> 打印
+                        </el-button>
                         <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
@@ -133,6 +133,19 @@
             @submit="handleSubmit" />
         <el-dialog title="打印模板" :visible="dialogVisible1" fullscreen @close="closeDialog">
             <Designer autoConnect :template="template" @onDesigned="onDesigned" style="height: 80vh;" />
+        </el-dialog>
+
+        <!-- 添加批量打印对话框 -->
+        <el-dialog title="批量打印" :visible.sync="printDialogVisible" width="30%">
+            <el-form :model="printForm" label-width="100px">
+                <el-form-item label="打印份数">
+                    <el-input-number v-model="printForm.copies" :min="1" :max="100"></el-input-number>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="printDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="confirmPrint">确认打印</el-button>
+            </div>
         </el-dialog>
     </div>
 </template>
@@ -177,6 +190,11 @@ export default {
             previewData: {},
             printData: {},
             printTemplate: null,
+            printDialogVisible: false,
+            printForm: {
+                copies: 1
+            },
+            currentPrintRow: null
         }
     },
     computed: {
@@ -480,6 +498,47 @@ export default {
             } catch (error) {
                 console.error('保存打印模板失败:', error);
                 this.$message.error('保存打印模板失败');
+            }
+        },
+
+        handlePrint(row) {
+            this.currentPrintRow = row;
+            this.printDialogVisible = true;
+        },
+
+        async confirmPrint() {
+            if (!this.currentPrintRow) return;
+            
+            try {
+                // 获取打印数据
+                let templateTypeObj = this.dict.type.templateType.find(item => 
+                    item.value === this.currentPrintRow.templateType
+                );
+                let businessTypeObj = this.dict.type.businessType.find(item => 
+                    item.value === this.currentPrintRow.businessType
+                );
+
+                let printData = {
+                    ...this.currentPrintRow,
+                    createAt: this.formatDate(this.currentPrintRow.createAt),
+                    templateType: templateTypeObj ? templateTypeObj.label : this.currentPrintRow.templateType,
+                    businessType: businessTypeObj ? businessTypeObj.label : this.currentPrintRow.businessType,
+                    status: this.currentPrintRow.status ? '启用' : '禁用'
+                };
+                
+                this.printData = printData;
+                
+                // 循环调用打印
+                for (let i = 0; i < this.printForm.copies; i++) {
+                    await this.$nextTick();
+                    await this.$refs.hirInput.handlePrints();
+                }
+                
+                this.$message.success(`已打印 ${this.printForm.copies} 份`);
+                this.printDialogVisible = false;
+            } catch (error) {
+                console.error('打印失败:', error);
+                this.$message.error('打印失败');
             }
         }
     },

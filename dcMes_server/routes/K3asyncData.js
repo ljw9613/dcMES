@@ -16,7 +16,7 @@ const asyncK3Schedule = async () => {
   console.log("定时同步金蝶云数据开启");
 
   // 每天凌晨3点执行备份
-  schedule.scheduleJob("0 12 * * *", async () => {
+  schedule.scheduleJob("0 23 * * *", async () => {
     try {
       // 计算昨天的日期范围
       const startDate = new Date();
@@ -965,7 +965,6 @@ async function syncStockData(modelName, filterString, syncTask) {
         }
 
         const stockData = viewResponse.Result.Result;
-        console.log(JSON.stringify(stockData));
         console.log(stockData.StockFlexItem.length);
         // 转换数据格式
         const transformedData = {
@@ -1150,7 +1149,6 @@ async function syncPurchaseOrderData(modelName, filterString, syncTask) {
         }
 
         const orderData = viewResponse.Result.Result;
-        console.log(JSON.stringify(orderData));
 
         // 转换数据格式
         const transformedData = {
@@ -1381,7 +1379,6 @@ async function syncPickMtrlData(modelName, filterString, syncTask) {
         }
 
         const pickMtrlData = viewResponse.Result.Result;
-        console.log(JSON.stringify(pickMtrlData));
 
         // 转换数据格式
         const transformedData = {

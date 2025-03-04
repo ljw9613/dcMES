@@ -1940,6 +1940,7 @@ export default {
               localStorage.setItem(usageKey, newUsage.toString());
               this.$set(this.batchUsageCount, material._id, newUsage);
 
+
               // 如果达到使用限制，清除缓存
               if (
                 material.batchQuantity &&
@@ -1973,10 +1974,12 @@ export default {
                     },
                   });
                   let subBarcode = {};
+                  let SNlist = "";
                   for await (const [
                     index,
                     item,
                   ] of mainBarcode.data.entries()) {
+                    SNlist += item.barcode + ",";
                     const preProductionBarcode = await getData(
                       "preProductionBarcode",
                       {
@@ -2002,11 +2005,50 @@ export default {
                       subBarcode[`printBarcode${index}`] = item.barcode;
                     }
                   }
+                  // 数量
+                  let quantity = mainBarcode.data.length;
+                  console.log("🚀 ~ quantity:", quantity);
 
+                  //获取生产计划
+                  const workOrderResult = await getData(
+                    "production_plan_work_order",
+                    {
+                      query: {
+                        productionLineId: this.formData.productLine,
+                        status: "IN_PROGRESS",
+                      },
+                    }
+                  );
+
+                  if (workOrderResult.data.length === 0) {
+                    throw new Error("未查询到生产计划");
+                  }
+
+                  const workOrderData = workOrderResult.data[0];
+
+                  //获取销售订单拓展数据
+                  const saleOrderExtResult = await getData(
+                    "k3_SAL_SaleOrderExt",
+                    {
+                      query: {
+                        FSaleOrderId: workOrderData.saleOrderId,
+                      },
+                    }
+                  );
+                  let saleOrderExtData = {};
+                  if (saleOrderExtResult.data.length > 0) {
+                    saleOrderExtData = saleOrderExtResult.data[0];
+                  }
+
+                  console.log("🚀 ~ saleOrderExtData:", saleOrderExtData);
                   let printData = {
                     barcode: this.packingBarcode.barcode,
                     printBarcode: this.packingBarcode.printBarcode,
                     ...subBarcode,
+                    quantity: quantity,
+                    SNlist: SNlist,
+                    ...workOrderData,
+                    ...saleOrderExtData,
                   };
                   this.printData = printData;
                   this.$nextTick(() => {
@@ -2399,9 +2441,9 @@ export default {
         return;
       }
 
-      let workOrder = workOrderResult.data[0]
-      
-      console.log("🚀 ~ initializePackingBarcode ~ workOrder:", workOrder)
+      let workOrder = workOrderResult.data[0];
+
+      console.log("🚀 ~ initializePackingBarcode ~ workOrder:", workOrder);
 
       // 生成条码逻辑
       const barcodeResult = await this.generateBarcode(
