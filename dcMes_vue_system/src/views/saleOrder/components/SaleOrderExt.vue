@@ -176,6 +176,35 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="装箱数量" prop="FBoxNum">
+                <el-input v-model="formData.FBoxNum"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="托盘箱数量" prop="FPalletBoxNum">
+                <el-input v-model="formData.FPalletBoxNum"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="中箱尺寸" prop="FBoxSize">
+                <el-input v-model="formData.FBoxSize"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="毛重(箱)" prop="FGrossWeight">
+                <el-input v-model="formData.FGrossWeight"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="净重(箱)" prop="FNetWeight">
+                <el-input v-model="formData.FNetWeight"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
         </el-card>
   
         <!-- 按钮操作区 -->
@@ -225,7 +254,12 @@
           FBoxLabel: '',
           FBoxLabelImage: '',
           FBoxLabelPackage: '',
-          FOtherReq: ''
+          FOtherReq: '',
+          FBoxNum: '',
+          FPalletBoxNum: '',
+          FBoxSize: '',
+          FGrossWeight: '',
+          FNetWeight: ''
         },
         rules: {
           FSaleCountry: [{ required: true, message: '请输入销售国家地区', trigger: 'blur' }],

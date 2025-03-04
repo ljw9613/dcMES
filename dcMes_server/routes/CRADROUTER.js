@@ -75,6 +75,7 @@ const productRepair = require("../model/project/productRepair");
 
 // 引入 udi 模型
 const productDiNum = require("../model/project/ProductDiNum");
+const productEanNum = require("../model/project/productEanNum");
 
 //封装
 const ADDROUTER = require("../libs/request");
@@ -122,6 +123,7 @@ ADDROUTER(router, "packBarcode", packBarcode);
 
 
 ADDROUTER(router, "productDiNum", productDiNum);
+ADDROUTER(router, "productEanNum", productEanNum);
 ADDROUTER(router, "barcodeRule", barcodeRule);
 ADDROUTER(router, "barcodeSegmentRule", barcodeSegmentRule);
 ADDROUTER(router, "productBarcodeRule", productBarcodeRule);

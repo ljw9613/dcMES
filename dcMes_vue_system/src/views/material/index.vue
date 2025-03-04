@@ -171,6 +171,7 @@
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleViewFlowChart(scope.row)">查看流程图</el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">DI码管理</el-button>
+                        <el-button type="text" size="small" @click="handleEanEdit(scope.row)">EAN码管理</el-button>
                         <el-button type="text" size="small" @click="handleBarcodeRule(scope.row)">条码规则</el-button>
                         <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
                     </template>
@@ -336,6 +337,66 @@
                 </div>
             </el-dialog>
         </el-dialog>
+
+        <!-- EAN码管理对话框 -->
+        <el-dialog title="EAN码管理" :visible.sync="eanDialogVisible" width="60%">
+            <el-form ref="eanForm" :model="dataForm" label-width="100px">
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-form-item label="物料编码" prop="FNumber">
+                            <el-input v-model="dataForm.FNumber" readonly placeholder="物料编码"></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="物料名称" prop="FName">
+                            <el-input v-model="dataForm.FName" readonly placeholder="物料名称"></el-input>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+
+                <!-- 添加EAN码管理 -->
+                <el-row>
+                    EAN码列表
+                    <div class="ean-table-container">
+                        <div class="ean-table-header">
+                            <el-button type="primary" size="small" @click="handleAddEAN">新增EAN码</el-button>
+                        </div>
+
+                        <el-table :data="eanNumList" border style="width: 100%">
+                            <el-table-column prop="eanNum" label="EAN码">
+                                <template slot-scope="scope">
+                                    <el-input v-if="scope.row.isEdit" v-model="scope.row.eanNum" size="small"
+                                        placeholder="请输入EAN码">
+                                    </el-input>
+                                    <span v-else>{{ scope.row.eanNum }}</span>
+                                </template>
+                            </el-table-column>
+
+                            <el-table-column prop="createTime" label="创建时间" width="180">
+                                <template slot-scope="scope">
+                                    {{ formatDate(scope.row.createTime) }}
+                                </template>
+                            </el-table-column>
+
+                            <el-table-column label="操作" width="200" align="center">
+                                <template slot-scope="scope">
+                                    <el-button v-if="scope.row.isEdit" type="success" size="mini"
+                                        @click="saveEAN(scope.row)">保存</el-button>
+                                    <el-button v-if="scope.row.isEdit" type="info" size="mini"
+                                        @click="cancelEanEdit(scope.row)">取消</el-button>
+                                    <el-button v-if="!scope.row.isEdit" type="primary" size="mini"
+                                        @click="editEAN(scope.row)">编辑</el-button>
+                                    <el-button type="danger" size="mini" @click="deleteEAN(scope.row)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-row>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="eanDialogVisible = false">关 闭</el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -439,6 +500,9 @@ export default {
                 barcodeRule: ''
             },
             currentMaterialId: null,
+            eanDialogVisible: false,
+            eanNumList: [],
+            eanNumTemp: {},
         }
     },
     methods: {
@@ -1514,6 +1578,127 @@ export default {
                 }
             }
         },
+
+        // EAN码管理相关方法
+        async handleEanEdit(row) {
+            this.dataForm = JSON.parse(JSON.stringify(row));
+            await this.fetchEanNumList(row._id);
+            this.eanDialogVisible = true;
+        },
+
+        // 获取EAN码列表
+        async fetchEanNumList(productId) {
+            try {
+                const result = await getData('productEanNum', {
+                    query: { productId }
+                });
+                if (result.data) {
+                    this.eanNumList = result.data.map(item => ({
+                        ...item,
+                        isEdit: false
+                    }));
+                }
+            } catch (error) {
+                console.error('获取EAN码列表失败:', error);
+                this.$message.error('获取EAN码列表失败');
+            }
+        },
+
+        // 新增EAN码
+        handleAddEAN() {
+            if (this.eanNumList.length >= 1) {
+                this.$message.warning('EAN码最多只能有1个');
+                return;
+            }
+            this.eanNumList.unshift({
+                eanNum: '',
+                productId: this.dataForm._id,
+                createBy: this.$store.state.user.id,
+                createTime: new Date(),
+                isEdit: true,
+                isNew: true
+            });
+        },
+
+        // 编辑EAN码
+        editEAN(row) {
+            this.eanNumTemp = { ...row };
+            row.isEdit = true;
+        },
+
+        // 取消编辑EAN码
+        cancelEanEdit(row) {
+            if (row.isNew) {
+                this.eanNumList = this.eanNumList.filter(item => !item.isNew);
+            } else {
+                Object.assign(row, this.eanNumTemp);
+                row.isEdit = false;
+            }
+        },
+
+        // 保存EAN码
+        async saveEAN(row) {
+            try {
+                //
+                if (this.eanNumList.length > 1) {
+                    this.$message.warning('EAN码最多只能有1个');
+                    return;
+                }
+                if (!row.eanNum) {
+                    this.$message.warning('请输入EAN码');
+                    return;
+                }
+
+                if (row.isNew) {
+                    // 新增
+                    await addData('productEanNum', {
+                        productId: this.dataForm._id,
+                        eanNum: row.eanNum,
+                        createBy: this.$store.state.user.id
+                    });
+                } else {
+                    // 更新
+                    await updateData('productEanNum', {
+                        query: { _id: row._id },
+                        update: {
+                            $set: {
+                                eanNum: row.eanNum,
+                                updateBy: this.$store.state.user.id
+                            }
+                        }
+                    });
+                }
+
+                row.isEdit = false;
+                if (row.isNew) {
+                    delete row.isNew;
+                }
+
+                this.$message.success('保存成功');
+                await this.fetchEanNumList(this.dataForm._id);
+            } catch (error) {
+                console.error('保存EAN码失败:', error);
+                this.$message.error('保存EAN码失败');
+            }
+        },
+
+        // 删除EAN码
+        async deleteEAN(row) {
+            try {
+                await this.$confirm('确认删除该EAN码吗?', '提示', {
+                    type: 'warning'
+                });
+
+                await removeData('productEanNum', { query: { _id: row._id } });
+                this.$message.success('删除成功');
+                await this.fetchEanNumList(this.dataForm._id);
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('删除EAN码失败:', error);
+                    this.$message.error('删除EAN码失败');
+                }
+            }
+        },
     },
     created() {
         this.fetchData();
@@ -1665,6 +1850,15 @@ export default {
     margin-top: 10px;
 
     .di-table-header {
+        margin-bottom: 10px;
+        text-align: right;
+    }
+}
+
+.ean-table-container {
+    margin-top: 10px;
+
+    .ean-table-header {
         margin-bottom: 10px;
         text-align: right;
     }
