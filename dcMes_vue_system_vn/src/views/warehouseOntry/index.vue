@@ -196,7 +196,7 @@
                         <el-button type="text" style="color: orange" @click="handleUpdateNumber(scope.row)">修改应出库数量</el-button>
                         <el-button type="text" style="color: green" @click="handleChuKu(scope.row)" v-if="scope.row.outboundQuantity>scope.row.outNumber&&scope.row.status=='IN_PROGRESS'">继续出库</el-button>
                         <el-button type="text" style="color: red" v-if="hasDeletePermission" @click="handleDelete(scope.row)">删除</el-button>
-                        <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button>
+                        <!-- <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button> -->
                     </template>
                 </el-table-column>
             </template>
