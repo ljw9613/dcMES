@@ -1925,6 +1925,7 @@ export default {
           throw new Error(scanResponse.message || "扫码失败");
         }
 
+     
         if (scanResponse.code == 200) {
           // 提交成功后，更新批次物料的使用次数
           for (const material of this.processMaterials) {
@@ -1939,7 +1940,6 @@ export default {
               const newUsage = currentUsage + 1;
               localStorage.setItem(usageKey, newUsage.toString());
               this.$set(this.batchUsageCount, material._id, newUsage);
-
 
               // 如果达到使用限制，清除缓存
               if (
@@ -2040,6 +2040,12 @@ export default {
                     saleOrderExtData = saleOrderExtResult.data[0];
                   }
 
+                  //productionDate的格式为20250305
+                  let productionDate =
+                    new Date().getFullYear().toString() +
+                    (new Date().getMonth() + 1).toString().padStart(2, "0") +
+                    new Date().getDate().toString().padStart(2, "0");
+
                   console.log("🚀 ~ saleOrderExtData:", saleOrderExtData);
                   let printData = {
                     barcode: this.packingBarcode.barcode,
@@ -2049,6 +2055,7 @@ export default {
                     SNlist: SNlist,
                     ...workOrderData,
                     ...saleOrderExtData,
+                    productionDate: productionDate,
                   };
                   this.printData = printData;
                   this.$nextTick(() => {
