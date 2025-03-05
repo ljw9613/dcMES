@@ -1671,7 +1671,7 @@ export default {
           if (workOrderResult.data.length === 0) {
             throw new Error("未查询到生产计划");
           }
-          let eanNum = workOrderResult.data[0].custPO;
+          let eanNum = workOrderResult.data[0].custPOLineNo;
           printData.eanNum = eanNum;
 
           //生产日期
