@@ -192,7 +192,7 @@
                     <template slot-scope="scope">
                      
                         <el-button type="text" style="color: red" v-if="hasDeletePermission" @click="handleDelete(scope.row)">删除</el-button>
-                        <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button>
+                        <!-- <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button> -->
                     </template>
                 </el-table-column>
             </template>
