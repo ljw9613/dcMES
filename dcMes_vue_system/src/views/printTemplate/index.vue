@@ -135,11 +135,29 @@
             <Designer autoConnect :template="template" @onDesigned="onDesigned" style="height: 80vh;" />
         </el-dialog>
 
-        <!-- 添加批量打印对话框 -->
-        <el-dialog title="批量打印" :visible.sync="printDialogVisible" width="30%">
+        <!-- 修改打印对话框 -->
+        <el-dialog title="批量打印" :visible.sync="printDialogVisible" width="50%">
             <el-form :model="printForm" label-width="100px">
                 <el-form-item label="打印份数">
                     <el-input-number v-model="printForm.copies" :min="1" :max="100"></el-input-number>
+                </el-form-item>
+                
+                <!-- 添加测试数据编辑区域 -->
+                <el-form-item label="测试数据">
+                    <el-button type="primary" size="small" @click="addTestDataField">添加字段</el-button>
+                    <div v-for="(item, index) in printForm.testData" :key="index" style="margin-top: 10px;">
+                        <el-row :gutter="10">
+                            <el-col :span="8">
+                                <el-input v-model="item.key" placeholder="字段名"></el-input>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-input v-model="item.value" placeholder="字段值"></el-input>
+                            </el-col>
+                            <el-col :span="4">
+                                <el-button type="danger" icon="el-icon-delete" size="small" @click="removeTestDataField(index)"></el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -192,7 +210,8 @@ export default {
             printTemplate: null,
             printDialogVisible: false,
             printForm: {
-                copies: 1
+                copies: 1,
+                testData: [] // 新增测试数据数组
             },
             currentPrintRow: null
         }
@@ -503,6 +522,8 @@ export default {
 
         handlePrint(row) {
             this.currentPrintRow = row;
+            // 初始化测试数据
+            this.printForm.testData = [];
             this.printDialogVisible = true;
         },
 
@@ -518,6 +539,7 @@ export default {
                     item.value === this.currentPrintRow.businessType
                 );
 
+                // 基础数据
                 let printData = {
                     ...this.currentPrintRow,
                     createAt: this.formatDate(this.currentPrintRow.createAt),
@@ -525,13 +547,20 @@ export default {
                     businessType: businessTypeObj ? businessTypeObj.label : this.currentPrintRow.businessType,
                     status: this.currentPrintRow.status ? '启用' : '禁用'
                 };
+
+                // 合并测试数据
+                this.printForm.testData.forEach(item => {
+                    if (item.key && item.value) {
+                        printData[item.key] = item.value;
+                    }
+                });
                 
                 this.printData = printData;
                 
                 // 循环调用打印
                 for (let i = 0; i < this.printForm.copies; i++) {
                     await this.$nextTick();
-                    await this.$refs.hirInput.handlePrints();
+                    await this.$refs.hirInput.handlePrints2();
                 }
                 
                 this.$message.success(`已打印 ${this.printForm.copies} 份`);
@@ -540,6 +569,19 @@ export default {
                 console.error('打印失败:', error);
                 this.$message.error('打印失败');
             }
+        },
+
+        // 添加测试数据字段
+        addTestDataField() {
+            this.printForm.testData.push({
+                key: '',
+                value: ''
+            });
+        },
+
+        // 删除测试数据字段
+        removeTestDataField(index) {
+            this.printForm.testData.splice(index, 1);
         }
     },
     created() {
