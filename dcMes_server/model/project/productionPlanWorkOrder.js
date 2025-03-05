@@ -10,9 +10,11 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
 
 
     
-    custPO: { type: String }, // 客户PO号
-    custPOLineNo: { type: String }, // 客户PO行号
-    sapId: { type: String }, // sapID
+    custPO: { type: String }, // 客户PO号（客户物料编码）
+    custPOLineNo: { type: String }, // 客户PO行号（69码）
+    sapId: { type: String }, // sapID （DUN码）
+    custMaterialName: { type: String }, // 客户物料名称
+    custMaterialNameEn: { type: String }, // 客户物料名称（英文）
 
     // 产品信息
     materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 关联物料表

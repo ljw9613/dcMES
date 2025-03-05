@@ -834,7 +834,7 @@ export default {
                     switch (rule.type) {
                         case 'length':
                             if (barcode.length !== rule.params.length) {
-                                stepResult.message = `长度不符合要求，应为${rule.params.length}位`;
+                                stepResult.message = `长度不符合要求，应为${rule.params.length}位，当前长度为${barcode.length}位`;
                                 result.validationPassed = false;
                             } else {
                                 stepResult.matched = true;

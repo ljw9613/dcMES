@@ -279,6 +279,8 @@ export default {
                 custPOLineNo: '',
                 custPO: '',
                 sapId: '',
+                custMaterialName: '',
+                custMaterialNameEn: '',
             },
             rules: {
                 workOrderNo: [{ required: true, message: '请输入工单号', trigger: 'blur' }],
@@ -426,6 +428,8 @@ export default {
                     custPOLineNo: '',
                     custPO: '',
                     sapId: '',
+                    custMaterialName: '',
+                    custMaterialNameEn: '',
                 }
             }
         },
@@ -592,6 +596,8 @@ export default {
                 this.form.custPOLineNo = item.FCustPOLineNo
                 this.form.custPO = item.FCustPO
                 this.form.sapId = item.FSapId
+                this.form.custMaterialName = item.FCustMaterialName
+                this.form.custMaterialNameEn = item.FCustMaterialNameEn
             }
         },
         async handleOtherProduction() {

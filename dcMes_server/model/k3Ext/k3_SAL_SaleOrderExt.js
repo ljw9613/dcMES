@@ -40,6 +40,16 @@ var saleOrderExtSchema = new mongoose.Schema({
   FBoxLabelImage: { type: String }, // 托盘标贴图片路径
   FBoxLabelPackage: { type: String, required: true }, // 托盘标贴及包装方式
   FOtherReq: { type: String }, // 其他要求
+  // 装箱数量
+  FBoxNum: { type: String }, // 装箱数量
+  // 托盘箱数量
+  FPalletBoxNum: { type: String }, // 托盘箱数量
+  // 毛重(箱)
+  FGrossWeight: { type: String }, // 毛重(箱)
+  // 净重(箱)
+  FNetWeight: { type: String }, // 净重(箱)
+  // 中箱尺寸
+  FBoxSize: { type: String }, // 中箱尺寸
 
   // 系统字段
   FCreateTime: { type: Date, default: Date.now }, // 创建时间

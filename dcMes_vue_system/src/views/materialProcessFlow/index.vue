@@ -599,8 +599,8 @@
                                     查看详情
                                 </el-button>
 
-                                <!-- <el-button type="text" style="color: red;"
-                                    @click="handleInit(scope.row)">成品初始化</el-button> -->
+                                <el-button type="text" style="color: red;"
+                                    @click="handleInit(scope.row)">成品初始化</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -942,10 +942,10 @@ export default {
                     }
                 });
 
-                if (barcodeRepair.data.length === 0) {
-                    this.$message.warning('请先创建维修记录，再进行初始化');
-                    return;
-                }
+                // if (barcodeRepair.data.length === 0) {
+                //     this.$message.warning('请先创建维修记录，再进行初始化');
+                //     return;
+                // }
                 console.log(row, 'row')
                 // 显示确认对话框
                 await this.$confirm('确认要成品初始化吗?该操作无法撤回！请谨慎操作！', '提示', {
