@@ -26,7 +26,7 @@
                     <el-col :span="6">
                         <el-form-item label="销售单号">
                             <zr-select v-model="searchForm.saleOrderNo" collection="k3_SAL_SaleOrder"
-                                :search-fields="['FBillNo']" label-key="FBillNo" sub-key="FBillNo" :multiple="false"
+                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
                                 placeholder="请输入销售单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
@@ -44,11 +44,11 @@
                     <el-col :span="6">
                         <el-form-item label="生产单号">
                             <zr-select v-model="searchForm.productionOrderNo" collection="k3_PRD_MO"
-                                :search-fields="['FBillNo']" label-key="FBillNo" sub-key="FBillNo" :multiple="false"
+                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
                                 placeholder="请输入生产单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
-                                        <div class="option-main">
+                                        <div class="option-main">   
                                             <span class="option-label">{{ item.FBillNo }}</span>
                                             <el-tag size="mini" type="info" class="option-tag">
                                                 {{ item.FBillNo }} - {{ item.FUseOrgId_FName }}
@@ -65,7 +65,7 @@
                     <el-col :span="6">
                         <el-form-item label="产品名称">
                             <zr-select v-model="searchForm.materialName" collection="k3_BD_MATERIAL"
-                                :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID"
+                                :search-fields="['FNumber', 'FName']" label-key="FName" value-key="FName" sub-key="FMATERIALID"
                                 :multiple="false" placeholder="请输入物料编码/名称搜索" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">

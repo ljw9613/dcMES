@@ -28,7 +28,7 @@
           <el-col :span="6">
             <el-form-item label="装箱条码">
               <el-input
-                v-model="searchForm.barcode"
+                v-model="searchForm.printBarcode"
                 placeholder="请输入条码"
                 clearable
               ></el-input>
@@ -76,7 +76,7 @@
       >
         <el-table-column type="selection" width="55" />
         <el-table-column label="序号" prop="serialNumber" width="80" />
-        <el-table-column label="装箱条码" prop="barcode" />
+        <el-table-column label="装箱条码" prop="printBarcode" />
         <el-table-column label="工单号" prop="workOrderNo" />
         <el-table-column label="物料编码" prop="materialNumber" />
         <el-table-column label="物料名称" prop="materialName" />

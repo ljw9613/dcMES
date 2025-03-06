@@ -1979,7 +1979,12 @@ export default {
                     index,
                     item,
                   ] of mainBarcode.data.entries()) {
-                    SNlist += item.barcode + ",";
+                    //最后一个不需要加，
+                    if(index == mainBarcode.data.length - 1){
+                      SNlist += item.barcode;
+                    }else{
+                      SNlist += item.barcode + ",";
+                    }
                     const preProductionBarcode = await getData(
                       "preProductionBarcode",
                       {

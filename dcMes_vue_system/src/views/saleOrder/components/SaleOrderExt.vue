@@ -320,7 +320,7 @@
             try {
               if (this.formData._id) {
                 // 更新
-                await updateData('k3_SAL_SaleOrderExt', this.formData._id, this.formData)
+                await updateData('k3_SAL_SaleOrderExt',{query:{FSaleOrderId:this.saleOrderId},update:{...this.formData}})
                 this.$message.success('更新成功')
               } else {
                 // 新增
