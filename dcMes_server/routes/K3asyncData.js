@@ -54,23 +54,39 @@ const asyncK3Schedule = async () => {
         },
       ];
 
-      // 基础数据同步
+      // 使用通用方法的表同步
       await syncK3Data("k3_BD_MATERIAL", "BD_MATERIAL", "FMATERIALID", filterString);
-      await syncK3Data("K3_BD_STOCK", "BD_STOCK", "FStockId", filterString);
-
-      // 销售相关单据同步
       await syncK3Data("k3_SAL_SaleOrder", "SAL_SaleOrder", "FID", filterString);
-      await syncK3Data("K3_SAL_DeliveryNotice", "SAL_DELIVERYNOTICE", "FID", filterString);
-      await syncK3Data("K3_SAL_OutStock", "SAL_OUTSTOCK", "FID", filterString);
-
-      // 生产相关单据同步
       await syncK3Data("k3_PRD_MO", "PRD_MO", "FID", filterString);
-      await syncK3Data("K3_PRD_PickMtrl", "PRD_PickMtrl", "FID", filterString);
-      await syncK3Data("K3_PRD_InStock", "PRD_INSTOCK", "FID", filterString);
-
-      // 采购相关单据同步
-      await syncK3Data("K3_PUR_RequisitionBill", "PUR_Requisition", "FID", filterString);
-      await syncK3Data("K3_PUR_PurchaseOrder", "PUR_PurchaseOrder", "FID", filterString);
+      
+      // 使用特定方法的表同步
+      const stockTask = new SyncTask("K3_BD_STOCK");
+      syncTasks.set("K3_BD_STOCK", stockTask);
+      await syncStockData("K3_BD_STOCK", filterString, stockTask);
+      
+      const purchaseOrderTask = new SyncTask("K3_PUR_PurchaseOrder");
+      syncTasks.set("K3_PUR_PurchaseOrder", purchaseOrderTask);
+      await syncPurchaseOrderData("K3_PUR_PurchaseOrder", filterString, purchaseOrderTask);
+      
+      const pickMtrlTask = new SyncTask("K3_PRD_PickMtrl");
+      syncTasks.set("K3_PRD_PickMtrl", pickMtrlTask);
+      await syncPickMtrlData("K3_PRD_PickMtrl", filterString, pickMtrlTask);
+      
+      const deliveryNoticeTask = new SyncTask("K3_SAL_DeliveryNotice");
+      syncTasks.set("K3_SAL_DeliveryNotice", deliveryNoticeTask);
+      await syncDeliveryNoticeData("K3_SAL_DeliveryNotice", filterString, deliveryNoticeTask);
+      
+      const inStockTask = new SyncTask("K3_PRD_InStock");
+      syncTasks.set("K3_PRD_InStock", inStockTask);
+      await syncInStockData("K3_PRD_InStock", filterString, inStockTask);
+      
+      const requisitionBillTask = new SyncTask("K3_PUR_RequisitionBill");
+      syncTasks.set("K3_PUR_RequisitionBill", requisitionBillTask);
+      await syncRequisitionBillData("K3_PUR_RequisitionBill", filterString, requisitionBillTask);
+      
+      const outStockTask = new SyncTask("K3_SAL_OutStock");
+      syncTasks.set("K3_SAL_OutStock", outStockTask);
+      await syncOutStockData("K3_SAL_OutStock", filterString, outStockTask);
 
       console.log("同步金蝶云数据完成");
     } catch (error) {
