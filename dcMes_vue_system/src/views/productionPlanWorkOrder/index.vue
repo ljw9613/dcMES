@@ -461,8 +461,8 @@ export default {
             if (this.searchForm.productionOrderNo) {
                 req.query.$and.push({ productionOrderNo: { $regex: this.searchForm.productionOrderNo, $options: 'i' } });
             }
-            if (this.searchForm.productModel) {
-                req.query.$and.push({ productModel: { $regex: this.searchForm.productModel, $options: 'i' } });
+            if (this.searchForm.materialName) {
+                req.query.$and.push({ materialName: { $regex: this.searchForm.materialName, $options: 'i' } });
             }
             if (this.searchForm.lineName) {
                 req.query.$and.push({ lineName: { $regex: this.searchForm.lineName, $options: 'i' } });
@@ -496,7 +496,7 @@ export default {
                 status: '',
                 saleOrderNo: '',
                 productionOrderNo: '',
-                productModel: '',
+                materialName: '',
                 lineName: '',
                 businessType: '',
                 dateRange: []

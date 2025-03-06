@@ -31,6 +31,11 @@
                 </el-row>
                 <el-row :gutter="20">
                     <el-col :span="6">
+                        <el-form-item label="条码查询">
+                            <el-input v-model="searchForm.barcode" placeholder="请输入条码" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
                         <el-form-item label="产线">
                             <zr-select style="width: 100%" v-model="searchForm.productLineId"
                                 collection="production_line" :search-fields="['lineCode', 'lineName']"
@@ -206,6 +211,7 @@
                         </el-button>
                         <el-button type="text" @click="handlePrint(scope.row)">打印单据</el-button>
                         <el-button type="text" style="color: orange" @click="showHistory(scope.row)">解绑记录</el-button>
+                        <el-button type="text" style="color: #409EFF" @click="showDetail(scope.row)">查看详情</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -276,6 +282,104 @@
                 {{ exportProgress === 100 ? '导出完成' : '正在导出数据，请稍候...' }}
             </div>
         </el-dialog>
+
+        <!-- 添加详情弹窗 -->
+        <el-dialog title="托盘组托详情" :visible.sync="detailDialogVisible" width="80%" class="pallet-detail-dialog">
+            <div v-if="detailData">
+                <el-card class="box-card" style="margin-bottom: 20px">
+                    <div slot="header" class="clearfix">
+                        <span>基本信息</span>
+                    </div>
+                    <el-descriptions :column="3" border>
+                        <el-descriptions-item label="托盘编号">{{ detailData.palletCode }}</el-descriptions-item>
+                        <el-descriptions-item label="组托状态">
+                            <el-tag :type="detailData.status === 'STACKED' ? 'success' : 'warning'">
+                                {{ detailData.status === 'STACKED' ? '组托完成' : '组托中' }}
+                            </el-tag>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="创建时间">{{ formatDate(detailData.createAt) }}</el-descriptions-item>
+                        <el-descriptions-item label="产线名称">
+                            {{ detailData.productLineName }}
+                            <el-tag size="mini" v-if="detailData.productLineId && detailData.productLineId.workshop">
+                                {{ detailData.productLineId.workshop }}
+                            </el-tag>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="物料信息">
+                            {{ detailData.materialName }}
+                            <el-tag size="mini" v-if="detailData.materialSpec">{{ detailData.materialSpec }}</el-tag>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="数量信息">
+                            <div>总数量: {{ detailData.totalQuantity }} / {{ detailData.palletBarcodes && detailData.palletBarcodes.length }}</div>
+                            <div v-if="detailData.boxCount">箱数: {{ detailData.boxCount }}</div>
+                        </el-descriptions-item>
+                    </el-descriptions>
+                </el-card>
+
+                <!-- 订单信息 -->
+                <el-card class="box-card" style="margin-bottom: 20px">
+                    <div slot="header" class="clearfix">
+                        <span>订单信息</span>
+                    </div>
+                    <el-descriptions :column="3" border>
+                        <el-descriptions-item label="销售订单号">{{ detailData.saleOrderNo || '--' }}</el-descriptions-item>
+                        <el-descriptions-item label="生产订单号">{{ detailData.productionOrderNo || '--' }}</el-descriptions-item>
+                        <el-descriptions-item label="工单号">{{ detailData.workOrderNo || '--' }}</el-descriptions-item>
+                    </el-descriptions>
+                </el-card>
+
+                <!-- 箱子明细 -->
+                <el-card class="box-card" style="margin-bottom: 20px">
+                    <div slot="header" class="clearfix">
+                        <span>箱子明细</span>
+                        <span class="box-count" v-if="detailData.boxItems && detailData.boxItems.length">
+                            (共 {{ detailData.boxItems.length }} 箱)
+                        </span>
+                    </div>
+                    <el-table v-if="detailData.boxItems && detailData.boxItems.length" :data="detailData.boxItems" border
+                        style="width: 100%">
+                        <el-table-column label="箱子条码" prop="boxBarcode" align="center"></el-table-column>
+                        <el-table-column label="数量" prop="quantity" align="center"></el-table-column>
+                        <el-table-column label="扫描时间" align="center">
+                            <template slot-scope="boxScope">
+                                {{ formatDate(boxScope.row.scanTime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" align="center" width="120">
+                            <template slot-scope="boxScope">
+                                <el-button type="text" style="color: red"
+                                    @click="handleDelete(detailData.palletCode, boxScope.row.boxBarcode)">解绑箱条码</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div v-else class="empty-data">暂无箱子数据</div>
+                </el-card>
+
+                <!-- 条码明细 -->
+                <el-card class="box-card">
+                    <div slot="header" class="clearfix">
+                        <span>托盘条码明细</span>
+                        <span class="barcode-count" v-if="detailData.palletBarcodes && detailData.palletBarcodes.length">
+                            (共 {{ detailData.palletBarcodes.length }} 条)
+                        </span>
+                    </div>
+                    <el-table :data="detailData.palletBarcodes" border style="width: 100%">
+                        <el-table-column label="条码" prop="barcode" align="center"></el-table-column>
+                        <el-table-column label="扫描时间" align="center">
+                            <template slot-scope="barcodeScope">
+                                {{ formatDate(barcodeScope.row.scanTime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" align="center" width="120">
+                            <template slot-scope="barcodeScope">
+                                <el-button type="text" style="color: red"
+                                    @click="handleDelete(detailData.palletCode, barcodeScope.row.barcode)">解绑条码</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div v-if="!detailData.palletBarcodes || !detailData.palletBarcodes.length" class="empty-data">暂无条码数据</div>
+                </el-card>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -299,7 +403,8 @@ export default {
                 workOrderNo: '',
                 productLineId: '',
                 status: '',
-                dateRange: []
+                dateRange: [],
+                barcode: ''
             },
             tableList: [],
             total: 0,
@@ -323,7 +428,9 @@ export default {
             printData: {},
             printTemplate: null,
 
-            hasInitializeTrayDocumentsPermission: false
+            hasInitializeTrayDocumentsPermission: false,
+            detailDialogVisible: false,
+            detailData: null
         }
     },
     computed: {
@@ -408,6 +515,16 @@ export default {
                 });
             }
 
+            if (this.searchForm.barcode) {
+                const barcode = escapeRegex(this.searchForm.barcode);
+                req.query.$and.push({
+                    $or: [
+                        { 'palletBarcodes.barcode': barcode },
+                        { 'boxItems.boxBarcode': barcode }
+                    ]
+                });
+            }
+
             if (this.searchForm.productLineId) {
                 req.query.$and.push({
                     productLineId: this.searchForm.productLineId
@@ -446,7 +563,8 @@ export default {
                 workOrderNo: '',
                 productLineId: '',
                 status: '',
-                dateRange: []
+                dateRange: [],
+                barcode: ''
             };
             this.currentPage = 1;
             this.fetchData();
@@ -805,6 +923,11 @@ export default {
                 this.$message.info('已取消操作');
             });
         },
+
+        showDetail(row) {
+            this.detailData = JSON.parse(JSON.stringify(row));
+            this.detailDialogVisible = true;
+        }
     },
     created() {
         this.fetchData();
@@ -1026,6 +1149,17 @@ export default {
 @media screen and (max-width: 768px) {
     .order-info-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+.pallet-detail-dialog {
+    .box-card {
+        margin-bottom: 20px;
+    }
+
+    .empty-data {
+        text-align: center;
+        color: #909399;
     }
 }
 </style>
