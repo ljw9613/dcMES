@@ -7,7 +7,6 @@
 var app = require('../app');
 var debug = require('debug')('server:server');
 var http = require('http');
-const wsManager = require('../services/wsManager');
 
 /**
  * Get port from environment and store in Express.
@@ -21,10 +20,6 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
-
-let wsPort = 2223;
-// 初始化 WebSocket 管理器
-wsManager.initialize(wsPort);
 
 /**
  * Listen on provided port, on all network interfaces.
