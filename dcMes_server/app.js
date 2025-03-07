@@ -116,14 +116,14 @@ app.use('/', require('./routes/productRepair.js'));
 app.use('/', require('./routes/uploadMesFile.js'));
 
 require("./routes/upload")
-require("./utils/scheduleTask")
+// require("./utils/scheduleTask")
 
 // 更新工艺编码
 // require("./routes/caftNum")
 // 初始化定时任务
-const initSchedule = require("./config/schedule");
+// const initSchedule = require("./config/schedule");
 // 初始化定时任务
-initSchedule();
+// initSchedule();
 
 // require("./services/createMappings");
 //方法
