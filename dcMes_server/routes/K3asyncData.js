@@ -95,9 +95,9 @@ const asyncK3Schedule = async () => {
   });
 };
 
-setTimeout(() => {
-  asyncK3Schedule();
-}, 10000);
+// setTimeout(() => {
+//   asyncK3Schedule();
+// }, 10000);
 
 // 添加在文件顶部
 const syncTasks = new Map(); // 存储同步任务的状态
