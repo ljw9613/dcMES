@@ -1644,41 +1644,50 @@ export default {
             printBarcode: this.scanForm.mainBarcode,
           };
 
-          //查询是否有相关的打印数据
-          const prePrintData = await getData("preProductionBarcode", {
-            query: { printBarcode: this.scanForm.mainBarcode },
-          });
+          if (
+            this.craftInfo &&
+            (!this.craftInfo.isProduct ||
+              this.craftInfo.materialCode !== materialCode)
+          ) {
+            //查询是否有相关的打印数据
+            const prePrintData = await getData("preProductionBarcode", {
+              query: { printBarcode: this.scanForm.mainBarcode },
+            });
 
-          if (prePrintData.data && prePrintData.data.length > 0) {
-            printData.printBarcode = prePrintData.data[0].printBarcode;
-            printData.printBarcodeText = prePrintData.data[0].barcode;
+            if (prePrintData.data && prePrintData.data.length > 0) {
+              printData.printBarcode = prePrintData.data[0].printBarcode;
+              printData.printBarcodeText = prePrintData.data[0].barcode;
 
-            if (this.enableConversion) {
-              printData.printBarcode =
-                prePrintData.data[0].transformedPrintBarcode;
-              printData.printBarcodeText =
-                prePrintData.data[0].transformedBarcode;
+              if (this.enableConversion) {
+                printData.printBarcode =
+                  prePrintData.data[0].transformedPrintBarcode;
+                printData.printBarcodeText =
+                  prePrintData.data[0].transformedBarcode;
+              }
             }
-          }
 
-          //获取eanNum
-          const workOrderResult = await getData("production_plan_work_order", {
-            query: {
-              productionLineId: this.formData.productLine,
-              status: "IN_PROGRESS",
-            },
-          });
-          if (workOrderResult.data.length === 0) {
-            throw new Error("未查询到生产计划");
-          }
-          let eanNum = workOrderResult.data[0].custPOLineNo;
-          printData.eanNum = eanNum;
+            //获取eanNum
+            const workOrderResult = await getData(
+              "production_plan_work_order",
+              {
+                query: {
+                  productionLineId: this.formData.productLine,
+                  status: "IN_PROGRESS",
+                },
+              }
+            );
+            if (workOrderResult.data.length === 0) {
+              throw new Error("未查询到生产计划");
+            }
+            let eanNum = workOrderResult.data[0].custPOLineNo;
+            printData.eanNum = eanNum;
 
-          //生产日期
-          const now = new Date();
-          const month = String(now.getMonth() + 1).padStart(2, "0");
-          const year = now.getFullYear();
-          printData.ProductionDate = `${month}/${year}`;
+            //生产日期
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const year = now.getFullYear();
+            printData.ProductionDate = `${month}/${year}`;
+          }
 
           this.printData = printData;
           console.log(this.printData, "this.printData");
