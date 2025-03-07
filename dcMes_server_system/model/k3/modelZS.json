@@ -1,0 +1,22 @@
+[
+  {
+    "modelName": "PRD_MO",
+    "description": "生产订单",
+    "header": []
+  },
+  {
+    "modelName": "SAL_SaleOrder",
+    "description": "销售订单",
+    "header": [
+      {
+        "name": "F_TFQJ_Text1",
+        "description": "客户PO行号"
+      }
+    ]
+  },
+  {
+    "modelName": "BD_MATERIAL",
+    "description": "物料",
+    "header": []
+  }
+]
