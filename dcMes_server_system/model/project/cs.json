@@ -1,0 +1,116 @@
+{
+  "panels": [
+    {
+      "index": 0,
+      "name": 1,
+      "paperType": "自定义",
+      "height": 20,
+      "width": 80,
+      "paperHeader": 4,
+      "paperFooter": 56.69291338582678,
+      "printElements": [
+        {
+          "options": {
+            "left": 4.5,
+            "top": 3,
+            "height": 12,
+            "width": 20,
+            "title": "UDI",
+            "coordinateSync": false,
+            "widthHeightSync": false,
+            "qrCodeLevel": 0,
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 52.5,
+            "top": 3,
+            "height": 9.75,
+            "width": 120,
+            "title": "Model:FW312PL",
+            "coordinateSync": false,
+            "widthHeightSync": false,
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "qrCodeLevel": 0
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 24,
+            "top": 12,
+            "height": 30,
+            "width": 177,
+            "textType": "barcode",
+            "title": "barcode",
+            "field": "printBarcode",
+            "testData": "printBarcode",
+            "coordinateSync": false,
+            "widthHeightSync": false,
+            "hideTitle": true,
+            "qrCodeLevel": 0
+          },
+          "printElementType": {
+            "title": "barcode",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 12,
+            "top": 42,
+            "height": 9.75,
+            "width": 200,
+            "title": "文本",
+            "field": "printBarcodeText",
+            "testData": "printBarcodeText",
+            "coordinateSync": false,
+            "widthHeightSync": false,
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "qrCodeLevel": 0,
+            "hideTitle": true
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        }
+      ],
+      "paperNumberLeft": 55,
+      "paperNumberTop": 34,
+      "paperNumberDisabled": true,
+      "paperNumberContinue": true,
+      "orient": 1,
+      "overPrintOptions": {
+        "content": "",
+        "opacity": 0.7,
+        "type": 1
+      },
+      "watermarkOptions": {
+        "content": "",
+        "fillStyle": "rgba(184, 184, 184, 0.3)",
+        "fontSize": "14px",
+        "rotate": 25,
+        "width": 200,
+        "height": 200,
+        "timestamp": false,
+        "format": "YYYY-MM-DD HH:mm"
+      }
+    }
+  ]
+}

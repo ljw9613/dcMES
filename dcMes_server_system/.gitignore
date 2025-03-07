@@ -1,0 +1,10 @@
+node_modules
+dist/
+admin/
+adminVN/
+adminYN/
+adminVNCN/
+adminManage/
+adminCs/
+/public/uploads/
+
