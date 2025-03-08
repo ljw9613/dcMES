@@ -13,13 +13,28 @@
         <div class="screen_content_first">
           <i class="el-icon-search">筛选搜索</i>
           <div class="screen_content_first_btutton">
-            <el-button class="filter-item" type="primary" icon="el-icon-upload2" @click="handleImport">
+            <el-button
+              class="filter-item"
+              type="primary"
+              icon="el-icon-upload2"
+              @click="handleImport"
+            >
               导入用户
             </el-button>
-            <el-button class="filter-item" type="success" icon="el-icon-download" @click="handleExport">
+            <el-button
+              class="filter-item"
+              type="success"
+              icon="el-icon-download"
+              @click="handleExport"
+            >
               导出用户
             </el-button>
-            <el-button class="filter-item" type="info" icon="el-icon-document" @click="downloadTemplate">
+            <el-button
+              class="filter-item"
+              type="info"
+              icon="el-icon-document"
+              @click="downloadTemplate"
+            >
               下载模板
             </el-button>
           </div>
@@ -27,15 +42,38 @@
         <div class="screen_content_second">
           <div class="screen_content_second_one">
             <div style="width: 140px">用户名称:</div>
-            <el-input v-model="userName" clearable placeholder="请输入用户名称" @clear="clearclick()"></el-input>
-            <el-button style="margin-left: 10px" type="primary" @click="Search()">查询搜索
+            <el-input
+              v-model="userName"
+              clearable
+              placeholder="请输入用户名称"
+              @clear="clearclick()"
+            ></el-input>
+            <el-button
+              style="margin-left: 10px"
+              type="primary"
+              @click="Search()"
+              >查询搜索
             </el-button>
           </div>
-          <div v-if="$store.state.user.roles == '超级管理员'" class="screen_content_second_one">
+          <div
+            v-if="$store.state.user.roles == '超级管理员'"
+            class="screen_content_second_one"
+          >
             <div style="width: 80px">用户角色:</div>
-            <el-select v-model="roledata" filterable placeholder="请选择用户角色" style="width: " @change="searchrole"
-              @clear="clearclick()">
-              <el-option v-for="item in userlist" :key="item" :label="item" :value="item"></el-option>
+            <el-select
+              v-model="roledata"
+              filterable
+              placeholder="请选择用户角色"
+              style="width: "
+              @change="searchrole"
+              @clear="clearclick()"
+            >
+              <el-option
+                v-for="item in userlist"
+                :key="item"
+                :label="item"
+                :value="item"
+              ></el-option>
             </el-select>
           </div>
         </div>
@@ -47,9 +85,19 @@
           <i class="el-icon-tickets">管理员列表</i>
 
           <div class="screen_content_first_btutton">
-            <el-button class="filter-item" icon="el-icon-plus" type="primary" @click="AddFilter">添加管理人员
+            <el-button
+              class="filter-item"
+              icon="el-icon-plus"
+              type="primary"
+              @click="AddFilter"
+              >添加管理人员
             </el-button>
-            <el-button class="filter-item" icon="el-icon-printer" type="success" @click="showBatchQRCode">
+            <el-button
+              class="filter-item"
+              icon="el-icon-printer"
+              type="success"
+              @click="showBatchQRCode"
+            >
               批量打印二维码
             </el-button>
           </div>
@@ -58,8 +106,15 @@
     </div>
 
     <div class="filter-container"></div>
-    <el-table v-loading="listLoading" :data="categorylist" border element-loading-text="Loading" fit
-      highlight-current-row style="width: 100%">
+    <el-table
+      v-loading="listLoading"
+      :data="categorylist"
+      border
+      element-loading-text="Loading"
+      fit
+      highlight-current-row
+      style="width: 100%"
+    >
       <el-table-column align="center" label="用户名称" min-width="120">
         <template slot-scope="scope">
           <span class="link-type">{{ scope.row.nickName }}</span>
@@ -87,10 +142,17 @@
         </template>
       </el-table-column>
 
-      <el-table-column align="center" label="创建时间" prop="created_at" min-width="160">
+      <el-table-column
+        align="center"
+        label="创建时间"
+        prop="created_at"
+        min-width="160"
+      >
         <template slot-scope="scope">
           <i class="el-icon-time" />
-          <span>{{ scope.row.createAt | parseTime("{y}-{m}-{d} {h}:{i}") }}</span>
+          <span>{{
+            scope.row.createAt | parseTime("{y}-{m}-{d} {h}:{i}")
+          }}</span>
         </template>
       </el-table-column>
 
@@ -104,13 +166,29 @@
 
       <el-table-column align="center" label="操作" min-width="200">
         <template slot-scope="{ row }">
-          <el-button size="mini" type="primary" @click="handleEdit(row)" style="margin-right: 8px">
+          <el-button
+            size="mini"
+            type="primary"
+            @click="handleEdit(row)"
+            style="margin-right: 8px"
+          >
             编辑
           </el-button>
-          <el-button size="mini" type="danger" @click="handleDelete(row)" style="margin-right: 8px">
+          <el-button
+            size="mini"
+            type="danger"
+            @click="handleDelete(row)"
+            style="margin-right: 8px"
+          >
             删除
           </el-button>
-          <el-button v-if="!row.status" size="mini" type="success" @click="handisshow(row)" style="margin-right: 8px">
+          <el-button
+            v-if="!row.status"
+            size="mini"
+            type="success"
+            @click="handisshow(row)"
+            style="margin-right: 8px"
+          >
             上线
           </el-button>
           <el-button v-else size="mini" type="danger" @click="handisshow(row)">
@@ -121,8 +199,17 @@
     </el-table>
 
     <!-- 弹窗start -->
-    <el-dialog :close-on-click-modal="false" :visible.sync="dialogFormVisible" title="管理人员信息">
-      <el-form ref="dataForm" label-position="left" label-width="70px" style="width: 500px; margin-left: 50px">
+    <el-dialog
+      :close-on-click-modal="false"
+      :visible.sync="dialogFormVisible"
+      title="管理人员信息"
+    >
+      <el-form
+        ref="dataForm"
+        label-position="left"
+        label-width="70px"
+        style="width: 500px; margin-left: 50px"
+      >
         <!-- <el-form-item label="管理员" label-width="120">
           <el-select v-model="userId" filterable placeholder="请选择用户成为管理员">
             <el-option
@@ -148,7 +235,12 @@
         <!-- v-if="$store.state.user.roles == '超级管理员'" -->
         <el-form-item label="用户角色" label-width="120">
           <el-select v-model="role" filterable placeholder="请选择用户角色">
-            <el-option v-for="(item, index) in userlist" :key="index" :label="item.name" :value="item._id"></el-option>
+            <el-option
+              v-for="(item, index) in userlist"
+              :key="index"
+              :label="item.name"
+              :value="item._id"
+            ></el-option>
           </el-select>
         </el-form-item>
         <!-- <el-form-item label="选择部门" label-width="120">
@@ -161,9 +253,13 @@
             >
           </el-radio-group>
         </el-form-item> -->
-        <el-form-item v-if="dialogStatus === 'create' && qrCodeUrl" label="登录码" label-width="120">
+        <el-form-item
+          v-if="dialogStatus === 'create' && qrCodeUrl"
+          label="登录码"
+          label-width="120"
+        >
           <div class="qrcode-container">
-            <img :src="qrCodeUrl" alt="登录二维码">
+            <img :src="qrCodeUrl" alt="登录二维码" />
             <div class="qrcode-info">
               <p class="qrcode-tip">请保存此登录二维码，可用于快速登录</p>
             </div>
@@ -180,19 +276,30 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="dialogStatus == 'create' ? createData() : editData()">确定
+        <el-button
+          type="primary"
+          @click="dialogStatus == 'create' ? createData() : editData()"
+          >确定
         </el-button>
       </div>
     </el-dialog>
     <!-- 弹窗end -->
 
     <!-- 修改二维码展示弹窗 -->
-    <el-dialog :visible.sync="qrCodeDialogVisible" title="登录二维码" width="400px">
+    <el-dialog
+      :visible.sync="qrCodeDialogVisible"
+      title="登录二维码"
+      width="400px"
+    >
       <div class="qrcode-container">
-        <img :src="currentQRCode" alt="登录二维码">
+        <img :src="currentQRCode" alt="登录二维码" />
         <div class="qrcode-info">
-          <p><span class="info-label">用户名：</span>{{ currentUser.nickName }}</p>
-          <p><span class="info-label">账号：</span>{{ currentUser.userName }}</p>
+          <p>
+            <span class="info-label">用户名：</span>{{ currentUser.nickName }}
+          </p>
+          <p>
+            <span class="info-label">账号：</span>{{ currentUser.userName }}
+          </p>
           <p class="qrcode-tip">扫描二维码可快速登录系统</p>
         </div>
         <div class="qrcode-buttons">
@@ -207,16 +314,30 @@
     </el-dialog>
 
     <!-- 批量二维码展示弹窗 -->
-    <el-dialog :visible.sync="batchQRCodeVisible" title="批量二维码管理" width="800px">
+    <el-dialog
+      :visible.sync="batchQRCodeVisible"
+      title="批量二维码管理"
+      width="800px"
+    >
       <div class="batch-qrcode-container">
         <!-- 顶部操作栏 -->
         <div class="batch-actions">
-          <el-checkbox v-model="selectAll" @change="handleSelectAll">全选</el-checkbox>
+          <el-checkbox v-model="selectAll" @change="handleSelectAll"
+            >全选</el-checkbox
+          >
           <div class="action-buttons">
-            <el-button type="primary" size="small" @click="printSelectedQRCodes">
+            <el-button
+              type="primary"
+              size="small"
+              @click="printSelectedQRCodes"
+            >
               <i class="el-icon-printer"></i> 打印选中
             </el-button>
-            <el-button type="success" size="small" @click="downloadSelectedQRCodes">
+            <el-button
+              type="success"
+              size="small"
+              @click="downloadSelectedQRCodes"
+            >
               <i class="el-icon-download"></i> 下载选中
             </el-button>
           </div>
@@ -224,11 +345,15 @@
 
         <!-- 二维码列表 -->
         <div class="qrcode-list">
-          <el-card v-for="item in qrCodeList" :key="item.id" class="qrcode-item">
+          <el-card
+            v-for="item in qrCodeList"
+            :key="item.id"
+            class="qrcode-item"
+          >
             <div class="qrcode-checkbox">
               <el-checkbox v-model="item.selected"></el-checkbox>
             </div>
-            <img :src="item.qrCode" alt="登录二维码">
+            <img :src="item.qrCode" alt="登录二维码" />
             <div class="qrcode-info">
               <p><span class="info-label">用户名：</span>{{ item.nickName }}</p>
               <p><span class="info-label">账号：</span>{{ item.userName }}</p>
@@ -239,20 +364,40 @@
     </el-dialog>
 
     <!-- 添加导入对话框 -->
-    <el-dialog title="导入用户" :visible.sync="importDialogVisible" width="400px">
-      <el-upload class="upload-demo" drag :action="'#'" :auto-upload="false" :on-change="handleUploadSuccess"
-        :before-upload="beforeUpload" :show-file-list="false">
+    <el-dialog
+      title="导入用户"
+      :visible.sync="importDialogVisible"
+      width="400px"
+    >
+      <el-upload
+        class="upload-demo"
+        drag
+        :action="'#'"
+        :auto-upload="false"
+        :on-change="handleUploadSuccess"
+        :before-upload="beforeUpload"
+        :show-file-list="false"
+      >
         <i class="el-icon-upload"></i>
         <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip" slot="tip">只能上传 xlsx/xls 文件，且不超过 2MB</div>
+        <div class="el-upload__tip" slot="tip">
+          只能上传 xlsx/xls 文件，且不超过 2MB
+        </div>
       </el-upload>
     </el-dialog>
 
     <!-- 在表格底部添加分页 -->
     <div class="pagination-container">
-      <el-pagination background @size-change="handleSizeChange" @current-change="handleCurrentChange"
-        :current-page="listQuery.page" :page-sizes="[10, 20, 30, 50]" :page-size="listQuery.limit"
-        layout="total, sizes, prev, pager, next, jumper" :total="total">
+      <el-pagination
+        background
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="listQuery.page"
+        :page-sizes="[10, 20, 30, 50]"
+        :page-size="listQuery.limit"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+      >
       </el-pagination>
     </div>
   </div>
@@ -261,12 +406,12 @@
 <script>
 import { getData, addData } from "@/api/data";
 import { postuserlist, putuserlist } from "@/api/user_list";
-import QRCode from 'qrcode'
-import CryptoJS from 'crypto-js'
-import JSZip from 'jszip'
-import { getToken } from '@/utils/auth'
-import FileSaver from 'file-saver'
-import XLSX from 'xlsx'
+import QRCode from "qrcode";
+import CryptoJS from "crypto-js";
+import JSZip from "jszip";
+import { getToken } from "@/utils/auth";
+import FileSaver from "file-saver";
+import XLSX from "xlsx";
 
 let that;
 export default {
@@ -304,23 +449,23 @@ export default {
         create: "Create",
       },
       searchReq: {},
-      qrCodeUrl: '', // 用于存储二维码图片URL
+      qrCodeUrl: "", // 用于存储二维码图片URL
       qrCodeDialogVisible: false,
-      currentQRCode: '',
+      currentQRCode: "",
       currentUser: {},
-      encryptionKey: 'your-secure-encryption-key', // 加密密钥，建议存储在环境变量中
+      encryptionKey: "your-secure-encryption-key", // 加密密钥，建议存储在环境变量中
       qrCodeList: [],
       batchQRCodeVisible: false,
       selectAll: false,
       total: 0,
       listQuery: {
         page: 1,
-        limit: 10
+        limit: 10,
       },
       importDialogVisible: false,
       uploadHeaders: {
-        Authorization: getToken()
-      }
+        Authorization: getToken(),
+      },
     };
   },
   created() {
@@ -337,23 +482,23 @@ export default {
     },
     //获取数据
     async fetchData() {
-      this.listLoading = true
+      this.listLoading = true;
       var data1 = {
         query: { ...this.searchReq },
         populate: JSON.stringify([{ path: "role" }]),
-        page: this.listQuery.page,
-        limit: this.listQuery.limit
-      }
+        limit: this.listQuery.limit,
+        skip: (this.listQuery.page - 1) * this.listQuery.limit,
+      };
 
       try {
-        let { data: response, total } = await getData("user_login", data1)
-        this.categorylist = response
-        this.categorylist1 = this.categorylist
-        this.total = total
+        let { data: response, countnum } = await getData("user_login", data1);
+        this.categorylist = response;
+        this.categorylist1 = this.categorylist;
+        this.total = countnum;
       } catch (error) {
-        console.error('获取数据失败:', error)
+        console.error("获取数据失败:", error);
       } finally {
-        this.listLoading = false
+        this.listLoading = false;
       }
     },
     handleEdit(row) {
@@ -365,19 +510,21 @@ export default {
       this.name = row.nickName;
       this.phone = row.phone;
       this.dialogStatus = "edit";
-      this.qrCodeUrl = ''; // 清空二维码
+      this.qrCodeUrl = ""; // 清空二维码
     },
     handleDelete(row) {
       console.log(row);
-      this.$confirm('确定要删除吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
+      this.$confirm("确定要删除吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
       }).then(() => {
-        removeData('user_login', { query: { _id: row._id } }).then((response) => {
-          console.log(response);
-          this.fetchData();
-        });
+        removeData("user_login", { query: { _id: row._id } }).then(
+          (response) => {
+            console.log(response);
+            this.fetchData();
+          }
+        );
       });
     },
     handisshow(row) {
@@ -419,25 +566,31 @@ export default {
       this.phone = "";
       this.dialogFormVisible = true;
       this.dialogStatus = "create";
-      this.qrCodeUrl = ''; // 清空二维码
+      this.qrCodeUrl = ""; // 清空二维码
     },
     // 生成加密ID
     generateEncryptedId() {
-      const uuid = uuidv4()
+      const uuid = uuidv4();
       // 使用AES加密
-      const encrypted = CryptoJS.AES.encrypt(uuid, 'your-secret-key').toString()
-      return encrypted
+      const encrypted = CryptoJS.AES.encrypt(
+        uuid,
+        "your-secret-key"
+      ).toString();
+      return encrypted;
     },
     // 新增加密方法
     encryptLoginData(userData) {
       const dataString = JSON.stringify({
         id: userData._id,
         userName: userData.userName,
-        password: userData.password
+        password: userData.password,
       });
 
       // 使用AES加密
-      const encrypted = CryptoJS.AES.encrypt(dataString, this.encryptionKey).toString();
+      const encrypted = CryptoJS.AES.encrypt(
+        dataString,
+        this.encryptionKey
+      ).toString();
       return encrypted;
     },
     // 修改createData方法
@@ -457,7 +610,7 @@ export default {
           const userData = {
             _id: Date.now().toString(), // 临时ID，实际应该由后端生成
             userName: this.number,
-            password: this.password
+            password: this.password,
           };
 
           // 加密用户数据
@@ -467,7 +620,7 @@ export default {
           try {
             this.qrCodeUrl = await QRCode.toDataURL(encryptedData);
           } catch (err) {
-            console.error('QR Code generation failed:', err);
+            console.error("QR Code generation failed:", err);
             return;
           }
 
@@ -488,7 +641,7 @@ export default {
               this.currentQRCode = this.qrCodeUrl;
               this.currentUser = {
                 nickName: this.name,
-                userName: this.number
+                userName: this.number,
               };
               this.qrCodeDialogVisible = true;
 
@@ -639,7 +792,7 @@ export default {
     },
     // 添加打印二维码方法
     printQRCode() {
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       printWindow.document.write(`
         <html>
           <head>
@@ -666,7 +819,7 @@ export default {
 
     // 添加下载二维码方法
     downloadQRCode() {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.download = `登录码_${this.name}_${this.number}.png`;
       link.href = this.qrCodeUrl;
       document.body.appendChild(link);
@@ -680,7 +833,7 @@ export default {
       const encryptedData = this.encryptLoginData({
         _id: row._id,
         userName: row.userName,
-        password: row.password
+        password: row.password,
       });
 
       // 重新生成二维码
@@ -688,22 +841,22 @@ export default {
         this.currentQRCode = await QRCode.toDataURL(encryptedData);
         this.currentUser = {
           nickName: row.nickName,
-          userName: row.userName
+          userName: row.userName,
         };
         this.qrCodeDialogVisible = true;
       } catch (err) {
-        console.error('QR Code generation failed:', err);
+        console.error("QR Code generation failed:", err);
         this.$notify({
-          title: '错误',
-          message: '二维码生成失败',
-          type: 'error'
+          title: "错误",
+          message: "二维码生成失败",
+          type: "error",
         });
       }
     },
 
     // 打印二维码
     printQRCode() {
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       printWindow.document.write(`
         <html>
           <head>
@@ -730,7 +883,7 @@ export default {
 
     // 下载二维码
     downloadQRCode() {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.download = `登录码_${this.currentUser.nickName}_${this.currentUser.userName}.png`;
       link.href = this.currentQRCode;
       document.body.appendChild(link);
@@ -741,53 +894,55 @@ export default {
     async showBatchQRCode() {
       try {
         // 为每个用户生成加密的二维码
-        this.qrCodeList = await Promise.all(this.categorylist.map(async item => {
-          // 生成加密数据
-          const encryptedData = this.encryptLoginData({
-            _id: item._id,
-            userName: item.userName,
-            password: item.password
-          });
+        this.qrCodeList = await Promise.all(
+          this.categorylist.map(async (item) => {
+            // 生成加密数据
+            const encryptedData = this.encryptLoginData({
+              _id: item._id,
+              userName: item.userName,
+              password: item.password,
+            });
 
-          // 生成二维码
-          const qrCode = await QRCode.toDataURL(encryptedData);
+            // 生成二维码
+            const qrCode = await QRCode.toDataURL(encryptedData);
 
-          return {
-            id: item._id,
-            nickName: item.nickName,
-            userName: item.userName,
-            qrCode: qrCode,
-            selected: false
-          };
-        }));
+            return {
+              id: item._id,
+              nickName: item.nickName,
+              userName: item.userName,
+              qrCode: qrCode,
+              selected: false,
+            };
+          })
+        );
 
         this.batchQRCodeVisible = true;
       } catch (err) {
-        console.error('批量生成二维码失败:', err);
+        console.error("批量生成二维码失败:", err);
         this.$notify({
-          title: '错误',
-          message: '批量生成二维码失败',
-          type: 'error'
+          title: "错误",
+          message: "批量生成二维码失败",
+          type: "error",
         });
       }
     },
 
     // 修改打印选中二维码的方法
     async printSelectedQRCodes() {
-      const selectedCodes = this.qrCodeList.filter(item => item.selected);
+      const selectedCodes = this.qrCodeList.filter((item) => item.selected);
       if (selectedCodes.length === 0) {
-        this.$message.warning('请至少选择一个二维码');
+        this.$message.warning("请至少选择一个二维码");
         return;
       }
 
       // 为每个选中的二维码生成带信息的图片
-      const imagePromises = selectedCodes.map(item =>
+      const imagePromises = selectedCodes.map((item) =>
         this.createQRCodeWithInfo(item.qrCode, item.nickName, item.userName)
       );
 
       const images = await Promise.all(imagePromises);
 
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       printWindow.document.write(`
         <html>
           <head>
@@ -821,11 +976,15 @@ export default {
           </head>
           <body>
             <div class="qrcode-grid">
-              ${images.map((imageUrl, index) => `
+              ${images
+                .map(
+                  (imageUrl, index) => `
                 <div class="qrcode-item">
                   <img src="${imageUrl}" alt="登录二维码">
                 </div>
-              `).join('')}
+              `
+                )
+                .join("")}
             </div>
           </body>
         </html>
@@ -838,9 +997,9 @@ export default {
 
     // 修改下载选中二维码的方法
     async downloadSelectedQRCodes() {
-      const selectedCodes = this.qrCodeList.filter(item => item.selected);
+      const selectedCodes = this.qrCodeList.filter((item) => item.selected);
       if (selectedCodes.length === 0) {
-        this.$message.warning('请至少选择一个二维码');
+        this.$message.warning("请至少选择一个二维码");
         return;
       }
 
@@ -853,7 +1012,7 @@ export default {
           item.userName
         );
 
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.download = `登录码_${item.nickName}_${item.userName}.png`;
         link.href = imageUrl;
         document.body.appendChild(link);
@@ -864,7 +1023,7 @@ export default {
 
       // 如果选择了多个二维码，创建ZIP文件
       const zip = new JSZip();
-      const promises = selectedCodes.map(async item => {
+      const promises = selectedCodes.map(async (item) => {
         const imageUrl = await this.createQRCodeWithInfo(
           item.qrCode,
           item.nickName,
@@ -878,10 +1037,10 @@ export default {
       });
 
       await Promise.all(promises);
-      const content = await zip.generateAsync({ type: 'blob' });
+      const content = await zip.generateAsync({ type: "blob" });
 
-      const link = document.createElement('a');
-      link.download = '登录二维码.zip';
+      const link = document.createElement("a");
+      link.download = "登录二维码.zip";
       link.href = URL.createObjectURL(content);
       document.body.appendChild(link);
       link.click();
@@ -889,7 +1048,7 @@ export default {
     },
 
     handleSelectAll(val) {
-      this.qrCodeList.forEach(item => {
+      this.qrCodeList.forEach((item) => {
         item.selected = val;
       });
     },
@@ -897,8 +1056,8 @@ export default {
     // 创建带有用户信息的二维码图片
     async createQRCodeWithInfo(qrCodeUrl, nickName, userName) {
       return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         const img = new Image();
 
         // 设置画布大小，预留底部空间显示文字
@@ -906,7 +1065,7 @@ export default {
         canvas.height = 380;
 
         // 设置背景色
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         img.onload = () => {
@@ -914,13 +1073,13 @@ export default {
           ctx.drawImage(img, 50, 30, 200, 200);
 
           // 设置文字样式
-          ctx.fillStyle = '#333333';
-          ctx.font = '14px Arial';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = "#333333";
+          ctx.font = "14px Arial";
+          ctx.textAlign = "center";
 
           // 绘制分割线
           ctx.beginPath();
-          ctx.strokeStyle = '#EBEEF5';
+          ctx.strokeStyle = "#EBEEF5";
           ctx.moveTo(30, 250);
           ctx.lineTo(270, 250);
           ctx.stroke();
@@ -930,7 +1089,7 @@ export default {
           ctx.fillText(`账号：${userName}`, canvas.width / 2, 310);
 
           // 转换为图片URL
-          resolve(canvas.toDataURL('image/png'));
+          resolve(canvas.toDataURL("image/png"));
         };
 
         img.src = qrCodeUrl;
@@ -945,7 +1104,7 @@ export default {
         this.currentUser.userName
       );
 
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.download = `登录码_${this.currentUser.nickName}_${this.currentUser.userName}.png`;
       link.href = imageUrl;
       document.body.appendChild(link);
@@ -955,9 +1114,9 @@ export default {
 
     // 修改批量下载方法
     async downloadSelectedQRCodes() {
-      const selectedCodes = this.qrCodeList.filter(item => item.selected);
+      const selectedCodes = this.qrCodeList.filter((item) => item.selected);
       if (selectedCodes.length === 0) {
-        this.$message.warning('请至少选择一个二维码');
+        this.$message.warning("请至少选择一个二维码");
         return;
       }
 
@@ -970,7 +1129,7 @@ export default {
           item.userName
         );
 
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.download = `登录码_${item.nickName}_${item.userName}.png`;
         link.href = imageUrl;
         document.body.appendChild(link);
@@ -981,7 +1140,7 @@ export default {
 
       // 如果选择了多个二维码，创建ZIP文件
       const zip = new JSZip();
-      const promises = selectedCodes.map(async item => {
+      const promises = selectedCodes.map(async (item) => {
         const imageUrl = await this.createQRCodeWithInfo(
           item.qrCode,
           item.nickName,
@@ -995,10 +1154,10 @@ export default {
       });
 
       await Promise.all(promises);
-      const content = await zip.generateAsync({ type: 'blob' });
+      const content = await zip.generateAsync({ type: "blob" });
 
-      const link = document.createElement('a');
-      link.download = '登录二维码.zip';
+      const link = document.createElement("a");
+      link.download = "登录二维码.zip";
       link.href = URL.createObjectURL(content);
       document.body.appendChild(link);
       link.click();
@@ -1007,20 +1166,20 @@ export default {
 
     // 修改打印方法，使用新的带信息的二维码图片
     async printSelectedQRCodes() {
-      const selectedCodes = this.qrCodeList.filter(item => item.selected);
+      const selectedCodes = this.qrCodeList.filter((item) => item.selected);
       if (selectedCodes.length === 0) {
-        this.$message.warning('请至少选择一个二维码');
+        this.$message.warning("请至少选择一个二维码");
         return;
       }
 
       // 为每个选中的二维码生成带信息的图片
-      const imagePromises = selectedCodes.map(item =>
+      const imagePromises = selectedCodes.map((item) =>
         this.createQRCodeWithInfo(item.qrCode, item.nickName, item.userName)
       );
 
       const images = await Promise.all(imagePromises);
 
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       printWindow.document.write(`
         <html>
           <head>
@@ -1054,11 +1213,15 @@ export default {
           </head>
           <body>
             <div class="qrcode-grid">
-              ${images.map((imageUrl, index) => `
+              ${images
+                .map(
+                  (imageUrl, index) => `
                 <div class="qrcode-item">
                   <img src="${imageUrl}" alt="登录二维码">
                 </div>
-              `).join('')}
+              `
+                )
+                .join("")}
             </div>
           </body>
         </html>
@@ -1071,139 +1234,141 @@ export default {
 
     // 分页方法
     handleSizeChange(val) {
-      this.listQuery.limit = val
-      this.fetchData()
+      this.listQuery.limit = val;
+      this.fetchData();
     },
 
     handleCurrentChange(val) {
-      this.listQuery.page = val
-      this.fetchData()
+      this.listQuery.page = val;
+      this.fetchData();
     },
 
     // 导入相关方法
     handleImport() {
-      this.importDialogVisible = true
+      this.importDialogVisible = true;
     },
 
     beforeUpload(file) {
-      const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-        file.type === 'application/vnd.ms-excel'
-      const isLt2M = file.size / 1024 / 1024 < 2
+      const isExcel =
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        file.type === "application/vnd.ms-excel";
+      const isLt2M = file.size / 1024 / 1024 < 2;
 
       if (!isExcel) {
-        this.$message.error('只能上传 Excel 文件!')
-        return false
+        this.$message.error("只能上传 Excel 文件!");
+        return false;
       }
       if (!isLt2M) {
-        this.$message.error('文件大小不能超过 2MB!')
-        return false
+        this.$message.error("文件大小不能超过 2MB!");
+        return false;
       }
-      return true
+      return true;
     },
 
     async handleUploadSuccess(file) {
       // 确保是文件对象
       if (!file || !file.raw) {
-        this.$message.error('无效的文件')
-        return
+        this.$message.error("无效的文件");
+        return;
       }
 
       try {
         // 使用 file.raw 获取原始文件对象
-        const reader = new FileReader()
-        
+        const reader = new FileReader();
+
         reader.onload = async (e) => {
           try {
-            const data = new Uint8Array(e.target.result)
-            const workbook = XLSX.read(data, { type: 'array' })
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-            const rows = XLSX.utils.sheet_to_json(firstSheet)
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(firstSheet);
 
-            let userDataList = []
+            let userDataList = [];
             // 处理每一行数据
-            rows.map(row => {
+            rows.map((row) => {
               const userData = {
                 userName: row.userName,
-                password: row.password || 'dc123456', // 默认密码
+                password: row.password || "dc123456", // 默认密码
                 nickName: row.nickName,
                 phone: row.phone,
                 department: row.department,
                 position: row.position,
-                status: row.status === 'true' || row.status === true
-              }
-              userDataList.push(userData)
-            })
+                status: row.status === "true" || row.status === true,
+              };
+              userDataList.push(userData);
+            });
 
-            console.log(userDataList)
+            console.log(userDataList);
             // 使用 addData 批量添加用户
-            await addData('user_login', userDataList)
+            await addData("user_login", userDataList);
 
-            this.$message.success('导入成功')
-            this.importDialogVisible = false
-            this.fetchData()
+            this.$message.success("导入成功");
+            this.importDialogVisible = false;
+            this.fetchData();
           } catch (error) {
-            console.error('处理数据失败:', error)
-            this.$message.error('导入失败：数据格式错误')
+            console.error("处理数据失败:", error);
+            this.$message.error("导入失败：数据格式错误");
           }
-        }
+        };
 
         reader.onerror = () => {
-          this.$message.error('文件读取失败')
-        }
+          this.$message.error("文件读取失败");
+        };
 
         // 读取文件
-        reader.readAsArrayBuffer(file.raw)
+        reader.readAsArrayBuffer(file.raw);
       } catch (error) {
-        console.error('导入失败:', error)
-        this.$message.error('导入失败')
+        console.error("导入失败:", error);
+        this.$message.error("导入失败");
       }
     },
 
     handleUploadError(err) {
-      console.error('上传失败:', err)
-      this.$message.error('文件上传失败')
+      console.error("上传失败:", err);
+      this.$message.error("文件上传失败");
     },
 
     // 修改模板下载方法
     downloadTemplate() {
       const template = [
         {
-          userName: '示例账号',
-          password: '默认密码',
-          nickName: '张三',
-          phone: '13800138000',
-          department: '技术部',
-          position: '工程师',
-          status: 'true'
-        }
-      ]
+          userName: "示例账号",
+          password: "默认密码",
+          nickName: "张三",
+          phone: "13800138000",
+          department: "技术部",
+          position: "工程师",
+          status: "true",
+        },
+      ];
 
-      const wb = XLSX.utils.book_new()
-      const ws = XLSX.utils.json_to_sheet(template)
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(template);
 
       // 添加列说明
-      ws['!cols'] = [
+      ws["!cols"] = [
         { wch: 15 }, // 账号
         { wch: 15 }, // 密码
         { wch: 15 }, // 用户名
         { wch: 15 }, // 手机号
         { wch: 15 }, // 部门
         { wch: 15 }, // 职位
-        { wch: 20 }  // 状态(true/false)
-      ]
+        { wch: 20 }, // 状态(true/false)
+      ];
 
-      XLSX.utils.book_append_sheet(wb, ws, '用户导入模板')
+      XLSX.utils.book_append_sheet(wb, ws, "用户导入模板");
       const wbout = XLSX.write(wb, {
-        bookType: 'xlsx',
+        bookType: "xlsx",
         bookSST: true,
-        type: 'array'
-      })
+        type: "array",
+      });
 
       FileSaver.saveAs(
-        new Blob([wbout], { type: 'application/octet-stream' }),
-        '用户导入模板.xlsx'
-      )
-    }
+        new Blob([wbout], { type: "application/octet-stream" }),
+        "用户导入模板.xlsx"
+      );
+    },
   },
 };
 </script>
@@ -1423,14 +1588,14 @@ export default {
       }
     }
 
-    .el-button+.el-button {
+    .el-button + .el-button {
       margin-left: 8px;
     }
   }
 }
 
 // 调整按钮间距
-.el-button+.el-button {
+.el-button + .el-button {
   margin-left: 8px;
 }
 

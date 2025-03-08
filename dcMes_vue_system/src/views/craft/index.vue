@@ -1530,6 +1530,7 @@ export default {
                         }
                     ]),
                     page: this.materialTableData.currentPage,
+                    skip: (this.materialTableData.currentPage - 1) * this.materialTableData.pageSize,
                     limit: this.materialTableData.pageSize,
                     count: true,
 
@@ -1927,7 +1928,7 @@ export default {
                 const result = await getData('k3_BD_MATERIAL', {
                     query: queryCondition,
                     page: 1,
-                    limit: 20
+                    limit: 20,
                 });
 
                 this.materialOptions = result.data;
