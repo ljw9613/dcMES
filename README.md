@@ -6,9 +6,9 @@ Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN�
 无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
 
 #### 软件架构
+dcMes_server_system 德昌mes服务端-系统主服务 端口 2221
 dcMes_server 德昌mes服务端-产线主服务 端口 2222
-dcMes_server_system 德昌mes服务端-系统主服务 端口 2223
-dcMes_server_ws 德昌mes服务端-websocket服务 端口 2224
+dcMes_server_ws 德昌mes服务端-websocket服务 服务端口2221 ws端口 2224
 dcMes_vue_system 德昌mes服务端-前端 
 
 #### 安装教程
