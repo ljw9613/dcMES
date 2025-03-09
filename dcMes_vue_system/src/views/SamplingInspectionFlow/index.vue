@@ -91,39 +91,39 @@
 
                 <el-table-column label="物料编码" prop="materialCode">
                     <template slot-scope="scope">
-                        {{ scope.row.materialProcessFlowId.materialCode }}
+                        {{ scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.materialCode:'' }}
                     </template>
                 </el-table-column>
 
                 <el-table-column label="产品名称" prop="materialName">
                     <template slot-scope="scope">
-                        {{ scope.row.materialProcessFlowId.materialName }}
+                        {{ scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.materialName:'' }}
                     </template>
                 </el-table-column>
 
                 <el-table-column label="产品型号" prop="materialSpec">
                     <template slot-scope="scope">
-                        {{ scope.row.materialProcessFlowId.materialSpec }}
+                        {{ scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.materialSpec:'' }}
                     </template>
                 </el-table-column>
 
                 <el-table-column label="产品状态" prop="status">
                     <template slot-scope="scope">
-                        <el-tag :type="getProcessStatusType(scope.row.materialProcessFlowId.status)">
-                            {{ getProcessStatusText(scope.row.materialProcessFlowId.status) }}
+                        <el-tag :type="getProcessStatusType(scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.status:null)">
+                            {{ getProcessStatusText(scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.status:null) }}
                         </el-tag>
                     </template>
                 </el-table-column>
 
                 <el-table-column label="销售订单号" prop="saleOrderNo">
                     <template slot-scope="scope">
-                        {{ scope.row.materialProcessFlowId.saleOrderNo }}
+                        {{ scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.saleOrderNo:'' }}
                     </template>
                 </el-table-column>
 
                 <el-table-column label="批次号" prop="batchNo">
                     <template slot-scope="scope">
-                        {{ scope.row.materialProcessFlowId.batchNo }}
+                        {{ scope.row.materialProcessFlowId?scope.row.materialProcessFlowId.batchNo:'' }}
                     </template>
                 </el-table-column>
 

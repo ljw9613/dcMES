@@ -534,6 +534,7 @@ export default {
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.sort = { createAt: -1 };
                 req.count = true;
                 const result = await getData("barcodeRule", req);
                 this.rulesList = result.data;

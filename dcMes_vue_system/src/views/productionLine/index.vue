@@ -224,7 +224,8 @@ export default {
                 let req = this.searchData();
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
-                req.limit = this.pageSize;
+                req.limit = this.pageSize;  
+                req.sort = { createAt: -1 };
                 req.count = true;
                 const result = await getData("production_line", req);
                 this.tableList = result.data;

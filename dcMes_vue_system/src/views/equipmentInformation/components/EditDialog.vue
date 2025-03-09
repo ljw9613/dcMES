@@ -10,7 +10,13 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="设备编号" prop="machineCode">
-                        <el-input v-model="form.machineCode" placeholder="请输入设备编号"></el-input>
+                        <el-input v-model="form.machineCode" placeholder="请输入设备编号" :disabled="autoGenerateCode">
+                            <template #append>
+                                <el-button @click="toggleAutoGenerate">
+                                    {{ autoGenerateCode ? '手动输入' : '自动生成' }}
+                                </el-button>
+                            </template>
+                        </el-input>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -51,8 +57,17 @@
                 <el-col :span="12">
                     <el-form-item label="设备类型" prop="machineType">
                         <el-select v-model="form.machineType" placeholder="请选择设备类型" clearable style="width: 100%"
-                            :popper-append-to-body="true">
+                            :popper-append-to-body="true" @change="handleMachineTypeChange">
                             <el-option v-for="dict in dict.type.machine_type" :key="dict.value" :label="dict.label"
+                                :value="dict.value" />
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="厂区名称" prop="machineIp">
+                        <el-select v-model="form.factoryName" placeholder="请选择厂区名称" clearable style="width: 100%"
+                            :popper-append-to-body="true">
+                            <el-option v-for="dict in dict.type.factoryName_type" :key="dict.value" :label="dict.label"
                                 :value="dict.value" />
                         </el-select>
                     </el-form-item>
@@ -169,7 +184,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 export default {
     name: 'EditDialog',
-    dicts: ['machine_type'],
+    dicts: ['machine_type','factoryName_type'],
     props: {
         visible: {
             type: Boolean,
@@ -197,6 +212,7 @@ export default {
                 lowerLimit: null,
                 machineType: undefined,
                 isNeedMaintain: false,
+                factoryName: undefined,
             },
             rules: {
                 machineName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
@@ -212,10 +228,14 @@ export default {
                 machineType: [
                     { required: true, message: '请选择设备类型', trigger: 'change' }
                 ],
+                factoryName: [
+                    { required: true, message: '请选择厂区名称', trigger: 'change' }
+                ],
             },
             processStepOptions: [],
             submitLoading: false,
-            processLoading: false
+            processLoading: false,
+            autoGenerateCode: false
         }
     },
     computed: {
@@ -241,6 +261,55 @@ export default {
         }
     },
     methods: {
+        // 切换自动生成编号模式
+        toggleAutoGenerate() {
+            this.autoGenerateCode = !this.autoGenerateCode;
+            if (this.autoGenerateCode) {
+                this.generateMachineCode();
+            }
+        },
+        
+        // 设备类型变更时自动生成编号
+        handleMachineTypeChange(val) {
+            if (this.autoGenerateCode) {
+                this.generateMachineCode();
+            }
+        },
+        
+        // 生成设备编号
+        generateMachineCode() {
+            if (!this.form.machineType || !this.form.machineName) {
+                this.$message.warning('请先填写设备类型和设备名称');
+                return;
+            }
+            
+            // 获取当前日期作为编号的一部分
+            const date = new Date();
+            const year = date.getFullYear().toString().substr(2); // 年份后两位
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            
+            // 设备类型缩写（可以根据实际需求修改）
+            const typeMap = {
+                '一体机设备': 'YDC',
+                '检测设备': 'JC',
+                '打印设备': 'DY',
+                'tianke电子秤': 'TK',
+                // 可以添加更多设备类型的缩写
+            };
+            
+            const typePrefix = typeMap[this.form.machineType] || this.form.machineType.substr(0, 2).toUpperCase();
+            
+            // 从设备名称中提取前两个字符
+            const namePrefix = this.form.machineName.substr(0, 2);
+            
+            // 生成随机数（4位）
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            
+            // 组合编号: 类型缩写-名称前缀-年月日-随机数
+            this.form.machineCode = `${typePrefix}-${namePrefix}-${year}${month}${day}-${randomNum}`;
+        },
+        
         // 工序选择变化处理
         handleProcessChange(processId) {
             if (!processId) {
@@ -280,10 +349,16 @@ export default {
             console.log(val)
             this.form.lineCode = val.lineCode
             this.form.lineName = val.lineName
+            
+            // 如果启用了自动生成编号，则在产线变更时也更新编号
+            if (this.autoGenerateCode) {
+                this.generateMachineCode();
+            }
         },
         async initFormData() {
             if (this.dialogStatus === 'edit') {
                 this.form = { ...this.rowData }
+                this.autoGenerateCode = false; // 编辑模式下默认不自动生成
                 // 如果存在materialId，加载对应的工序选项
                 if (this.form.materialId) {
                     try {
@@ -318,6 +393,11 @@ export default {
                 if (valid) {
                     this.submitLoading = true
                     try {
+                        // 确保设备编号已生成
+                        if (this.autoGenerateCode && !this.form.machineCode) {
+                            this.generateMachineCode();
+                        }
+                        
                         const formData = { ...this.form }
                         this.$emit('submit', formData)
                         this.handleClose()
@@ -329,7 +409,7 @@ export default {
                     }
                 }
             })
-        }
+        },
     }
 }
 </script>
