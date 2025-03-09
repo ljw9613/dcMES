@@ -88,8 +88,29 @@
                             </zr-select>
                         </el-form-item>
                     </el-col>
+                    
                 </el-row>
                 <el-row :gutter="20">
+                    <el-col :span="6">
+                        <el-form-item label="入库仓库">
+                             <el-input v-model="searchForm.workShop" placeholder="请输入入库仓库" clearable></el-input>
+                            <!--<zr-select v-model="searchForm.workShop" collection="warehouse_entry"
+                                :search-fields="['saleOrderNo']" label-key="saleOrderNo" value-key="saleOrderNo"
+                                 :multiple="false" placeholder="请输入销售订单号" clearable
+                                style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.saleOrderNo }}</span>
+                                           <el-tag size="mini" type="info" class="option-tag">
+                                                {{ item.entryNo }}
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select> -->
+                        </el-form-item>
+                    </el-col>
                     <el-col :span="6">
                         <el-form-item label="入库状态">
                             <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 100%">
@@ -156,7 +177,7 @@
                         <div>销售单号: {{ scope.row.saleOrderNo }}</div>
                     </template>
                 </el-table-column>
-
+                
                 <el-table-column label="物料信息" align="center">
                     <template slot-scope="scope">
                         {{ scope.row.materialName }}
@@ -171,7 +192,11 @@
                         <div>托盘数: {{ scope.row.palletCount }}</div>
                     </template>
                 </el-table-column>
-
+                <el-table-column label="入库仓库" align="center">
+                    <template slot-scope="scope">
+                        <div> {{ scope.row.workShop }}</div>
+                    </template>
+                </el-table-column>
                 <el-table-column label="入库状态" align="center">
                     <template slot-scope="scope">
                         <el-tag :type="getStatusType(scope.row.status)">

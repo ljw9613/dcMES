@@ -101,7 +101,7 @@
                             </zr-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="6">
+                    <!-- <el-col :span="6">
                         <el-form-item label="业务类型">
                             <el-select v-model="searchForm.businessType" placeholder="请选择业务类型" clearable
                                 style="width: 100%">
@@ -109,8 +109,8 @@
                                     :value="dict.value" />
                             </el-select>
                         </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
+                    </el-col> -->
+                    <el-col :span="12">
                         <el-form-item label="计划时间">
                             <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
                                 start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
@@ -465,7 +465,7 @@ export default {
                 req.query.$and.push({ materialName: { $regex: this.searchForm.materialName, $options: 'i' } });
             }
             if (this.searchForm.lineName) {
-                req.query.$and.push({ lineName: { $regex: this.searchForm.lineName, $options: 'i' } });
+                req.query.$and.push({ productionLineId: this.searchForm.lineName });
             }
             if (this.searchForm.businessType) {
                 req.query.$and.push({ businessType: this.searchForm.businessType });

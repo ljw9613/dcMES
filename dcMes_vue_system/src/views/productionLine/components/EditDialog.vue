@@ -5,8 +5,15 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="产线编码" prop="lineCode">
-                        <el-input v-model="form.lineCode" placeholder="请输入产线编码"
-                            :disabled="dialogStatus === 'edit'"></el-input>
+
+                            <el-input v-model="form.lineCode" placeholder="请输入产线编码" :disabled="autoGenerateCode">
+                            <template #append>
+                                <el-button @click="toggleAutoGenerate">
+                                    {{ autoGenerateCode ? '手动输入' : '自动生成' }}
+                                </el-button>
+                            </template>
+                        </el-input>
+                        
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
@@ -77,7 +84,7 @@
             <el-row :gutter="20">
                 <el-col :span="8">
                     <el-form-item label="所属车间" prop="workshop">
-                        <el-input v-model="form.workshop" placeholder="请输入所属车间"></el-input>
+                        <el-input v-model="form.workshop" placeholder="请输入所属车间" @change="handleWorkshopChange"></el-input>
                     </el-form-item>
                 </el-col>
                 <el-col :span="8">
@@ -181,10 +188,11 @@ export default {
                 lineCode: [{ required: true, message: '请输入产线编码', trigger: 'blur' }],
                 lineName: [{ required: true, message: '请输入产线名称', trigger: 'blur' }],
                 state: [{ required: true, message: '请选择状态', trigger: 'change' }],
-                // workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
+                workshop: [{ required: true, message: '请输入所属车间', trigger: 'blur' }],
                 // cardNum: [{ required: true, message: '请输入接收器卡号', trigger: 'blur' }]
             },
             submitLoading: false,
+            autoGenerateCode: false,
 
             workTableData: [],
             workDialogVisible: false,
@@ -213,6 +221,30 @@ export default {
         }
     },
     methods: {
+        toggleAutoGenerate() {
+            this.autoGenerateCode = !this.autoGenerateCode;
+            if (this.autoGenerateCode) {
+                this.handleWorkshopChange();
+            }
+        },
+        async handleWorkshopChange() {
+            if (this.dialogStatus === 'create' && this.form.workshop) {
+                try {
+                    // 获取当前车间下的产线数量
+                    const { data: existingLines } = await getData('production_line', { 
+                        query: { workshop: this.form.workshop } 
+                    });
+                    
+                    // 生成新的产线编码
+                    const workshopPrefix = this.form.workshop.substring(0, 2).toUpperCase();
+                    const nextNumber = (existingLines.length + 1).toString().padStart(3, '0');
+                    this.form.lineCode = `${workshopPrefix}${nextNumber}`;
+                } catch (error) {
+                    console.error('获取产线数据失败:', error);
+                    this.$message.error('自动生成产线编码失败');
+                }
+            }
+        },
         async handleOneKeyProduction() {
             try {
                 if (!this.form.currentMaterial) {

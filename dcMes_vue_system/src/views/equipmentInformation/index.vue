@@ -30,14 +30,20 @@
                             <el-input v-model="searchForm.principal" placeholder="请输入负责人" clearable></el-input>
                         </el-form-item>
                     </el-col>
-                </el-row>
-
-                <el-row :gutter="20" v-show="showAdvanced">
                     <el-col :span="6">
                         <el-form-item label="设备类型">
                             <el-select v-model="searchForm.machineType" placeholder="请选择设备类型" clearable
                                 style="width: 100%" :popper-append-to-body="true">
                                 <el-option v-for="dict in dict.type.machine_type" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="厂区名称">
+                            <el-select v-model="searchForm.factoryName" placeholder="请选择厂区名称" clearable
+                                style="width: 100%" :popper-append-to-body="true">
+                                <el-option v-for="dict in dict.type.factoryName_type" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
                         </el-form-item>
@@ -50,7 +56,31 @@
                             </zr-select>
                         </el-form-item>
                     </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="设备状态">
+                            <el-select v-model="searchForm.status" placeholder="请选择设备状态" clearable
+                                style="width: 100%" :popper-append-to-body="true">
+                                <el-option :label="'在线'"
+                                    :value="true" />
+                                <el-option :label="'离线'"
+                                    :value="false" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
                 </el-row>
+
+                <!-- <el-row :gutter="20" v-show="showAdvanced">
+                    <el-col :span="6">
+                        <el-form-item label="设备类型">
+                            <el-select v-model="searchForm.machineType" placeholder="请选择设备类型" clearable
+                                style="width: 100%" :popper-append-to-body="true">
+                                <el-option v-for="dict in dict.type.machine_type" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                    
+                </el-row> -->
 
                 <el-form-item>
                     <el-button type="primary" @click="search">查询搜索</el-button>
@@ -113,7 +143,8 @@
                 <el-table-column label="设备编号" prop="machineCode" />
 
                 <el-table-column label="设备IP" prop="machineIp" width="150" />
-
+                <el-table-column label="厂区名称" prop="factoryName" width="150" />
+                
                 <el-table-column label="设备在线状态">
                     <template slot-scope="scope">
                         <el-tag :type="scope.row.status ? 'success' : 'danger'">{{ scope.row.status ? '在线' : '离线'
@@ -158,7 +189,7 @@ import { refreshMachine } from "@/api/machine";
 
 export default {
     name: 'machine',
-    dicts: ['machine_type'],
+    dicts: ['machine_type','factoryName_type'],
     components: {
         EditDialog
     },
@@ -168,9 +199,11 @@ export default {
                 machineName: '',
                 machineCode: '',
                 machineIp: '',
+                factoryName: '',
                 principal: '',
                 machineType: '',
                 lineId: '',
+                status: '',
                 // 其他字段根据需要添加
             },
             tableList: [],
@@ -204,10 +237,24 @@ export default {
             };
 
             Object.keys(this.searchForm).forEach(key => {
-                if (this.searchForm[key]) {
-                    req.query.$and.push({
-                        [key]: { $regex: this.searchForm[key], $options: 'i' }
-                    });
+                if(key === 'status'){
+                    if(this.searchForm[key]){
+                        req.query.$and.push({
+                            status:  this.searchForm[key] 
+                        });
+                    }
+                }else if(key === 'lineId'){
+                    if (this.searchForm[key]) {
+                        req.query.$and.push({
+                            lineId:  this.searchForm[key] 
+                        });
+                    }
+                }else{
+                    if (this.searchForm[key]) {
+                        req.query.$and.push({
+                            [key]: { $regex: this.searchForm[key], $options: 'i' }
+                        });
+                    }
                 }
             });
 
@@ -226,6 +273,7 @@ export default {
                 req.limit = this.pageSize;
                 req.count = true;
                 req.populate = JSON.stringify([{ path: 'processStepId', select: 'processName processCode' }, { path: 'productionPlanWorkOrderId', select: 'workOrderNo planQuantity' }]);
+                req.sort = JSON.stringify({ createTime: -1 });
                 const result = await getData("machine", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
@@ -247,7 +295,11 @@ export default {
                 machineName: '',
                 machineCode: '',
                 machineIp: '',
+                factoryName: '',
                 principal: '',
+                machineType: '',
+                lineId: '',
+                status: '',
                 // 其他字段根据需要添加
             };
 
@@ -369,10 +421,10 @@ export default {
                 principal: '负责人',
                 machineCode: '设备编号',
                 machineIp: '设备IP',
-                equipmentType: '设备类型',
-                collectionMethod: '采集方式',
                 factoryName: '厂区名称',
                 productionLineName: '产线名称',
+                equipmentType: '设备类型',
+                collectionMethod: '采集方式',
                 createTime: '创建时间'
             };
 
