@@ -102,6 +102,9 @@ const deliveryNoticeEntrySchema = new Schema({
     Number: String,
     Name: String
   },
+
+  //SOEntryId
+  FSOEntryId: String,
   
   // 仓储信息
   FStockID: {

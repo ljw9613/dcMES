@@ -51,3 +51,12 @@ export function exportBOM(materialId) {
         method: 'get'
     })
 }
+
+// /api/v1/auto-fix-inconsistent-process-nodes
+export function autoFixInconsistentProcessNodes(data) {
+    return request({
+        url: '/auto-fix-inconsistent-process-nodes',
+        method: 'post',
+        data
+    })
+}

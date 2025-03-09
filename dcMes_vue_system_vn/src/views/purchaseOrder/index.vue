@@ -820,7 +820,7 @@ export default {
                         confirmMessage = '确认要同步所有采购订单数据吗？此操作可能需要较长时间';
                         break;
                     case 'date':
-                        confirmMessage = '确认要同步选定日期范围的采购订单数据吗？';
+                        confirmMessage = '确认要同步规则筛选的采购订单数据吗？';
                         break;
                     case 'billNo':
                         confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的采购订单数据吗？`;

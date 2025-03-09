@@ -164,6 +164,9 @@ const deliveryNoticeEntrySchema = new Schema({
     FBuyerWithholding: Boolean
   }],
   
+  // 销售订单行ID
+  FSOEntryId: Number,
+  
   // 自定义字段
   FF_dcdj_khdd: String,     // 客户订单号
   FF_dcdj_Text: String,     // 自定义文本1
@@ -200,7 +203,7 @@ const deliveryNoticeSchema = new Schema(
       Number: String,
       Name: String,
     },
-    
+
     // 业务伙伴信息
     FCustomerID: {
       Id: Number,

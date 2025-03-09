@@ -1100,7 +1100,7 @@ export default {
             try {
                 const confirmMessage = {
                     'number': '确认要同步选定物料编号的数据吗？',
-                    'date': '确认要同步选定日期范围的数据吗？',
+                    'date': '确认要同步规则筛选的数据吗？',
                     'all': '确认要同步所有物料数据吗？此操作可能需要较长时间'
                 }[this.syncForm.syncType];
 

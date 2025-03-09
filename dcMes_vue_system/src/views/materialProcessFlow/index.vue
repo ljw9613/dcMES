@@ -122,6 +122,7 @@
                     <div>
                         <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
                         <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
+                        <el-button type="primary" @click="handleBatchAutoFixInconsistentProcessNodes">批量自动修复异常节点</el-button>
 
                     </div>
                 </div>
@@ -134,6 +135,7 @@
             @selection-change="handleSelectionChange" @handleCurrentChange="baseTableHandleCurrentChange"
             :cell-style="{ textAlign: 'center' }" @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
+                <el-table-column type="selection" width="55" align="center"></el-table-column>
                 <el-table-column label="产品条码" prop="barcode">
                     <template slot-scope="scope">
                         {{ scope.row.barcode }}
@@ -230,6 +232,9 @@
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
                         <el-button type="text" size="small" @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
+                        <el-button type="text" size="small" @click="handleAutoFixInconsistentProcessNodes(scope.row)">
+                            自动修复异常节点
+                        </el-button>
                         <el-button type="text" size="small" @click="handleSingleMainExport(scope.row)">
                             导出条码数据
                         </el-button>
@@ -643,7 +648,7 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ProcessStepList from '@/components/ProcessStepList/index.vue';
 import InspectionList from '@/components/InspectionList/index.vue';
-import { unbindComponents, updateFlowNodes } from '@/api/materialProcessFlowService';
+import { unbindComponents, updateFlowNodes, autoFixInconsistentProcessNodes } from '@/api/materialProcessFlowService';
 import XLSX from 'xlsx';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
@@ -974,6 +979,80 @@ export default {
                 if (error !== 'cancel') {
                     console.error('删除失败:', error);
                     this.$message.error(error.message || '删除失败');
+                }
+            }
+        },
+        // 自动修复异常节点
+        async handleAutoFixInconsistentProcessNodes(row) {
+            const result = await autoFixInconsistentProcessNodes({ barcode: row.barcode });
+            console.log(result, 'result');
+            if (result.code === 200 && result.success) {
+                this.$message.success('自动修复成功');
+                this.fetchData();
+            } else {
+                this.$message.error('自动修复失败');
+            }
+        },
+        // 批量自动修复异常节点
+        async handleBatchAutoFixInconsistentProcessNodes() {
+            if (!this.selection || this.selection.length === 0) {
+                this.$message.warning('请选择需要修复的记录');
+                return;
+            }
+
+            try {
+                // 显示确认对话框
+                await this.$confirm(`确认要批量修复选中的${this.selection.length}条记录的异常节点吗?`, '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                // 显示加载中
+                const loading = this.$loading({
+                    lock: true,
+                    text: '批量修复中...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                let successCount = 0;
+                let failCount = 0;
+                
+                // 依次处理每条记录
+                for (const row of this.selection) {
+                    try {
+                        const result = await autoFixInconsistentProcessNodes({ barcode: row.barcode });
+                        if (result.code === 200 && result.success) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                        }
+                    } catch (error) {
+                        console.error('修复记录时出错:', error);
+                        failCount++;
+                    }
+                }
+
+                // 关闭加载中
+                loading.close();
+
+                // 显示结果
+                if (successCount > 0 && failCount === 0) {
+                    this.$message.success(`成功修复全部${successCount}条记录`);
+                } else if (successCount > 0 && failCount > 0) {
+                    this.$message.warning(`成功修复${successCount}条记录，${failCount}条记录修复失败`);
+                } else {
+                    this.$message.error('所有记录修复失败');
+                }
+
+                // 刷新数据
+                this.fetchData();
+            } catch (error) {
+                // 用户取消操作或发生其他错误
+                if (error !== 'cancel') {
+                    console.error('批量修复异常节点时出错:', error);
+                    this.$message.error('批量修复异常节点时出错');
                 }
             }
         },
