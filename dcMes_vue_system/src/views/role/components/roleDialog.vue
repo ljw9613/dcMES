@@ -18,10 +18,38 @@
 
         <!-- 按钮权限 -->
         <el-form-item label="按钮权限" label-width="100px" required>
-          <el-select v-model="postList.buttonList" multiple placeholder="请选择按钮权限">
-            <el-option v-for="dict in dict.type.button_permissions" :key="dict.value" :label="dict.label"
-              :value="dict.value" />
+          <el-select 
+            v-model="postList.buttonList" 
+            multiple 
+            filterable
+            collapse-tags
+            placeholder="请选择按钮权限"
+            class="permission-select"
+            :popper-class="'permission-dropdown'"
+          >
+            <el-option 
+              v-for="dict in dict.type.button_permissions" 
+              :key="dict.value" 
+              :label="dict.label"
+              :value="dict.value">
+              <span class="permission-option">
+                <i class="el-icon-key permission-icon"></i>
+                {{dict.label}}
+              </span>
+            </el-option>
           </el-select>
+          <div class="selected-permissions" v-if="postList.buttonList && postList.buttonList.length > 0">
+            <el-tag 
+              v-for="(btn, index) in selectedPermissions" 
+              :key="index"
+              type="success" 
+              size="small" 
+              class="permission-tag"
+              closable
+              @close="removePermission(btn.value)">
+              {{btn.label}}
+            </el-tag>
+          </div>
         </el-form-item>
         <el-form-item label="菜单权限" label-width="100px" required>
           <el-card v-if="menu" shadow="never">
@@ -73,6 +101,17 @@ export default {
         // 弹窗关闭时重置数据
         this.resetForm()
       }
+    }
+  },
+  computed: {
+    selectedPermissions() {
+      if (!this.postList.buttonList || !this.dict.type.button_permissions) {
+        return [];
+      }
+      return this.postList.buttonList.map(value => {
+        const found = this.dict.type.button_permissions.find(dict => dict.value === value);
+        return found || { value, label: value };
+      });
     }
   },
   methods: {
@@ -246,7 +285,51 @@ export default {
         this.$message.error('获取角色数据失败')
       }
     },
+    removePermission(value) {
+      const index = this.postList.buttonList.indexOf(value);
+      if (index !== -1) {
+        this.postList.buttonList.splice(index, 1);
+      }
+    },
   },
 };
 </script>
-<style scoped></style>
+<style scoped>
+.permission-select {
+  width: 100%;
+}
+
+.permission-dropdown {
+  max-height: 300px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.permission-option {
+  display: flex;
+  align-items: center;
+}
+
+.permission-icon {
+  margin-right: 8px;
+  color: #409EFF;
+}
+
+.selected-permissions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permission-tag {
+  margin-right: 5px;
+  margin-bottom: 5px;
+  cursor: default;
+  transition: all 0.3s;
+}
+
+.permission-tag:hover {
+  transform: translateY(-2px);
+}
+</style>

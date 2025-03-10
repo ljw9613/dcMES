@@ -122,7 +122,8 @@
                     <div>
                         <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
                         <el-button type="primary" @click="handleAllExport">批量导出数据</el-button>
-                        <el-button type="primary" @click="handleBatchAutoFixInconsistentProcessNodes">批量自动修复异常节点</el-button>
+                        <el-button type="primary" v-if="hasFixAbnormalNodes" @click="handleBatchAutoFixInconsistentProcessNodes">批量修复异常节点</el-button>
+                        <el-button type="primary" v-if="hasRepairProcessNodes" @click="handleBatchFixFlowProgress">批量修复流程进度</el-button>
 
                     </div>
                 </div>
@@ -231,9 +232,12 @@
                 <el-table-column label="操作" fixed="right" width="200">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
-                        <el-button type="text" size="small" @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
-                        <el-button type="text" size="small" @click="handleAutoFixInconsistentProcessNodes(scope.row)">
-                            自动修复异常节点
+                        <el-button type="text" size="small" v-if="hasUpdateProcessNodes" @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
+                        <el-button type="text" size="small" v-if="hasFixAbnormalNodes" @click="handleAutoFixInconsistentProcessNodes(scope.row)">
+                            修复异常节点
+                        </el-button>
+                        <el-button type="text" size="small" v-if="hasRepairProcessNodes" @click="handleFixFlowProgress(scope.row)">
+                            修复流程进度
                         </el-button>
                         <el-button type="text" size="small" @click="handleSingleMainExport(scope.row)">
                             导出条码数据
@@ -605,6 +609,7 @@
                                 </el-button>
 
                                 <el-button type="text" style="color: red;"
+                                    v-if="hasFinishedBarcodeInitialization"
                                     @click="handleInit(scope.row)">成品初始化</el-button>
                             </template>
                         </el-table-column>
@@ -648,7 +653,7 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import ProcessStepList from '@/components/ProcessStepList/index.vue';
 import InspectionList from '@/components/InspectionList/index.vue';
-import { unbindComponents, updateFlowNodes, autoFixInconsistentProcessNodes } from '@/api/materialProcessFlowService';
+import { unbindComponents, updateFlowNodes, autoFixInconsistentProcessNodes, fixFlowProgress } from '@/api/materialProcessFlowService';
 import XLSX from 'xlsx';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
@@ -683,6 +688,11 @@ export default {
             dialogFormVisible: false,
             dialogStatus: '',
             selection: [],
+            // 添加权限控制变量
+            hasFinishedBarcodeInitialization: false, // 成品条码初始化权限
+            hasRepairProcessNodes: false, // 修复流程节点权限
+            hasFixAbnormalNodes: false, // 修复异常节点权限
+            hasUpdateProcessNodes: false, // 更新流程节点权限
             dataForm: {
                 barcode: '',
                 materialCode: '',
@@ -982,6 +992,17 @@ export default {
                 }
             }
         },
+        // 修复流程进度
+        async handleFixFlowProgress(row) {
+            const result = await fixFlowProgress({ barcode: row.barcode });
+            console.log(result, 'result');
+            if (result.code === 200 && result.success) {
+                this.$message.success('自动修复成功');
+                this.fetchData();
+            } else {
+                this.$message.error('自动修复失败');
+            }
+        },
         // 自动修复异常节点
         async handleAutoFixInconsistentProcessNodes(row) {
             const result = await autoFixInconsistentProcessNodes({ barcode: row.barcode });
@@ -991,6 +1012,68 @@ export default {
                 this.fetchData();
             } else {
                 this.$message.error('自动修复失败');
+            }
+        },
+        // 批量修复流程进度
+        async handleBatchFixFlowProgress() {
+            if (!this.selection || this.selection.length === 0) {
+                this.$message.warning('请选择需要修复的记录');
+                return;
+            }
+            try {
+                // 显示确认对话框
+                await this.$confirm(`确认要批量修复选中的${this.selection.length}条记录的流程进度吗?`, '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                });
+
+                // 显示加载中
+                const loading = this.$loading({
+                    lock: true,
+                    text: '批量修复中...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                let successCount = 0;
+                let failCount = 0;
+
+                // 依次处理每条记录
+                for (const row of this.selection) {
+                    try {
+                        const result = await fixFlowProgress({ barcode: row.barcode });
+                        if (result.code === 200 && result.success) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                        }
+                    } catch (error) {
+                        console.error('修复记录时出错:', error);
+                        failCount++;
+                        }
+                }
+
+                // 关闭加载中
+                loading.close();
+
+                // 显示结果
+                if (successCount > 0 && failCount === 0) {
+                    this.$message.success(`成功修复全部${successCount}条记录`);
+                } else if (successCount > 0 && failCount > 0) {
+                    this.$message.warning(`成功修复${successCount}条记录，${failCount}条记录修复失败`);
+                } else {
+                    this.$message.error('所有记录修复失败');
+                }
+
+                // 刷新数据
+                this.fetchData();
+            } catch (error) {
+                // 用户取消操作或发生其他错误   
+                if (error !== 'cancel') {
+                    console.error('批量修复流程进度时出错:', error);
+                    this.$message.error('批量修复流程进度时出错');
+                }
             }
         },
         // 批量自动修复异常节点
@@ -2136,6 +2219,32 @@ export default {
     },
     created() {
         this.fetchData();
+        
+        // 添加角色权限判断
+        const roles = this.$store.getters.roles;
+        if (!roles || !roles.buttonList) {
+            return;
+        }
+        
+        // 成品条码初始化权限
+        if (roles.buttonList.includes("finished_barcode_initialization")) {
+            this.hasFinishedBarcodeInitialization = true;
+        }
+        
+        // 修复流程节点权限
+        if (roles.buttonList.includes("repair_process_nodes")) {
+            this.hasRepairProcessNodes = true;
+        }
+        
+        // 修复异常节点权限
+        if (roles.buttonList.includes("fix_abnormal_nodes")) {
+            this.hasFixAbnormalNodes = true;
+        }
+        
+        // 更新流程节点权限
+        if (roles.buttonList.includes("update_process_nodes")) {
+            this.hasUpdateProcessNodes = true;
+        }
     }
 }
 </script>

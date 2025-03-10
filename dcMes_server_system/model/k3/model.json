@@ -59,7 +59,12 @@
       {
         "name": "FMaterialId",
 
-        "description": "物料编码"
+        "description": "物料Id"
+      },
+      {
+        "name": "FMaterialId_FNumber",
+        "description": "物料编码",
+        "entityNameconvert": true
       },
       {
         "name": "FMaterialName",
@@ -680,6 +685,11 @@
         "name": "FMaterialSRC",
 
         "description": "物料来源"
+      },
+      {
+        "name": "FErpClsID",
+
+        "description": "物料属性"
       },
       {
         "name": "FImageFileServer",

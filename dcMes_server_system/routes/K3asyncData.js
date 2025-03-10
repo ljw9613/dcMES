@@ -1719,9 +1719,6 @@ async function syncDeliveryNoticeData(modelName, filterString, syncTask) {
               }))
             },
 
-            // 销售订单行ID
-            FSOEntryId: entry.SOEntryId,
-
             // 完善客户物料信息
             FCustMatID: entry.CustMatID && {
               Id: entry.CustMatID?.Id,
@@ -1796,7 +1793,6 @@ async function syncDeliveryNoticeData(modelName, filterString, syncTask) {
             FF_dcdj_ETD: entry.F_dcdj_ETD,
             FF_dcdj_shsl: entry.F_dcdj_shsl
           }))
-          
         };
 
         // 更新或插入数据

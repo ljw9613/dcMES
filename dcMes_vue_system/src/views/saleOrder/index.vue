@@ -1048,9 +1048,18 @@ export default {
             const result = await getData('k3_SAL_SaleOrderExt', {
                 query: { FSaleOrderId: row._id }
             })
+            //获取客户信息
+            const custInfo = await getData('k3_SAL_SaleOrder_CustInfo', {
+                query: { FSaleOrderId: row._id }
+            })
+            console.log("🚀 ~ handlePrint ~ custInfo:", custInfo)
+
             let printData = { ...row };
             if (result.code === 200 && result.data.length > 0) {
                 printData = { ...printData, ...result.data[0] }
+            }
+            if (custInfo.code === 200 && custInfo.data.length > 0) {
+                printData = { ...printData, ...custInfo.data[0] }
             }
             //格式化时间
             printData.FDate = this.formatDate(printData.FDate);

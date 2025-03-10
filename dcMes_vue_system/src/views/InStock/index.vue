@@ -724,6 +724,8 @@ export default {
         async handlePrint(row) {
             let printData = { ...row };
 
+            //入库组织
+            printData.FStockOrgId_Name = printData.FStockOrgId && printData.FStockOrgId.Name;
             // 生产入库单打印数据处理
             printData.FApproveDate = this.formatDate(printData.FApproveDate);
             printData.FCreateDate = this.formatDate(printData.FCreateDate);
@@ -731,13 +733,13 @@ export default {
             printData.FEntity = printData.FEntity.map((item, index) => ({
                 ...item,
                 FNum: index + 1,
-                FMaterialID_Name: item.FMaterialId && item.FMaterialId.Name,
+                FMaterialID_Name: item.FMaterialId && item.FMaterialId.Name[0].Value,
                 FMaterialID_Number: item.FMaterialId && item.FMaterialId.Number,
-                FMaterialID_Specification: item.FMaterialId && item.FMaterialId.Specification,
-                FUnitID_Name: item.FUnitID && item.FUnitID.Name
+                FMaterialID_Specification: item.FMaterialId && item.FMaterialId.Specification[0].Value,
+                FUnitID_Name: item.FUnitID && item.FUnitID.Name[0].Value
             }));
-
-            this.printData = printData;
+            console.log(printData, 'printData')
+            this.printData = JSON.parse(JSON.stringify(printData));
             this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints();
             });

@@ -129,19 +129,43 @@ router.post("/api/v1/unbind-components", async (req, res) => {
 router.post("/api/v1/update-flow-nodes", async (req, res) => {
   try {
     const { barcode } = req.body;
-    const result = await MaterialProcessFlowService.updateWorkflowNodes(barcode);
+    const result = await MaterialProcessFlowService.updateFlowNodes(barcode);
     res.json({
       code: 200,
       success: true,
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(200).json({
+      code: 500,
       success: false,
       message: error.message,
     });
   }
 });
+
+// 自动修复主条码中的异常子条码数据
+router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
+  try {
+    const { barcode } = req.body;
+    const result = await MaterialProcessFlowService.autoFixInconsistentProcessNodes(barcode);
+    res.json({
+      code: 200,
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+
+
+
 
 // 获取物料相关的所有工序
 router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {
@@ -662,6 +686,35 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
       success: true,
       data: result,
       message: "验证完成"
+    });
+  } catch (error) {
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// 检查条码节点完成情况
+router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    
+    if (!barcode) {
+      return res.status(200).json({
+        code: 400,
+        success: false,
+        message: "条码参数不能为空"
+      });
+    }
+
+    const result = await MaterialProcessFlowService.checkBarcodeCompletion(barcode);
+    
+    res.json({
+      code: 200,
+      success: true,
+      data: result
     });
   } catch (error) {
     res.status(200).json({

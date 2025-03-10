@@ -428,8 +428,10 @@
             </div>
 
             <base-table ref="materialTable" :tableData="materialTableData.tableList"
-                :tableDataloading="materialTableData.listLoading" :height="materialTableData.height"
-                :cell-style="{ textAlign: 'center' }">
+            :currentPage="materialTableData.currentPage" :pageSize="materialTableData.pageSize"
+                :tableDataloading="materialTableData.listLoading" :total="materialTableData.total"
+                :height="materialTableData.height" :cell-style="{ textAlign: 'center' }"
+                @handleCurrentChange="handleMaterialTableCurrentChange" @handleSizeChange="handleMaterialTableSizeChange">
                 <template slot="law">
                     <el-table-column label="使用组织" prop="materialId.FUseOrgId_FName">
                         <template slot-scope="scope">
@@ -812,7 +814,8 @@ export default {
                 total: 0,
                 currentPage: 1,
                 pageSize: 10,
-                listLoading: false
+                listLoading: false,
+                height: '400px' // 添加固定高度
             },
 
             // 弹窗控制
@@ -1533,7 +1536,6 @@ export default {
                     skip: (this.materialTableData.currentPage - 1) * this.materialTableData.pageSize,
                     limit: this.materialTableData.pageSize,
                     count: true,
-
                 };
                 const result = await getData("processMaterials", req);
                 this.materialTableData.tableList = result.data;

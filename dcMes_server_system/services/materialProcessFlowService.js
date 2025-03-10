@@ -10,6 +10,7 @@ const mongoose = require("mongoose");
 const productDiNum = mongoose.model("productDiNum");
 const Material = mongoose.model("k3_BD_MATERIAL");
 const Machine = mongoose.model("machine");
+// const SystemLog = require("../model/project/systemLog");
 
 const { v4: uuidv4 } = require("uuid");
 
@@ -805,8 +806,8 @@ class MaterialProcessFlowService {
         }
       }
       if (planWorkOrder) {
-        // 如果是末道工序且所有节点完成，更新工单产出量
-        if (processPosition.isLast && flowRecord.progress === 100) {
+        // 如果是末道工序且所有节点完成，更新工单产出量  && flowRecord.progress === 100
+        if (processPosition.isLast) {
           try {
             await this.updateWorkOrderQuantity(planWorkOrder._id, "output");
           } catch (error) {
@@ -838,6 +839,11 @@ class MaterialProcessFlowService {
         console.warn(`更新条码批次使用状态失败: ${mainBarcode}`, error);
         // 这里不抛出错误，因为不是所有条码都需要更新
       }
+      // 修复一下异常节点
+      await this.autoFixInconsistentProcessNodes(mainBarcode)
+
+      // 在完成扫描组件后，添加以下代码来更新流程状态
+      await this.fixFlowProgress(mainBarcode);
 
       return flowRecord;
     } catch (error) {
@@ -1689,7 +1695,7 @@ class MaterialProcessFlowService {
       }
 
       //TODO && flowRecord.progress === 100
-      if (planWorkOrder && flowRecord.progress === 100) {
+      if (planWorkOrder) {
         // 如果是末道工序且所有节点完成，更新工单产出量
         // TODO
         if (processPosition.isLast) {
@@ -1762,14 +1768,8 @@ class MaterialProcessFlowService {
         workOrder.endTime = new Date();
         workOrder.progress = 100;
 
-        //查看当前工单是否有关联原单据
-        const originalWorkOrder = await ProductionPlanWorkOrder.findOne({
-          originalWorkOrderId: workOrder._id,
-        });
-        if (originalWorkOrder) {
-          originalWorkOrder.status = "COMPLETED";
-          await originalWorkOrder.save();
-        }
+        // 使用新方法处理所有关联工单的完成状态
+        await this.completeAllRelatedWorkOrders(workOrder._id);
 
         //自动开启下一个工单计划
         const nextWorkOrders = await ProductionPlanWorkOrder.find({
@@ -2617,6 +2617,354 @@ class MaterialProcessFlowService {
     } catch (error) {
       console.error('验证流程数据失败:', error);
       throw new Error(`验证流程数据失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 修复条码物料异常数据
+   * 处理子物料工序状态与主工序状态不一致的情况
+   * @param {string} mainBarcode - 主条码 (需要更新的流程记录条码)
+   * @param {string} componentBarcode - 子物料条码
+   * @returns {Promise<Object>} 更新后的流程记录
+   */
+  static async fixInconsistentProcessNodes(mainBarcode, componentBarcode) {
+    try {
+      // 1. 获取主条码和子条码的流程记录
+      const mainFlowRecord = await MaterialProcessFlow.findOne({ barcode: mainBarcode });
+      const componentFlowRecord = await MaterialProcessFlow.findOne({ barcode: componentBarcode });
+      
+      if (!mainFlowRecord) {
+        throw new Error(`未找到条码为 ${mainBarcode} 的流程记录`);
+      }
+      
+      if (!componentFlowRecord) {
+        throw new Error(`未找到条码为 ${componentBarcode} 的流程记录`);
+      }
+      
+      // 2. 在主流程记录中找到对应该组件的节点
+      const componentNodes = mainFlowRecord.processNodes.filter(node => 
+        node.nodeType === 'MATERIAL' && 
+        node.barcode === componentBarcode
+      );
+      
+      if (componentNodes.length === 0) {
+        throw new Error(`在主条码 ${mainBarcode} 中未找到子条码 ${componentBarcode} 对应的节点`);
+      }
+      
+      const componentNode = componentNodes[0];
+      
+      // 3. 获取子条码流程记录中的工序节点
+      const componentProcessNodes = componentFlowRecord.processNodes.filter(node => 
+        node.nodeType === 'PROCESS_STEP'
+      );
+      
+      // 4. 在主流程记录中找到所有关联到这个物料节点的工序节点
+      const childProcessNodesInMain = mainFlowRecord.processNodes.filter(node => 
+        node.nodeType === 'PROCESS_STEP' && 
+        node.parentNodeId === componentNode.nodeId
+      );
+      
+      // 存储需要更新的节点ID
+      const updatedNodeIds = new Set();
+      
+      // 5. 更新主流程记录中的子工序节点
+      for (const childProcess of childProcessNodesInMain) {
+        // 在子条码流程中查找匹配的工序
+        const matchingProcess = componentProcessNodes.find(p => 
+          p.processCode === childProcess.processCode || 
+          p.processName === childProcess.processName
+        );
+        
+        if (matchingProcess) {
+          // 更新节点状态和其他相关信息
+          childProcess.status = matchingProcess.status;
+          if (matchingProcess.endTime) childProcess.endTime = matchingProcess.endTime;
+          if (matchingProcess.scanTime) childProcess.scanTime = matchingProcess.scanTime;
+          if (matchingProcess.updateBy) childProcess.updateBy = matchingProcess.updateBy;
+          
+          updatedNodeIds.add(childProcess.nodeId);
+        }
+      }
+      
+      // 6. 更新所有父节点的状态
+      const allNodes = mainFlowRecord.processNodes;
+      let updated = true;
+      
+      while (updated) {
+        updated = false;
+        
+        for (const node of allNodes) {
+          if (node.nodeType === 'PROCESS_STEP' || node.nodeType === 'MATERIAL') {
+            // 获取该节点的所有子节点
+            const childNodes = allNodes.filter(n => n.parentNodeId === node.nodeId);
+            
+            if (childNodes.length > 0) {
+              // 检查所有子节点是否都已完成
+              const allChildrenCompleted = childNodes.every(child => child.status === 'COMPLETED');
+              
+              // 如果所有子节点都已完成，但当前节点不是完成状态，则更新它
+              if (allChildrenCompleted && node.status !== 'COMPLETED') {
+                node.status = 'COMPLETED';
+                node.endTime = new Date();
+                updatedNodeIds.add(node.nodeId);
+                updated = true;
+              }
+            }
+          }
+        }
+      }
+      
+      // 7. 计算整体进度
+      const calculateProgress = (nodes) => {
+        const totalNodes = nodes.filter(n => n.nodeType === 'PROCESS_STEP').length;
+        const completedNodes = nodes.filter(n => n.nodeType === 'PROCESS_STEP' && n.status === 'COMPLETED').length;
+        return totalNodes > 0 ? Math.floor((completedNodes / totalNodes) * 100) : 0;
+      };
+      
+      mainFlowRecord.progress = calculateProgress(mainFlowRecord.processNodes);
+      
+      // 8. 如果所有工序都完成，则更新整体状态
+      if (mainFlowRecord.progress === 100) {
+        mainFlowRecord.status = 'COMPLETED';
+        mainFlowRecord.endTime = new Date();
+      }
+      
+      // 9. 保存更新后的主流程记录
+      await mainFlowRecord.save();
+      
+      // // 10. 记录操作日志
+      // await SystemLog.create({
+      //   module: 'PROCESS_FLOW',
+      //   operation: 'FIX_INCONSISTENT_NODES',
+      //   operator: 'SYSTEM',
+      //   content: `修复主条码 ${mainBarcode} 与子条码 ${componentBarcode} 工序不一致问题，更新 ${updatedNodeIds.size} 个节点`
+      // });
+      
+      return mainFlowRecord;
+    } catch (error) {
+      console.error(`修复条码物料异常数据失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 自动检测并修复主条码中的异常子条码数据
+   * 只需输入主条码，自动识别所有状态不一致的子条码并进行修复
+   * @param {string} mainBarcode - 主条码
+   * @returns {Promise<Object>} 修复结果，包含修复的子条码列表和更新后的流程记录
+   */
+  static async autoFixInconsistentProcessNodes(mainBarcode) {
+    try {
+      // 1. 获取主条码流程记录
+      const mainFlowRecord = await MaterialProcessFlow.findOne({ barcode: mainBarcode });
+      if (!mainFlowRecord) {
+        throw new Error(`未找到条码为 ${mainBarcode} 的流程记录`);
+      }
+
+      // 2. 查找所有已完成的物料节点
+      const completedMaterialNodes = mainFlowRecord.processNodes.filter(node => 
+        node.nodeType === 'MATERIAL' && 
+        node.status === 'COMPLETED' &&
+        node.barcode && 
+        node.barcode.length > 0
+      );
+
+      if (completedMaterialNodes.length === 0) {
+        return { 
+          message: `条码 ${mainBarcode} 无已完成的物料节点可检查`,
+          fixedComponents: [],
+          flowRecord: mainFlowRecord
+        };
+      }
+
+      // 3. 检查每个物料节点的子节点状态
+      const inconsistentComponents = [];
+      
+      for (const materialNode of completedMaterialNodes) {
+        // 获取该物料的所有子工序节点
+        const childProcessNodes = mainFlowRecord.processNodes.filter(node => 
+          node.parentNodeId === materialNode.nodeId &&
+          node.nodeType === 'PROCESS_STEP'
+        );
+
+        // 如果物料已完成但有子工序未完成，则标记为异常
+        const hasInconsistentStatus = childProcessNodes.some(node => node.status !== 'COMPLETED');
+        
+        if (hasInconsistentStatus) {
+          inconsistentComponents.push({
+            materialNode,
+            childProcessNodes: childProcessNodes.filter(node => node.status !== 'COMPLETED')
+          });
+        }
+      }
+
+      if (inconsistentComponents.length === 0) {
+        return { 
+          message: `条码 ${mainBarcode} 所有物料节点状态一致，无需修复`,
+          fixedComponents: [],
+          flowRecord: mainFlowRecord
+        };
+      }
+
+      // 4. 修复所有异常的子条码
+      const fixedComponents = [];
+      
+      for (const item of inconsistentComponents) {
+        const componentBarcode = item.materialNode.barcode;
+        
+        // 检查子条码是否有对应流程记录
+        const componentFlowRecord = await MaterialProcessFlow.findOne({ barcode: componentBarcode });
+        
+        if (componentFlowRecord) {
+          // 调用修复方法
+          await this.fixInconsistentProcessNodes(mainBarcode, componentBarcode);
+          
+          fixedComponents.push({
+            barcode: componentBarcode,
+            materialName: item.materialNode.materialName,
+            materialCode: item.materialNode.materialCode,
+            pendingProcesses: item.childProcessNodes.map(node => node.processName)
+          });
+        }
+      }
+
+      // 5. 获取更新后的流程记录
+      const updatedFlowRecord = await MaterialProcessFlow.findOne({ barcode: mainBarcode });
+
+      // 6. 记录操作日志
+      // await SystemLog.create({
+      //   module: 'PROCESS_FLOW',
+      //   operation: 'AUTO_FIX_INCONSISTENT_NODES',
+      //   operator: 'SYSTEM',
+      //   content: `自动检测并修复条码 ${mainBarcode} 的异常子条码数据，共修复 ${fixedComponents.length} 个子条码`
+      // });
+
+      return {
+        message: `成功修复 ${fixedComponents.length} 个异常子条码数据`,
+        fixedComponents,
+        flowRecord: updatedFlowRecord
+      };
+      
+    } catch (error) {
+      console.error(`自动检测并修复异常子条码数据失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 递归完成所有关联的工单
+   * 当一个补工单完成时，将所有关联的工单（包括原工单和其他补工单）设置为完成状态
+   * @param {String} workOrderId 当前完成的工单ID
+   * @param {Set} processedIds 已处理过的工单ID集合，用于防止循环引用
+   */
+  static async completeAllRelatedWorkOrders(workOrderId, processedIds = new Set()) {
+    // 防止重复处理和循环引用
+    if (processedIds.has(workOrderId.toString())) {
+      return;
+    }
+    processedIds.add(workOrderId.toString());
+
+    const ProductionPlanWorkOrder = mongoose.model("production_plan_work_order");
+    
+    // 1. 查找当前工单的原工单(如果存在)
+    const currentWorkOrder = await ProductionPlanWorkOrder.findById(workOrderId);
+    if (currentWorkOrder && currentWorkOrder.originalWorkOrderId) {
+      const originalWorkOrder = await ProductionPlanWorkOrder.findById(
+        currentWorkOrder.originalWorkOrderId
+      );
+      
+      if (originalWorkOrder && originalWorkOrder.status !== "COMPLETED") {
+        originalWorkOrder.status = "COMPLETED";
+        originalWorkOrder.endTime = new Date();
+        originalWorkOrder.progress = 100;
+        await originalWorkOrder.save();
+        console.log(`已完成原工单: ${originalWorkOrder.workOrderNo}`);
+        
+        // 递归查找原工单的相关联工单
+        await this.completeAllRelatedWorkOrders(originalWorkOrder._id, processedIds);
+      }
+    }
+    
+    // 2. 查找所有以当前工单为原工单的补工单
+    const relatedWorkOrders = await ProductionPlanWorkOrder.find({
+      originalWorkOrderId: workOrderId
+    });
+    
+    // 3. 递归处理所有找到的补工单
+    for (const relatedOrder of relatedWorkOrders) {
+      if (relatedOrder.status !== "COMPLETED") {
+        relatedOrder.status = "COMPLETED";
+        relatedOrder.endTime = new Date();
+        relatedOrder.progress = 100;
+        await relatedOrder.save();
+        console.log(`已完成关联补工单: ${relatedOrder.workOrderNo}`);
+      }
+      
+      // 继续查找此补工单的关联工单
+      await this.completeAllRelatedWorkOrders(relatedOrder._id, processedIds);
+    }
+  }
+
+  /**
+   * 检查条码节点完成情况
+   * @param {string} barcode - 需要检查的条码
+   * @returns {Object} 返回条码完成状态信息
+   */
+  static async checkBarcodeCompletion(barcode) {
+    try {
+      // 查找流程记录
+      const flowRecord = await MaterialProcessFlow.findOne({ barcode });
+      if (!flowRecord) {
+        throw new Error("未找到对应的流程记录");
+      }
+
+      // 获取所有必要节点
+      const requiredNodes = flowRecord.processNodes.filter(
+        (node) =>
+          node.level !== 0 && // 排除根节点
+          (node.nodeType === "PROCESS_STEP" ||
+            (node.nodeType === "MATERIAL" && node.requireScan === true))
+      );
+
+      // 获取已完成节点
+      const completedNodes = requiredNodes.filter(
+        (node) => node.status === "COMPLETED"
+      );
+
+      // 获取未完成节点
+      const pendingNodes = requiredNodes.filter(
+        (node) => node.status !== "COMPLETED"
+      );
+
+      // 检查是否所有必要节点都已完成
+      const allNodesCompleted = requiredNodes.length === completedNodes.length;
+
+      // 计算完成进度
+      const progress =
+        requiredNodes.length > 0
+          ? Math.floor((completedNodes.length / requiredNodes.length) * 100)
+          : 0;
+
+      return {
+        barcode: flowRecord.barcode,
+        materialCode: flowRecord.materialCode,
+        materialName: flowRecord.materialName,
+        isCompleted: allNodesCompleted,
+        progress: progress,
+        status: flowRecord.status,
+        totalNodes: requiredNodes.length,
+        completedNodes: completedNodes.length,
+        pendingNodes: pendingNodes.length,
+        pendingNodesList: pendingNodes.map(node => ({
+          nodeId: node._id,
+          nodeName: node.processName || node.materialName,
+          nodeType: node.nodeType,
+          status: node.status
+        }))
+      };
+    } catch (error) {
+      console.error("检查条码完成情况失败:", error);
+      throw error;
     }
   }
 }

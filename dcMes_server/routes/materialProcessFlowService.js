@@ -696,4 +696,33 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
   }
 });
 
+// 检查条码节点完成情况
+router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    
+    if (!barcode) {
+      return res.status(200).json({
+        code: 400,
+        success: false,
+        message: "条码参数不能为空"
+      });
+    }
+
+    const result = await MaterialProcessFlowService.checkBarcodeCompletion(barcode);
+    
+    res.json({
+      code: 200,
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

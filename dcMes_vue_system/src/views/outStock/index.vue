@@ -498,7 +498,7 @@ export default {
                 console.log(result.data[0], 'result.data[0]')
                 printData = { ...printData, ...result.data[0] }
                 printData.FSaleOrderNo = result.data[0].productionOrderId && result.data[0].productionOrderId.FSaleOrderNo
-                printData.FDeliveryDate = this.formatDate(printData.FApproveDate);
+                printData.FDeliveryDate = this.formatDate(printData.FDeliveryDate);
             }
 
             // 销售出库单打印数据处理

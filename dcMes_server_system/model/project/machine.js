@@ -26,6 +26,11 @@ var machineSchema = new mongoose.Schema(
       default: null,
       description: "设备IP",
     },
+    // 厂区名称
+    factoryName: {
+      type: String,
+      required: true
+  },
     principal: {
       type: String,
       maxlength: 20,

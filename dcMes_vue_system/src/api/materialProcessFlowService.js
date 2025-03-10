@@ -60,3 +60,12 @@ export function autoFixInconsistentProcessNodes(data) {
         data
     })
 }
+
+//fix-flow-progress
+export function fixFlowProgress(data) {
+    return request({
+        url: '/fix-flow-progress',
+        method: 'post',
+        data
+    })
+}

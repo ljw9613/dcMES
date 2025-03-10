@@ -22,6 +22,7 @@ var materialSchema = new mongoose.Schema({
     FBaseProperty: { type: String }, // 物料分组编码
     FPLMMaterialId: { type: String }, // PLM物料内码
     FMaterialSRC: { type: String }, // 物料来源
+    FErpClsID: { type: String }, // 物料属性
     
     // 图片相关
     FImage1: { type: String }, // 图片(数据库)
