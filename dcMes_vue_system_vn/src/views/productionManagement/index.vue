@@ -605,7 +605,7 @@ export default {
             try {
                 const confirmMessage = this.syncForm.syncType === 'all'
                     ? '确认要同步所有生产订单数据吗？此操作可能需要较长时间'
-                    : '确认要同步选定日期范围的生产订单数据吗？此操作可能需要一些时间';
+                    : '确认要同步规则筛选的生产订单数据吗？此操作可能需要一些时间';
 
                 await this.$confirm(confirmMessage, '提示', {
                     confirmButtonText: '确定',

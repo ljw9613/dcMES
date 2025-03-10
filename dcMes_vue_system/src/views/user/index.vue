@@ -126,7 +126,17 @@
       </el-table-column>
 
       <el-table-column align="center" label="密码" min-width="120">
-        <template slot-scope="scope">{{ scope.row.password }}</template>
+        <template slot-scope="scope">
+          <div class="password-field">
+            <span v-if="scope.row.showPassword">{{ scope.row.password }}</span>
+            <span v-else>******</span>
+            <i 
+              :class="scope.row.showPassword ? 'el-icon-view' : 'el-icon-hide'" 
+              @click="togglePasswordVisibility(scope.row)"
+              class="password-toggle-icon">
+            </i>
+          </div>
+        </template>
       </el-table-column>
 
       <el-table-column align="center" label="用户角色" min-width="120">
@@ -224,7 +234,13 @@
           <el-input v-model="number" placeholder="管理人员的账号" />
         </el-form-item>
         <el-form-item label="用户密码" label-width="120">
-          <el-input v-model="password" placeholder="请输入管理人员的密码" />
+          <div class="password-input-container">
+            <el-input 
+              v-model="password"  :show-password="true"
+              placeholder="请输入管理人员的密码">
+           </el-input>
+            
+          </div>
         </el-form-item>
         <el-form-item label="联系姓名" label-width="120">
           <el-input v-model="name" placeholder="请输入管理人员的姓名" />
@@ -466,6 +482,7 @@ export default {
       uploadHeaders: {
         Authorization: getToken(),
       },
+      showPasswordInForm: false,
     };
   },
   created() {
@@ -487,12 +504,17 @@ export default {
         query: { ...this.searchReq },
         populate: JSON.stringify([{ path: "role" }]),
         limit: this.listQuery.limit,
+        sort: { createAt: -1 },
         skip: (this.listQuery.page - 1) * this.listQuery.limit,
+        count: true,
       };
 
       try {
         let { data: response, countnum } = await getData("user_login", data1);
-        this.categorylist = response;
+        // 为每个用户添加密码显示控制属性
+        this.categorylist = response.map(item => {
+          return { ...item, showPassword: false };
+        });
         this.categorylist1 = this.categorylist;
         this.total = countnum;
       } catch (error) {
@@ -1369,6 +1391,11 @@ export default {
         "用户导入模板.xlsx"
       );
     },
+
+    // 切换密码显示/隐藏
+    togglePasswordVisibility(row) {
+      this.$set(row, 'showPassword', !row.showPassword);
+    },
   },
 };
 </script>
@@ -1761,6 +1788,40 @@ export default {
   .el-upload__tip {
     margin-top: 10px;
     color: #909399;
+  }
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .password-toggle-icon {
+    margin-left: 8px;
+    cursor: pointer;
+    color: #909399;
+    &:hover {
+      color: #409EFF;
+    }
+  }
+}
+
+.password-input-container {
+  position: relative;
+  width: 100%;
+  
+  .password-toggle-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #909399;
+    z-index: 2;
+    
+    &:hover {
+      color: #409EFF;
+    }
   }
 }
 </style>

@@ -22,6 +22,7 @@ var productionOrderSchema = new mongoose.Schema({
     FWorkShopID_FNumber: { type: String }, // 生产车间
     FWorkShopID_FName: { type: String }, // 生产车间
     FMaterialId: { type: String, required: true }, // 物料编码
+    FMaterialId_FNumber: { type: String }, // 物料编码
     FMaterialName: { type: String }, // 物料名称
     FSpecification: { type: String }, // 规格型号
     FProductType: { type: String, required: true }, // 产品类型
@@ -79,5 +80,8 @@ var productionOrderSchema = new mongoose.Schema({
     F_TFQJ_rjh: { type: String }, // 日计划
     F_TFQJ_sfwwzzz: { type: Boolean }, // 是否委外转自制
 });
+
+// 创建索引：按照单据日期降序
+productionOrderSchema.index({ FDate: -1 });
 
 module.exports = mongoose.model("k3_PRD_MO", productionOrderSchema);

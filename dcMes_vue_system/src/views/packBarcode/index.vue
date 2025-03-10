@@ -176,6 +176,7 @@ export default {
     return {
       // 搜索表单
       searchForm: {
+        printBarcode: "",
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
@@ -271,6 +272,11 @@ export default {
         });
       }
 
+      if (this.searchForm.printBarcode) {
+        query.$and.push({
+          printBarcode: { $regex: this.searchForm.printBarcode, $options: "i" },
+        });
+      }
       return query.$and.length ? query : {};
     },
 
@@ -346,6 +352,15 @@ export default {
 
     resetForm() {
       this.$refs.searchForm.resetFields();
+      this.searchForm={
+        workOrderNo: "",
+        materialNumber: "",
+        barcode: "",
+        batchNo: "",
+        status: "",
+        lineNum: "",
+        printBarcode: "",
+      }
       this.search();
     },
   },

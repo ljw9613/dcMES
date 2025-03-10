@@ -49,6 +49,13 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
+                    <el-col :span="12">
+              <el-form-item label="创建时间">
+                <el-date-picker v-model="searchForm.createAt" type="daterange" range-separator="至"
+                  start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
+                </el-date-picker>
+              </el-form-item>
+            </el-col>
                 </el-row>
 
                 <el-form-item>
@@ -261,7 +268,16 @@ export default {
             };
 
             Object.keys(this.searchForm).forEach(key => {
-                if (this.searchForm[key]) {
+                if (key === 'createAt') {
+                    if (this.searchForm[key]) {
+                        req.query.$and.push({
+                            createAt: {
+                    $gte: this.searchForm[key][0] + " 00:00:00",
+                    $lte: this.searchForm[key][1] + " 23:59:59",
+                  },
+                        });
+                    }
+                }else if (this.searchForm[key]) {
                     req.query.$and.push({
                         [key]: { $regex: this.searchForm[key], $options: 'i' }
                     });
@@ -281,6 +297,7 @@ export default {
                 let req = this.searchData();
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
+                req.sort = { createAt: -1 };
                 req.count = true;
                 const result = await getData("printTemplate", req);
                 this.tableList = result.data;

@@ -16,28 +16,33 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
+                        <el-form-item label="销售单号">
+                            <el-input v-model="searchForm.FSaleOrderNo" placeholder="请输入销售单号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
                         <el-form-item label="单据状态">
                             <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable
                                 style="width: 100%">
-                                <el-option label="草稿" value="DRAFT" />
-                                <el-option label="已审核" value="APPROVED" />
-                                <el-option label="审核中" value="PROCESSING" />
+                                <el-option v-for="dict in dict.type.document_Status" :key="dict.value" :label="dict.label"
+                                :value="dict.value" />
                             </el-select>
+                            
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="物料编码">
-                            <el-input v-model="searchForm.FMaterialId" placeholder="请输入物料编码" clearable></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="物料名称">
-                            <el-input v-model="searchForm.FMaterialName" placeholder="请输入物料名称" clearable></el-input>
+                            <el-input v-model="searchForm.FMaterialId_FNumber" placeholder="请输入物料编码" clearable></el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
 
                 <el-row :gutter="20">
+                    <el-col :span="6">
+                        <el-form-item label="物料名称">
+                            <el-input v-model="searchForm.FMaterialName" placeholder="请输入物料名称" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
                     <el-col :span="6">
                         <el-form-item label="生产车间">
                             <el-input v-model="searchForm.FWorkShopID_FName" placeholder="请输入生产车间" clearable></el-input>
@@ -47,12 +52,12 @@
                         <el-form-item label="产品类型">
                             <el-select v-model="searchForm.FProductType" placeholder="请选择产品类型" clearable
                                 style="width: 100%">
-                                <el-option v-for="dict in dict.type.product_type" :key="dict.value" :label="dict.label"
+                                <el-option v-for="dict in dict.type.kingdee_cloud_product_types" :key="dict.value" :label="dict.label"
                                     :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="12">
+                    <el-col :span="6">
                         <el-form-item label="计划日期">
                             <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
                                 start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
@@ -92,9 +97,7 @@
 
                 <el-table-column label="单据状态" width="100">
                     <template slot-scope="scope">
-                        <el-tag :type="getStatusType(scope.row.FDocumentStatus)">
-                            {{ getStatusText(scope.row.FDocumentStatus) }}
-                        </el-tag>
+                        <dict-tag :options="dict.type.document_Status" :value="scope.row.FDocumentStatus" />
                     </template>
                 </el-table-column>
 
@@ -118,7 +121,7 @@
 
                 <el-table-column label="物料编码" width="120">
                     <template slot-scope="scope">
-                        {{ scope.row.FMaterialId }}
+                        {{ scope.row.FMaterialId_FNumber }}
                     </template>
                 </el-table-column>
 
@@ -136,7 +139,7 @@
 
                 <el-table-column label="产品类型" width="120">
                     <template slot-scope="scope">
-                        {{ scope.row.FProductType }}
+                        <dict-tag :options="dict.type.kingdee_cloud_product_types" :value="scope.row.FProductType" />
                     </template>
                 </el-table-column>
 
@@ -192,9 +195,8 @@
                 <el-form-item label="单据状态">
                     <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
                         placeholder="请选择单据状态" style="width: 100%">
-                        <el-option label="已审核" value="C" />
-                        <el-option label="审核中" value="B" />
-                        <el-option label="草稿" value="A" />
+                        <el-option v-for="dict in dict.type.document_Status" :key="dict.value" :label="dict.label"
+                            :value="dict.value" />
                     </el-select>
                 </el-form-item>
             </el-form>
@@ -213,13 +215,14 @@ import { syncPRD_MO, getSyncStatus } from "@/api/K3Data";
 
 export default {
     name: 'ProductionOrder',
-    dicts: ['product_type'],
+    dicts: ['product_type','document_Status','kingdee_cloud_product_types'],
     data() {
         return {
             searchForm: {
                 FBillNo: '',
+                FSaleOrderNo: '',
                 FDocumentStatus: '',
-                FMaterialId: '',
+                FMaterialId_FNumber: '',
                 FMaterialName: '',
                 FWorkShopID_FName: '',
                 FProductType: '',
@@ -240,7 +243,7 @@ export default {
                 FDocumentStatus: '',
                 FDate: '',
                 FWorkShopID_FName: '',
-                FMaterialId: '',
+                FMaterialId_FNumber: '',
                 FMaterialName: '',
                 FSpecification: '',
                 FProductType: '',
@@ -292,11 +295,14 @@ export default {
             if (this.searchForm.FBillNo) {
                 req.query.$and.push({ FBillNo: { $regex: this.searchForm.FBillNo, $options: 'i' } });
             }
+            if (this.searchForm.FSaleOrderNo) {
+                req.query.$and.push({ FSaleOrderNo: { $regex: this.searchForm.FSaleOrderNo, $options: 'i' } });
+            }
             if (this.searchForm.FDocumentStatus) {
                 req.query.$and.push({ FDocumentStatus: this.searchForm.FDocumentStatus });
             }
-            if (this.searchForm.FMaterialId) {
-                req.query.$and.push({ FMaterialId: { $regex: this.searchForm.FMaterialId, $options: 'i' } });
+            if (this.searchForm.FMaterialId_FNumber) {
+                req.query.$and.push({ FMaterialId_FNumber: { $regex: this.searchForm.FMaterialId_FNumber, $options: 'i' } });
             }
             if (this.searchForm.FMaterialName) {
                 req.query.$and.push({ FMaterialName: { $regex: this.searchForm.FMaterialName, $options: 'i' } });
@@ -330,8 +336,9 @@ export default {
             this.$refs.searchForm.resetFields();
             this.searchForm = {
                 FBillNo: '',
+                FSaleOrderNo: '',
                 FDocumentStatus: '',
-                FMaterialId: '',
+                FMaterialId_FNumber: '',
                 FMaterialName: '',
                 FWorkShopID_FName: '',
                 FProductType: '',
@@ -393,9 +400,10 @@ export default {
                 const exportConfig = {
                     FBillNo: '单据编号',
                     FDocumentStatus: '单据状态',
+                    FSaleOrderNo: '销售单号',
                     FDate: '单据日期',
                     FWorkShopID_FName: '生产车间',
-                    FMaterialId: '物料编码',
+                    FMaterialId_FNumber: '物料编码',
                     FMaterialName: '物料名称',
                     FSpecification: '规格型号',
                     FProductType: '产品类型',
@@ -605,7 +613,7 @@ export default {
             try {
                 const confirmMessage = this.syncForm.syncType === 'all'
                     ? '确认要同步所有生产订单数据吗？此操作可能需要较长时间'
-                    : '确认要同步选定日期范围的生产订单数据吗？此操作可能需要一些时间';
+                    : '确认要同步规则筛选的生产订单数据吗？此操作可能需要一些时间';
 
                 await this.$confirm(confirmMessage, '提示', {
                     confirmButtonText: '确定',

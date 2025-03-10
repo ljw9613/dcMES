@@ -136,12 +136,36 @@ router.post("/api/v1/update-flow-nodes", async (req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(200).json({
+      code: 500,
       success: false,
       message: error.message,
     });
   }
 });
+
+// 自动修复主条码中的异常子条码数据
+router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
+  try {
+    const { barcode } = req.body;
+    const result = await MaterialProcessFlowService.autoFixInconsistentProcessNodes(barcode);
+    res.json({
+      code: 200,
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+
+
+
 
 // 获取物料相关的所有工序
 router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {

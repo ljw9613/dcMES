@@ -2,49 +2,67 @@
     <div class="app-container">
         <!-- 搜索表单 -->
         <div class="screen1">
-            <el-form :model="searchForm" ref="searchForm" class="screen_content_first">
-                <el-form-item label="单据编号">
-                    <el-input v-model="searchForm.FBillNo" placeholder="请输入单据编号" clearable></el-input>
-                </el-form-item>
-
-                <el-form-item label="生产订单号">
-                    <el-input v-model="searchForm.MoBillNo" placeholder="请输入生产订单号" clearable></el-input>
-                </el-form-item>
-
-                <el-form-item label="单据状态">
-                    <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable>
-                        <el-option label="草稿" value="A" />
-                        <el-option label="审核中" value="B" />
-                        <el-option label="已审核" value="C" />
-                        <el-option label="重新审核" value="D" />
-                    </el-select>
-                </el-form-item>
-
-                <!-- 高级搜索部分 -->
-                <div v-if="showAdvanced" class="screen_content_second">
-                    <el-form-item label="生产组织">
-                        <el-input v-model="searchForm.FPrdOrgId.Number" placeholder="请输入生产组织编号" clearable></el-input>
+            <el-form :model="searchForm" ref="searchForm" :inline="true" class="search-form">
+                <div class="basic-search">
+                    <el-form-item label="单据编号" prop="FBillNo">
+                        <el-input v-model.trim="searchForm.FBillNo" placeholder="请输入单据编号" clearable></el-input>
                     </el-form-item>
 
-                    <el-form-item label="入库组织">
-                        <el-input v-model="searchForm.FStockOrgId.Number" placeholder="请输入入库组织编号" clearable></el-input>
+                    <el-form-item label="生产订单号" prop="MoBillNo">
+                        <el-input v-model.trim="searchForm.MoBillNo" placeholder="请输入生产订单号" clearable></el-input>
                     </el-form-item>
 
-                    <el-form-item label="创建日期">
-                        <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
-                            start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd">
-                        </el-date-picker>
+                    <el-form-item label="单据状态" prop="FDocumentStatus">
+                        <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable style="width: 160px">
+                            <el-option label="草稿" value="A" />
+                            <el-option label="审核中" value="B" />
+                            <el-option label="已审核" value="C" />
+                            <el-option label="重新审核" value="D" />
+                        </el-select>
+                    </el-form-item>
+
+                    <el-form-item class="search-buttons">
+                        <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
+                        <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
+                        <el-button type="warning" icon="el-icon-download" @click="handleSync">同步数据</el-button>
+                        <el-button type="text" @click="showAdvanced = !showAdvanced">
+                            {{ showAdvanced ? '收起' : '展开' }}高级搜索
+                            <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
+                        </el-button>
                     </el-form-item>
                 </div>
 
-                <div class="screen_content_second_one">
-                    <el-button type="primary" @click="fetchData">查询</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="warning" @click="handleSync">同步数据</el-button>
-                    <el-button type="text" @click="showAdvanced = !showAdvanced">
-                        {{ showAdvanced ? '收起' : '展开' }}
-                        <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
-                    </el-button>
+                <!-- 高级搜索部分 -->
+                <div v-if="showAdvanced" class="advanced-search">
+                    <el-form-item label="生产组织" prop="FPrdOrgId">
+                        <el-input
+                            v-model.trim="searchForm.FPrdOrgId"
+                            placeholder="请输入生产组织编号或名称"
+                            clearable
+                            style="width: 260px">
+                        </el-input>
+                    </el-form-item>
+
+                    <el-form-item label="入库组织" prop="FStockOrgId">
+                        <el-input
+                            v-model.trim="searchForm.FStockOrgId"
+                            placeholder="请输入入库组织编号或名称"
+                            clearable
+                            style="width: 260px">
+                        </el-input>
+                    </el-form-item>
+
+                    <el-form-item label="创建日期" prop="dateRange">
+                        <el-date-picker 
+                            v-model="searchForm.dateRange" 
+                            type="daterange" 
+                            range-separator="至"
+                            start-placeholder="开始日期" 
+                            end-placeholder="结束日期" 
+                            value-format="yyyy-MM-dd"
+                            style="width: 260px">
+                        </el-date-picker>
+                    </el-form-item>
                 </div>
             </el-form>
         </div>
@@ -208,8 +226,8 @@ export default {
                 FBillNo: '',
                 MoBillNo: '',
                 FDocumentStatus: '',
-                FPrdOrgId: { Number: '' },
-                FStockOrgId: { Number: '' },
+                FPrdOrgId: '',
+                FStockOrgId: '',
                 dateRange: []
             },
             showAdvanced: false,
@@ -229,6 +247,8 @@ export default {
                 billNo: ''
             },
             syncProgressTimer: null,
+            orgOptions: [],
+            orgLoading: false,
         }
     },
     computed: {
@@ -292,6 +312,52 @@ export default {
             }
         },
 
+        // 获取组织列表
+        async getOrgList() {
+            this.orgLoading = true;
+            try {
+                const result = await getData("K3_Organization", {
+                    query: {},
+                    sort: { Number: 1 }
+                });
+                if (result.code === 200) {
+                    this.orgOptions = result.data.map(org => ({
+                        value: org.Number,
+                        label: org.Name,
+                        ...org
+                    }));
+                } else {
+                    this.$message.error(result.msg || '获取组织列表失败');
+                }
+            } catch (error) {
+                console.error('获取组织列表失败:', error);
+                this.$message.error('获取组织列表失败');
+            } finally {
+                this.orgLoading = false;
+            }
+        },
+
+        // 处理组织选择
+        handleOrgSelect(type, value) {
+            if (!value) {
+                if (type === 'prd') {
+                    this.searchForm.FPrdOrgId = '';
+                } else {
+                    this.searchForm.FStockOrgId = '';
+                }
+                return;
+            }
+            
+            const selectedOrg = this.orgOptions.find(org => org.value === value);
+            if (selectedOrg) {
+                if (type === 'prd') {
+                    this.searchForm.FPrdOrgId = selectedOrg.Number;
+                } else {
+                    this.searchForm.FStockOrgId = selectedOrg.Number;
+                }
+            }
+        },
+
         // 构建查询参数
         searchData() {
             let req = {
@@ -316,13 +382,23 @@ export default {
             }
 
             // 生产组织查询
-            if (this.searchForm.FPrdOrgId.Number) {
-                req.query.$and.push({ 'FPrdOrgId.Number': { $regex: this.searchForm.FPrdOrgId.Number.trim(), $options: 'i' } });
+            if (this.searchForm.FPrdOrgId) {
+                req.query.$and.push({
+                    $or: [
+                        { 'FPrdOrgId.Number': { $regex: this.searchForm.FPrdOrgId.trim(), $options: 'i' } },
+                        { 'FPrdOrgId.Name': { $regex: this.searchForm.FPrdOrgId.trim(), $options: 'i' } }
+                    ]
+                });
             }
 
             // 入库组织查询
-            if (this.searchForm.FStockOrgId.Number) {
-                req.query.$and.push({ 'FStockOrgId.Number': { $regex: this.searchForm.FStockOrgId.Number.trim(), $options: 'i' } });
+            if (this.searchForm.FStockOrgId) {
+                req.query.$and.push({
+                    $or: [
+                        { 'FStockOrgId.Number': { $regex: this.searchForm.FStockOrgId.trim(), $options: 'i' } },
+                        { 'FStockOrgId.Name': { $regex: this.searchForm.FStockOrgId.trim(), $options: 'i' } }
+                    ]
+                });
             }
 
             // 创建日期范围查询
@@ -405,7 +481,7 @@ export default {
                         confirmMessage = '确认要同步所有生产入库单数据吗？此操作可能需要较长时间';
                         break;
                     case 'date':
-                        confirmMessage = '确认要同步选定日期范围的生产入库单数据吗？';
+                        confirmMessage = '确认要同步规则筛选的生产入库单数据吗？';
                         break;
                     case 'billNo':
                         confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的生产入库单数据吗？`;
@@ -569,10 +645,25 @@ export default {
             this.stopSyncProgressCheck();
         },
 
-        // 重置表单
-        resetForm() {
-            this.$refs.searchForm.resetFields()
-            this.fetchData()
+        // 处理搜索
+        handleSearch() {
+            this.currentPage = 1; // 重置页码到第一页
+            this.fetchData();
+        },
+
+        // 处理重置
+        handleReset() {
+            this.$refs.searchForm.resetFields();
+            this.searchForm = {
+                FBillNo: '',
+                MoBillNo: '',
+                FDocumentStatus: '',
+                FPrdOrgId: '',
+                FStockOrgId: '',
+                dateRange: []
+            };
+            this.currentPage = 1;
+            this.fetchData();
         },
 
         // 表格相关方法
@@ -664,6 +755,41 @@ export default {
         padding: 16px;
         margin-bottom: 10px;
         border-radius: 4px;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,.05);
+
+        .search-form {
+            .basic-search {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+
+                .el-form-item {
+                    margin-bottom: 0;
+                    margin-right: 0;
+                }
+
+                .search-buttons {
+                    margin-left: auto;
+                    white-space: nowrap;
+                }
+            }
+
+            .advanced-search {
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px dashed #dcdfe6;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+
+                .el-form-item {
+                    margin-bottom: 0;
+                    margin-right: 0;
+                }
+            }
+        }
 
         .screen_content {
             display: flex;
@@ -673,39 +799,13 @@ export default {
             &_first {
                 display: flex;
                 align-items: center;
-                flex-wrap: wrap;
                 gap: 10px;
-
-                .el-form-item {
-                    margin-bottom: 0;
-                    margin-right: 10px;
-                }
 
                 i {
                     font-size: 16px;
                     margin-right: 5px;
                 }
             }
-        }
-
-        .screen_content_second {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-
-            .el-form-item {
-                margin-bottom: 0;
-                margin-right: 10px;
-            }
-        }
-
-        .screen_content_second_one {
-            display: flex;
-            align-items: center;
-            margin-top: 10px;
-            gap: 10px;
         }
     }
 

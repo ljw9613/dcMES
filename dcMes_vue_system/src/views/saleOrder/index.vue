@@ -18,7 +18,12 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="客户编号">
-                            <el-input v-model="searchForm.FCustId" placeholder="请输入客户编号" clearable></el-input>
+                            <el-input v-model="searchForm.FCustId_FNumber" placeholder="请输入客户编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="客户名称">
+                            <el-input v-model="searchForm.FCustId_FName" placeholder="请输入客户名称" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -337,7 +342,8 @@ export default {
         return {
             searchForm: {
                 FBillNo: '',
-                FCustId: '',
+                FCustId_FNumber: '',
+                FCustId_FName: '',
                 FDocumentStatus: '',
                 FCloseStatus: '',
                 FSaleDeptId: '',
@@ -560,7 +566,8 @@ export default {
                 if (value) {
                     switch (key) {
                         case 'FBillNo':
-                        case 'FCustId':
+                        case 'FCustId_FNumber':
+                        case 'FCustId_FName':
                         case 'FSaleDeptId':
                         case 'FSalerId':
                             if (value.trim()) {
@@ -863,7 +870,7 @@ export default {
                         confirmMessage = '确认要同步所有销售订单数据吗？此操作可能需要较长时间';
                         break;
                     case 'date':
-                        confirmMessage = '确认要同步选定日期范围的销售订单数据吗？此操作可能需要一些时间';
+                        confirmMessage = '确认要同步规则筛选的销售订单数据吗？此操作可能需要一些时间';
                         break;
                     case 'billNo':
                         confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的销售订单数据吗？`;

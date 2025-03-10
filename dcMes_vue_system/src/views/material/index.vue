@@ -29,9 +29,8 @@
                         <el-form-item label="数据状态">
                             <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择数据状态" clearable
                                 style="width: 100%">
-                                <el-option label="草稿" value="DRAFT" />
-                                <el-option label="已审核" value="APPROVED" />
-                                <el-option label="审核中" value="PROCESSING" />
+                                <el-option v-for="dict in dict.type.document_Status" :key="dict.value"
+                                    :label="dict.label" :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -45,26 +44,20 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="基本单位">
-                            <el-select v-model="searchForm.FBaseUnitId_FNumber" placeholder="请选择基本单位" clearable
-                                style="width: 100%">
-                                <!-- 这里需要从后端获取单位列表 -->
-                            </el-select>
+                            <el-input v-model="searchForm.FBaseUnitId_FName" placeholder="请输入基本单位" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="仓库">
-                            <el-select v-model="searchForm.FStockId_FNumber" placeholder="请选择仓库" clearable
-                                style="width: 100%">
-                                <!-- 这里需要从后端获取仓库列表 -->
-                            </el-select>
+                            <el-input v-model="searchForm.FStockId_FName" placeholder="请输入仓库" clearable></el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="是否长新物料">
                             <el-select v-model="searchForm.F_TFQJ_CheckBox" placeholder="请选择" clearable
                                 style="width: 100%">
-                                <el-option label="是" value="1" />
-                                <el-option label="否" value="0" />
+                                <el-option label="是" :value="true" />
+                                <el-option label="否" :value="false" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -72,7 +65,7 @@
 
                 <div v-show="showAdvanced">
                     <el-row :gutter="20">
-                        <el-col :span="6">
+                        <!-- <el-col :span="6">
                             <el-form-item label="BOM分类">
                                 <el-select v-model="searchForm.FBOMCATEGORY" placeholder="请选择BOM分类" clearable
                                     style="width: 100%">
@@ -89,14 +82,13 @@
                                     <el-option label="设计用" value="DESIGN" />
                                 </el-select>
                             </el-form-item>
-                        </el-col>
+                        </el-col> -->
                         <el-col :span="6">
                             <el-form-item label="物料属性">
-                                <el-select v-model="searchForm.FITEMPPROPERTY" placeholder="请选择物料属性" clearable
+                                <el-select v-model="searchForm.FErpClsID" placeholder="请选择物料属性" clearable
                                     style="width: 100%">
-                                    <el-option label="外购" value="PURCHASE" />
-                                    <el-option label="自制" value="SELF_MADE" />
-                                    <el-option label="委外" value="OUTSOURCE" />
+                                    <el-option v-for="dict in dict.type.kingdee_cloud_product_attribute" :key="dict.value"
+                                        :label="dict.label" :value="dict.value" />
                                 </el-select>
                             </el-form-item>
                         </el-col>
@@ -145,17 +137,25 @@
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.FNumber }}</el-link>
                     </template>
                 </el-table-column>
+                <el-table-column label="旧物料编码" prop="FOldNumber" width="120" />
                 <el-table-column label="物料名称" prop="FName" />
                 <el-table-column label="规格型号" prop="FSpecification" width="120" />
-                <el-table-column label="基本单位" prop="FBaseUnitId.FName" width="100" />
+                <el-table-column label="基本单位" prop="FBaseUnitId_FName" width="100" />
+                <el-table-column label="物料属性" prop="FErpClsID" width="120">
+                    <template slot-scope="scope">
+                        <dict-tag :options="dict.type.kingdee_cloud_product_attribute" :value="scope.row.FErpClsID" />
+                    </template>
+                </el-table-column>
                 <el-table-column label="仓库" prop="FStockId_FName" width="120" />
                 <el-table-column label="英文名称" prop="FNameEn" width="150" />
-
+                <el-table-column label="是否长新物料" prop="F_TFQJ_CheckBox" width="120">
+                    <template slot-scope="scope">
+                        {{ scope.row.F_TFQJ_CheckBox ? '是' : '否' }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="数据状态" width="100">
                     <template slot-scope="scope">
-                        <el-tag :type="getStatusType(scope.row.FDocumentStatus)">
-                            {{ getStatusText(scope.row.FDocumentStatus) }}
-                        </el-tag>
+                        <dict-tag :options="dict.type.document_Status" :value="scope.row.FDocumentStatus" />
                     </template>
                 </el-table-column>
 
@@ -316,8 +316,8 @@
                 <el-form :model="barcodeRuleForm" ref="barcodeRuleForm" label-width="100px">
                     <el-form-item label="规则选择" prop="barcodeRule">
                         <zr-select v-model="barcodeRuleForm.barcodeRule" collection="barcodeRule"
-                            :search-fields="['name', 'description']" label-key="name" sub-key="_id"
-                            :multiple="false" placeholder="请输入规则名称/描述搜索" @select="handleBarcodeRuleChange">
+                            :search-fields="['name', 'description']" label-key="name" sub-key="_id" :multiple="false"
+                            placeholder="请输入规则名称/描述搜索" @select="handleBarcodeRuleChange">
                             <template #option="{ item }">
                                 <div class="select-option">
                                     <div class="option-main">
@@ -408,7 +408,7 @@ import { query } from "quill";
 
 export default {
     name: 'MaterialManagement',
-    dicts: ['product_type'],
+    dicts: ['product_type', 'document_Status', 'kingdee_cloud_product_types','kingdee_cloud_product_attribute'],
     components: {
         MaterialFlowChart
     },
@@ -422,7 +422,7 @@ export default {
                 FForbidStatus: '',
                 FOldNumber: '',
                 FBaseUnitId_FNumber: '',
-                FStockId_FNumber: '',
+                FStockId_FName: '',
                 F_TFQJ_CheckBox: '',
                 FNameEn: '',
                 FCreateOrgId: '',
@@ -447,8 +447,8 @@ export default {
                 FOldNumber: '',
                 FBaseUnitId_FNumber: '',
                 FBaseUnitId_FName: '',
-                FStockId_FNumber: '',
                 FStockId_FName: '',
+                FStockId_FNumber: '',
                 F_TFQJ_CheckBox: '',
                 FNameEn: '',
                 FCreateOrgId: '',
@@ -466,7 +466,7 @@ export default {
             rules: {
                 FName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
                 FBaseUnitId_FNumber: [{ required: true, message: '请选择基本单位', trigger: 'change' }],
-                FStockId_FNumber: [{ required: true, message: '请选择仓库', trigger: 'change' }],
+                FStockId_FName: [{ required: true, message: '请选择仓库', trigger: 'change' }],
                 FCreateOrgId: [{ required: true, message: '请选择创建组织', trigger: 'change' }],
                 FUseOrgId_FName: [{ required: true, message: '请选择使用组织', trigger: 'change' }],
                 diNum: [
@@ -550,12 +550,12 @@ export default {
                         // 精确匹配的字段
                         case 'FDocumentStatus':
                         case 'FForbidStatus':
-                        case 'FBaseUnitId_FNumber':
-                        case 'FStockId_FNumber':
+                        case 'FBaseUnitId_FName':
+                        case 'FStockId_FName':
                         case 'F_TFQJ_CheckBox':
                         case 'FBOMCATEGORY':
                         case 'FBOMUSE':
-                        case 'FITEMPPROPERTY':
+                        case 'FErpClsID':
                             req.query.$and.push({ [key]: value });
                             break;
                     }
@@ -584,7 +584,7 @@ export default {
                 FForbidStatus: '',     // 禁用状态
                 FOldNumber: '',        // 旧物料编码
                 FBaseUnitId_FNumber: '', // 基本单位
-                FStockId_FNumber: '',    // 仓库
+                FStockId_FName: '',    // 仓库
                 F_TFQJ_CheckBox: '',     // 是否长新物料
                 FNameEn: '',             // 英文名称
                 FCreateOrgId: '',        // 创建组织
@@ -592,7 +592,7 @@ export default {
                 // 高级搜索字段
                 FBOMCATEGORY: '',        // BOM分类
                 FBOMUSE: '',            // BOM用途
-                FITEMPPROPERTY: ''      // 物料属性
+                FErpClsID: ''      // 物料属性
             };
 
             // 重置高级搜索的显示状态
@@ -670,7 +670,7 @@ export default {
                     FDocumentStatus: '数据状态',
                     FBOMCATEGORY: 'BOM分类',
                     FBOMUSE: 'BOM用途',
-                    FITEMPPROPERTY: '物料属性',
+                    FErpClsID: '物料属性',
                     FForbidStatus: '禁用状态'
                 };
 
@@ -917,7 +917,7 @@ export default {
             if (!isSubMaterial && visited.has(materialId)) {
                 return null;
             }
-            
+
             // 将物料添加到已访问集合（仅当作为主物料时）
             if (!isSubMaterial) {
                 visited.add(materialId);
@@ -978,8 +978,8 @@ export default {
                                     processMaterialsResponse.data.map(async relation => {
                                         // 对于子物料，传入 isSubMaterial = true
                                         const childFlow = await this.buildFlowChartData(
-                                            relation.materialId, 
-                                            visited, 
+                                            relation.materialId,
+                                            visited,
                                             true
                                         );
                                         if (childFlow) {
@@ -1164,7 +1164,7 @@ export default {
             try {
                 const confirmMessage = {
                     'number': '确认要同步选定物料编号的数据吗？',
-                    'date': '确认要同步选定日期范围的数据吗？',
+                    'date': '确认要同步规则筛选的数据吗？',
                     'all': '确认要同步所有物料数据吗？此操作可能需要较长时间'
                 }[this.syncForm.syncType];
 

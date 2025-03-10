@@ -129,7 +129,7 @@ router.post("/api/v1/unbind-components", async (req, res) => {
 router.post("/api/v1/update-flow-nodes", async (req, res) => {
   try {
     const { barcode } = req.body;
-    const result = await MaterialProcessFlowService.updateFlowNodes(barcode);
+    const result = await MaterialProcessFlowService.updateWorkflowNodes(barcode);
     res.json({
       code: 200,
       success: true,

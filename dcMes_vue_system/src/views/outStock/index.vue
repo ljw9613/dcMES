@@ -2,58 +2,76 @@
     <div class="app-container">
         <!-- 搜索表单 -->
         <div class="screen1">
-            <el-form :model="searchForm" ref="searchForm" class="screen_content_first">
-                <el-form-item label="单据编号">
-                    <el-input v-model="searchForm.FBillNo" placeholder="请输入单据编号" clearable></el-input>
-                </el-form-item>
-
-                <el-form-item label="销售组织">
-                    <el-input v-model="searchForm.FSaleOrgId.Number" placeholder="请输入销售组织编号" clearable></el-input>
-                </el-form-item>
-
-                <el-form-item label="单据状态">
-                    <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable>
-                        <el-option label="草稿" value="A" />
-                        <el-option label="审核中" value="B" />
-                        <el-option label="已审核" value="C" />
-                        <el-option label="重新审核" value="D" />
-                    </el-select>
-                </el-form-item>
+            <el-form :model="searchForm" ref="searchForm" :inline="true" label-width="80px" class="search-form">
+                <el-row :gutter="20" class="search-row">
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <el-form-item label="单据编号">
+                            <el-input v-model="searchForm.FBillNo" placeholder="请输入单据编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <el-form-item label="销售组织">
+                            <el-input v-model="searchForm.FSaleOrgId.Number" placeholder="请输入销售组织编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <el-form-item label="单据状态">
+                            <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable>
+                                <el-option v-for="dict in dict.type.document_Status" :key="dict.value" :label="dict.label"
+                                    :value="dict.value" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <div class="search-buttons">
+                            <el-button type="primary" icon="el-icon-search" @click="fetchData">查询</el-button>
+                            <el-button icon="el-icon-refresh" @click="resetForm">重置</el-button>
+                            <el-button type="warning" icon="el-icon-refresh-right" @click="handleSync">同步</el-button>
+                            <el-button type="text" @click="showAdvanced = !showAdvanced">
+                                {{ showAdvanced ? '收起' : '展开' }}
+                                <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
+                            </el-button>
+                        </div>
+                    </el-col>
+                </el-row>
 
                 <!-- 高级搜索部分 -->
-                <div v-if="showAdvanced" class="screen_content_second">
-                    <el-form-item label="发货组织">
-                        <el-input v-model="searchForm.FStockOrgId.Number" placeholder="请输入发货组织编号" clearable></el-input>
-                    </el-form-item>
-
-                    <el-form-item label="客户">
-                        <el-input v-model="searchForm.FCustomerID.Number" placeholder="请输入客户编号" clearable></el-input>
-                    </el-form-item>
-
-                    <el-form-item label="创建日期">
-                        <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
-                            start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd">
-                        </el-date-picker>
-                    </el-form-item>
-                </div>
-
-                <div class="screen_content_second_one">
-                    <el-button type="primary" @click="fetchData">查询</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="warning" @click="handleSync">同步</el-button>
-                    <el-button type="text" @click="showAdvanced = !showAdvanced">
-                        {{ showAdvanced ? '收起' : '展开' }}
-                        <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
-                    </el-button>
-                </div>
+                <el-row :gutter="20" v-if="showAdvanced" class="search-row advanced-search">
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <el-form-item label="发货组织">
+                            <el-input v-model="searchForm.FStockOrgId.Number" placeholder="请输入发货组织编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <el-form-item label="客户">
+                            <el-input v-model="searchForm.FCustomerID.Number" placeholder="请输入客户编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                        <el-form-item label="销售员">
+                            <el-input v-model="searchForm.FSalesManID.Number" placeholder="请输入销售员编号" clearable></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="8" :lg="8">
+                        <el-form-item label="创建日期">
+                            <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
+                                start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
+                                style="width: 100%">
+                            </el-date-picker>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
             </el-form>
         </div>
 
         <!-- 列表标题区 -->
         <div class="screen1">
-            <div class="screen_content">
-                <div class="screen_content_first">
-                    <i class="el-icon-tickets">销售出库单列表</i>
+            <div class="title-section">
+                <div class="title-left">
+                    <i class="el-icon-tickets"></i>
+                    <span class="title-text">销售出库单列表</span>
+                </div>
+                <div class="title-right">
                     <hir-input ref="hirInput" :printData="printData" :default-template="localPrintTemplate"
                         :template-params="{
                             // templateType: { $in: ['OS'] },
@@ -224,9 +242,7 @@
 
                 <el-table-column label="单据状态" width="100">
                     <template slot-scope="scope">
-                        <el-tag :type="getStatusType(scope.row.FDocumentStatus)">
-                            {{ getStatusText(scope.row.FDocumentStatus) }}
-                        </el-tag>
+                        <dict-tag :options="dict.type.document_Status" :value="scope.row.FDocumentStatus" />
                     </template>
                 </el-table-column>
 
@@ -321,6 +337,7 @@ import outStockExt from './components/outStockExt.vue'
 
 export default {
     name: 'OutStock',
+    dicts: ['document_Status'],
     components: {
         HirInput,
         LogisticsDetail,
@@ -357,6 +374,9 @@ export default {
                     Number: ''
                 },
                 FCustomerID: {
+                    Number: ''
+                },
+                FSalesManID: {
                     Number: ''
                 },
                 FDocumentStatus: '',
@@ -433,6 +453,10 @@ export default {
 
             if (this.searchForm.FCustomerID.Number) {
                 req.query.$and.push({ 'FCustomerID.Number': { $regex: this.searchForm.FCustomerID.Number.trim(), $options: 'i' } });
+            }
+
+            if (this.searchForm.FSalesManID && this.searchForm.FSalesManID.Number) {
+                req.query.$and.push({ 'FSalesManID.Number': { $regex: this.searchForm.FSalesManID.Number.trim(), $options: 'i' } });
             }
 
             if (this.searchForm.FDocumentStatus) {
@@ -582,7 +606,32 @@ export default {
         },
 
         resetForm() {
+            // 重置表单
             this.$refs.searchForm.resetFields();
+            
+            // 创建空的初始化表单
+            const initialForm = {
+                FBillNo: '',
+                FSaleOrgId: {
+                    Number: ''
+                },
+                FStockOrgId: {
+                    Number: ''
+                },
+                FCustomerID: {
+                    Number: ''
+                },
+                FSalesManID: {
+                    Number: ''
+                },
+                FDocumentStatus: '',
+                dateRange: [],
+            };
+            
+            // 使用Object.assign完全替换对象
+            Object.assign(this.searchForm, initialForm);
+            
+            // 重新加载数据
             this.fetchData();
         },
 
@@ -861,48 +910,80 @@ export default {
         padding: 16px;
         margin-bottom: 10px;
         border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
 
-        .screen_content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            &_first {
-                display: flex;
-                align-items: center;
-                flex-wrap: wrap;
-                gap: 10px;
-
-                .el-form-item {
-                    margin-bottom: 0;
-                    margin-right: 10px;
-                }
-
-                i {
-                    font-size: 16px;
-                    margin-right: 5px;
-                }
+    /* 优化搜索表单样式 */
+    .search-form {
+        width: 100%;
+        
+        .search-row {
+            width: 100%;
+            margin: 0;
+            padding-bottom: 10px;
+            
+            &.advanced-search {
+                border-top: 1px dashed #dcdfe6;
+                padding-top: 15px;
+                margin-top: 5px;
+                animation: fadeIn 0.3s ease-in-out;
             }
         }
 
-        .screen_content_second {
+        .el-form-item {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .search-buttons {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-
-            .el-form-item {
-                margin-bottom: 0;
-                margin-right: 10px;
+            justify-content: flex-end;
+            
+            .el-button {
+                margin-left: 8px;
+                margin-bottom: 5px;
+                
+                &:first-child {
+                    margin-left: 0;
+                }
             }
         }
 
-        .screen_content_second_one {
+        .el-select,
+        .el-input,
+        .el-date-editor {
+            width: 100%;
+        }
+    }
+
+    /* 标题区域样式 */
+    .title-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .title-left {
             display: flex;
             align-items: center;
-            margin-top: 10px;
-            gap: 10px;
+            
+            i {
+                font-size: 18px;
+                margin-right: 8px;
+                color: #409EFF;
+            }
+            
+            .title-text {
+                font-size: 16px;
+                font-weight: 600;
+                color: #303133;
+            }
+        }
+        
+        .title-right {
+            display: flex;
+            align-items: center;
         }
     }
 
@@ -913,7 +994,14 @@ export default {
     }
 }
 
-.el-table>>>.cell {
-    white-space: nowrap;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

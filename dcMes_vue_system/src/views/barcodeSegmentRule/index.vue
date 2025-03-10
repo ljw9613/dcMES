@@ -630,6 +630,7 @@ export default {
           query: {},
           limit: this.pageSize,
           skip: (this.currentPage - 1) * this.pageSize,
+          sort: { createAt: -1 },
           count: true
         })
 

@@ -6,16 +6,10 @@
         <div class="card-header">
           <span>
             <i class="el-icon-setting"></i>
-            工序设置</span
-          >
+            工序设置</span>
           <div class="switch-group">
-            <el-switch
-              v-model="autoInit"
-              active-text="自动"
-              inactive-text="手动"
-              class="print-switch"
-              @change="handleAutoInitChange"
-            >
+            <el-switch v-model="autoInit" active-text="自动" inactive-text="手动" class="print-switch"
+              @change="handleAutoInitChange">
             </el-switch>
           </div>
         </div>
@@ -25,63 +19,37 @@
             <div class="section-header">
               <el-tag :type="websocketConnected ? 'success' : 'danger'">
                 <i class="el-icon-goods"></i>
-                {{ websocketConnected ? "已连接" : "未连接" }}</el-tag
-              >
+                {{ websocketConnected ? "已连接" : "未连接" }}</el-tag>
               <span> 基础信息 </span>
             </div>
 
             <el-form-item label="产品型号">
-              <zr-select
-                v-if="!mainMaterialId"
-                v-model="formData.productModel"
-                collection="k3_BD_MATERIAL"
-                :disabled="!!mainMaterialId && !!processStepId"
-                :search-fields="['FNumber', 'FName']"
-                label-key="FName"
-                sub-key="FMATERIALID"
-                :multiple="false"
-                placeholder="请输入物料编码/名称搜索"
-                @select="handleProductChange"
-              >
+              <zr-select v-if="!mainMaterialId" v-model="formData.productModel" collection="k3_BD_MATERIAL"
+                :disabled="!!mainMaterialId && !!processStepId" :search-fields="['FNumber', 'FName']" label-key="FName"
+                sub-key="FMATERIALID" :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleProductChange">
                 <template #option="{ item }">
                   <div class="item-option">
                     <div class="item-info">
                       <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                      <el-tag size="mini" type="info"
-                        >{{ item.FMATERIALID }} -{{
-                          item.FUseOrgId_FName
-                        }}</el-tag
-                      >
+                      <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{
+                        item.FUseOrgId_FName
+                      }}</el-tag>
                     </div>
                   </div>
                 </template>
               </zr-select>
-              <el-input
-                v-else
-                v-model="formData.productName"
-                placeholder="请输入物料编码/名称搜索"
-                :disabled="!!mainMaterialId && !!processStepId"
-              />
+              <el-input v-else v-model="formData.productName" placeholder="请输入物料编码/名称搜索"
+                :disabled="!!mainMaterialId && !!processStepId" />
             </el-form-item>
 
             <el-form-item label="产品工序">
-              <el-select
-                v-model="formData.processStep"
-                placeholder="请选择产品工序"
-                @change="handleProcessChange"
-                class="custom-select"
-                :disabled="!!mainMaterialId && !!processStepId"
-              >
-                <el-option
-                  v-for="item in processStepOptions"
-                  :key="item._id"
-                  :label="item.processName"
-                  :value="item._id"
-                >
+              <el-select v-model="formData.processStep" placeholder="请选择产品工序" @change="handleProcessChange"
+                class="custom-select" :disabled="!!mainMaterialId && !!processStepId">
+                <el-option v-for="item in processStepOptions" :key="item._id" :label="item.processName"
+                  :value="item._id">
                   <div class="option-content">
                     <span class="option-main">{{
-                      `${item.levelPrefix || ""}${item.sort}.${
-                        item.processName
+                      `${item.levelPrefix || ""}${item.sort}.${item.processName
                       }`
                     }}</span>
                     <span class="option-sub">{{ item.processCode }}</span>
@@ -91,44 +59,22 @@
             </el-form-item>
 
             <el-form-item label="产线编码">
-              <zr-select
-                v-if="!mainMaterialId"
-                :disabled="!!mainMaterialId && !!processStepId"
-                v-model="formData.productLine"
-                collection="production_line"
-                :search-fields="['lineCode', 'lineName']"
-                label-key="lineName"
-                tag-key="lineCode"
-                sub-key="workshop"
-                :multiple="false"
-                placeholder="请输入产线信息搜索"
-                @select="handleProductionLineSelect"
-              />
-              <el-input
-                v-else
-                v-model="formData.lineName"
-                placeholder="请输入产线信息搜索"
-                :disabled="!!mainMaterialId && !!processStepId"
-              />
+              <zr-select v-if="!mainMaterialId" :disabled="!!mainMaterialId && !!processStepId"
+                v-model="formData.productLine" collection="production_line" :search-fields="['lineCode', 'lineName']"
+                label-key="lineName" tag-key="lineCode" sub-key="workshop" :multiple="false" placeholder="请输入产线信息搜索"
+                @select="handleProductionLineSelect" />
+              <el-input v-else v-model="formData.lineName" placeholder="请输入产线信息搜索"
+                :disabled="!!mainMaterialId && !!processStepId" />
             </el-form-item>
           </div>
 
           <!-- 按钮部分 -->
           <div class="button-group" v-if="hasEditPermission">
-            <el-button
-              type="danger"
-              @click="handleCancelSave"
-              icon="el-icon-close"
-              v-if="mainMaterialId && processStepId"
-            >
+            <el-button type="danger" @click="handleCancelSave" icon="el-icon-close"
+              v-if="mainMaterialId && processStepId">
               取消设置
             </el-button>
-            <el-button
-              type="primary"
-              v-else
-              @click="handleSave"
-              icon="el-icon-check"
-            >
+            <el-button type="primary" v-else @click="handleSave" icon="el-icon-check">
               保存设置
             </el-button>
           </div>
@@ -136,11 +82,9 @@
       </el-card>
     </div>
     <div class="right-content">
-      <template
-        v-if="
-          mainMaterialId && processStepId && processStepData.processType !== 'F'
-        "
-      >
+      <template v-if="
+        mainMaterialId && processStepId && processStepData.processType !== 'F'
+      ">
         <el-card class="scan-card">
           <!-- 标题部分 -->
           <div class="card-header">
@@ -148,21 +92,14 @@
               <i class="el-icon-scan"></i>
               <span>条码扫描</span>
               <el-button type="text" @click="toggleCollapse">
-                <i
-                  :class="
-                    isCollapsed
-                      ? 'el-icon-d-arrow-right'
-                      : 'el-icon-d-arrow-left'
-                  "
-                ></i>
+                <i :class="isCollapsed
+                    ? 'el-icon-d-arrow-right'
+                    : 'el-icon-d-arrow-left'
+                  "></i>
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
             </div>
-            <el-button
-              type="text"
-              @click="handleClearCache"
-              icon="el-icon-delete"
-            >
+            <el-button type="text" @click="handleClearCache" icon="el-icon-delete">
               清除批次物料缓存
             </el-button>
           </div>
@@ -173,14 +110,8 @@
               <span>统一扫描区域</span>
             </div>
             <div class="scan-input-section">
-              <el-input
-                v-model="unifiedScanInput"
-                placeholder="请扫描条码"
-                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
-                ref="scanInput"
-                clearable
-                @clear="focusInput"
-              >
+              <el-input v-model="unifiedScanInput" placeholder="请扫描条码"
+                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)" ref="scanInput" clearable @clear="focusInput">
               </el-input>
             </div>
             <!-- 主物料部分 -->
@@ -189,47 +120,25 @@
                 <i class="el-icon-goods"></i>
                 <span>主物料</span>
               </div>
-              <el-switch
-                v-model="enableConversion"
-                active-text="转化"
-                inactive-text="普通"
-                class="print-switch"
-                @change="handleConversionChange"
-              >
+              <el-switch v-model="enableConversion" active-text="转化" inactive-text="普通" class="print-switch"
+                @change="handleConversionChange">
               </el-switch>
               <div class="print-batch-btn">
-                <hir-input
-                  ref="hirInput"
-                  :default-template="localPrintTemplate"
-                  @template-change="handleTemplateChange"
-                  :show-preview="true"
-                  :show-browser-print="false"
-                  :show-silent-print="true"
-                  :printData="printData"
-                />
+                <hir-input ref="hirInput" :default-template="localPrintTemplate" @template-change="handleTemplateChange"
+                  :show-preview="true" :show-browser-print="false" :show-silent-print="true" :printData="printData" />
               </div>
             </div>
             <div class="material-section">
-              <el-form-item
-                :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`"
-                label-width="100%"
-                class="vertical-form-item"
-              >
+              <el-form-item :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`" label-width="100%"
+                class="vertical-form-item">
                 <div class="input-with-status">
-                  <el-input
-                    v-model="scanForm.mainBarcode"
-                    placeholder="请扫描主物料条码"
-                    :class="{ 'valid-input': validateStatus['mainBarcode'] }"
-                    readonly
-                  >
+                  <el-input v-model="scanForm.mainBarcode" placeholder="请扫描主物料条码"
+                    :class="{ 'valid-input': validateStatus['mainBarcode'] }" readonly>
                     <template slot="prefix">
                       <i class="el-icon-full-screen"></i>
                     </template>
                   </el-input>
-                  <div
-                    class="status-indicator"
-                    :class="{ valid: validateStatus['mainBarcode'] }"
-                  >
+                  <div class="status-indicator" :class="{ valid: validateStatus['mainBarcode'] }">
                     <i :class="getValidateIcon('mainBarcode')"></i>
                   </div>
                 </div>
@@ -243,27 +152,15 @@
             </div>
             <div class="material-section">
               <el-row :gutter="20">
-                <el-col
-                  :span="12"
-                  v-for="material in processMaterials"
-                  :key="material._id"
-                >
-                  <el-form-item
-                    :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
-                    class="vertical-form-item"
-                  >
+                <el-col :span="12" v-for="material in processMaterials" :key="material._id">
+                  <el-form-item :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
+                    class="vertical-form-item">
                     <div class="input-with-status">
-                      <el-input
-                        v-model="scanForm.barcodes[material._id]"
-                        :placeholder="
-                          !material.scanOperation
-                            ? '无需扫码'
-                            : '请扫描子物料条码'
-                        "
-                        :class="{ 'valid-input': validateStatus[material._id] }"
-                        :readonly="material.scanOperation"
-                        :disabled="!material.scanOperation"
-                      >
+                      <el-input v-model="scanForm.barcodes[material._id]" :placeholder="!material.scanOperation
+                          ? '无需扫码'
+                          : '请扫描子物料条码'
+                        " :class="{ 'valid-input': validateStatus[material._id] }" :readonly="material.scanOperation"
+                        :disabled="!material.scanOperation">
                         <template slot="prefix">
                           <i class="el-icon-full-screen"></i>
                         </template>
@@ -272,21 +169,15 @@
                             <el-tag type="info">无需扫码</el-tag>
                           </template>
                           <template v-else-if="material.isBatch">
-                            <el-tag
-                              type="warning"
-                              v-if="material.batchQuantity"
-                            >
+                            <el-tag type="warning" v-if="material.batchQuantity">
                               {{ getBatchUsageText(material._id) }}
                             </el-tag>
                             <el-tag type="warning" v-else>批次物料</el-tag>
                           </template>
                         </template>
                       </el-input>
-                      <div
-                        class="status-indicator"
-                        :class="{ valid: validateStatus[material._id] }"
-                        v-if="material.scanOperation"
-                      >
+                      <div class="status-indicator" :class="{ valid: validateStatus[material._id] }"
+                        v-if="material.scanOperation">
                         <i :class="getValidateIcon(material._id)"></i>
                       </div>
                     </div>
@@ -297,15 +188,8 @@
 
             <!-- 按钮组 -->
             <div class="button-group">
-              <el-button plain @click="resetScanForm" icon="el-icon-refresh"
-                >重置</el-button
-              >
-              <el-button
-                type="primary"
-                @click="handleConfirm"
-                icon="el-icon-check"
-                >确认</el-button
-              >
+              <el-button plain @click="resetScanForm" icon="el-icon-refresh">重置</el-button>
+              <el-button type="primary" @click="handleConfirm" icon="el-icon-check">确认</el-button>
             </div>
           </el-form>
         </el-card>
@@ -319,11 +203,7 @@
         </div>
       </template>
     </div>
-    <status-popup
-      :visible.sync="showPopup"
-      :type="popupType"
-      :duration="1500"
-    />
+    <status-popup :visible.sync="showPopup" :type="popupType" :duration="1500" />
   </div>
 </template>
 
@@ -1071,8 +951,7 @@ export default {
         // 遍历规则进行匹配
         for (const rule of rules) {
           console.log(
-            `尝试匹配规则: ${rule.name} (${
-              rule.isProductSpecific ? "产品特定" : "全局规则"
+            `尝试匹配规则: ${rule.name} (${rule.isProductSpecific ? "产品特定" : "全局规则"
             })`
           );
 
@@ -1181,8 +1060,7 @@ export default {
             // 如果成功提取到物料编码，验证是否匹配当前工序
             if (isValid && materialCode) {
               console.log(
-                `条码匹配成功: ${rule.name} (${
-                  rule.isProductSpecific ? "产品特定" : "全局规则"
+                `条码匹配成功: ${rule.name} (${rule.isProductSpecific ? "产品特定" : "全局规则"
                 })`
               );
               return {
@@ -1411,16 +1289,14 @@ export default {
               dangerouslyUseHTMLString: true,
               message: `
                                 <div style="line-height: 1.5">
-                                    <div>物料名称: ${
-                                      this.mainMaterialName
-                                    }</div>
+                                    <div>物料名称: ${this.mainMaterialName
+                }</div>
                                     <div>物料编码: ${materialCode}</div>
                                     <div>条码: ${cleanValue}</div>
-                                    ${
-                                      this.enableConversion
-                                        ? `<div>转化条码: ${transformedBarcode}</div>`
-                                        : ""
-                                    }
+                                    ${this.enableConversion
+                  ? `<div>转化条码: ${transformedBarcode}</div>`
+                  : ""
+                }
                                 </div>
                             `,
               type: "success",
@@ -1646,8 +1522,7 @@ export default {
 
           if (
             this.craftInfo &&
-            (!this.craftInfo.isProduct ||
-              this.craftInfo.materialCode !== materialCode)
+            this.craftInfo.isProduct
           ) {
             //查询是否有相关的打印数据
             const prePrintData = await getData("preProductionBarcode", {
@@ -1869,8 +1744,7 @@ export default {
               10000
             ); // 指数退避，最大10秒
             this.$message.warning(
-              `设备连接已断开，${delay / 1000}秒后尝试第${
-                this.reconnectAttempts
+              `设备连接已断开，${delay / 1000}秒后尝试第${this.reconnectAttempts
               }次重连...`
             );
             setTimeout(() => {
@@ -2210,7 +2084,7 @@ export default {
   width: 100%;
 }
 
-.valid-input >>> .el-input__inner {
+.valid-input>>>.el-input__inner {
   border-color: #67c23a;
   transition: all 0.3s ease;
 }
@@ -2308,7 +2182,7 @@ export default {
 }
 
 /* 输入框动画效果 */
-.el-input >>> .el-input__inner:focus {
+.el-input>>>.el-input__inner:focus {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -2368,16 +2242,16 @@ export default {
   width: 100%;
 }
 
-.custom-select >>> .el-input__inner {
+.custom-select>>>.el-input__inner {
   border-radius: 6px;
   transition: all 0.3s ease;
 }
 
-.custom-select >>> .el-input__inner:hover {
+.custom-select>>>.el-input__inner:hover {
   border-color: #409eff;
 }
 
-.custom-select >>> .el-input__inner:focus {
+.custom-select>>>.el-input__inner:focus {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -2403,7 +2277,7 @@ export default {
 }
 
 /* 加载状态样式 */
-.el-select >>> .el-input.is-loading .el-input__inner {
+.el-select>>>.el-input.is-loading .el-input__inner {
   padding-right: 30px;
 }
 
@@ -2440,7 +2314,7 @@ export default {
   flex-direction: column;
 }
 
-.vertical-form-item >>> .el-form-item__label {
+.vertical-form-item>>>.el-form-item__label {
   text-align: left;
   padding: 0 0 10px 0;
   line-height: 1.4;
@@ -2448,7 +2322,7 @@ export default {
   /* 允许标签文字换行 */
 }
 
-.vertical-form-item >>> .el-form-item__content {
+.vertical-form-item>>>.el-form-item__content {
   margin-left: 0 !important;
 }
 
@@ -2496,12 +2370,12 @@ export default {
 }
 
 /* 开关文字样式 */
-.print-switch >>> .el-switch__label {
+.print-switch>>>.el-switch__label {
   color: #606266;
   font-size: 12px;
 }
 
-.print-switch >>> .el-switch__label.is-active {
+.print-switch>>>.el-switch__label.is-active {
   color: #409eff;
 }
 
@@ -2530,7 +2404,7 @@ export default {
   margin-left: 10px;
 }
 
-.print-switch + .print-switch {
+.print-switch+.print-switch {
   margin-left: 20px;
 }
 </style>

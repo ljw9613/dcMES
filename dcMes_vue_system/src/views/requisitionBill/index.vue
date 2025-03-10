@@ -8,28 +8,35 @@
                 </el-form-item>
 
                 <el-form-item label="申请组织">
-                    <el-input v-model="searchForm.FApplicationOrgId.Number" placeholder="请输入申请组织编号"
-                        clearable></el-input>
+                    <el-input v-model="searchForm.FApplicationOrgId.Number" placeholder="请输入申请组织编号" clearable></el-input>
                 </el-form-item>
 
                 <el-form-item label="单据状态">
                     <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable>
-                        <el-option label="草稿" value="A" />
-                        <el-option label="审核中" value="B" />
-                        <el-option label="已审核" value="C" />
-                        <el-option label="重新审核" value="D" />
+                        <el-option 
+                            v-for="item in dictMap.documentStatus" 
+                            :key="item.value" 
+                            :label="item.label" 
+                            :value="item.value" />
                     </el-select>
                 </el-form-item>
 
                 <!-- 高级搜索部分 -->
                 <div v-if="showAdvanced" class="screen_content_second">
                     <el-form-item label="申请部门">
-                        <el-input v-model="searchForm.FApplicationDeptId.Number" placeholder="请输入申请部门编号"
-                            clearable></el-input>
+                        <el-input v-model="searchForm.FApplicationDeptId.Number" placeholder="请输入申请部门" clearable></el-input>
                     </el-form-item>
 
                     <el-form-item label="申请人">
                         <el-input v-model="searchForm.FApplicantId" placeholder="请输入申请人" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="创建人">
+                        <el-input v-model="searchForm.FCreatorId" placeholder="请输入创建人" clearable></el-input>
+                    </el-form-item>
+
+                    <el-form-item label="物料编码">
+                        <el-input v-model="searchForm.FMaterialId" placeholder="请输入物料编码" clearable></el-input>
                     </el-form-item>
 
                     <el-form-item label="申请日期">
@@ -37,13 +44,19 @@
                             start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd">
                         </el-date-picker>
                     </el-form-item>
+
+                    <el-form-item label="创建日期">
+                        <el-date-picker v-model="searchForm.createDateRange" type="daterange" range-separator="至"
+                            start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd">
+                        </el-date-picker>
+                    </el-form-item>
                 </div>
 
                 <div class="screen_content_second_one">
-                    <el-button type="primary" @click="fetchData">查询</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="warning" @click="handleSync">同步数据</el-button>
-                    <el-button type="text" @click="showAdvanced = !showAdvanced">
+                    <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
+                    <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
+                    <el-button type="warning" icon="el-icon-refresh" @click="handleSync">同步数据</el-button>
+                    <el-button type="text" @click="toggleAdvanced">
                         {{ showAdvanced ? '收起' : '展开' }}
                         <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                     </el-button>
@@ -166,7 +179,6 @@
                         {{ formatDate(scope.row.FApplicationDate) }}
                     </template>
                 </el-table-column>
-
                 <el-table-column label="创建人" width="120" prop="FCreatorId.Name" />
 
                 <el-table-column label="创建日期" width="160">
@@ -291,6 +303,9 @@ export default {
                 FDocumentStatus: '',
                 FApplicantId: '',
                 dateRange: [],
+                FCreatorId: '',
+                FMaterialId: '',
+                createDateRange: []
             },
             tableList: [],
             total: 0,
@@ -312,6 +327,14 @@ export default {
             printData: {},
             printTemplate: {},
             extDialogVisible: false,
+            dictMap: {
+                documentStatus: [
+                    { label: '草稿', value: 'A' },
+                    { label: '审核中', value: 'B' },
+                    { label: '已审核', value: 'C' },
+                    { label: '重新审核', value: 'D' }
+                ]
+            },
         }
     },
     methods: {
@@ -364,19 +387,31 @@ export default {
 
         // 获取状态文本
         getStatusText(status) {
-            const statusMap = {
-                'A': '草稿',
-                'B': '审核中',
-                'C': '已审核',
-                'D': '重新审核'
-            };
-            return statusMap[status] || '未知';
+            const item = this.dictMap.documentStatus.find(item => item.value === status);
+            return item ? item.label : '未知';
         },
 
         // 重置表单
-        resetForm() {
+        handleReset() {
             this.$refs.searchForm.resetFields();
-            this.searchForm.dateRange = [];
+            // 手动重置一些特殊字段
+            this.searchForm = {
+                FBillNo: '',
+                FApplicationOrgId: {
+                    Number: ''
+                },
+                FApplicationDeptId: {
+                    Number: ''
+                },
+                FDocumentStatus: '',
+                FApplicantId: '',
+                dateRange: [],
+                FCreatorId: '',
+                FMaterialId: '',
+                createDateRange: []
+            };
+            // 重置后自动查询
+            this.currentPage = 1;
             this.fetchData();
         },
 
@@ -440,12 +475,42 @@ export default {
                 });
             }
 
-            // 日期范围查询
+            // 创建人查询
+            if (this.searchForm.FCreatorId) {
+                req.query.$and.push({
+                    'FCreatorId.Name': {
+                        $regex: this.searchForm.FCreatorId.trim(),
+                        $options: 'i'
+                    }
+                });
+            }
+
+            // 物料编码查询
+            if (this.searchForm.FMaterialId) {
+                req.query.$and.push({
+                    'FEntity.FMaterialId.FNumber': {
+                        $regex: this.searchForm.FMaterialId.trim(),
+                        $options: 'i'
+                    }
+                });
+            }
+
+            // 申请日期范围查询
             if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
                 req.query.$and.push({
                     FApplicationDate: {
                         $gte: this.searchForm.dateRange[0],
                         $lte: this.searchForm.dateRange[1]
+                    }
+                });
+            }
+
+            // 创建日期范围查询
+            if (this.searchForm.createDateRange && this.searchForm.createDateRange.length === 2) {
+                req.query.$and.push({
+                    FCreateDate: {
+                        $gte: this.searchForm.createDateRange[0],
+                        $lte: this.searchForm.createDateRange[1]
                     }
                 });
             }
@@ -643,6 +708,17 @@ export default {
             this.currentOrderData = row
             this.extDialogVisible = true
         },
+
+        // 切换高级搜索
+        toggleAdvanced() {
+            this.showAdvanced = !this.showAdvanced;
+        },
+
+        // 处理查询按钮点击
+        handleSearch() {
+            this.currentPage = 1;
+            this.fetchData();
+        },
     },
     created() {
         this.fetchData();
@@ -662,11 +738,55 @@ export default {
 
 <style lang="scss" scoped>
 .screen1 {
-    height: auto;
-    margin: 2vw 0;
-    width: 100%;
-    border: 1px solid #ebeef5;
-    border-radius: 5px;
+    background: #fff;
+    padding: 16px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+
+    .screen_content_first {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+
+        .el-form-item {
+            margin-bottom: 0;
+            margin-right: 10px;
+            min-width: 200px;
+        }
+    }
+
+    .screen_content_second {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed #ebeef5;
+
+        .el-form-item {
+            margin-bottom: 0;
+            margin-right: 10px;
+            min-width: 200px;
+        }
+    }
+
+    .screen_content_second_one {
+        display: flex;
+        align-items: center;
+        margin-top: 15px;
+        gap: 10px;
+    }
+}
+
+.el-icon-search {
+    padding: 8px;
+}
+
+.el-icon-tickets {
+    line-height: 30px;
 }
 
 .screen_content_first {
@@ -676,14 +796,6 @@ export default {
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-}
-
-.el-icon-search {
-    padding: 8px;
-}
-
-.el-icon-tickets {
-    line-height: 30px;
 }
 
 .screen_content_second {
@@ -797,6 +909,59 @@ export default {
             font-size: 13px;
             color: #909399;
         }
+    }
+}
+
+.search-header {
+    padding: 10px 15px;
+    background-color: #f5f7fa;
+    border: 1px solid #ebeef5;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    display: flex;
+    align-items: center;
+}
+
+.search-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-left: 8px;
+    color: #303133;
+}
+
+.search-container {
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #ebeef5;
+    border-radius: 0 0 5px 5px;
+    margin-bottom: 15px;
+}
+
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.button-group .el-button {
+    margin-left: 10px;
+    margin-bottom: 5px;
+}
+
+.form-item {
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+@media screen and (max-width: 1200px) {
+    .el-col-6 {
+        width: 50%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .el-col-6 {
+        width: 100%;
     }
 }
 </style>
