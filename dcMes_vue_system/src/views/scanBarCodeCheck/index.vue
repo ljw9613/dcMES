@@ -3,17 +3,11 @@
     <div class="scan-header">
       <h2>条码流程节点检查</h2>
     </div>
-    
+
     <div class="scan-input-area">
       <div class="input-wrapper">
-        <el-input
-          ref="barcodeInput"
-          v-model="barcode"
-          placeholder="请扫描条码或手动输入"
-          class="barcode-input"
-          @keyup.enter.native="checkBarcode"
-          @focus="handleFocus"
-        >
+        <el-input ref="barcodeInput" v-model="barcode" placeholder="请扫描条码或手动输入" class="barcode-input"
+          @keyup.enter.native="checkBarcode" @focus="handleFocus">
           <i slot="prefix" class="el-icon-search"></i>
           <el-button slot="suffix" type="primary" @click="checkBarcode">查询</el-button>
         </el-input>
@@ -29,7 +23,7 @@
       <div class="result-header">
         <div class="status-badge" :class="getBadgeClass">
           <i :class="scanResult.isCompleted ? 'el-icon-success' : 'el-icon-warning'" class="status-icon"></i>
-          <span>{{ getStatusText() }}</span>
+          <span>{{ scanResult.status === 'COMPLETED' ? '流程已完成' : '流程未完成' }}</span>
         </div>
       </div>
 
@@ -45,16 +39,14 @@
             <el-descriptions-item label="物料名称">
               {{ scanResult.materialName }}
             </el-descriptions-item>
-            <el-descriptions-item label="完成状态">
-              <el-tag :type="scanResult.isCompleted ? 'success' : 'warning'">
-                {{ scanResult.isCompleted ? '已完成' : '未完成' }}
+            <el-descriptions-item label="状态">
+              <el-tag :type="scanResult.status === 'COMPLETED' ? 'success' : 'warning'">
+                {{ scanResult.status === 'COMPLETED' ? '已完成' : '未完成' }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="完成进度">
-              <el-progress 
-                :percentage="scanResult.progress"
-                :status="scanResult.isCompleted ? 'success' : ''"
-              ></el-progress>
+              <el-progress :percentage="scanResult.progress"
+                :status="scanResult.status === 'COMPLETED' ? 'success' : ''"></el-progress>
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -76,14 +68,9 @@
           </div>
         </div>
 
-        <div v-if="scanResult.pendingNodes > 0" class="pending-nodes-section">
+        <div v-if="scanResult.pendingNodes > 0 && scanResult.pendingNodesList.length > 0" class="pending-nodes-section">
           <h3>未完成节点列表</h3>
-          <el-table 
-            :data="tableData" 
-            style="width: 100%"
-            size="medium"
-            :row-key="getRowKey"
-          >
+          <el-table :data="scanResult.pendingNodesList" style="width: 100%" size="medium" :row-key="getRowKey">
             <el-table-column prop="nodeName" label="节点名称"></el-table-column>
             <el-table-column prop="nodeType" label="节点类型">
               <template slot-scope="scope">
@@ -103,27 +90,37 @@
     </div>
 
     <div v-if="errorMessage" class="error-container">
-      <el-alert
-        :title="errorMessage"
-        type="error"
-        show-icon
-        :closable="false"
-      ></el-alert>
+      <el-alert :title="errorMessage" type="error" show-icon :closable="false"></el-alert>
     </div>
+    <status-popup :visible.sync="showPopup" :type="popupType" :duration="1500" />
+
   </div>
 </template>
 
 <script>
+import { checkBarcodeCompletion } from '@/api/materialProcessFlowService'
+import StatusPopup from '@/components/StatusPopup/index.vue'
+import {
+  tone
+} from "@/utils/tone.js";
+import lcywc from "@/assets/tone/lcywc.mp3";
+import lcyw from "@/assets/tone/lcyw.mp3";
+import tmyw from "@/assets/tone/tmyw.mp3";
+
 export default {
   name: 'ScanBarCodeCheck',
-  
+  components: {
+    StatusPopup
+  },
   data() {
     return {
       barcode: '',
       scanResult: null,
       isLoading: false,
       errorMessage: '',
-      tableData: []
+      tableData: [],
+      showPopup: false,
+      popupType: '',
     }
   },
 
@@ -211,26 +208,36 @@ export default {
       this.scanResult = null
 
       try {
-        const response = await fetch(`/api/v1/check-barcode-completion/${encodeURIComponent(this.barcode)}`)
-        const data = await response.json()
+        const response = await checkBarcodeCompletion(this.barcode)
 
-        if (data.success) {
-          this.scanResult = data.data
+        if (response.success && response.code === 200) {
+          this.scanResult = response.data
           this.tableData = this.scanResult.pendingNodesList || []
-          
-          // 成功播放提示音
-          const audio = new Audio()
-          audio.src = this.scanResult.isCompleted 
-            ? '/static/sounds/success.mp3' 
-            : '/static/sounds/warning.mp3'
-          audio.play().catch(err => console.log('音频播放失败', err))
+
+          if (this.scanResult.isCompleted) {
+            this.$message.success('条码检查完成')
+            this.showPopup = true
+            this.popupType = 'ok'
+            tone(lcywc)
+          } else {
+            this.$message.warning('流程尚未完成')
+            this.showPopup = true
+            this.popupType = 'ng'
+            tone(lcyw)
+          }
         } else {
-          this.errorMessage = data.message || '查询失败'
+          this.errorMessage = response.message || '查询失败'
           this.$message.error(this.errorMessage)
+          this.showPopup = true
+          this.popupType = 'ng'
+          tone(tmyw)
         }
       } catch (error) {
         this.errorMessage = '系统错误，请重试'
         this.$message.error(this.errorMessage)
+        this.showPopup = true
+        this.popupType = 'ng'
+        tone(tmyw)
         console.error('查询条码出错:', error)
       } finally {
         this.isLoading = false
@@ -403,11 +410,11 @@ export default {
   .scan-barcode-container {
     padding: 16px;
   }
-  
+
   .node-statistics {
     flex-direction: column;
   }
-  
+
   .statistic-item {
     margin-bottom: 16px;
   }

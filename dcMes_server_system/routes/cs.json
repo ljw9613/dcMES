@@ -1,109 +1,1341 @@
 {
-  "Result": {
-    "ResponseStatus": { "IsSuccess": true },
-    "Result": {
-      "Id": 2234022,
-      "FFormId": "PRD_INSTOCK",
-      "BillNo": "SCRK01443910",
-      "DocumentStatus": "C",
-      "ApproverId_Id": 1578229,
-      "ApproverId": {
-        "Id": 1578229,
-        "Name": "章柔聪",
-        "UserAccount": "章柔聪"
+  "Id": 100131,
+  "FFormId": "SAL_DELIVERYNOTICE",
+  "BillNo": "2022NBDC100",
+  "DocumentStatus": "C",
+  "SaleOrgId_Id": 100003,
+  "SaleOrgId": {
+    "Id": 100003,
+    "MultiLanguageText": [
+      { "PkId": 100003, "LocaleId": 2052, "Name": "宁波德昌电机股份有限公司" }
+    ],
+    "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
+    "Number": "101",
+    "FRadio": null,
+    "ParentOrg_Id": 100003,
+    "ParentOrg": {
+      "Id": 100003,
+      "Number": "101",
+      "MultiLanguageText": [
+        { "PkId": 100003, "LocaleId": 2052, "Name": "宁波德昌电机股份有限公司" }
+      ],
+      "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }]
+    }
+  },
+  "Date": "2022-09-17T00:00:00",
+  "CustomerID_Id": 105276,
+  "CustomerID": {
+    "Id": 105276,
+    "msterID": 105250,
+    "MultiLanguageText": [
+      {
+        "PkId": 100042,
+        "LocaleId": 2052,
+        "Name": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Name": [
+      {
+        "Key": 2052,
+        "Value": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Number": "0041",
+    "FGROUPCUSTID_Id": 0,
+    "FGROUPCUSTID": null,
+    "TRADINGCURRID_Id": 7,
+    "TRADINGCURRID": {
+      "Id": 7,
+      "msterID": 7,
+      "Number": "PRE002",
+      "MultiLanguageText": [
+        { "PkId": 5, "LocaleId": 2052, "Name": "美元" },
+        { "PkId": 12, "LocaleId": 1033, "Name": "USD" }
+      ],
+      "Name": [
+        { "Key": 2052, "Value": "美元" },
+        { "Key": 1033, "Value": "USD" }
+      ]
+    },
+    "SALDEPTID_Id": 0,
+    "SALDEPTID": null,
+    "SALGROUPID_Id": 0,
+    "SALGROUPID": null,
+    "SELLER_Id": 0,
+    "SELLER": null,
+    "TRANSLEADTIME": 0,
+    "PRICELISTID_Id": 0,
+    "PRICELISTID": null,
+    "DISCOUNTLISTID_Id": 0,
+    "DISCOUNTLISTID": null,
+    "SETTLETYPEID_Id": 0,
+    "SETTLETYPEID": null,
+    "RECCONDITIONID_Id": 0,
+    "RECCONDITIONID": null,
+    "FISCREDITCHECK": true,
+    "TaxType_Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+    "TaxType": {
+      "Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+      "Number": "SFL02_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "4028a030-f57b-47e0-9268-4bbf6b28c1cc",
+          "LocaleId": 1033,
+          "Name": "General Taxpayer"
+        },
+        {
+          "PkId": "7841e26e9e5a4fe6a83e7cdbe0c24175",
+          "LocaleId": 2052,
+          "Name": "一般纳税人"
+        },
+        {
+          "PkId": "2942b840514242b299738f8b9bbe2095",
+          "LocaleId": 3076,
+          "Name": "一般納稅人"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Taxpayer" },
+        { "Key": 2052, "Value": "一般纳税人" },
+        { "Key": 3076, "Value": "一般納稅人" }
+      ]
+    },
+    "CustTypeId_Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+    "CustTypeId": {
+      "Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+      "Number": "KHLB001_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "791d34b5-2623-4b59-9f15-dec2bd668990",
+          "LocaleId": 1033,
+          "Name": "General Sales Customer"
+        },
+        {
+          "PkId": "8b45c5f776054f59a89f1f71854a9d88",
+          "LocaleId": 2052,
+          "Name": "普通销售客户"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Sales Customer" },
+        { "Key": 2052, "Value": "普通销售客户" }
+      ]
+    },
+    "ADDRESS": " ",
+    "CorrespondOrgId_Id": 0,
+    "CorrespondOrgId": null,
+    "IsDefPayer": false,
+    "IsGroup": false,
+    "BD_CUSTCONTACT": [],
+    "BD_CUSTOMEREXT": [
+      {
+        "Id": 100042,
+        "DefaultContact_Id": 0,
+        "DefaultContact": null,
+        "SettleId_Id": 0,
+        "SettleId": null,
+        "ChargeId_Id": 0,
+        "ChargeId": null
+      }
+    ]
+  },
+  "DeliveryOrgID_Id": 100003,
+  "DeliveryOrgID": {
+    "Id": 100003,
+    "MultiLanguageText": [
+      { "PkId": 100003, "LocaleId": 2052, "Name": "宁波德昌电机股份有限公司" }
+    ],
+    "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
+    "Number": "101",
+    "FRadio": null,
+    "ParentOrg_Id": 100003,
+    "ParentOrg": {
+      "Id": 100003,
+      "Number": "101",
+      "MultiLanguageText": [
+        { "PkId": 100003, "LocaleId": 2052, "Name": "宁波德昌电机股份有限公司" }
+      ],
+      "Name": [{ "Key": 2052, "Value": "宁波德昌电机股 份有限公司" }]
+    }
+  },
+  "DeliveryDeptID_Id": 0,
+  "DeliveryDeptID": null,
+  "StockerGroupID_Id": 0,
+  "StockerGroupID": null,
+  "StockerID_Id": 0,
+  "StockerID": null,
+  "SaleDeptID_Id": 466786,
+  "SaleDeptID": {
+    "Id": 466786,
+    "msterID": 343423,
+    "MultiLanguageText": [
+      { "PkId": 100223, "LocaleId": 2052, "Name": "销售管理一课" }
+    ],
+    "Name": [{ "Key": 2052, "Value": "销售管理一课" }],
+    "Number": "100802"
+  },
+  "SaleGroupID_Id": 0,
+  "SaleGroupID": null,
+  "SalesManID_Id": 466790,
+  "SalesManID": {
+    "Id": 466790,
+    "msterID": 466790,
+    "MultiLanguageText": [
+      { "PkId": 100106, "LocaleId": 2052, "Name": "方素萍" }
+    ],
+    "Name": [{ "Key": 2052, "Value": "方素萍" }],
+    "Number": "DC1106_GW000001_100003",
+    "DeptId_Id": 466786,
+    "DeptId": {
+      "Id": 466786,
+      "msterID": 343423,
+      "Number": "100802",
+      "MultiLanguageText": [
+        { "PkId": 100223, "LocaleId": 2052, "Name": "销售管理一课" }
+      ],
+      "Name": [{ "Key": 2052, "Value": "销售管理一课" }]
+    },
+    "BD_SALESMANENTRY": []
+  },
+  "CarrierID_Id": 0,
+  "CarrierID": null,
+  "CarriageNO": " ",
+  "ReceiverID_Id": 105276,
+  "ReceiverID": {
+    "Id": 105276,
+    "msterID": 105250,
+    "MultiLanguageText": [
+      {
+        "PkId": 100042,
+        "LocaleId": 2052,
+        "Name": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Name": [
+      {
+        "Key": 2052,
+        "Value": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Number": "0041",
+    "FGROUPCUSTID_Id": 0,
+    "FGROUPCUSTID": null,
+    "TRADINGCURRID_Id": 7,
+    "TRADINGCURRID": {
+      "Id": 7,
+      "msterID": 7,
+      "Number": "PRE002",
+      "MultiLanguageText": [
+        { "PkId": 5, "LocaleId": 2052, "Name": "美元" },
+        { "PkId": 12, "LocaleId": 1033, "Name": "USD" }
+      ],
+      "Name": [
+        { "Key": 2052, "Value": "美元" },
+        { "Key": 1033, "Value": "USD" }
+      ]
+    },
+    "SALDEPTID_Id": 0,
+    "SALDEPTID": null,
+    "SALGROUPID_Id": 0,
+    "SALGROUPID": null,
+    "SELLER_Id": 0,
+    "SELLER": null,
+    "TRANSLEADTIME": 0,
+    "PRICELISTID_Id": 0,
+    "PRICELISTID": null,
+    "DISCOUNTLISTID_Id": 0,
+    "DISCOUNTLISTID": null,
+    "SETTLETYPEID_Id": 0,
+    "SETTLETYPEID": null,
+    "RECCONDITIONID_Id": 0,
+    "RECCONDITIONID": null,
+    "FISCREDITCHECK": true,
+    "TaxType_Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+    "TaxType": {
+      "Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+      "Number": "SFL02_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "4028a030-f57b-47e0-9268-4bbf6b28c1cc",
+          "LocaleId": 1033,
+          "Name": "General Taxpayer"
+        },
+        {
+          "PkId": "7841e26e9e5a4fe6a83e7cdbe0c24175",
+          "LocaleId": 2052,
+          "Name": "一般纳税人"
+        },
+        {
+          "PkId": "2942b840514242b299738f8b9bbe2095",
+          "LocaleId": 3076,
+          "Name": "一般納稅人"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Taxpayer" },
+        { "Key": 2052, "Value": "一般纳税人" },
+        { "Key": 3076, "Value": "一般納稅人" }
+      ]
+    },
+    "CustTypeId_Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+    "CustTypeId": {
+      "Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+      "Number": "KHLB001_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "791d34b5-2623-4b59-9f15-dec2bd668990",
+          "LocaleId": 1033,
+          "Name": "General Sales Customer"
+        },
+        {
+          "PkId": "8b45c5f776054f59a89f1f71854a9d88",
+          "LocaleId": 2052,
+          "Name": "普通销售客户"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Sales Customer" },
+        { "Key": 2052, "Value": "普通销售客户" }
+      ]
+    },
+    "ADDRESS": " ",
+    "CorrespondOrgId_Id": 0,
+    "CorrespondOrgId": null,
+    "IsDefPayer": false,
+    "IsGroup": false,
+    "BD_CUSTCONTACT": [],
+    "BD_CUSTOMEREXT": [
+      {
+        "Id": 100042,
+        "DefaultContact_Id": 0,
+        "DefaultContact": null,
+        "SettleId_Id": 0,
+        "SettleId": null,
+        "ChargeId_Id": 0,
+        "ChargeId": null
+      }
+    ]
+  },
+  "SettleID_Id": 105276,
+  "SettleID": {
+    "Id": 105276,
+    "msterID": 105250,
+    "MultiLanguageText": [
+      {
+        "PkId": 100042,
+        "LocaleId": 2052,
+        "Name": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Name": [
+      {
+        "Key": 2052,
+        "Value": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Number": "0041",
+    "FGROUPCUSTID_Id": 0,
+    "FGROUPCUSTID": null,
+    "TRADINGCURRID_Id": 7,
+    "TRADINGCURRID": {
+      "Id": 7,
+      "msterID": 7,
+      "Number": "PRE002",
+      "MultiLanguageText": [
+        { "PkId": 5, "LocaleId": 2052, "Name": "美元" },
+        { "PkId": 12, "LocaleId": 1033, "Name": "USD" }
+      ],
+      "Name": [
+        { "Key": 2052, "Value": "美元" },
+        { "Key": 1033, "Value": "USD" }
+      ]
+    },
+    "SALDEPTID_Id": 0,
+    "SALDEPTID": null,
+    "SALGROUPID_Id": 0,
+    "SALGROUPID": null,
+    "SELLER_Id": 0,
+    "SELLER": null,
+    "TRANSLEADTIME": 0,
+    "PRICELISTID_Id": 0,
+    "PRICELISTID": null,
+    "DISCOUNTLISTID_Id": 0,
+    "DISCOUNTLISTID": null,
+    "SETTLETYPEID_Id": 0,
+    "SETTLETYPEID": null,
+    "RECCONDITIONID_Id": 0,
+    "RECCONDITIONID": null,
+    "FISCREDITCHECK": true,
+    "TaxType_Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+    "TaxType": {
+      "Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+      "Number": "SFL02_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "4028a030-f57b-47e0-9268-4bbf6b28c1cc",
+          "LocaleId": 1033,
+          "Name": "General Taxpayer"
+        },
+        {
+          "PkId": "7841e26e9e5a4fe6a83e7cdbe0c24175",
+          "LocaleId": 2052,
+          "Name": "一般纳税人"
+        },
+        {
+          "PkId": "2942b840514242b299738f8b9bbe2095",
+          "LocaleId": 3076,
+          "Name": "一般納稅人"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Taxpayer" },
+        { "Key": 2052, "Value": "一般纳税人" },
+        { "Key": 3076, "Value": "一般納稅人" }
+      ]
+    },
+    "CustTypeId_Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+    "CustTypeId": {
+      "Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+      "Number": "KHLB001_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "791d34b5-2623-4b59-9f15-dec2bd668990",
+          "LocaleId": 1033,
+          "Name": "General Sales Customer"
+        },
+        {
+          "PkId": "8b45c5f776054f59a89f1f71854a9d88",
+          "LocaleId": 2052,
+          "Name": "普通销售客户"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Sales Customer" },
+        { "Key": 2052, "Value": "普通销售客户" }
+      ]
+    },
+    "ADDRESS": " ",
+    "CorrespondOrgId_Id": 0,
+    "CorrespondOrgId": null,
+    "IsDefPayer": false,
+    "IsGroup": false,
+    "BD_CUSTCONTACT": [],
+    "BD_CUSTOMEREXT": [
+      {
+        "Id": 100042,
+        "DefaultContact_Id": 0,
+        "DefaultContact": null,
+        "SettleId_Id": 0,
+        "SettleId": null,
+        "ChargeId_Id": 0,
+        "ChargeId": null
+      }
+    ]
+  },
+  "PayerID_Id": 105276,
+  "PayerID": {
+    "Id": 105276,
+    "msterID": 105250,
+    "MultiLanguageText": [
+      {
+        "PkId": 100042,
+        "LocaleId": 2052,
+        "Name": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Name": [
+      {
+        "Key": 2052,
+        "Value": "TTI PARTNERS SPC ACTING FOR THE ACCOUNT OF MPUSD SP"
+      }
+    ],
+    "Number": "0041",
+    "FGROUPCUSTID_Id": 0,
+    "FGROUPCUSTID": null,
+    "TRADINGCURRID_Id": 7,
+    "TRADINGCURRID": {
+      "Id": 7,
+      "msterID": 7,
+      "Number": "PRE002",
+      "MultiLanguageText": [
+        { "PkId": 5, "LocaleId": 2052, "Name": "美元" },
+        { "PkId": 12, "LocaleId": 1033, "Name": "USD" }
+      ],
+      "Name": [
+        { "Key": 2052, "Value": "美元" },
+        { "Key": 1033, "Value": "USD" }
+      ]
+    },
+    "SALDEPTID_Id": 0,
+    "SALDEPTID": null,
+    "SALGROUPID_Id": 0,
+    "SALGROUPID": null,
+    "SELLER_Id": 0,
+    "SELLER": null,
+    "TRANSLEADTIME": 0,
+    "PRICELISTID_Id": 0,
+    "PRICELISTID": null,
+    "DISCOUNTLISTID_Id": 0,
+    "DISCOUNTLISTID": null,
+    "SETTLETYPEID_Id": 0,
+    "SETTLETYPEID": null,
+    "RECCONDITIONID_Id": 0,
+    "RECCONDITIONID": null,
+    "FISCREDITCHECK": true,
+    "TaxType_Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+    "TaxType": {
+      "Id": "9e855eb97bec43e7b50c3e0e0bf51210",
+      "Number": "SFL02_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "4028a030-f57b-47e0-9268-4bbf6b28c1cc",
+          "LocaleId": 1033,
+          "Name": "General Taxpayer"
+        },
+        {
+          "PkId": "7841e26e9e5a4fe6a83e7cdbe0c24175",
+          "LocaleId": 2052,
+          "Name": "一般纳税人"
+        },
+        {
+          "PkId": "2942b840514242b299738f8b9bbe2095",
+          "LocaleId": 3076,
+          "Name": "一般納稅人"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Taxpayer" },
+        { "Key": 2052, "Value": "一般纳税人" },
+        { "Key": 3076, "Value": "一般納稅人" }
+      ]
+    },
+    "CustTypeId_Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+    "CustTypeId": {
+      "Id": "673cb7c55ea24626ae639ff2ec5adf0e",
+      "Number": "KHLB001_SYS",
+      "MultiLanguageText": [
+        {
+          "PkId": "791d34b5-2623-4b59-9f15-dec2bd668990",
+          "LocaleId": 1033,
+          "Name": "General Sales Customer"
+        },
+        {
+          "PkId": "8b45c5f776054f59a89f1f71854a9d88",
+          "LocaleId": 2052,
+          "Name": "普通销售客户"
+        }
+      ],
+      "Name": [
+        { "Key": 1033, "Value": "General Sales Customer" },
+        { "Key": 2052, "Value": "普通销售客户" }
+      ]
+    },
+    "ADDRESS": " ",
+    "CorrespondOrgId_Id": 0,
+    "CorrespondOrgId": null,
+    "IsDefPayer": false,
+    "IsGroup": false,
+    "BD_CUSTCONTACT": [],
+    "BD_CUSTOMEREXT": [
+      {
+        "Id": 100042,
+        "DefaultContact_Id": 0,
+        "DefaultContact": null,
+        "SettleId_Id": 0,
+        "SettleId": null,
+        "ChargeId_Id": 0,
+        "ChargeId": null
+      }
+    ]
+  },
+  "CreatorId_Id": 100205,
+  "CreatorId": { "Id": 100205, "Name": "黄益群", "UserAccount": "黄益群" },
+  "CreateDate": "2022-09-17T13:47:57.327",
+  "ModifyDate": "2022-09-17T13:47:57.42",
+  "ApproveDate": "2022-09-17T13:48:00.107",
+  "CancelDate": null,
+  "ModifierId_Id": 100205,
+  "ModifierId": { "Id": 100205, "Name": "黄益群", "UserAccount": "黄益群" },
+  "BillTypeID_Id": "193822715afc48aa9fa6d6beca7700ab",
+  "BillTypeID": {
+    "Id": "193822715afc48aa9fa6d6beca7700ab",
+    "MultiLanguageText": [
+      {
+        "PkId": "e061d7af-51c3-4027-91cc-89604299c1cc",
+        "LocaleId": 1033,
+        "Name": "Standard Delivery Notice"
       },
-      "ApproveDate": "2024-11-30T16:20:29.91",
-      "ModifierId_Id": 1578229,
-      "ModifierId": {
-        "Id": 1578229,
-        "Name": "章柔聪",
-        "UserAccount": "章柔聪"
+      {
+        "PkId": "3ff8d94ee33345dcbae395565b0dc401",
+        "LocaleId": 2052,
+        "Name": "标准发货通知单"
       },
-      "CreateDate": "2024-11-30T16:20:16.85",
-      "CreatorId_Id": 1578229,
-      "CreatorId": { "Id": 1578229, "Name": "章柔聪", "UserAccount": "章柔聪" },
-      "ModifyDate": "2024-11-30T16:20:17.96",
-      "CancelDate": null,
-      "CANCELER_Id": 0,
-      "CANCELER": null,
-      "CancelStatus": "A",
-      "MultiLanguageText": [],
-      "Description": [],
-      "Date": "2024-11-30T00:00:00",
-      "PrdOrgId_Id": 100003,
-      "PrdOrgId": {
-        "Id": 100003,
+      {
+        "PkId": "0ea689a0d56b44529f0234ade1c26be8",
+        "LocaleId": 3076,
+        "Name": "標准發貨通知單"
+      }
+    ],
+    "Name": [
+      { "Key": 1033, "Value": "Standard Delivery Notice" },
+      { "Key": 2052, "Value": "标准发货通知单" },
+      { "Key": 3076, "Value": "標准發貨通知單" }
+    ],
+    "Number": "FHTZD01_SYS"
+  },
+  "ApproverID_Id": 100205,
+  "ApproverID": { "Id": 100205, "Name": "黄益群", "UserAccount": "黄益群" },
+  "CancellerID_Id": 0,
+  "CancellerID": null,
+  "CancelStatus": "A",
+  "OwnerTypeIdHead": "BD_OwnerOrg",
+  "OwnerIdHead_Id": 100003,
+  "OwnerIdHead": {
+    "Id": 100003,
+    "msterID": 100003,
+    "MultiLanguageText": [
+      { "PkId": 100003, "LocaleId": 2052, "Name": "宁波德昌电机股份有限公司" }
+    ],
+    "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
+    "Number": "101"
+  },
+  "CLOSESTATUS": "B",
+  "CLOSERID_Id": 448158,
+  "CLOSERID": { "Id": 448158, "Name": "李娜", "UserAccount": "李娜" },
+  "CLOSEDATE": "2022-09-17T14:34:04.497",
+  "FRECEIPTCONDITIONID_Id": 0,
+  "FRECEIPTCONDITIONID": null,
+  "HeadDeliveryWay_Id": " ",
+  "HeadDeliveryWay": null,
+  "IsSysClose": false,
+  "BussinessType": "NORMAL",
+  "ReceiveAddress": " ",
+  "HeadLocId_Id": 0,
+  "HeadLocId": null,
+  "CreditCheckResult": "0",
+  "CorrespondOrgId_Id": 0,
+  "CorrespondOrgId": null,
+  "ReceiverContactID_Id": 0,
+  "ReceiverContactID": null,
+  "Note": " ",
+  "PlanRecAddress": " ",
+  "IsManualClose": false,
+  "FLinkMan": " ",
+  "FLinkPhone": " ",
+  "CloseReason": " ",
+  "FScanBox": null,
+  "F_dcdj_sjcq": null,
+  "F_dcdj_so": " ",
+  "F_dcdj_zwzgr": null,
+  "F_dcdj_gl": 0,
+  "F_dcdj_ppspo": "60033485",
+  "F_dcdj_kppo": "55843-1-3",
+  "F_dcdj_jgsj": null,
+  "F_dcdj_gx": "0",
+  "F_dcdj_jsisj": null,
+  "F_dcdj_BOOKING": " ",
+  "F_TFQJ_cgdh": " ",
+  "F_TFQJ_ddzt": " ",
+  "F_TFQJ_kdrq": "2022-08-05T00:00:00",
+  "F_TFQJ_zgyn": "2",
+  "F_TFQJ_fpdh": "NBDC",
+  "F_dcdj_xfh": " ",
+  "F_TFQJ_zhpoh": "",
+  "F_TFQJ_zhpoyy": "",
+  "F_TFQJ_DDDH": "",
+  "SAL_DELIVERYNOTICEENTRY": [
+    {
+      "Id": 100148,
+      "Seq": 1,
+      "MaterialID_Id": 219939,
+      "MaterialID": {
+        "Id": 219939,
+        "msterID": 178148,
         "MultiLanguageText": [
           {
-            "PkId": 100003,
+            "PkId": 210807,
             "LocaleId": 2052,
-            "Name": "宁波德昌电机股份有限公司"
-          }
-        ],
-        "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
-        "Number": "101"
-      },
-      "BillType_Id": "de29f16214744c21b374044d629595f2",
-      "BillType": {
-        "Id": "de29f16214744c21b374044d629595f2",
-        "MultiLanguageText": [
-          {
-            "PkId": "aabc60229fa64b958d6b5a0440754eaa",
-            "LocaleId": 2052,
-            "Name": "生产入库"
-          },
-          {
-            "PkId": "a00bc6e56964473bb55a54a2fb4618d2",
-            "LocaleId": 3076,
-            "Name": " "
+            "Name": "FH52000附件包 10个一箱/ Mesh Bag w/ Hose and Tool",
+            "Specification": " "
           }
         ],
         "Name": [
-          { "Key": 2052, "Value": "生产入库" },
-          { "Key": 3076, "Value": " " }
-        ],
-        "Number": "SCRKD02_SYS"
-      },
-      "StockOrgId_Id": 100003,
-      "StockOrgId": {
-        "Id": 100003,
-        "MultiLanguageText": [
           {
-            "PkId": 100003,
-            "LocaleId": 2052,
-            "Name": "宁波德昌电机股份有限公司"
+            "Key": 2052,
+            "Value": "FH52000附件包 10个一箱/ Mesh Bag w/ Hose and Tool"
           }
         ],
-        "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
-        "Number": "101"
+        "Number": "1305126012",
+        "UseOrgId_Id": 100003,
+        "UseOrgId": {
+          "Id": 100003,
+          "Number": "101",
+          "MultiLanguageText": [
+            {
+              "PkId": 100003,
+              "LocaleId": 2052,
+              "Name": "宁波德昌电机股份有限公司"
+            }
+          ],
+          "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }]
+        },
+        "Specification": [{ "Key": 2052, "Value": " " }],
+        "OldNumber": "30526012",
+        "MaterialGroup_Id": 101125,
+        "MaterialGroup": {
+          "Id": 101125,
+          "Number": "1305126",
+          "MultiLanguageText": [
+            { "PkId": 100275, "LocaleId": 2052, "Name": "CW045系列备件" }
+          ],
+          "Name": [{ "Key": 2052, "Value": "CW045系列备件" }]
+        },
+        "MaterialBase": [
+          {
+            "Id": 210807,
+            "ErpClsID": "2",
+            "IsInventory": true,
+            "IsSale": true,
+            "BaseUnitId_Id": 10101,
+            "BaseUnitId": {
+              "Id": 10101,
+              "msterID": 10101,
+              "Number": "Pcs",
+              "MultiLanguageText": [
+                { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+                { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "Pcs" },
+                { "Key": 1033, "Value": "Pcs" }
+              ]
+            },
+            "TaxType_Id": "63489f1e86944c989c58d97893a2aec2",
+            "TaxType": {
+              "Id": "63489f1e86944c989c58d97893a2aec2",
+              "Number": "WLDSFL01_SYS",
+              "MultiLanguageText": [
+                {
+                  "PkId": "5589622a-4d00-47c3-a242-886db57b906f",
+                  "LocaleId": 1033,
+                  "Name": "Standard Tax Rate"
+                },
+                {
+                  "PkId": "1ac1f2dd4a584f838c73c939d1496e43",
+                  "LocaleId": 2052,
+                  "Name": "标准税率"
+                }
+              ],
+              "Name": [
+                { "Key": 1033, "Value": "Standard Tax Rate" },
+                { "Key": 2052, "Value": "标准税率" }
+              ]
+            },
+            "CategoryID_Id": 237,
+            "CategoryID": {
+              "Id": 237,
+              "msterID": 237,
+              "Number": "CHLB01_SYS",
+              "MultiLanguageText": [
+                { "PkId": 1, "LocaleId": 2052, "Name": "原材料" },
+                { "PkId": 8, "LocaleId": 1033, "Name": "Raw material" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "原材料" },
+                { "Key": 1033, "Value": "Raw material" }
+              ]
+            },
+            "Suite": "0"
+          }
+        ],
+        "MaterialStock": [
+          {
+            "Id": 210807,
+            "StoreUnitID_Id": 10101,
+            "StoreUnitID": {
+              "Id": 10101,
+              "msterID": 10101,
+              "Number": "Pcs",
+              "MultiLanguageText": [
+                { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+                { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "Pcs" },
+                { "Key": 1033, "Value": "Pcs" }
+              ]
+            },
+            "AuxUnitID_Id": 0,
+            "AuxUnitID": null,
+            "StockId_Id": 100806,
+            "StockId": {
+              "Id": 100806,
+              "msterID": 100806,
+              "Number": "CK002",
+              "MultiLanguageText": [
+                { "PkId": 100004, "LocaleId": 2052, "Name": "吸尘器成品仓库" }
+              ],
+              "Name": [{ "Key": 2052, "Value": "吸尘器成品仓库" }]
+            },
+            "ExpUnit": " ",
+            "StockPlaceId_Id": 0,
+            "StockPlaceId": null,
+            "ExpPeriod": 0,
+            "IsBatchManage": false,
+            "IsKFPeriod": false,
+            "IsExpParToFlot": false,
+            "IsSNManage": false,
+            "SNCodeRule_Id": 0,
+            "SNCodeRule": null,
+            "SNUnit_Id": 0,
+            "SNUnit": null,
+            "UnitConvertDir": "1",
+            "SNGenerateTime": "1",
+            "SNManageType": "1"
+          }
+        ],
+        "MaterialSale": [
+          {
+            "Id": 210807,
+            "SalePriceUnitId_Id": 10101,
+            "SalePriceUnitId": {
+              "Id": 10101,
+              "msterID": 10101,
+              "Number": "Pcs",
+              "MultiLanguageText": [
+                { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+                { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "Pcs" },
+                { "Key": 1033, "Value": "Pcs" }
+              ]
+            },
+            "SaleUnitId_Id": 10101,
+            "SaleUnitId": {
+              "Id": 10101,
+              "msterID": 10101,
+              "Number": "Pcs",
+              "MultiLanguageText": [
+                { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+                { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "Pcs" },
+                { "Key": 1033, "Value": "Pcs" }
+              ]
+            },
+            "OutStockLmtH": 0,
+            "OutStockLmtL": 0,
+            "OutLmtUnit": "SAL",
+            "UnValidateExpQty": false
+          }
+        ],
+        "MaterialPurchase": [{ "Id": 210807, "IsVmiBusiness": false }],
+        "MaterialPlan": [{ "Id": 210807, "PlanMode": "0" }],
+        "MaterialAuxPty": [],
+        "MaterialInvPty": [
+          {
+            "Id": 653887,
+            "IsEnable": true,
+            "IsAffectPrice": false,
+            "InvPtyId_Id": 10001,
+            "InvPtyId": {
+              "Id": 10001,
+              "msterID": 10001,
+              "Number": "01",
+              "MultiLanguageText": [
+                { "PkId": 1, "LocaleId": 2052, "Name": "仓库" },
+                { "PkId": 7, "LocaleId": 1033, "Name": "Warehouse" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "仓库" },
+                { "Key": 1033, "Value": "Warehouse" }
+              ]
+            }
+          },
+          {
+            "Id": 653888,
+            "IsEnable": true,
+            "IsAffectPrice": false,
+            "InvPtyId_Id": 10002,
+            "InvPtyId": {
+              "Id": 10002,
+              "msterID": 10002,
+              "Number": "02",
+              "MultiLanguageText": [
+                { "PkId": 2, "LocaleId": 2052, "Name": "仓位" },
+                { "PkId": 8, "LocaleId": 1033, "Name": "Bin" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "仓位" },
+                { "Key": 1033, "Value": "Bin" }
+              ]
+            }
+          },
+          {
+            "Id": 653889,
+            "IsEnable": false,
+            "IsAffectPrice": false,
+            "InvPtyId_Id": 10003,
+            "InvPtyId": {
+              "Id": 10003,
+              "msterID": 10003,
+              "Number": "03",
+              "MultiLanguageText": [
+                { "PkId": 3, "LocaleId": 2052, "Name": "BOM版本" },
+                { "PkId": 9, "LocaleId": 1033, "Name": "BOM Version" }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "BOM版本" },
+                { "Key": 1033, "Value": "BOM Version" }
+              ]
+            }
+          },
+          {
+            "Id": 653890,
+            "IsEnable": false,
+            "IsAffectPrice": false,
+            "InvPtyId_Id": 10004,
+            "InvPtyId": {
+              "Id": 10004,
+              "msterID": 10004,
+              "Number": "04",
+              "MultiLanguageText": [
+                { "PkId": 4, "LocaleId": 2052, "Name": "批号" },
+                { "PkId": 10, "LocaleId": 1033, "Name": "Lot No." }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "批号" },
+                { "Key": 1033, "Value": "Lot No." }
+              ]
+            }
+          },
+          {
+            "Id": 653891,
+            "IsEnable": false,
+            "IsAffectPrice": false,
+            "InvPtyId_Id": 10006,
+            "InvPtyId": {
+              "Id": 10006,
+              "msterID": 10006,
+              "Number": "06",
+              "MultiLanguageText": [
+                { "PkId": 5, "LocaleId": 2052, "Name": "计划跟踪号" },
+                { "PkId": 11, "LocaleId": 1033, "Name": "Plan Tracking No." }
+              ],
+              "Name": [
+                { "Key": 2052, "Value": "计划跟踪号" },
+                { "Key": 1033, "Value": "Plan Tracking No." }
+              ]
+            }
+          }
+        ],
+        "MaterialQM": [{ "Id": 210807, "CheckDelivery": false }]
       },
-      "WorkShopId_Id": 0,
-      "WorkShopId": null,
-      "StockId_Id": 0,
-      "StockId": null,
-      "OwnerTypeId": "BD_OwnerOrg",
-      "OwnerId_Id": 100003,
-      "OwnerId": {
+      "UnitID_Id": 10101,
+      "UnitID": {
+        "Id": 10101,
+        "msterID": 10101,
+        "MultiLanguageText": [
+          { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+          { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "Pcs" },
+          { "Key": 1033, "Value": "Pcs" }
+        ],
+        "Number": "Pcs",
+        "Precision": 8,
+        "RoundType": "3",
+        "UNITCONVERTRATE": [{ "Id": 10118, "ConvertType": "0" }]
+      },
+      "Qty": 200,
+      "StockID_Id": 100806,
+      "StockID": {
+        "Id": 100806,
+        "msterID": 100806,
+        "MultiLanguageText": [
+          { "PkId": 100004, "LocaleId": 2052, "Name": "吸尘器成品仓库" }
+        ],
+        "Name": [{ "Key": 2052, "Value": "吸尘器成品仓库" }],
+        "Number": "CK002",
+        "IsOpenLocation": false,
+        "AllowMinusQty": false,
+        "StockProperty": "1",
+        "SupplierId_Id": 0,
+        "SupplierId": null,
+        "CustomerId_Id": 0,
+        "CustomerId": null,
+        "LocListFormatter": "3",
+        "StockFlexItem": []
+      },
+      "NoteEntry": " ",
+      "BomID_Id": 0,
+      "BomID": null,
+      "BaseUnitID_Id": 10101,
+      "BaseUnitID": {
+        "Id": 10101,
+        "msterID": 10101,
+        "MultiLanguageText": [
+          { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+          { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "Pcs" },
+          { "Key": 1033, "Value": "Pcs" }
+        ],
+        "Number": "Pcs",
+        "Precision": 8,
+        "RoundType": "3",
+        "UNITCONVERTRATE": [{ "Id": 10118, "ConvertType": "0" }]
+      },
+      "BaseUnitQty": 200,
+      "DeliveryLoc_Id": 0,
+      "DeliveryLoc": null,
+      "DeliveryLAddress": " ",
+      "OutContROL": false,
+      "OutMaxQty": 200,
+      "OutMinQty": 200,
+      "CarryLeadTime": 0,
+      "JoinOutQty": 200,
+      "SumOutQty": 200,
+      "AuxpropID_Id": 0,
+      "AuxpropID": null,
+      "OrderNo": "2022-NO.VCSP0351",
+      "OrderSeq": "1",
+      "SrcType": "SAL_SaleOrder",
+      "CustMatID_Id": "100016&102790&100003",
+      "CustMatID": {
+        "Id": "100016&102790&100003",
+        "MultiLanguageText": [
+          { "PkId": "102790", "LocaleId": 2052, "Name": "440012815" }
+        ],
+        "Name": [{ "Key": 2052, "Value": "440012815" }],
+        "Number": "029520001011",
+        "MaterialId_Id": 219939,
+        "MaterialId": {
+          "Id": 219939,
+          "msterID": 178148,
+          "Number": "1305126012",
+          "MultiLanguageText": [
+            {
+              "PkId": 210807,
+              "LocaleId": 2052,
+              "Name": "FH52000附件包 10个一箱/ Mesh Bag w/ Hose and Tool"
+            }
+          ],
+          "Name": [
+            {
+              "Key": 2052,
+              "Value": "FH52000附件包 10个一箱/ Mesh Bag w/ Hose and Tool"
+            }
+          ]
+        }
+      },
+      "StockLocID_Id": 0,
+      "StockLocID": null,
+      "BACKUPSTOCKLOCID_Id": 0,
+      "BACKUPSTOCKLOCID": null,
+      "BACKUPSTOCKID_Id": 0,
+      "BACKUPSTOCKID": null,
+      "BASETRANSFERQTY": 0,
+      "TRANSFERQTY": 0,
+      "BASEJOINOUTQTY": 200,
+      "BASESUMOUTQTY": 200,
+      "PRODUCEDATE": null,
+      "FEXPPERIOD": 0,
+      "FEXPIRYDATE": null,
+      "Lot_Id": 0,
+      "Lot": null,
+      "Lot_Text": " ",
+      "IsFree": false,
+      "CLOSESTATUS": "B",
+      "RemainOutQty": 0,
+      "StockStatusId_Id": 10000,
+      "StockStatusId": {
+        "Id": 10000,
+        "msterID": 10000,
+        "MultiLanguageText": [
+          { "PkId": 15, "LocaleId": 1033, "Name": "Available" },
+          { "PkId": 1, "LocaleId": 2052, "Name": "可用" }
+        ],
+        "Name": [
+          { "Key": 1033, "Value": "Available" },
+          { "Key": 2052, "Value": "可用" }
+        ],
+        "Number": "KCZT01_SYS"
+      },
+      "PriceUnitId_Id": 10101,
+      "PriceUnitId": {
+        "Id": 10101,
+        "msterID": 10101,
+        "MultiLanguageText": [
+          { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+          { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "Pcs" },
+          { "Key": 1033, "Value": "Pcs" }
+        ],
+        "Number": "Pcs",
+        "Precision": 8,
+        "RoundType": "3",
+        "UNITCONVERTRATE": [{ "Id": 10118, "ConvertType": "0" }]
+      },
+      "PriceUnitQty": 200,
+      "Price": 6.88,
+      "TaxPrice": 6.88,
+      "TaxCombination_Id": 0,
+      "TaxCombination": null,
+      "TaxRate": 0,
+      "PriceCoefficient": 0,
+      "SysPrice": 0,
+      "LimitDownPrice": 0,
+      "BefDisAmt": 0,
+      "BefDisAllAmt": 0,
+      "DiscountRate": 0,
+      "Amount": 1376,
+      "Amount_LC": 9470.04,
+      "TaxAmount": 0,
+      "TaxAmount_LC": 0,
+      "AllAmount": 1376,
+      "Discount": 0,
+      "Discount_Detail": [],
+      "AllAmount_LC": 9470.04,
+      "TaxNetPrice": 6.88,
+      "DeliveryDate": "2022-09-03T00:00:00",
+      "PlanDeliveryDate": "2022-09-03T00:00:00",
+      "BaseOutMaxQty": 200,
+      "BaseOutMinQty": 200,
+      "InventoryQty": 0,
+      "FBFLowId_Id": " ",
+      "FBFLowId": null,
+      "SrcBillNo": "2022-NO.VCSP0351",
+      "MTONO": " ",
+      "AwaitQty": 0,
+      "AvailableQty": 0,
+      "TerminationStatus": "A",
+      "TerminaterId_Id": 0,
+      "TerminaterId": null,
+      "TerminateDate": null,
+      "PriceBaseQty": 200,
+      "JoinCheckQty": 0,
+      "FBaseJoinCheckQty": 0,
+      "QualifiedQty": 0,
+      "BaseQualifiedQty": 0,
+      "UnqualifiedQty": 0,
+      "BaseUnqualifiedQty": 0,
+      "JunkedQty": 0,
+      "BaseJunkedQty": 0,
+      "StockQty": 200,
+      "StockUnitID_Id": 10101,
+      "StockUnitID": {
+        "Id": 10101,
+        "msterID": 10101,
+        "MultiLanguageText": [
+          { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+          { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "Pcs" },
+          { "Key": 1033, "Value": "Pcs" }
+        ],
+        "Number": "Pcs",
+        "Precision": 8,
+        "RoundType": "3",
+        "UNITCONVERTRATE": [{ "Id": 10118, "ConvertType": "0" }]
+      },
+      "StockBaseQty": 200,
+      "StockBaseJoinOutQty": 200,
+      "StockBaseSumOutQty": 200,
+      "SalBaseNum": 200,
+      "StockBaseDen": 200,
+      "SRCBIZUNITID_Id": 10101,
+      "SRCBIZUNITID": {
+        "Id": 10101,
+        "msterID": 10101,
+        "MultiLanguageText": [
+          { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+          { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "Pcs" },
+          { "Key": 1033, "Value": "Pcs" }
+        ],
+        "Number": "Pcs",
+        "Precision": 8,
+        "RoundType": "3",
+        "UNITCONVERTRATE": [{ "Id": 10118, "ConvertType": "0" }]
+      },
+      "ServiceContext": null,
+      "StockBaseTransQty": 0,
+      "OwnerTypeID": "BD_OwnerOrg",
+      "OwnerID_Id": 100003,
+      "OwnerID": {
         "Id": 100003,
         "msterID": 100003,
         "MultiLanguageText": [
           {
             "PkId": 100003,
             "LocaleId": 2052,
-            "Name": "宁波德昌电机股份有限公司"
+            "Name": " 宁波德昌电机股份有限公司"
           }
         ],
         "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
         "Number": "101"
       },
-      "CurrId_Id": 1,
-      "CurrId": {
+      "BaseJoinQualifiedQty": 0,
+      "JoinQualifiedQty": 0,
+      "BaseJoinUnqualifiedQty": 0,
+      "JoinUnqualifiedQty": 0,
+      "BaseUQCanSaleQty": 0,
+      "UQCanSaleQty": 0,
+      "JoinDeliChkQty": 0,
+      "BaseJoinDeliChkQty": 0,
+      "JoinDeliChkUQQty": 0,
+      "BaseJoinDeliChkUQQty": 0,
+      "DeliChkTranOutQty": 0,
+      "DeliChkTranOutUQQty": 0,
+      "BaseDeliChkTranOutQty": 0,
+      "BaseDeliChkTranOutUQQty": 0,
+      "OutLmtUnit": "SAL",
+      "OutLmtUnitID_Id": 10101,
+      "OutLmtUnitID": {
+        "Id": 10101,
+        "msterID": 10101,
+        "MultiLanguageText": [
+          { "PkId": 22, "LocaleId": 2052, "Name": "Pcs" },
+          { "PkId": 38, "LocaleId": 1033, "Name": "Pcs" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "Pcs" },
+          { "Key": 1033, "Value": "Pcs" }
+        ],
+        "Number": "Pcs",
+        "Precision": 8,
+        "RoundType": "3",
+        "UNITCONVERTRATE": [{ "Id": 10118, "ConvertType": "0" }]
+      },
+      "SOEntryId": 106864,
+      "FTRANSRETURNQTY": 0,
+      "TRANSRETURNBASEQTY": 0,
+      "CONSIGNSETTQTY": 0,
+      "CONSIGNSETTBASEQTY": 0,
+      "SplitLockEntryId": " ",
+      "CurrentInventory": 0,
+      "RowType": "Standard",
+      "ParentMatId_Id": 0,
+      "ParentMatId": null,
+      "RowId": "000ec6df-8e6a-9869-11ed-31044dc695e6",
+      "ParentRowId": " ",
+      "STOCKCHANGEQTY": 200,
+      "STOCKCHANGEBASEQTY": 200,
+      "CheckDelivery": false,
+      "PriceDiscount": 0,
+      "TailDiffFlag": false,
+      "BOMEntryId": 0,
+      "FAutoDEMidId": " ",
+      "AllAmountExceptDisCount": 1376,
+      "PriceListEntry_Id": 0,
+      "PriceListEntry": null,
+      "LockStockFlag": false,
+      "LockStockBaseQty": 0,
+      "LockStockLeftBaseQty": 0,
+      "SNUnitID_Id": 0,
+      "SNUnitID": null,
+      "SNQty": 0,
+      "F_dcdj_khdd": "DC220805-04",
+      "F_dcdj_Text": " ",
+      "F_dcdj_Text1": " ",
+      "F_dcdj_Text2": " ",
+      "F_dcdj_gt": " ",
+      "F_dcdj_bgdj": 0,
+      "F_dcdj_ofislineid": " ",
+      "F_dcdj_EndbuyerPO": " ",
+      "F_dcdj_CRD": null,
+      "F_dcdj_ETD": null,
+      "F_dcdj_shsl": 0,
+      "F_dcdj_Text12": " ",
+      "F_TFQJ_jhdd_Id": " ",
+      "F_TFQJ_jhdd": null,
+      "F_TFQJ_Price": 0,
+      "SAL_DELIVERYNOTICEENTRYTAX": [
+        {
+          "Id": 100146,
+          "Seq": 1,
+          "TaxRateId_Id": 0,
+          "TaxRateId": null,
+          "TaxRate": 0,
+          "TaxAmount": 0,
+          "CostPercent": 0,
+          "CostAmount": 0,
+          "VAT": false,
+          "SellerWithholding": false,
+          "BuyerWithholding": false
+        }
+      ],
+      "SerialSubEntry": [],
+      "FEntity_Link": [
+        {
+          "Id": 100146,
+          "FlowId": " ",
+          "FlowLineId": 0,
+          "RuleId": "SaleOrder-DeliveryNotice",
+          "STableId": 0,
+          "STableName": "T_SAL_ORDERENTRY",
+          "SBillId": "106861",
+          "SId": "106864",
+          "BaseUnitQtyOld": 200,
+          "BaseUnitQty": 200,
+          "StockBaseQtyOld": 200,
+          "StockBaseQty": 200
+        }
+      ]
+    }
+  ],
+  "SAL_DELIVERYNOTICEFIN": [
+    {
+      "Id": 100130,
+      "SettleOrgID_Id": 100003,
+      "SettleOrgID": {
+        "Id": 100003,
+        "MultiLanguageText": [
+          {
+            "PkId": 100003,
+            "LocaleId": 2052,
+            "Name": "宁波德昌电机股份有限公司"
+          }
+        ],
+        "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
+        "Number": "101",
+        "FRadio": null,
+        "ParentOrg_Id": 100003,
+        "ParentOrg": {
+          "Id": 100003,
+          "Number": "101",
+          "MultiLanguageText": [
+            {
+              "PkId": 100003,
+              "LocaleId": 2052,
+              "Name": "宁波德昌电机股份有限公司"
+            }
+          ],
+          "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }]
+        }
+      },
+      "LocalCurrID_Id": 1,
+      "LocalCurrID": {
         "Id": 1,
         "msterID": 1,
         "MultiLanguageText": [
-          { "PkId": 2, "LocaleId": 2052, "Name": "人民币" }
+          { "PkId": 1, "LocaleId": 2052, "Name": "人民币" },
+          { "PkId": 6, "LocaleId": 1033, "Name": "CNY" }
         ],
-        "Name": [{ "Key": 2052, "Value": "人民币" }],
+        "Name": [
+          { "Key": 2052, "Value": "人民币" },
+          { "Key": 1033, "Value": "CNY" }
+        ],
         "Number": "PRE001",
         "Sysmbol": "¥",
         "PriceDigits": 6,
@@ -112,740 +1344,68 @@
         "FormatOrder": "1",
         "RoundType": "1"
       },
-      "FSTOCKERID_Id": 0,
-      "FSTOCKERID": null,
-      "FIOSBizTypeId_Id": 10,
-      "FIOSBizTypeId": {
-        "Id": 10,
+      "ExchangeTypeID_Id": 1,
+      "ExchangeTypeID": {
+        "Id": 1,
+        "msterID": 1,
         "MultiLanguageText": [
-          { "PkId": 3, "LocaleId": 2052, "Name": "跨组织生产入库" }
+          { "PkId": 1, "LocaleId": 2052, "Name": "固定汇率" },
+          { "PkId": 4, "LocaleId": 1033, "Name": "Fixed exchange rate" }
         ],
-        "Name": [{ "Key": 2052, "Value": "跨组织生产入库" }],
-        "Number": "OverOrgPrdIn"
+        "Name": [
+          { "Key": 2052, "Value": "固定汇率" },
+          { "Key": 1033, "Value": "Fixed exchange rate" }
+        ],
+        "Number": "HLTX01_SYS",
+        "Digits": 6,
+        "ReverseDigits": 6
       },
-      "IsEntrust": false,
-      "EntrustInStockId": 0,
-      "IsIOSForFin": false,
-      "ScanBox": null,
-      "ISGENFORIOS": false,
-      "F_VMKO_Text": " ",
-      "F_VMKO_Text1": " ",
-      "F_TFQJ_TPH": " ",
-      "F_TFQJ_ERWM": " ",
-      "F_TFQJ_HGH": " ",
-      "F_TFQJ_CheckBox": false,
-      "Entity": [
-        {
-          "Id": 3403568,
-          "Seq": 1,
-          "MaterialId_Id": 214122,
-          "MaterialId": {
-            "Id": 214122,
-            "msterID": 172281,
-            "MultiLanguageText": [
-              {
-                "PkId": 204999,
-                "LocaleId": 2052,
-                "Name": "CW044 FH50700-SAA吸尘器",
-                "Specification": "220-240V  50/60Hz  800W"
-              }
-            ],
-            "Name": [{ "Key": 2052, "Value": "CW044 FH50700-SAA吸尘器" }],
-            "Number": "1111127060",
-            "UseOrgId_Id": 100003,
-            "UseOrgId": {
-              "Id": 100003,
-              "Number": "101",
-              "MultiLanguageText": [
-                {
-                  "PkId": 100003,
-                  "LocaleId": 2052,
-                  "Name": "宁波德昌电机股份有限公司"
-                }
-              ],
-              "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }]
-            },
-            "Specification": [
-              { "Key": 2052, "Value": "220-240V  50/60Hz  800W" }
-            ],
-            "OldNumber": "111127060",
-            "MaterialBase": [
-              {
-                "Id": 204999,
-                "ErpClsID": "2",
-                "BaseUnitId_Id": 10101,
-                "BaseUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                }
-              }
-            ],
-            "MaterialStock": [
-              {
-                "Id": 204999,
-                "StoreUnitID_Id": 10101,
-                "StoreUnitID": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "AuxUnitID_Id": 0,
-                "AuxUnitID": null,
-                "ExpUnit": " ",
-                "ExpPeriod": 0,
-                "IsBatchManage": false,
-                "IsKFPeriod": false,
-                "IsExpParToFlot": false,
-                "IsSNManage": false,
-                "SNCodeRule_Id": 0,
-                "SNCodeRule": null,
-                "SNUnit_Id": 0,
-                "SNUnit": null,
-                "UnitConvertDir": "1",
-                "SNGenerateTime": "1",
-                "SNManageType": "1"
-              }
-            ],
-            "MaterialPlan": [
-              {
-                "Id": 204999,
-                "MfgPolicyId_Id": 40042,
-                "MfgPolicyId": {
-                  "Id": 40042,
-                  "Number": "ZZCL001_SYS",
-                  "MultiLanguageText": [
-                    {
-                      "PkId": 40047,
-                      "LocaleId": 2052,
-                      "Name": "MTS10(考虑库存)"
-                    }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "MTS10(考虑库存)" }]
-                }
-              }
-            ],
-            "MaterialProduce": [
-              {
-                "Id": 204999,
-                "ProduceUnitId_Id": 10101,
-                "ProduceUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "FinishReceiptOverRate": 0.0,
-                "FinishReceiptShortRate": 0.0,
-                "BackFlushType": "1"
-              }
-            ],
-            "MaterialAuxPty": [],
-            "MaterialInvPty": [
-              {
-                "Id": 624847,
-                "IsEnable": true,
-                "InvPtyId_Id": 10001,
-                "InvPtyId": {
-                  "Id": 10001,
-                  "msterID": 10001,
-                  "Number": "01",
-                  "MultiLanguageText": [
-                    { "PkId": 10008, "LocaleId": 2052, "Name": "仓库" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "仓库" }]
-                }
-              },
-              {
-                "Id": 624848,
-                "IsEnable": true,
-                "InvPtyId_Id": 10002,
-                "InvPtyId": {
-                  "Id": 10002,
-                  "msterID": 10002,
-                  "Number": "02",
-                  "MultiLanguageText": [
-                    { "PkId": 10013, "LocaleId": 2052, "Name": "仓位" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "仓位" }]
-                }
-              },
-              {
-                "Id": 624849,
-                "IsEnable": false,
-                "InvPtyId_Id": 10003,
-                "InvPtyId": {
-                  "Id": 10003,
-                  "msterID": 10003,
-                  "Number": "03",
-                  "MultiLanguageText": [
-                    { "PkId": 10016, "LocaleId": 2052, "Name": "BOM版本" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "BOM版本" }]
-                }
-              },
-              {
-                "Id": 624850,
-                "IsEnable": false,
-                "InvPtyId_Id": 10004,
-                "InvPtyId": {
-                  "Id": 10004,
-                  "msterID": 10004,
-                  "Number": "04",
-                  "MultiLanguageText": [
-                    { "PkId": 10019, "LocaleId": 2052, "Name": "批号" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "批号" }]
-                }
-              },
-              {
-                "Id": 624851,
-                "IsEnable": false,
-                "InvPtyId_Id": 10006,
-                "InvPtyId": {
-                  "Id": 10006,
-                  "msterID": 10006,
-                  "Number": "06",
-                  "MultiLanguageText": [
-                    { "PkId": 10025, "LocaleId": 2052, "Name": "计划跟踪号" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "计划跟踪号" }]
-                }
-              }
-            ],
-            "MaterialQM": [{ "Id": 204999, "CheckProduct": false }]
-          },
-          "ProductType": "1",
-          "InStockType": "1",
-          "FUnitID_Id": 10101,
-          "FUnitID": {
-            "Id": 10101,
-            "msterID": 10101,
-            "MultiLanguageText": [
-              { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-            ],
-            "Name": [{ "Key": 2052, "Value": "Pcs" }],
-            "Number": "Pcs",
-            "UnitGroupId_Id": 10086,
-            "UnitGroupId": {
-              "Id": 10086,
-              "msterID": 10086,
-              "Number": "Quantity",
-              "MultiLanguageText": [
-                { "PkId": 10145, "LocaleId": 2052, "Name": "数量" }
-              ],
-              "Name": [{ "Key": 2052, "Value": "数量" }]
-            },
-            "Precision": 8,
-            "RoundType": "3",
-            "UNITCONVERTRATE": [
-              {
-                "Id": 10118,
-                "ConvertType": "0",
-                "DestUnitId_Id": 10101,
-                "DestUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "CurrentUnitId_Id": 10101,
-                "CurrentUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "ConvertDenominator": 1.0,
-                "ConvertNumerator": 1.0
-              }
-            ]
-          },
-          "BaseUnitId_Id": 10101,
-          "BaseUnitId": {
-            "Id": 10101,
-            "msterID": 10101,
-            "MultiLanguageText": [
-              { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-            ],
-            "Name": [{ "Key": 2052, "Value": "Pcs" }],
-            "Number": "Pcs",
-            "UnitGroupId_Id": 10086,
-            "UnitGroupId": {
-              "Id": 10086,
-              "msterID": 10086,
-              "Number": "Quantity",
-              "MultiLanguageText": [
-                { "PkId": 10145, "LocaleId": 2052, "Name": "数量" }
-              ],
-              "Name": [{ "Key": 2052, "Value": "数量" }]
-            },
-            "Precision": 8,
-            "RoundType": "3",
-            "UNITCONVERTRATE": [
-              {
-                "Id": 10118,
-                "ConvertType": "0",
-                "DestUnitId_Id": 10101,
-                "DestUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "CurrentUnitId_Id": 10101,
-                "CurrentUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "ConvertDenominator": 1.0,
-                "ConvertNumerator": 1.0
-              }
-            ]
-          },
-          "MustQty": 100.0,
-          "BaseMustQty": 100.0,
-          "RealQty": 100.0,
-          "BaseRealQty": 100.0,
-          "OwnerTypeId": "BD_OwnerOrg",
-          "OwnerId_Id": 100003,
-          "OwnerId": {
-            "Id": 100003,
-            "msterID": 100003,
-            "MultiLanguageText": [
-              {
-                "PkId": 100003,
-                "LocaleId": 2052,
-                "Name": "宁波德昌电机股份有限公司"
-              }
-            ],
-            "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
-            "Number": "101"
-          },
-          "StockId_Id": 100806,
-          "StockId": {
-            "Id": 100806,
-            "msterID": 100806,
-            "MultiLanguageText": [
-              { "PkId": 100004, "LocaleId": 2052, "Name": "吸尘器成品仓库" }
-            ],
-            "Name": [{ "Key": 2052, "Value": "吸尘器成品仓库" }],
-            "Number": "CK002",
-            "IsOpenLocation": false,
-            "StockStatusType": "0,1,2,3,4,5,6,7,8",
-            "DefStockStatusId_Id": 10000,
-            "DefStockStatusId": {
-              "Id": 10000,
-              "msterID": 10000,
-              "Number": "KCZT01_SYS",
-              "MultiLanguageText": [
-                { "PkId": 1, "LocaleId": 2052, "Name": "可用" }
-              ],
-              "Name": [{ "Key": 2052, "Value": "可用" }]
-            },
-            "LocListFormatter": "3",
-            "StockFlexItem": []
-          },
-          "StockLocId_Id": 0,
-          "StockLocId": null,
-          "BomId_Id": 0,
-          "BomId": null,
-          "Lot_Id": 0,
-          "Lot": null,
-          "Lot_Text": " ",
-          "AuxpropId_Id": 0,
-          "AuxpropId": null,
-          "MtoNo": " ",
-          "ProjectNo": " ",
-          "WorkShopId_Id": 466931,
-          "WorkShopId": {
-            "Id": 466931,
-            "msterID": 343465,
-            "MultiLanguageText": [
-              { "PkId": 100262, "LocaleId": 2052, "Name": "TTI-装配车间" }
-            ],
-            "Name": [{ "Key": 2052, "Value": "TTI-装配车间" }],
-            "Number": "1012021",
-            "F_TFQJ_CheckBox": true
-          },
-          "MoBillNo": "MO1879087",
-          "MoId": 2318880,
-          "MoEntryId": 2559640,
-          "MoEntrySeq": 1,
-          "MultiLanguageText": [],
-          "Memo": [],
-          "StockUnitId_Id": 10101,
-          "StockUnitId": {
-            "Id": 10101,
-            "msterID": 10101,
-            "MultiLanguageText": [
-              { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-            ],
-            "Name": [{ "Key": 2052, "Value": "Pcs" }],
-            "Number": "Pcs",
-            "UnitGroupId_Id": 10086,
-            "UnitGroupId": {
-              "Id": 10086,
-              "msterID": 10086,
-              "Number": "Quantity",
-              "MultiLanguageText": [
-                { "PkId": 10145, "LocaleId": 2052, "Name": "数量" }
-              ],
-              "Name": [{ "Key": 2052, "Value": "数量" }]
-            },
-            "Precision": 8,
-            "RoundType": "3",
-            "UNITCONVERTRATE": [
-              {
-                "Id": 10118,
-                "ConvertType": "0",
-                "DestUnitId_Id": 10101,
-                "DestUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "CurrentUnitId_Id": 10101,
-                "CurrentUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "ConvertDenominator": 1.0,
-                "ConvertNumerator": 1.0
-              }
-            ]
-          },
-          "StockRealQty": 100.0,
-          "SecUnitId_Id": 0,
-          "SecUnitId": null,
-          "SecRealQty": 0.0,
-          "Price": 0.0,
-          "Amount": 0.0,
-          "SrcInterId": 2318880,
-          "SrcEntryId": 2559640,
-          "SrcEntrySeq": 1,
-          "StockStatusId_Id": 10000,
-          "StockStatusId": {
-            "Id": 10000,
-            "msterID": 10000,
-            "MultiLanguageText": [
-              { "PkId": 1, "LocaleId": 2052, "Name": "可用" }
-            ],
-            "Name": [{ "Key": 2052, "Value": "可用" }],
-            "Number": "KCZT01_SYS",
-            "Type": "0"
-          },
-          "KeeperTypeId": "BD_KeeperOrg",
-          "KeeperId_Id": 100003,
-          "KeeperId": {
-            "Id": 100003,
-            "msterID": 100003,
-            "MultiLanguageText": [
-              {
-                "PkId": 100003,
-                "LocaleId": 2052,
-                "Name": "宁波德昌电机股份有限公司"
-              }
-            ],
-            "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }],
-            "Number": "101"
-          },
-          "ProduceDate": null,
-          "ExpiryDate": null,
-          "StockFlag": true,
-          "SrcBillType": "PRD_MO",
-          "SrcBillNo": "MO1879087",
-          "BFLowId_Id": "f11b462a-8733-40bd-8f29-0906afc6a201",
-          "BFLowId": {
-            "Id": "f11b462a-8733-40bd-8f29-0906afc6a201",
-            "MultiLanguageText": [
-              {
-                "PkId": "c037415a0d47cd08e040a8c0e93f120e",
-                "LocaleId": 2052,
-                "Name": "生产直接入库流程"
-              }
-            ],
-            "Name": [{ "Key": 2052, "Value": "生产直接入库流程" }]
-          },
-          "ShiftGroupId_Id": 0,
-          "ShiftGroupId": null,
-          "SNUnitId_Id": 0,
-          "SNUnitId": null,
-          "SNQty": 0.0,
-          "CheckProduct": false,
-          "QAIP": "A",
-          "COSTRATE": 100.0,
-          "IsNew": false,
-          "IsFinished": false,
-          "ISBACKFLUSH": true,
-          "MoMainEntryId": 2559640,
-          "BasePrdRealQty": 100.0,
-          "ReqSrc": "1",
-          "ReqBillNo": "2024-NO.NBVC3402",
-          "ReqBillId": 139955,
-          "ReqEntrySeq": 1,
-          "ReqEntryId": 141178,
-          "SelReStkQty": 0.0,
-          "BaseSelReStkQty": 0.0,
-          "SrcBusinessType": " ",
-          "SendRowId": " ",
-          "IsOverLegalOrg": false,
-          "LINEID_Id": 0,
-          "LINEID": null,
-          "F_dcdj_Base_Id": 214122,
-          "F_dcdj_Base": {
-            "Id": 214122,
-            "msterID": 172281,
-            "MultiLanguageText": [
-              {
-                "PkId": 204999,
-                "LocaleId": 2052,
-                "Name": "CW044 FH50700-SAA吸尘器",
-                "Specification": "220-240V  50/60Hz  800W"
-              }
-            ],
-            "Name": [{ "Key": 2052, "Value": "CW044 FH50700-SAA吸尘器" }],
-            "Number": "1111127060",
-            "UseOrgId_Id": 100003,
-            "UseOrgId": {
-              "Id": 100003,
-              "Number": "101",
-              "MultiLanguageText": [
-                {
-                  "PkId": 100003,
-                  "LocaleId": 2052,
-                  "Name": "宁波德昌电机股份有限公司"
-                }
-              ],
-              "Name": [{ "Key": 2052, "Value": "宁波德昌电机股份有限公司" }]
-            },
-            "Specification": [
-              { "Key": 2052, "Value": "220-240V  50/60Hz  800W" }
-            ],
-            "OldNumber": "111127060",
-            "MaterialBase": [
-              {
-                "Id": 204999,
-                "ErpClsID": "2",
-                "BaseUnitId_Id": 10101,
-                "BaseUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                }
-              }
-            ],
-            "MaterialStock": [
-              {
-                "Id": 204999,
-                "StoreUnitID_Id": 10101,
-                "StoreUnitID": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "AuxUnitID_Id": 0,
-                "AuxUnitID": null,
-                "ExpUnit": " ",
-                "ExpPeriod": 0,
-                "IsBatchManage": false,
-                "IsKFPeriod": false,
-                "IsExpParToFlot": false,
-                "IsSNManage": false,
-                "SNCodeRule_Id": 0,
-                "SNCodeRule": null,
-                "SNUnit_Id": 0,
-                "SNUnit": null,
-                "UnitConvertDir": "1",
-                "SNGenerateTime": "1",
-                "SNManageType": "1"
-              }
-            ],
-            "MaterialPlan": [
-              {
-                "Id": 204999,
-                "MfgPolicyId_Id": 40042,
-                "MfgPolicyId": {
-                  "Id": 40042,
-                  "Number": "ZZCL001_SYS",
-                  "MultiLanguageText": [
-                    {
-                      "PkId": 40047,
-                      "LocaleId": 2052,
-                      "Name": "MTS10(考虑库存)"
-                    }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "MTS10(考虑库存)" }]
-                }
-              }
-            ],
-            "MaterialProduce": [
-              {
-                "Id": 204999,
-                "ProduceUnitId_Id": 10101,
-                "ProduceUnitId": {
-                  "Id": 10101,
-                  "msterID": 10101,
-                  "Number": "Pcs",
-                  "MultiLanguageText": [
-                    { "PkId": 10136, "LocaleId": 2052, "Name": "Pcs" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "Pcs" }]
-                },
-                "FinishReceiptOverRate": 0.0,
-                "FinishReceiptShortRate": 0.0,
-                "BackFlushType": "1"
-              }
-            ],
-            "MaterialAuxPty": [],
-            "MaterialInvPty": [
-              {
-                "Id": 624847,
-                "IsEnable": true,
-                "InvPtyId_Id": 10001,
-                "InvPtyId": {
-                  "Id": 10001,
-                  "msterID": 10001,
-                  "Number": "01",
-                  "MultiLanguageText": [
-                    { "PkId": 10008, "LocaleId": 2052, "Name": "仓库" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "仓库" }]
-                }
-              },
-              {
-                "Id": 624848,
-                "IsEnable": true,
-                "InvPtyId_Id": 10002,
-                "InvPtyId": {
-                  "Id": 10002,
-                  "msterID": 10002,
-                  "Number": "02",
-                  "MultiLanguageText": [
-                    { "PkId": 10013, "LocaleId": 2052, "Name": "仓位" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "仓位" }]
-                }
-              },
-              {
-                "Id": 624849,
-                "IsEnable": false,
-                "InvPtyId_Id": 10003,
-                "InvPtyId": {
-                  "Id": 10003,
-                  "msterID": 10003,
-                  "Number": "03",
-                  "MultiLanguageText": [
-                    { "PkId": 10016, "LocaleId": 2052, "Name": "BOM版本" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "BOM版本" }]
-                }
-              },
-              {
-                "Id": 624850,
-                "IsEnable": false,
-                "InvPtyId_Id": 10004,
-                "InvPtyId": {
-                  "Id": 10004,
-                  "msterID": 10004,
-                  "Number": "04",
-                  "MultiLanguageText": [
-                    { "PkId": 10019, "LocaleId": 2052, "Name": "批号" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "批号" }]
-                }
-              },
-              {
-                "Id": 624851,
-                "IsEnable": false,
-                "InvPtyId_Id": 10006,
-                "InvPtyId": {
-                  "Id": 10006,
-                  "msterID": 10006,
-                  "Number": "06",
-                  "MultiLanguageText": [
-                    { "PkId": 10025, "LocaleId": 2052, "Name": "计划跟踪号" }
-                  ],
-                  "Name": [{ "Key": 2052, "Value": "计划跟踪号" }]
-                }
-              }
-            ],
-            "MaterialQM": [{ "Id": 204999, "CheckProduct": false }]
-          },
-          "F_dcdj_Qty": 100.0,
-          "F_VMKO_Decimal": 0.0,
-          "F_VMKO_Decimal1": 0.0,
-          "F_VMKO_Text": " ",
-          "F_VMKO_Text1": " ",
-          "F_VMKO_Text12": " ",
-          "F_VMKO_Text123": " ",
-          "F_VMKO_Text1234": " ",
-          "F_TFQJ_dbsl": 0.0,
-          "F_TFQJ_tpbh1": " ",
-          "F_TFQJ_tmbh": " ",
-          "F_TFQJ_zjsl": 0.0,
-          "F_TFQJ_ynsl": 0.0,
-          "F_TFQJ_smqbh": " ",
-          "PRD_INSTOCKMTRLSERIAL": [],
-          "FEntity_Link": [
-            {
-              "Id": 3407446,
-              "FlowId": "f11b462a-8733-40bd-8f29-0906afc6a201",
-              "FlowLineId": 5,
-              "RuleId": "PRD_MO2INSTOCK",
-              "STableId": 0,
-              "STableName": "T_PRD_MOENTRY",
-              "SBillId": "2318880",
-              "SId": "2559640",
-              "BasePrdRealQtyOld": 100.0,
-              "BasePrdRealQty": 100.0
-            }
-          ]
-        }
-      ],
-      "BOS_ConvertTakeDataInfo": null
+      "ExchangeRate": 6.8823,
+      "SettleTypeID_Id": 0,
+      "SettleTypeID": null,
+      "SettleCurrID_Id": 7,
+      "SettleCurrID": {
+        "Id": 7,
+        "msterID": 7,
+        "MultiLanguageText": [
+          { "PkId": 5, "LocaleId": 2052, "Name": "美元" },
+          { "PkId": 12, "LocaleId": 1033, "Name": "USD" }
+        ],
+        "Name": [
+          { "Key": 2052, "Value": "美元" },
+          { "Key": 1033, "Value": "USD" }
+        ],
+        "Number": "PRE002",
+        "Sysmbol": "$",
+        "PriceDigits": 6,
+        "AmountDigits": 2,
+        "IsShowCSymbol": true,
+        "FormatOrder": "1",
+        "RoundType": "1"
+      },
+      "PriceListId_Id": 0,
+      "PriceListId": null,
+      "DiscountListId_Id": 0,
+      "DiscountListId": null,
+      "BillTaxAmount": 0,
+      "BillAmount": 1376,
+      "BillAllAmount": 1376,
+      "IsIncludedTax": true,
+      "BillAllAmount_LC": 9470.04,
+      "BillAmount_LC": 9470.04,
+      "BillTaxAmount_LC": 0,
+      "CreChkDays": 0,
+      "CreChkStatus": "A",
+      "CreChkAmount": 0,
+      "FCrePreBatAndMonStatus": "A",
+      "FCrePreBatchOver": "0",
+      "FCreMonControlOver": "0",
+      "IsPriceExcludeTax": true,
+      "CreChkOverAmount": 0,
+      "OverOrgTransDirect": false,
+      "AllDisCount": 0
     }
-  }
+  ],
+  "DeliNoticeTrace": [],
+  "BOS_ConvertTakeDataInfo": null
 }

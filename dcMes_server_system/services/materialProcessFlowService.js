@@ -1199,55 +1199,16 @@ class MaterialProcessFlowService {
       flowRecord.processNodes = updatedNodes;
       flowRecord.craftVersion = craft.craftVersion;
 
-      // 6. 重新计算进度
-      const requiredNodes = flowRecord.processNodes.filter(
-        (node) =>
-          node.level !== 0 &&
-          (node.nodeType === "PROCESS_STEP" ||
-            (node.nodeType === "MATERIAL" && node.requireScan))
-      );
-
-      const completedNodes = requiredNodes.filter(
-        (node) => node.status === "COMPLETED"
-      );
-
-      flowRecord.progress =
-        requiredNodes.length > 0
-          ? Math.floor((completedNodes.length / requiredNodes.length) * 100)
-          : 0;
-
-      // 7. 更新流程状态，考虑未完成节点删除的情况
-      if (hasUnfinishedNodesDeleted) {
-        flowRecord.status = "IN_PROCESS";
-        // 确保进度不会显示100%
-        flowRecord.progress = Math.min(flowRecord.progress, 99);
-      } else if (flowRecord.progress === 100) {
-        // 只有在没有未完成节点被删除，且所有必要节点都完成的情况下，才标记为完成
-        const allRequiredCompleted = this.checkAllRequiredNodesCompleted(
-          flowRecord.processNodes
-        );
-        if (allRequiredCompleted) {
-          flowRecord.status = "COMPLETED";
-          flowRecord.endTime = new Date();
-          const materialNode = flowRecord.processNodes.find(
-            (node) => node.nodeType === "MATERIAL" && node.level === 0
-          );
-          if (materialNode) {
-            materialNode.status = "COMPLETED";
-            materialNode.endTime = new Date();
-          }
-        } else {
-          flowRecord.status = "IN_PROCESS";
-          flowRecord.progress = 99; // 防止显示100%但实际未完全完成
-        }
-      } else if (flowRecord.progress > 0) {
-        flowRecord.status = "IN_PROCESS";
-      }
-
-      // 8. 保存更新
+      // 6. 保存更新
       await flowRecord.save();
 
-      return flowRecord;
+      // 7. 使用fixFlowProgress方法统一处理进度和状态更新
+      await this.fixFlowProgress(barcode);
+
+      // 8. 重新获取更新后的记录
+      const updatedFlowRecord = await MaterialProcessFlow.findOne({ barcode });
+
+      return updatedFlowRecord;
     } catch (error) {
       console.error("更新工艺流程记录失败:", error);
       throw error;
