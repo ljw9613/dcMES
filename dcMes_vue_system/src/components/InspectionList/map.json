@@ -312,5 +312,13 @@
   "time1Power": "时间1功率",
   "time1Temperature": "时间1温度",
   "time1Airflow": "时间1气流量",
-  "time1WindSpeed": "时间1风速"
+  "time1WindSpeed": "时间1风速",
+  "stallTestValue": "堵转测试值",
+  "voltageTestValue": "电压测试值",
+  "currentTestValue": "电流测试值",
+  "frontLightTest": "前灯测试",
+  "heightClearance": "限高离地间隙",
+  "lowClearance": "限低离地间隙",
+  "positiveNegativeTest": "正反测试",
+  "rpmValue": "转速值"
 }

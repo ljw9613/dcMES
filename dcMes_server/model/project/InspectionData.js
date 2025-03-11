@@ -572,6 +572,16 @@ const inspectionDataSchema = new mongoose.Schema(
     time1Temperature: { type: String },
     time1Airflow: { type: String },
     time1WindSpeed: { type: String },
+
+    // dixu 设备
+    stallTestValue: { type: String, description: "堵转测试值" },
+    voltageTestValue: { type: String, description: "电压测试值" },
+    currentTestValue: { type: String, description: "电流测试值" },
+    frontLightTest: { type: String, description: "前灯测试" },
+    heightClearance: { type: String, description: "限高离地间隙" },
+    lowClearance: { type: String, description: "限低离地间隙" },
+    positiveNegativeTest: { type: String, description: "正反测试" },
+    rpmValue: { type: String, description: "转速值" },
   },
   {
     timestamps: { createdAt: "createTime", updatedAt: "updateTime" },
