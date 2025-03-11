@@ -83,7 +83,7 @@
 
         <el-table-column label="检测时间" prop="testTime" width="180">
           <template slot-scope="scope">
-            {{ formatDate(scope.row.testTime || scope.row.createTime) }}
+            {{ formatDate(scope.row.testTime || scope.row.createTime || scope.row.updateTime) }}
           </template>
         </el-table-column>
 
