@@ -29,7 +29,36 @@
             <el-form-item label="明码">
               <el-input
                 v-model="searchForm.barcode"
-                placeholder="请输入条码"
+                placeholder="请输入明码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="暗码">
+              <el-input
+                v-model="searchForm.printBarcode"
+                placeholder="请输入暗码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-form-item label="转换明码">
+              <el-input
+                v-model="searchForm.transformedBarcode"
+                placeholder="请输入转换明码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="转换暗码">
+              <el-input
+                v-model="searchForm.transformedPrintBarcode"
+                placeholder="请输入转换暗码"
                 clearable
               ></el-input>
             </el-form-item>
@@ -43,8 +72,6 @@
               ></el-input>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="状态">
               <el-select
@@ -56,6 +83,7 @@
                 <el-option label="待使用" value="PENDING" />
                 <el-option label="已使用" value="USED" />
                 <el-option label="已作废" value="VOIDED" />
+                <el-option label="已暂停" value="SUSPENDED" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -134,6 +162,22 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="暂停信息" width="300">
+          <template slot-scope="{ row }">
+            <template v-if="row.status === 'SUSPENDED'">
+              <div>暂停人: {{ row.suspendBy || "-" }}</div>
+              <div>暂停时间: {{ formatDate(row.suspendAt) || "-" }}</div>
+              <el-tooltip
+                v-if="row.suspendReason"
+                :content="row.suspendReason"
+                placement="top"
+              >
+                <div class="ellipsis">暂停原因: {{ row.suspendReason }}</div>
+              </el-tooltip>
+            </template>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="作废信息" width="300">
           <template slot-scope="{ row }">
             <template v-if="row.status === 'VOIDED'">
@@ -157,19 +201,27 @@
         </el-table-column>
         <el-table-column label="操作" width="150" align="center">
           <template slot-scope="{ row }">
-            <el-button
+            <!-- <el-button
               v-if="row.status === 'PENDING'"
               type="text"
               size="small"
               @click="handleVoid(row)"
             >
               作废
-            </el-button>
+            </el-button> -->
             <el-button
-              v-if="row.status === 'VOIDED'"
+              v-if="row.status === 'PENDING'"
               type="text"
               size="small"
-              @click="handleRecover(row)"
+              @click="handleSuspend(row)"
+            >
+              暂停
+            </el-button>
+            <el-button
+              v-if="row.status === 'SUSPENDED'"
+              type="text"
+              size="small"
+              @click="handleResume(row)"
             >
               恢复
             </el-button>
@@ -282,6 +334,29 @@
       </div>
     </el-dialog>
 
+    <!-- 添加暂停对话框 -->
+    <el-dialog title="条码暂停" :visible.sync="suspendDialogVisible" width="40%">
+      <el-form
+        :model="suspendForm"
+        ref="suspendForm"
+        :rules="suspendRules"
+        label-width="100px"
+      >
+        <el-form-item label="暂停原因" prop="reason">
+          <el-input
+            type="textarea"
+            v-model="suspendForm.reason"
+            :rows="3"
+            placeholder="请输入暂停原因"
+          />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="suspendDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitSuspend">确定暂停</el-button>
+      </div>
+    </el-dialog>
+
     <!-- 修改批量打印对话框 -->
     <el-dialog
       title="批量打印"
@@ -316,16 +391,25 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="条码">
+                <el-form-item label="明码">
                   <el-input
                     v-model="printSearchForm.barcode"
-                    placeholder="请输入条码"
+                    placeholder="请输入明码"
                     clearable
                   ></el-input>
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="暗码">
+                  <el-input
+                    v-model="printSearchForm.printBarcode"
+                    placeholder="请输入暗码"
+                    clearable
+                  ></el-input>
+                </el-form-item>
+              </el-col>
               <el-col :span="8">
                 <el-form-item label="批次号">
                   <el-input
@@ -346,10 +430,13 @@
                     <el-option label="待使用" value="PENDING" />
                     <el-option label="已使用" value="USED" />
                     <el-option label="已作废" value="VOIDED" />
+                    <el-option label="已暂停" value="SUSPENDED" />
                   </el-select>
                 </el-form-item>
               </el-col>
-              <el-col :span="8">
+            </el-row>
+            <el-row>
+              <el-col :span="24" style="text-align: right;">
                 <el-form-item>
                   <el-button type="primary" @click="searchPrintData"
                     >查询</el-button
@@ -431,6 +518,9 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
+        transformedBarcode: "",
+        transformedPrintBarcode: "",
         status: "",
         batchNo: "",
       },
@@ -493,8 +583,21 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
         status: "PENDING", // 默认待使用状态
         batchNo: "",
+      },
+
+      // 添加暂停对话框
+      suspendDialogVisible: false,
+      suspendForm: {
+        id: "",
+        reason: "",
+      },
+      suspendRules: {
+        reason: [
+          { required: true, message: "请输入暂停原因", trigger: "blur" },
+        ],
       },
     };
   },
@@ -546,6 +649,7 @@ export default {
         PENDING: "info",
         USED: "success",
         VOIDED: "danger",
+        SUSPENDED: "warning",
       };
       return statusMap[status] || "info";
     },
@@ -556,6 +660,7 @@ export default {
         PENDING: "待使用",
         USED: "已使用",
         VOIDED: "已作废",
+        SUSPENDED: "已暂停",
       };
       return statusMap[status] || status;
     },
@@ -600,7 +705,16 @@ export default {
         };
       }
       if (this.searchForm.barcode) {
-        query.barcode = this.searchForm.barcode;
+        query.barcode = { $regex: this.searchForm.barcode, $options: "i" };
+      }
+      if (this.searchForm.printBarcode) {
+        query.printBarcode = { $regex: this.searchForm.printBarcode, $options: "i" };
+      }
+      if (this.searchForm.transformedBarcode) {
+        query.transformedBarcode = { $regex: this.searchForm.transformedBarcode, $options: "i" };
+      }
+      if (this.searchForm.transformedPrintBarcode) {
+        query.transformedPrintBarcode = { $regex: this.searchForm.transformedPrintBarcode, $options: "i" };
       }
       if (this.searchForm.status) {
         query.status = this.searchForm.status;
@@ -861,6 +975,155 @@ export default {
         console.error("生成条码失败:", error);
         throw new Error(`生成条码失败: ${error.message}`);
       }
+    },
+
+    // 修改 generateSegmentValue 方法
+    async generateSegmentValue(segment, params) {
+      let basic = "";
+      let transformed = null;
+
+      switch (segment.type) {
+        case "constant":
+          basic = segment.config.constantValue;
+          // 常量类型的转换处理
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            transformed = segment.config.transformValue;
+          }
+          break;
+
+        case "fieldMapping":
+          basic = params.fieldValues[segment.config.mappingField] || "";
+          // 字段映射的转换处理
+          if (
+            segment.config.fieldMappings &&
+            segment.config.fieldMappings.length
+          ) {
+            const mapping = segment.config.fieldMappings.find(
+              (m) => m.value === basic
+            );
+            if (mapping) {
+              basic = mapping.code;
+              // 如果有转换值，使用转换值
+              if (mapping.transformValue) {
+                transformed = mapping.transformValue;
+              }
+            }
+          }
+          break;
+
+        case "date":
+          basic = this.formatDateWithMappings(params.date, segment.config);
+          // 日期类型的转换处理 - 使用相同的映射逻辑但可能有不同的转换值
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            // 创建一个新的配置对象，包含转换值
+            const transformConfig = { ...segment.config };
+            // 如果有特定的转换映射，使用它们
+            if (segment.config.transformYearMappings) {
+              transformConfig.yearMappings = segment.config.transformYearMappings;
+            }
+            if (segment.config.transformMonthMappings) {
+              transformConfig.monthMappings = segment.config.transformMonthMappings;
+            }
+            if (segment.config.transformDayMappings) {
+              transformConfig.dayMappings = segment.config.transformDayMappings;
+            }
+            transformed = this.formatDateWithMappings(params.date, transformConfig);
+          }
+          break;
+
+        case "sequence":
+          // 如果是序列号类型，且配置了按产线重置
+          if (segment.config.resetByLine) {
+            basic = this.formatSequenceWithPositionMapping(params.sequence, {
+              ...segment.config,
+              lineNum: params.fieldValues.lineNum,
+            });
+          } else {
+            basic = this.formatSequenceWithPositionMapping(
+              params.sequence,
+              segment.config
+            );
+          }
+
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            // 创建一个新的配置对象用于转换
+            const transformConfig = { ...segment.config };
+            // 如果有特定的转换映射，使用它们
+            if (segment.config.transformNumberMappings) {
+              transformConfig.numberMappings = segment.config.transformNumberMappings;
+            }
+            
+            transformed = this.formatSequenceWithPositionMapping(
+              params.sequence,
+              {
+                ...transformConfig,
+                lineNum: params.fieldValues.lineNum,
+              }
+            );
+          }
+          break;
+      }
+
+      return {
+        basic,
+        transformed,
+      };
+    },
+
+    formatDateWithMappings(date, format) {
+      let value = this.formatDate(date, format.dateFormat);
+      const dateFormat = format.dateFormat || '';
+      
+      // 解析日期格式，找出年月日的位置
+      const yearPos = dateFormat.indexOf('YYYY');
+      const monthPos = dateFormat.indexOf('MM');
+      const dayPos = dateFormat.indexOf('DD');
+      
+      // 只有在格式中存在且有映射时才应用映射
+      if (yearPos !== -1 && format.yearMappings && format.yearMappings.length) {
+        const yearStr = value.substring(yearPos, yearPos + 4);
+        const mapping = format.yearMappings.find(m => m.value === yearStr);
+        if (mapping) {
+          value = value.substring(0, yearPos) + mapping.code + value.substring(yearPos + 4);
+        }
+      }
+      
+      if (monthPos !== -1 && format.monthMappings && format.monthMappings.length) {
+        const monthStr = value.substring(monthPos, monthPos + 2);
+        const mapping = format.monthMappings.find(m => m.value === monthStr);
+        if (mapping) {
+          value = value.substring(0, monthPos) + mapping.code + value.substring(monthPos + 2);
+        }
+      }
+      
+      if (dayPos !== -1 && format.dayMappings && format.dayMappings.length) {
+        const dayStr = value.substring(dayPos, dayPos + 2);
+        const mapping = format.dayMappings.find(m => m.value === dayStr);
+        if (mapping) {
+          value = value.substring(0, dayPos) + mapping.code + value.substring(dayPos + 2);
+        }
+      }
+
+      return value;
+    },
+
+    formatSequenceWithPositionMapping(sequence, config) {
+      let value = String(sequence).padStart(config.length, config.padChar);
+
+      if (config.numberMappings && config.numberMappings.length) {
+        const chars = value.split("");
+        config.numberMappings.forEach((mapping) => {
+          if (mapping.position && mapping.position <= chars.length) {
+            const pos = mapping.position - 1;
+            if (chars[pos] === mapping.value) {
+              chars[pos] = mapping.code;
+            }
+          }
+        });
+        value = chars.join("");
+      }
+
+      return value;
     },
 
     // 修改 submitGenerate 方法中调用 generateBarcode 的部分
@@ -1147,6 +1410,9 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
+        transformedBarcode: "",
+        transformedPrintBarcode: "",
         status: "",
         batchNo: "",
       };
@@ -1254,6 +1520,9 @@ export default {
       if (this.printSearchForm.barcode) {
         query.barcode = { $regex: this.printSearchForm.barcode, $options: "i" };
       }
+      if (this.printSearchForm.printBarcode) {
+        query.printBarcode = { $regex: this.printSearchForm.printBarcode, $options: "i" };
+      }
       if (this.printSearchForm.status) {
         query.status = this.printSearchForm.status;
       }
@@ -1271,128 +1540,11 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
         status: "PENDING", // 重置时保持默认待使用状态
         batchNo: "",
       };
       this.searchPrintData();
-    },
-
-    async generateSegmentValue(segment, params) {
-      let basic = "";
-      let transformed = null;
-
-      switch (segment.type) {
-        case "constant":
-          basic = segment.config.constantValue;
-          // 常量类型的转换处理
-          if (segment.config.enableTransform && segment.config.transformValue) {
-            transformed = segment.config.transformValue;
-          }
-          break;
-
-        case "fieldMapping":
-          basic = params.fieldValues[segment.config.mappingField] || "";
-          // 字段映射的转换处理
-          if (
-            segment.config.fieldMappings &&
-            segment.config.fieldMappings.length
-          ) {
-            const mapping = segment.config.fieldMappings.find(
-              (m) => m.value === basic
-            );
-            if (mapping) {
-              basic = mapping.code;
-              // 如果有转换值，使用转换值
-              if (mapping.transformValue) {
-                transformed = mapping.transformValue;
-              }
-            }
-          }
-          break;
-
-        case "date":
-          basic = this.formatDateWithMappings(params.date, segment.config);
-          // 日期类型的转换处理
-          if (segment.config.enableTransform && segment.config.transformValue) {
-            transformed = this.formatDateWithMappings(params.date, {
-              ...segment.config,
-              transformValue: segment.config.transformValue,
-            });
-          }
-          break;
-
-        case "sequence":
-          // 如果是序列号类型，且配置了按产线重置
-          if (segment.config.resetByLine) {
-            basic = this.formatSequenceWithPositionMapping(params.sequence, {
-              ...segment.config,
-              lineNum: params.fieldValues.lineNum,
-            });
-          } else {
-            basic = this.formatSequenceWithPositionMapping(
-              params.sequence,
-              segment.config
-            );
-          }
-
-          if (segment.config.enableTransform && segment.config.transformValue) {
-            transformed = this.formatSequenceWithPositionMapping(
-              params.sequence,
-              {
-                ...segment.config,
-                transformValue: segment.config.transformValue,
-                lineNum: params.fieldValues.lineNum,
-              }
-            );
-          }
-          break;
-      }
-
-      return {
-        basic,
-        transformed,
-      };
-    },
-
-    formatDateWithMappings(date, format) {
-      let value = this.formatDate(date, format.dateFormat);
-
-      if (format.yearMappings && format.yearMappings.length) {
-        value = this.applyNumberMappings(value, format.yearMappings);
-      }
-      if (format.monthMappings && format.monthMappings.length) {
-        value = this.applyNumberMappings(value, format.monthMappings);
-      }
-      if (format.dayMappings && format.dayMappings.length) {
-        value = this.applyNumberMappings(value, format.dayMappings);
-      }
-
-      return value;
-    },
-
-    applyNumberMappings(value, mappings) {
-      return mappings.reduce((result, mapping) => {
-        return result.replace(mapping.value, mapping.code);
-      }, value);
-    },
-
-    formatSequenceWithPositionMapping(sequence, config) {
-      let value = String(sequence).padStart(config.length, config.padChar);
-
-      if (config.numberMappings && config.numberMappings.length) {
-        const chars = value.split("");
-        config.numberMappings.forEach((mapping) => {
-          if (mapping.position && mapping.position <= chars.length) {
-            const pos = mapping.position - 1;
-            if (chars[pos] === mapping.value) {
-              chars[pos] = mapping.code;
-            }
-          }
-        });
-        value = chars.join("");
-      }
-
-      return value;
     },
 
     // 修改 executeBatchPrint 方法
@@ -1436,8 +1588,59 @@ export default {
       }
     },
 
-    // 修改 handleRecover 方法
-    async handleRecover(row) {
+    // 处理暂停条码
+    async handleSuspend(row) {
+      try {
+        // 校验条码是否为当天生成
+        const createdAt = new Date(row.createAt);
+        const today = new Date();
+        if (
+          createdAt.getFullYear() !== today.getFullYear() ||
+          createdAt.getMonth() !== today.getMonth() ||
+          createdAt.getDate() !== today.getDate()
+        ) {
+          this.$message.warning("只能暂停当天生成的条码");
+          return;
+        }
+
+        // 打开暂停对话框
+        this.suspendForm.id = row._id;
+        this.suspendForm.reason = "";
+        this.suspendDialogVisible = true;
+      } catch (error) {
+        console.error("暂停操作失败:", error);
+        this.$message.error("暂停操作失败: " + (error.message || "未知错误"));
+      }
+    },
+
+    // 添加提交暂停方法
+    async submitSuspend() {
+      try {
+        await this.$refs.suspendForm.validate();
+
+        await updateData("preProductionBarcode", {
+          query: { _id: this.suspendForm.id },
+          update: {
+            status: "SUSPENDED",
+            suspendReason: this.suspendForm.reason,
+            suspendBy: this.$store.state.user.name,
+            suspendAt: new Date(),
+            updater: this.$store.state.user.name,
+            updateAt: new Date(),
+          },
+        });
+
+        this.$message.success("暂停成功");
+        this.suspendDialogVisible = false;
+        this.fetchData();
+      } catch (error) {
+        console.error("暂停失败:", error);
+        this.$message.error("暂停失败: " + (error.message || "未知错误"));
+      }
+    },
+
+    // 处理恢复暂停的条码
+    async handleResume(row) {
       try {
         // 校验条码是否为当天生成
         const createdAt = new Date(row.createAt);
@@ -1451,33 +1654,18 @@ export default {
           return;
         }
 
-        await this.$confirm("确定要恢复这条记录吗？", "提示", {
+        await this.$confirm("确定要恢复这条暂停的记录吗？", "提示", {
           confirmButtonText: "确定",
           cancelButtonText: "取消",
           type: "warning",
         });
 
-        // 查询是否有对应的维修记录且为报废
-        const repairResult = await getData("product_repair", {
-          query: {
-            barcode: row.printBarcode,
-            solution: "报废", // 假设报废状态为 SCRAPPED
-          },
-        });
-
-        if (repairResult.data && repairResult.data.length > 0) {
-          this.$message.error("该条码已被维修报废，无法恢复");
-          return;
-        }
-
-        // 如果没有报废记录，则进行恢复
         await updateData("preProductionBarcode", {
           query: { _id: row._id },
           update: {
             status: "PENDING",
-            voidReason: null,
-            voidBy: null,
-            voidAt: null,
+            suspendBy: null,
+            suspendAt: null,
             updater: this.$store.state.user.name,
             updateAt: new Date(),
           },
