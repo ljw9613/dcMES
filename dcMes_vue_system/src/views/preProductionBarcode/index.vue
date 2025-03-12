@@ -29,7 +29,36 @@
             <el-form-item label="明码">
               <el-input
                 v-model="searchForm.barcode"
-                placeholder="请输入条码"
+                placeholder="请输入明码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="暗码">
+              <el-input
+                v-model="searchForm.printBarcode"
+                placeholder="请输入暗码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-form-item label="转换明码">
+              <el-input
+                v-model="searchForm.transformedBarcode"
+                placeholder="请输入转换明码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="转换暗码">
+              <el-input
+                v-model="searchForm.transformedPrintBarcode"
+                placeholder="请输入转换暗码"
                 clearable
               ></el-input>
             </el-form-item>
@@ -43,8 +72,6 @@
               ></el-input>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="状态">
               <el-select
@@ -56,6 +83,7 @@
                 <el-option label="待使用" value="PENDING" />
                 <el-option label="已使用" value="USED" />
                 <el-option label="已作废" value="VOIDED" />
+                <el-option label="已暂停" value="SUSPENDED" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -134,6 +162,22 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="暂停信息" width="300">
+          <template slot-scope="{ row }">
+            <template v-if="row.status === 'SUSPENDED'">
+              <div>暂停人: {{ row.suspendBy || "-" }}</div>
+              <div>暂停时间: {{ formatDate(row.suspendAt) || "-" }}</div>
+              <el-tooltip
+                v-if="row.suspendReason"
+                :content="row.suspendReason"
+                placement="top"
+              >
+                <div class="ellipsis">暂停原因: {{ row.suspendReason }}</div>
+              </el-tooltip>
+            </template>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="作废信息" width="300">
           <template slot-scope="{ row }">
             <template v-if="row.status === 'VOIDED'">
@@ -157,19 +201,27 @@
         </el-table-column>
         <el-table-column label="操作" width="150" align="center">
           <template slot-scope="{ row }">
-            <el-button
+            <!-- <el-button
               v-if="row.status === 'PENDING'"
               type="text"
               size="small"
               @click="handleVoid(row)"
             >
               作废
-            </el-button>
+            </el-button> -->
             <el-button
-              v-if="row.status === 'VOIDED'"
+              v-if="row.status === 'PENDING'"
               type="text"
               size="small"
-              @click="handleRecover(row)"
+              @click="handleSuspend(row)"
+            >
+              暂停
+            </el-button>
+            <el-button
+              v-if="row.status === 'SUSPENDED'"
+              type="text"
+              size="small"
+              @click="handleResume(row)"
             >
               恢复
             </el-button>
@@ -282,6 +334,29 @@
       </div>
     </el-dialog>
 
+    <!-- 添加暂停对话框 -->
+    <el-dialog title="条码暂停" :visible.sync="suspendDialogVisible" width="40%">
+      <el-form
+        :model="suspendForm"
+        ref="suspendForm"
+        :rules="suspendRules"
+        label-width="100px"
+      >
+        <el-form-item label="暂停原因" prop="reason">
+          <el-input
+            type="textarea"
+            v-model="suspendForm.reason"
+            :rows="3"
+            placeholder="请输入暂停原因"
+          />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="suspendDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitSuspend">确定暂停</el-button>
+      </div>
+    </el-dialog>
+
     <!-- 修改批量打印对话框 -->
     <el-dialog
       title="批量打印"
@@ -316,16 +391,25 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="条码">
+                <el-form-item label="明码">
                   <el-input
                     v-model="printSearchForm.barcode"
-                    placeholder="请输入条码"
+                    placeholder="请输入明码"
                     clearable
                   ></el-input>
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="暗码">
+                  <el-input
+                    v-model="printSearchForm.printBarcode"
+                    placeholder="请输入暗码"
+                    clearable
+                  ></el-input>
+                </el-form-item>
+              </el-col>
               <el-col :span="8">
                 <el-form-item label="批次号">
                   <el-input
@@ -346,10 +430,13 @@
                     <el-option label="待使用" value="PENDING" />
                     <el-option label="已使用" value="USED" />
                     <el-option label="已作废" value="VOIDED" />
+                    <el-option label="已暂停" value="SUSPENDED" />
                   </el-select>
                 </el-form-item>
               </el-col>
-              <el-col :span="8">
+            </el-row>
+            <el-row>
+              <el-col :span="24" style="text-align: right;">
                 <el-form-item>
                   <el-button type="primary" @click="searchPrintData"
                     >查询</el-button
@@ -431,6 +518,9 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
+        transformedBarcode: "",
+        transformedPrintBarcode: "",
         status: "",
         batchNo: "",
       },
@@ -493,8 +583,21 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
         status: "PENDING", // 默认待使用状态
         batchNo: "",
+      },
+
+      // 添加暂停对话框
+      suspendDialogVisible: false,
+      suspendForm: {
+        id: "",
+        reason: "",
+      },
+      suspendRules: {
+        reason: [
+          { required: true, message: "请输入暂停原因", trigger: "blur" },
+        ],
       },
     };
   },
@@ -546,6 +649,7 @@ export default {
         PENDING: "info",
         USED: "success",
         VOIDED: "danger",
+        SUSPENDED: "warning",
       };
       return statusMap[status] || "info";
     },
@@ -556,6 +660,7 @@ export default {
         PENDING: "待使用",
         USED: "已使用",
         VOIDED: "已作废",
+        SUSPENDED: "已暂停",
       };
       return statusMap[status] || status;
     },
@@ -600,7 +705,16 @@ export default {
         };
       }
       if (this.searchForm.barcode) {
-        query.barcode = this.searchForm.barcode;
+        query.barcode = { $regex: this.searchForm.barcode, $options: "i" };
+      }
+      if (this.searchForm.printBarcode) {
+        query.printBarcode = { $regex: this.searchForm.printBarcode, $options: "i" };
+      }
+      if (this.searchForm.transformedBarcode) {
+        query.transformedBarcode = { $regex: this.searchForm.transformedBarcode, $options: "i" };
+      }
+      if (this.searchForm.transformedPrintBarcode) {
+        query.transformedPrintBarcode = { $regex: this.searchForm.transformedPrintBarcode, $options: "i" };
       }
       if (this.searchForm.status) {
         query.status = this.searchForm.status;
@@ -1296,6 +1410,9 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
+        transformedBarcode: "",
+        transformedPrintBarcode: "",
         status: "",
         batchNo: "",
       };
@@ -1403,6 +1520,9 @@ export default {
       if (this.printSearchForm.barcode) {
         query.barcode = { $regex: this.printSearchForm.barcode, $options: "i" };
       }
+      if (this.printSearchForm.printBarcode) {
+        query.printBarcode = { $regex: this.printSearchForm.printBarcode, $options: "i" };
+      }
       if (this.printSearchForm.status) {
         query.status = this.printSearchForm.status;
       }
@@ -1420,6 +1540,7 @@ export default {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
+        printBarcode: "",
         status: "PENDING", // 重置时保持默认待使用状态
         batchNo: "",
       };
@@ -1467,8 +1588,59 @@ export default {
       }
     },
 
-    // 修改 handleRecover 方法
-    async handleRecover(row) {
+    // 处理暂停条码
+    async handleSuspend(row) {
+      try {
+        // 校验条码是否为当天生成
+        const createdAt = new Date(row.createAt);
+        const today = new Date();
+        if (
+          createdAt.getFullYear() !== today.getFullYear() ||
+          createdAt.getMonth() !== today.getMonth() ||
+          createdAt.getDate() !== today.getDate()
+        ) {
+          this.$message.warning("只能暂停当天生成的条码");
+          return;
+        }
+
+        // 打开暂停对话框
+        this.suspendForm.id = row._id;
+        this.suspendForm.reason = "";
+        this.suspendDialogVisible = true;
+      } catch (error) {
+        console.error("暂停操作失败:", error);
+        this.$message.error("暂停操作失败: " + (error.message || "未知错误"));
+      }
+    },
+
+    // 添加提交暂停方法
+    async submitSuspend() {
+      try {
+        await this.$refs.suspendForm.validate();
+
+        await updateData("preProductionBarcode", {
+          query: { _id: this.suspendForm.id },
+          update: {
+            status: "SUSPENDED",
+            suspendReason: this.suspendForm.reason,
+            suspendBy: this.$store.state.user.name,
+            suspendAt: new Date(),
+            updater: this.$store.state.user.name,
+            updateAt: new Date(),
+          },
+        });
+
+        this.$message.success("暂停成功");
+        this.suspendDialogVisible = false;
+        this.fetchData();
+      } catch (error) {
+        console.error("暂停失败:", error);
+        this.$message.error("暂停失败: " + (error.message || "未知错误"));
+      }
+    },
+
+    // 处理恢复暂停的条码
+    async handleResume(row) {
       try {
         // 校验条码是否为当天生成
         const createdAt = new Date(row.createAt);
@@ -1482,33 +1654,18 @@ export default {
           return;
         }
 
-        await this.$confirm("确定要恢复这条记录吗？", "提示", {
+        await this.$confirm("确定要恢复这条暂停的记录吗？", "提示", {
           confirmButtonText: "确定",
           cancelButtonText: "取消",
           type: "warning",
         });
 
-        // 查询是否有对应的维修记录且为报废
-        const repairResult = await getData("product_repair", {
-          query: {
-            barcode: row.printBarcode,
-            solution: "报废", // 假设报废状态为 SCRAPPED
-          },
-        });
-
-        if (repairResult.data && repairResult.data.length > 0) {
-          this.$message.error("该条码已被维修报废，无法恢复");
-          return;
-        }
-
-        // 如果没有报废记录，则进行恢复
         await updateData("preProductionBarcode", {
           query: { _id: row._id },
           update: {
             status: "PENDING",
-            voidReason: null,
-            voidBy: null,
-            voidAt: null,
+            suspendBy: null,
+            suspendAt: null,
             updater: this.$store.state.user.name,
             updateAt: new Date(),
           },

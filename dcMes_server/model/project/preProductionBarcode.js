@@ -43,7 +43,7 @@ const preProductionBarcodeSchema = new mongoose.Schema({
     // 状态信息
     status: { 
         type: String, 
-        enum: ['PENDING', 'USED', 'VOIDED'], // 待使用、已使用、已作废
+        enum: ['PENDING', 'USED', 'VOIDED', 'SUSPENDED'], // 待使用、已使用、已作废、已暂停
         default: 'PENDING'
     },
     // 批次号
@@ -53,6 +53,11 @@ const preProductionBarcodeSchema = new mongoose.Schema({
     voidReason: { type: String }, // 作废原因
     voidBy: { type: String }, // 作废人
     voidAt: { type: Date }, // 作废时间
+    
+    // 暂停信息
+    suspendReason: { type: String }, // 暂停原因
+    suspendBy: { type: String }, // 暂停人
+    suspendAt: { type: Date }, // 暂停时间
     
     // 使用信息
     usedAt: { type: Date }, // 使用时间
@@ -69,7 +74,9 @@ const preProductionBarcodeSchema = new mongoose.Schema({
 // 添加索引
 preProductionBarcodeSchema.index({ workOrderNo: 1 });
 preProductionBarcodeSchema.index({ barcode: 1 });
+preProductionBarcodeSchema.index({ printBarcode: 1 });
 preProductionBarcodeSchema.index({ transformedBarcode: 1 });
+preProductionBarcodeSchema.index({ transformedPrintBarcode: 1 });
 preProductionBarcodeSchema.index({ materialNumber: 1 });
 preProductionBarcodeSchema.index({ status: 1 });
 preProductionBarcodeSchema.index({ createAt: -1 });
@@ -77,5 +84,6 @@ preProductionBarcodeSchema.index({ createAt: -1 });
 // 添加新的索引
 preProductionBarcodeSchema.index({ lineNum: 1 });
 preProductionBarcodeSchema.index({ productionLineId: 1 });
+preProductionBarcodeSchema.index({ batchNo: 1 });
 
 module.exports = mongoose.model("preProductionBarcode", preProductionBarcodeSchema); 

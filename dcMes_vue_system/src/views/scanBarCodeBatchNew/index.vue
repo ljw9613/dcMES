@@ -588,6 +588,11 @@ export default {
                         this.formData.workProductionPlanWorkOrderNo = productionPlanWorkOrderId && productionPlanWorkOrderId.workOrderNo;
                         this.workProductionPlanWorkOrderId = productionPlanWorkOrderId && productionPlanWorkOrderId._id;
                         this.workProductionPlanWorkOrderNo = productionPlanWorkOrderId && productionPlanWorkOrderId.workOrderNo;
+                        
+                        // 更新生产计划ID缓存
+                        localStorage.setItem('lastWorkProductionPlanWorkOrderId_batchNew', 
+                            productionPlanWorkOrderId && productionPlanWorkOrderId._id || '');
+                        
                         // 更新名称信息
                         this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
                         this.processName = processStepId.processName;
@@ -748,6 +753,9 @@ export default {
                 this.mainMaterialId = this.formData.productModel;
                 this.processStepId = this.formData.processStep;
                 this.productLineId = this.formData.productLine;
+                
+                // 更新生产计划ID缓存
+                localStorage.setItem('lastWorkProductionPlanWorkOrderId_batchNew', this.formData.workProductionPlanWorkOrderId || '');
 
                 // 获取并保存物料名称
                 const material = await this.getMaterialById(this.formData.productModel);
@@ -761,8 +769,6 @@ export default {
                     this.processStepData = processStep;
                     this.processName = processStep.processName;
                 }
-
-
 
                 this.$message.success('保存成功');
 
@@ -871,6 +877,24 @@ export default {
                     });
 
                     if (processMaterialsResponse.data) {
+                        // 检查生产计划是否有变化，如果有变化则清空批次物料缓存
+                        const currentPlanId = this.workProductionPlanWorkOrderId;
+                        const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_batchNew');
+                        
+                        if (currentPlanId !== storedPlanId) {
+                            console.log('生产计划已变更，清空批次物料缓存');
+                            // 清除所有批次物料缓存
+                            const keys = Object.keys(localStorage);
+                            keys.forEach(key => {
+                                if (key.startsWith('batch_')) {
+                                    localStorage.removeItem(key);
+                                    localStorage.removeItem(`${key}_usage`);
+                                }
+                            });
+                            // 更新存储的生产计划ID
+                            localStorage.setItem('lastWorkProductionPlanWorkOrderId_batchNew', currentPlanId || '');
+                        }
+                        
                         this.processMaterials = processMaterialsResponse.data;
 
                         // 收集所有物料ID（包括主物料和子物料）

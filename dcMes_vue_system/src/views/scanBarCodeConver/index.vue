@@ -500,7 +500,11 @@ export default {
             this.workProductionPlanWorkOrderNo =
               productionPlanWorkOrderId &&
               productionPlanWorkOrderId.workOrderNo;
-            // 更新���称信息
+            // 更新生产计划ID缓存
+            localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver', 
+              productionPlanWorkOrderId && productionPlanWorkOrderId._id || '');
+            
+            // 更新名称信息
             this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
             this.processName = processStepId.processName;
             if (lineId) {
@@ -732,6 +736,9 @@ export default {
         this.mainMaterialId = this.formData.productModel;
         this.processStepId = this.formData.processStep;
         this.productLineId = this.formData.productLine;
+        
+        // 更新生产计划ID缓存
+        localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver', this.formData.workProductionPlanWorkOrderId || '');
 
         // 获取并保存物料名称
         const material = await this.getMaterialById(this.formData.productModel);
@@ -793,30 +800,30 @@ export default {
     // 获取工序相关物料
     async getProcessMaterials() {
       try {
-        console.log("正在获取工序信息，ID:", this.processStepId);
+        console.log('正在获取工序信息，ID:', this.processStepId);
 
         // 获取工序信息
-        const stepResponse = await getData("processStep", {
+        const stepResponse = await getData('processStep', {
           query: { _id: this.processStepId },
           page: 1,
-          limit: 1,
+          limit: 1
         });
 
         if (!stepResponse.data || !stepResponse.data.length === 0) {
-          throw new Error("未找到工序信息");
+          throw new Error('未找到工序信息');
         }
 
         const processStep = stepResponse.data[0];
 
         // 获取该工序所属的工艺信息
-        const craftResponse = await getData("craft", {
+        const craftResponse = await getData('craft', {
           query: { _id: processStep.craftId },
           page: 1,
-          limit: 1,
+          limit: 1
         });
 
         if (!craftResponse.data || !craftResponse.data.length === 0) {
-          throw new Error("未找到工艺信息");
+          throw new Error('未找到工艺信息');
         }
 
         const craft = craftResponse.data[0];
@@ -827,7 +834,7 @@ export default {
         const material = await this.getMaterialById(craft.materialId);
 
         if (!material) {
-          throw new Error("未找到物料信息");
+          throw new Error('未找到物料信息');
         }
 
         // 更新工序对应的主物料信息
@@ -838,17 +845,35 @@ export default {
 
         // 获取工序关联的物料
         try {
-          const processMaterialsResponse = await getData("processMaterials", {
-            query: { processStepId: this.processStepId },
+          const processMaterialsResponse = await getData('processMaterials', {
+            query: { processStepId: this.processStepId }
           });
 
           if (processMaterialsResponse.data) {
+            // 检查生产计划是否有变化，如果有变化则清空批次物料缓存
+            const currentPlanId = this.workProductionPlanWorkOrderId;
+            const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_conver');
+            
+            if (currentPlanId !== storedPlanId) {
+              console.log('生产计划已变更，清空批次物料缓存');
+              // 清除所有批次物料缓存
+              const keys = Object.keys(localStorage);
+              keys.forEach(key => {
+                if (key.startsWith('batch_')) {
+                  localStorage.removeItem(key);
+                  localStorage.removeItem(`${key}_usage`);
+                }
+              });
+              // 更新存储的生产计划ID
+              localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver', currentPlanId || '');
+            }
+            
             this.processMaterials = processMaterialsResponse.data;
 
             // 收集所有物料ID（包括主物料和子物料）
             const allMaterialIds = [
               material._id, // 主物料ID
-              ...this.processMaterials.map((m) => m.materialId), // 子物料IDs
+              ...this.processMaterials.map(m => m.materialId) // 子物料IDs
             ];
 
             // 获取所有相关物料的条码规则
@@ -858,9 +883,9 @@ export default {
             this.validateStatus = { mainBarcode: false };
             this.scanForm.barcodes = {};
 
-            this.processMaterials.forEach((material) => {
+            this.processMaterials.forEach(material => {
               this.validateStatus[material._id] = false;
-              this.$set(this.scanForm.barcodes, material._id, "");
+              this.$set(this.scanForm.barcodes, material._id, '');
             });
           } else {
             this.processMaterials = [];
@@ -868,15 +893,15 @@ export default {
             this.scanForm.barcodes = {};
           }
         } catch (error) {
-          console.error("获取工序物料失败:", error);
-          this.$message.error("获取工序物料失败");
+          console.error('获取工序物料失败:', error);
+          this.$message.error('获取工序物料失败');
           this.processMaterials = [];
           this.validateStatus = { mainBarcode: false };
           this.scanForm.barcodes = {};
         }
       } catch (error) {
-        console.error("获取工序物料失败:", error);
-        this.$message.error(error.message || "获取工序物料失败");
+        console.error('获取工序物料失败:', error);
+        this.$message.error(error.message || '获取工序物料失败');
         this.processMaterials = [];
         this.validateStatus = { mainBarcode: false };
         this.scanForm.barcodes = {};
