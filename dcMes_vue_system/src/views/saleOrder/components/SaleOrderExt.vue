@@ -129,6 +129,23 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="UDI" prop="FUDI">
+                <el-input v-model="formData.FUDI"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="序列号规则" prop="FUDISerialNoRule">
+                <el-input v-model="formData.FUDISerialNoRule"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="形制" prop="FUDIType">
+                <el-input v-model="formData.FUDIType"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
         </el-card>
   
         <!-- 包装要求 -->
@@ -250,6 +267,9 @@
           FColorLabel: '',
           FColorLabelImage: '',
           FTrademark: '',
+          FUDI: '',
+          FUDISerialNoRule: '',
+          FUDIType: '',
           FPEBagReq: '',
           FBoxLabel: '',
           FBoxLabelImage: '',
@@ -274,6 +294,9 @@
           FProductColor: [{ required: true, message: '请输入产品颜色', trigger: 'blur' }],
           FColorLabel: [{ required: true, message: '请输入彩盒标贴要求', trigger: 'blur' }],
           FTrademark: [{ required: true, message: '请输入商标要求', trigger: 'blur' }],
+          FUDI: [{ required: true, message: '请输入UDI', trigger: 'blur' }],
+          FUDISerialNoRule: [{ required: true, message: '请输入序列号规则', trigger: 'blur' }],
+          FUDIType: [{ required: true, message: '请输入形制', trigger: 'blur' }],
           FPEBagReq: [{ required: true, message: '请输入PE袋要求', trigger: 'blur' }],
           FBoxLabel: [{ required: true, message: '请输入托盘标贴要求', trigger: 'blur' }],
           FBoxLabelPackage: [{ required: true, message: '请输入托盘标贴及包装方式', trigger: 'blur' }]

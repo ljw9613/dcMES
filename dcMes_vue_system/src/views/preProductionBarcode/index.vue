@@ -863,6 +863,155 @@ export default {
       }
     },
 
+    // 修改 generateSegmentValue 方法
+    async generateSegmentValue(segment, params) {
+      let basic = "";
+      let transformed = null;
+
+      switch (segment.type) {
+        case "constant":
+          basic = segment.config.constantValue;
+          // 常量类型的转换处理
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            transformed = segment.config.transformValue;
+          }
+          break;
+
+        case "fieldMapping":
+          basic = params.fieldValues[segment.config.mappingField] || "";
+          // 字段映射的转换处理
+          if (
+            segment.config.fieldMappings &&
+            segment.config.fieldMappings.length
+          ) {
+            const mapping = segment.config.fieldMappings.find(
+              (m) => m.value === basic
+            );
+            if (mapping) {
+              basic = mapping.code;
+              // 如果有转换值，使用转换值
+              if (mapping.transformValue) {
+                transformed = mapping.transformValue;
+              }
+            }
+          }
+          break;
+
+        case "date":
+          basic = this.formatDateWithMappings(params.date, segment.config);
+          // 日期类型的转换处理 - 使用相同的映射逻辑但可能有不同的转换值
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            // 创建一个新的配置对象，包含转换值
+            const transformConfig = { ...segment.config };
+            // 如果有特定的转换映射，使用它们
+            if (segment.config.transformYearMappings) {
+              transformConfig.yearMappings = segment.config.transformYearMappings;
+            }
+            if (segment.config.transformMonthMappings) {
+              transformConfig.monthMappings = segment.config.transformMonthMappings;
+            }
+            if (segment.config.transformDayMappings) {
+              transformConfig.dayMappings = segment.config.transformDayMappings;
+            }
+            transformed = this.formatDateWithMappings(params.date, transformConfig);
+          }
+          break;
+
+        case "sequence":
+          // 如果是序列号类型，且配置了按产线重置
+          if (segment.config.resetByLine) {
+            basic = this.formatSequenceWithPositionMapping(params.sequence, {
+              ...segment.config,
+              lineNum: params.fieldValues.lineNum,
+            });
+          } else {
+            basic = this.formatSequenceWithPositionMapping(
+              params.sequence,
+              segment.config
+            );
+          }
+
+          if (segment.config.enableTransform && segment.config.transformValue) {
+            // 创建一个新的配置对象用于转换
+            const transformConfig = { ...segment.config };
+            // 如果有特定的转换映射，使用它们
+            if (segment.config.transformNumberMappings) {
+              transformConfig.numberMappings = segment.config.transformNumberMappings;
+            }
+            
+            transformed = this.formatSequenceWithPositionMapping(
+              params.sequence,
+              {
+                ...transformConfig,
+                lineNum: params.fieldValues.lineNum,
+              }
+            );
+          }
+          break;
+      }
+
+      return {
+        basic,
+        transformed,
+      };
+    },
+
+    formatDateWithMappings(date, format) {
+      let value = this.formatDate(date, format.dateFormat);
+      const dateFormat = format.dateFormat || '';
+      
+      // 解析日期格式，找出年月日的位置
+      const yearPos = dateFormat.indexOf('YYYY');
+      const monthPos = dateFormat.indexOf('MM');
+      const dayPos = dateFormat.indexOf('DD');
+      
+      // 只有在格式中存在且有映射时才应用映射
+      if (yearPos !== -1 && format.yearMappings && format.yearMappings.length) {
+        const yearStr = value.substring(yearPos, yearPos + 4);
+        const mapping = format.yearMappings.find(m => m.value === yearStr);
+        if (mapping) {
+          value = value.substring(0, yearPos) + mapping.code + value.substring(yearPos + 4);
+        }
+      }
+      
+      if (monthPos !== -1 && format.monthMappings && format.monthMappings.length) {
+        const monthStr = value.substring(monthPos, monthPos + 2);
+        const mapping = format.monthMappings.find(m => m.value === monthStr);
+        if (mapping) {
+          value = value.substring(0, monthPos) + mapping.code + value.substring(monthPos + 2);
+        }
+      }
+      
+      if (dayPos !== -1 && format.dayMappings && format.dayMappings.length) {
+        const dayStr = value.substring(dayPos, dayPos + 2);
+        const mapping = format.dayMappings.find(m => m.value === dayStr);
+        if (mapping) {
+          value = value.substring(0, dayPos) + mapping.code + value.substring(dayPos + 2);
+        }
+      }
+
+      return value;
+    },
+
+    formatSequenceWithPositionMapping(sequence, config) {
+      let value = String(sequence).padStart(config.length, config.padChar);
+
+      if (config.numberMappings && config.numberMappings.length) {
+        const chars = value.split("");
+        config.numberMappings.forEach((mapping) => {
+          if (mapping.position && mapping.position <= chars.length) {
+            const pos = mapping.position - 1;
+            if (chars[pos] === mapping.value) {
+              chars[pos] = mapping.code;
+            }
+          }
+        });
+        value = chars.join("");
+      }
+
+      return value;
+    },
+
     // 修改 submitGenerate 方法中调用 generateBarcode 的部分
     async submitGenerate() {
       try {
@@ -1275,124 +1424,6 @@ export default {
         batchNo: "",
       };
       this.searchPrintData();
-    },
-
-    async generateSegmentValue(segment, params) {
-      let basic = "";
-      let transformed = null;
-
-      switch (segment.type) {
-        case "constant":
-          basic = segment.config.constantValue;
-          // 常量类型的转换处理
-          if (segment.config.enableTransform && segment.config.transformValue) {
-            transformed = segment.config.transformValue;
-          }
-          break;
-
-        case "fieldMapping":
-          basic = params.fieldValues[segment.config.mappingField] || "";
-          // 字段映射的转换处理
-          if (
-            segment.config.fieldMappings &&
-            segment.config.fieldMappings.length
-          ) {
-            const mapping = segment.config.fieldMappings.find(
-              (m) => m.value === basic
-            );
-            if (mapping) {
-              basic = mapping.code;
-              // 如果有转换值，使用转换值
-              if (mapping.transformValue) {
-                transformed = mapping.transformValue;
-              }
-            }
-          }
-          break;
-
-        case "date":
-          basic = this.formatDateWithMappings(params.date, segment.config);
-          // 日期类型的转换处理
-          if (segment.config.enableTransform && segment.config.transformValue) {
-            transformed = this.formatDateWithMappings(params.date, {
-              ...segment.config,
-              transformValue: segment.config.transformValue,
-            });
-          }
-          break;
-
-        case "sequence":
-          // 如果是序列号类型，且配置了按产线重置
-          if (segment.config.resetByLine) {
-            basic = this.formatSequenceWithPositionMapping(params.sequence, {
-              ...segment.config,
-              lineNum: params.fieldValues.lineNum,
-            });
-          } else {
-            basic = this.formatSequenceWithPositionMapping(
-              params.sequence,
-              segment.config
-            );
-          }
-
-          if (segment.config.enableTransform && segment.config.transformValue) {
-            transformed = this.formatSequenceWithPositionMapping(
-              params.sequence,
-              {
-                ...segment.config,
-                transformValue: segment.config.transformValue,
-                lineNum: params.fieldValues.lineNum,
-              }
-            );
-          }
-          break;
-      }
-
-      return {
-        basic,
-        transformed,
-      };
-    },
-
-    formatDateWithMappings(date, format) {
-      let value = this.formatDate(date, format.dateFormat);
-
-      if (format.yearMappings && format.yearMappings.length) {
-        value = this.applyNumberMappings(value, format.yearMappings);
-      }
-      if (format.monthMappings && format.monthMappings.length) {
-        value = this.applyNumberMappings(value, format.monthMappings);
-      }
-      if (format.dayMappings && format.dayMappings.length) {
-        value = this.applyNumberMappings(value, format.dayMappings);
-      }
-
-      return value;
-    },
-
-    applyNumberMappings(value, mappings) {
-      return mappings.reduce((result, mapping) => {
-        return result.replace(mapping.value, mapping.code);
-      }, value);
-    },
-
-    formatSequenceWithPositionMapping(sequence, config) {
-      let value = String(sequence).padStart(config.length, config.padChar);
-
-      if (config.numberMappings && config.numberMappings.length) {
-        const chars = value.split("");
-        config.numberMappings.forEach((mapping) => {
-          if (mapping.position && mapping.position <= chars.length) {
-            const pos = mapping.position - 1;
-            if (chars[pos] === mapping.value) {
-              chars[pos] = mapping.code;
-            }
-          }
-        });
-        value = chars.join("");
-      }
-
-      return value;
     },
 
     // 修改 executeBatchPrint 方法

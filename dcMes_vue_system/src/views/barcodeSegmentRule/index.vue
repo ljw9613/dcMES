@@ -1035,15 +1035,36 @@ export default {
 
     formatDateWithMappings(date, format) {
       let value = this.formatDate(date, format.dateFormat)
-
-      if (format.yearMappings && format.yearMappings.length) {
-        value = this.applyNumberMappings(value, format.yearMappings)
+      const dateFormat = format.dateFormat || '';
+      
+      // 解析日期格式，找出年月日的位置
+      const yearPos = dateFormat.indexOf('YYYY');
+      const monthPos = dateFormat.indexOf('MM');
+      const dayPos = dateFormat.indexOf('DD');
+      
+      // 只有在格式中存在且有映射时才应用映射
+      if (yearPos !== -1 && format.yearMappings && format.yearMappings.length) {
+        const yearStr = value.substring(yearPos, yearPos + 4);
+        const mapping = format.yearMappings.find(m => m.value === yearStr);
+        if (mapping) {
+          value = value.substring(0, yearPos) + mapping.code + value.substring(yearPos + 4);
+        }
       }
-      if (format.monthMappings && format.monthMappings.length) {
-        value = this.applyNumberMappings(value, format.monthMappings)
+      
+      if (monthPos !== -1 && format.monthMappings && format.monthMappings.length) {
+        const monthStr = value.substring(monthPos, monthPos + 2);
+        const mapping = format.monthMappings.find(m => m.value === monthStr);
+        if (mapping) {
+          value = value.substring(0, monthPos) + mapping.code + value.substring(monthPos + 2);
+        }
       }
-      if (format.dayMappings && format.dayMappings.length) {
-        value = this.applyNumberMappings(value, format.dayMappings)
+      
+      if (dayPos !== -1 && format.dayMappings && format.dayMappings.length) {
+        const dayStr = value.substring(dayPos, dayPos + 2);
+        const mapping = format.dayMappings.find(m => m.value === dayStr);
+        if (mapping) {
+          value = value.substring(0, dayPos) + mapping.code + value.substring(dayPos + 2);
+        }
       }
 
       return value

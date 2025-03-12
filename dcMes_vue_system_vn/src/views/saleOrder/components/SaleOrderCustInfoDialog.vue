@@ -12,7 +12,7 @@
       <el-table-column prop="FCustPO" label="客户PO号" min-width="120"></el-table-column>
       <el-table-column prop="FCustPOLineNo" label="客户PO行号" min-width="100"></el-table-column>
       <el-table-column prop="FSapId" label="SAP ID" min-width="120"></el-table-column>
-      <el-table-column prop="FPurchaseOrderNo" label="采购订单号" min-width="120"></el-table-column>
+      <el-table-column prop="FPurchaseOrderNo" label="采购订单号（客户）" min-width="150"></el-table-column>
       <el-table-column prop="FStatus" label="状态" width="100">
         <template slot-scope="scope">
           <el-tag :type="scope.row.FStatus === 'ENABLE' ? 'success' : 'info'">
@@ -53,7 +53,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="采购订单号" prop="FPurchaseOrderNo">
+            <el-form-item label="采购订单号（客户）" prop="FPurchaseOrderNo">
               <el-input v-model="formData.FPurchaseOrderNo" clearable></el-input>
             </el-form-item>
           </el-col>

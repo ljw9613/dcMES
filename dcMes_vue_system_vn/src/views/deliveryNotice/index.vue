@@ -83,6 +83,16 @@
                                     </el-tooltip>
                                 </template>
                             </el-table-column>
+                            <el-table-column label="销售订单编号" min-width="120">
+                                <template slot-scope="scope">
+                                    {{ scope.row.FOrderNo || '-' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="销售订单行号" min-width="120">
+                                <template slot-scope="scope">
+                                    {{ scope.row.FOrderSeq || '-' }}
+                                </template>
+                            </el-table-column>
                             <el-table-column label="物料名称" min-width="150">
                                 <template slot-scope="scope">
                                     {{ getMaterialName(scope.row.FMaterialID) }}
