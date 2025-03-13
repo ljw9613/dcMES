@@ -17,7 +17,7 @@ const {
   syncOutStockData,
   SyncTask,
   syncTasks
-} = require("../routes/K3asyncData"); // 请根据实际路径调整
+} = require("../services/syncServices"); // 请根据实际路径调整
 
 // 定时任务: 每天凌晨3点执行生产条码过期处理
 const productionBarcodeExpirationTask = async () => {
