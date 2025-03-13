@@ -854,7 +854,7 @@ export default {
             const currentPlanId = this.workProductionPlanWorkOrderId;
             const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_conver');
             
-            if (currentPlanId !== storedPlanId) {
+            if (currentPlanId && currentPlanId !== storedPlanId) {
               console.log('生产计划已变更，清空批次物料缓存');
               // 清除所有批次物料缓存
               const keys = Object.keys(localStorage);
