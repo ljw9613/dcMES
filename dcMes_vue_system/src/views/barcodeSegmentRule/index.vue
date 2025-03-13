@@ -326,6 +326,7 @@
                     <el-option label="产品编码" value="productCode" />
                     <el-option label="批次号" value="batchNo" /> -->
                     <el-option label="客户PO号" value="custPO" />
+                    <el-option label="客户行号" value="custPOLineNo" />
                   </el-option-group>
                   <el-option-group label="生产信息">
                     <!-- <el-option label="工厂" value="factory" /> -->
