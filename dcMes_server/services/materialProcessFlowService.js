@@ -554,62 +554,12 @@ class MaterialProcessFlowService {
             );
           }
 
-          // 将subFlowRecord.processNodes对应物料扫码状态匹配给flowRecord.processNodes
-          for await (const subNode of subFlowRecord.processNodes) {
-            if (subNode.nodeType === "MATERIAL") {
-              const matchingNodeIndex = flowRecord.processNodes.findIndex(
-                (node) =>
-                  node.materialId &&
-                  node.materialId.toString() === subNode.materialId.toString()
-              );
-
-              if (matchingNodeIndex !== -1) {
-                flowRecord.processNodes[matchingNodeIndex].barcode =
-                  subNode.barcode;
-                if (
-                  subNode.barcode.includes("-") &&
-                  subNode.barcode.length < 30
-                ) {
-                  flowRecord.processNodes[matchingNodeIndex].relatedBill =
-                    subNode.barcode.split("-")[1];
-                }
-                flowRecord.processNodes[matchingNodeIndex].scanTime =
-                  subNode.scanTime;
-                flowRecord.processNodes[matchingNodeIndex].endTime =
-                  subNode.endTime;
-                flowRecord.processNodes[matchingNodeIndex].status =
-                  subNode.status;
-                flowRecord.processNodes[matchingNodeIndex].updateBy = userId;
-              }
-            }
-            if (subNode.nodeType === "PROCESS_STEP") {
-              const matchingNodeIndex = flowRecord.processNodes.findIndex(
-                (node) =>
-                  node.processStepId &&
-                  node.processStepId.toString() ===
-                    subNode.processStepId.toString()
-              );
-
-              if (matchingNodeIndex !== -1) {
-                flowRecord.processNodes[matchingNodeIndex].barcode =
-                  subNode.barcode;
-                if (
-                  subNode.barcode.includes("-") &&
-                  subNode.barcode.length < 30
-                ) {
-                  flowRecord.processNodes[matchingNodeIndex].relatedBill =
-                    subNode.barcode.split("-")[1];
-                }
-                flowRecord.processNodes[matchingNodeIndex].scanTime =
-                  subNode.scanTime;
-                flowRecord.processNodes[matchingNodeIndex].endTime =
-                  subNode.endTime;
-                flowRecord.processNodes[matchingNodeIndex].status =
-                  subNode.status;
-                flowRecord.processNodes[matchingNodeIndex].updateBy = userId;
-              }
-            }
-          }
+          // 修改：使用递归函数处理多层级节点匹配
+          await this.matchAndUpdateNodesRecursively(
+            flowRecord.processNodes,
+            subFlowRecord.processNodes,
+            userId
+          );
         }
       }
 
@@ -849,6 +799,59 @@ class MaterialProcessFlowService {
     } catch (error) {
       console.error("扫描批次单据失败:", error);
       throw error;
+    }
+  }
+
+  // 新增递归匹配方法
+  static async matchAndUpdateNodesRecursively(targetNodes, sourceNodes, userId) {
+    // 1. 首先匹配相同materialId的物料节点
+    for (const sourceNode of sourceNodes) {
+      if (sourceNode.nodeType === "MATERIAL") {
+        const matchingNodes = targetNodes.filter(
+          node => 
+            node.materialId && 
+            node.materialCode === sourceNode.materialCode &&
+            node.materialId.toString() === sourceNode.materialId.toString()
+        );
+        
+        // 对找到的每个匹配节点进行更新
+        for (const targetNode of matchingNodes) {
+          // 仅当目标节点状态为PENDING且源节点已完成时更新
+          if (targetNode.status === "PENDING" && sourceNode.status === "COMPLETED") {
+            targetNode.barcode = sourceNode.barcode;
+            if (sourceNode.barcode.includes("-") && sourceNode.barcode.length < 30) {
+              targetNode.relatedBill = sourceNode.barcode.split("-")[1];
+            }
+            targetNode.scanTime = sourceNode.scanTime;
+            targetNode.endTime = sourceNode.endTime;
+            targetNode.status = sourceNode.status;
+            targetNode.updateBy = userId;
+          }
+        }
+      }
+      
+      // 2. 匹配相同processStepId的工序节点
+      if (sourceNode.nodeType === "PROCESS_STEP") {
+        const matchingNodes = targetNodes.filter(
+          node => 
+            node.processStepId && 
+            node.processCode === sourceNode.processCode &&
+            node.processStepId.toString() === sourceNode.processStepId.toString()
+        );
+        
+        for (const targetNode of matchingNodes) {
+          if (targetNode.status === "PENDING" && sourceNode.status === "COMPLETED") {
+            targetNode.barcode = sourceNode.barcode;
+            if (sourceNode.barcode.includes("-") && sourceNode.barcode.length < 30) {
+              targetNode.relatedBill = sourceNode.barcode.split("-")[1];
+            }
+            targetNode.scanTime = sourceNode.scanTime;
+            targetNode.endTime = sourceNode.endTime;
+            targetNode.status = sourceNode.status;
+            targetNode.updateBy = userId;
+          }
+        }
+      }
     }
   }
 
