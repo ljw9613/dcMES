@@ -43,8 +43,8 @@
                         <el-form-item label="厂区名称">
                             <el-select v-model="searchForm.factoryName" placeholder="请选择厂区名称" clearable
                                 style="width: 100%" :popper-append-to-body="true">
-                                <el-option v-for="dict in dict.type.factoryName_type" :key="dict.value" :label="dict.label"
-                                    :value="dict.value" />
+                                <el-option v-for="dict in dict.type.factoryName_type" :key="dict.value"
+                                    :label="dict.label" :value="dict.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -58,12 +58,10 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="设备状态">
-                            <el-select v-model="searchForm.status" placeholder="请选择设备状态" clearable
-                                style="width: 100%" :popper-append-to-body="true">
-                                <el-option :label="'在线'"
-                                    :value="true" />
-                                <el-option :label="'离线'"
-                                    :value="false" />
+                            <el-select v-model="searchForm.status" placeholder="请选择设备状态" clearable style="width: 100%"
+                                :popper-append-to-body="true">
+                                <el-option :label="'在线'" :value="true" />
+                                <el-option :label="'离线'" :value="false" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -126,6 +124,16 @@
                     </template>
                 </el-table-column>
 
+                <el-table-column label="关联类型">
+                    <template slot-scope="scope">
+                        <el-tooltip :content="getRelationshipTooltip(scope.row)">
+                            <el-tag :type="getRelationshipType(scope.row)">
+                                {{ getRelationshipLabel(scope.row) }}
+                            </el-tag>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+
                 <el-table-column label="当前工单" prop="productionPlanWorkOrderId">
                     <template slot-scope="scope">
                         <el-tooltip
@@ -133,7 +141,7 @@
                             <el-tag type="warning">{{ scope.row.productionPlanWorkOrderId ?
                                 (scope.row.productionPlanWorkOrderId.workOrderNo +
                                     '-' + scope.row.productionPlanWorkOrderId.planQuantity).substring(0, 10) + '...' : '-'
-                                }}</el-tag>
+                            }}</el-tag>
                         </el-tooltip>
                     </template>
                 </el-table-column>
@@ -144,11 +152,11 @@
 
                 <el-table-column label="设备IP" prop="machineIp" width="150" />
                 <el-table-column label="厂区名称" prop="factoryName" width="150" />
-                
+
                 <el-table-column label="设备在线状态">
                     <template slot-scope="scope">
                         <el-tag :type="scope.row.status ? 'success' : 'danger'">{{ scope.row.status ? '在线' : '离线'
-                            }}</el-tag>
+                        }}</el-tag>
                     </template>
                 </el-table-column>
 
@@ -189,7 +197,7 @@ import { refreshMachine } from "@/api/machine";
 
 export default {
     name: 'machine',
-    dicts: ['machine_type','factoryName_type'],
+    dicts: ['machine_type', 'factoryName_type'],
     components: {
         EditDialog
     },
@@ -219,15 +227,6 @@ export default {
         }
     },
     methods: {
-        getStatusType(status) {
-            const statusMap = {
-                '运行中': 'success',
-                '停机': 'warning',
-                '故障': 'danger',
-                '离线': 'info'
-            }
-            return statusMap[status] || 'info'
-        },
 
         searchData() {
             let req = {
@@ -237,19 +236,19 @@ export default {
             };
 
             Object.keys(this.searchForm).forEach(key => {
-                if(key === 'status'){
-                    if(this.searchForm[key]){
-                        req.query.$and.push({
-                            status:  this.searchForm[key] 
-                        });
-                    }
-                }else if(key === 'lineId'){
+                if (key === 'status') {
                     if (this.searchForm[key]) {
                         req.query.$and.push({
-                            lineId:  this.searchForm[key] 
+                            status: this.searchForm[key]
                         });
                     }
-                }else{
+                } else if (key === 'lineId') {
+                    if (this.searchForm[key]) {
+                        req.query.$and.push({
+                            lineId: this.searchForm[key]
+                        });
+                    }
+                } else {
                     if (this.searchForm[key]) {
                         req.query.$and.push({
                             [key]: { $regex: this.searchForm[key], $options: 'i' }
@@ -268,13 +267,48 @@ export default {
         async fetchData() {
             this.listLoading = true;
             try {
-                let req = this.searchData();
-                req.skip = (this.currentPage - 1) * this.pageSize;
-                req.limit = this.pageSize;
-                req.count = true;
-                req.populate = JSON.stringify([{ path: 'processStepId', select: 'processName processCode' }, { path: 'productionPlanWorkOrderId', select: 'workOrderNo planQuantity' }]);
-                req.sort = JSON.stringify({ createTime: -1 });
-                const result = await getData("machine", req);
+                let query = {};
+                if (this.searchForm.machineName) {
+                    query.machineName = { $regex: this.searchForm.machineName, $options: 'i' };
+                }
+                if (this.searchForm.machineCode) {
+                    query.machineCode = { $regex: this.searchForm.machineCode, $options: 'i' };
+                }
+                if (this.searchForm.machineIp) {
+                    query.machineIp = { $regex: this.searchForm.machineIp, $options: 'i' };
+                }
+                if (this.searchForm.principal) {
+                    query.principal = { $regex: this.searchForm.principal, $options: 'i' };
+                }
+                if (this.searchForm.machineType) {
+                    query.machineType = this.searchForm.machineType;
+                }
+                if (this.searchForm.factoryName) {
+                    query.factoryName = this.searchForm.factoryName;
+                }
+                if (this.searchForm.lineId) {
+                    query.lineId = this.searchForm.lineId;
+                }
+                if (this.searchForm.status !== undefined && this.searchForm.status !== null && this.searchForm.status !== '') {
+                    query.status = this.searchForm.status;
+                }
+
+                const params = {
+                    query: query,
+                    page: this.currentPage,
+                    skip: (this.currentPage - 1) * this.pageSize,
+                    limit: this.pageSize,
+                    sort: { createTime: -1 },
+                    populate: JSON.stringify([
+                        {
+                            path: 'processStepId',
+                        },
+                        { path: 'productionPlanWorkOrderId' }
+                    ]),
+                    count: true
+                };
+
+                const result = await getData('machine', params);
                 this.tableList = result.data;
                 this.total = result.countnum;
             } catch (error) {
@@ -451,7 +485,58 @@ export default {
                     bookType: 'xlsx'
                 });
             });
-        }
+        },
+
+        // 获取设备与工序的关联类型
+        getRelationshipType(row) {
+            if (!row.processStepId) return 'info';
+
+            // 检查是否为主设备
+            if (row.processStepId.machineId && row.processStepId.machineId._id === row._id) {
+                return 'success';
+            }
+
+            // 检查是否为关联设备
+            if (row.processStepId.machineIds && row.processStepId.machineIds.some(m => m._id === row._id)) {
+                return 'primary';
+            }
+
+            return 'info';
+        },
+
+        // 获取设备与工序的关联标签
+        getRelationshipLabel(row) {
+            if (!row.processStepId) return '未关联';
+
+            // 检查是否为主设备
+            if (row.processStepId.machineId && row.processStepId.machineId._id === row._id) {
+                return '主检验设备';
+            }
+
+            // 检查是否为关联设备
+            if (row.processStepId.machineIds && row.processStepId.machineIds.some(m => m._id === row._id)) {
+                return '关联设备';
+            }
+
+            return '未关联';
+        },
+
+        // 获取设备与工序的关联提示
+        getRelationshipTooltip(row) {
+            if (!row.processStepId) return '该设备未关联任何工序';
+
+            // 检查是否为主设备
+            if (row.processStepId.machineId && row.processStepId.machineId._id === row._id) {
+                return `主检验设备 - ${row.processStepId.processName}(${row.processStepId.processCode})`;
+            }
+
+            // 检查是否为关联设备
+            if (row.processStepId.machineIds && row.processStepId.machineIds.some(m => m._id === row._id)) {
+                return `关联设备 - ${row.processStepId.processName}(${row.processStepId.processCode})`;
+            }
+
+            return '该设备未关联任何工序';
+        },
     },
     created() {
         this.fetchData();

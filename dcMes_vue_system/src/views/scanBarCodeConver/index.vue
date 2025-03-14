@@ -93,8 +93,8 @@
               <span>条码扫描</span>
               <el-button type="text" @click="toggleCollapse">
                 <i :class="isCollapsed
-                    ? 'el-icon-d-arrow-right'
-                    : 'el-icon-d-arrow-left'
+                  ? 'el-icon-d-arrow-right'
+                  : 'el-icon-d-arrow-left'
                   "></i>
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
@@ -157,8 +157,8 @@
                     class="vertical-form-item">
                     <div class="input-with-status">
                       <el-input v-model="scanForm.barcodes[material._id]" :placeholder="!material.scanOperation
-                          ? '无需扫码'
-                          : '请扫描子物料条码'
+                        ? '无需扫码'
+                        : '请扫描子物料条码'
                         " :class="{ 'valid-input': validateStatus[material._id] }" :readonly="material.scanOperation"
                         :disabled="!material.scanOperation">
                         <template slot="prefix">
@@ -286,7 +286,6 @@ export default {
       loading: false, // 加载状态
       unifiedScanInput: "", // 新增统一扫描输入框的值
       hasEditPermission: false, // 添加权限控制状态
-      scanTimer: null, // 添加定时器属性
       batchMaterialCache: {}, // 新增：用于存储批次物料缓存
       printDialogVisible: false,
       currentBatchBarcode: "", // 当前要打印的批次条码
@@ -501,9 +500,9 @@ export default {
               productionPlanWorkOrderId &&
               productionPlanWorkOrderId.workOrderNo;
             // 更新生产计划ID缓存
-            localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver', 
+            localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver',
               productionPlanWorkOrderId && productionPlanWorkOrderId._id || '');
-            
+
             // 更新名称信息
             this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
             this.processName = processStepId.processName;
@@ -736,7 +735,7 @@ export default {
         this.mainMaterialId = this.formData.productModel;
         this.processStepId = this.formData.processStep;
         this.productLineId = this.formData.productLine;
-        
+
         // 更新生产计划ID缓存
         localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver', this.formData.workProductionPlanWorkOrderId || '');
 
@@ -853,7 +852,7 @@ export default {
             // 检查生产计划是否有变化，如果有变化则清空批次物料缓存
             const currentPlanId = this.workProductionPlanWorkOrderId;
             const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_conver');
-            
+
             if (currentPlanId && currentPlanId !== storedPlanId) {
               console.log('生产计划已变更，清空批次物料缓存');
               // 清除所有批次物料缓存
@@ -867,7 +866,7 @@ export default {
               // 更新存储的生产计划ID
               localStorage.setItem('lastWorkProductionPlanWorkOrderId_conver', currentPlanId || '');
             }
-            
+
             this.processMaterials = processMaterialsResponse.data;
 
             // 收集所有物料ID（包括主物料和子物料）
@@ -1239,9 +1238,6 @@ export default {
     async handleUnifiedScan(value) {
       if (!value) return;
 
-      if (this.scanTimer) {
-        clearTimeout(this.scanTimer);
-      }
 
       // 检查打印模板
       if (!this.$refs.hirInput.selectedTemplate) {
@@ -1251,111 +1247,109 @@ export default {
         return;
       }
 
-      this.scanTimer = setTimeout(async () => {
-        try {
-          const cleanValue = value.trim().replace(/[\r\n]/g, "");
-          if (!cleanValue) return;
+      try {
+        const cleanValue = value.trim().replace(/[\r\n]/g, "");
+        if (!cleanValue) return;
 
-          const isValidResult = await this.validateBarcode(cleanValue);
-          if (!isValidResult.isValid) {
-            this.popupType = "ng";
-            this.showPopup = true;
-            setTimeout(() => {
-              tone(tmyw);
-            }, 300);
-            this.$notify({
-              title: "条码验证失败",
-              message: "条码格式不正确,未在系统中注册",
-              type: "error",
-              duration: 3000,
-              position: "top-right",
-            });
-            this.unifiedScanInput = "";
-            this.$refs.scanInput.focus();
-            return;
-          }
-
-          const materialCode = isValidResult.materialCode;
-
-          // 检查是否匹配主物料
-          if (materialCode === this.mainMaterialCode) {
-            // 设置主条码
-            this.scanForm.mainBarcode = cleanValue;
-            this.validateStatus.mainBarcode = true;
-            await this.handleMainBarcode(cleanValue);
-
-            // 获取转化后的条码（如果启用了转化模式）
-            let transformedBarcode = cleanValue;
-            if (this.enableConversion) {
-              const prePrintData = await getData("preProductionBarcode", {
-                query: { printBarcode: cleanValue },
-              });
-              if (prePrintData.data && prePrintData.data.length > 0) {
-                transformedBarcode =
-                  prePrintData.data[0].transformedPrintBarcode || cleanValue;
-              }
-            }
-
-            // 自动填充所有子物料条码
-            this.processMaterials.forEach((material) => {
-              if (material.scanOperation) {
-                this.$set(
-                  this.scanForm.barcodes,
-                  material._id,
-                  transformedBarcode
-                );
-                this.$set(this.validateStatus, material._id, true);
-              }
-            });
-
-            tone(smcg);
-            this.$notify({
-              title: "扫描成功",
-              dangerouslyUseHTMLString: true,
-              message: `
-                                <div style="line-height: 1.5">
-                                    <div>物料名称: ${this.mainMaterialName
-                }</div>
-                                    <div>物料编码: ${materialCode}</div>
-                                    <div>条码: ${cleanValue}</div>
-                                    ${this.enableConversion
-                  ? `<div>转化条码: ${transformedBarcode}</div>`
-                  : ""
-                }
-                                </div>
-                            `,
-              type: "success",
-              duration: 3000,
-              position: "top-right",
-            });
-
-            // 所有条码都已扫描完成，自动提交
-            await this.handleConfirm();
-          } else {
-            this.$message.error("条码不匹配主物料");
-            this.popupType = "ng";
-            this.showPopup = true;
-            setTimeout(() => {
-              tone(tmyw);
-            }, 300);
-          }
-        } catch (error) {
-          console.error("扫描处理失败:", error);
+        const isValidResult = await this.validateBarcode(cleanValue);
+        if (!isValidResult.isValid) {
+          this.popupType = "ng";
+          this.showPopup = true;
           setTimeout(() => {
             tone(tmyw);
-          }, 1000);
+          }, 300);
           this.$notify({
-            title: "扫描失败",
-            message: error.message || "扫描处理失败",
+            title: "条码验证失败",
+            message: "条码格式不正确,未在系统中注册",
             type: "error",
             duration: 3000,
             position: "top-right",
           });
-        } finally {
           this.unifiedScanInput = "";
           this.$refs.scanInput.focus();
+          return;
         }
-      }, 1000);
+
+        const materialCode = isValidResult.materialCode;
+
+        // 检查是否匹配主物料
+        if (materialCode === this.mainMaterialCode) {
+          // 设置主条码
+          this.scanForm.mainBarcode = cleanValue;
+          this.validateStatus.mainBarcode = true;
+          await this.handleMainBarcode(cleanValue);
+
+          // 获取转化后的条码（如果启用了转化模式）
+          let transformedBarcode = cleanValue;
+          if (this.enableConversion) {
+            const prePrintData = await getData("preProductionBarcode", {
+              query: { printBarcode: cleanValue },
+            });
+            if (prePrintData.data && prePrintData.data.length > 0) {
+              transformedBarcode =
+                prePrintData.data[0].transformedPrintBarcode || cleanValue;
+            }
+          }
+
+          // 自动填充所有子物料条码
+          this.processMaterials.forEach((material) => {
+            if (material.scanOperation) {
+              this.$set(
+                this.scanForm.barcodes,
+                material._id,
+                transformedBarcode
+              );
+              this.$set(this.validateStatus, material._id, true);
+            }
+          });
+
+          tone(smcg);
+          this.$notify({
+            title: "扫描成功",
+            dangerouslyUseHTMLString: true,
+            message: `
+                                <div style="line-height: 1.5">
+                                    <div>物料名称: ${this.mainMaterialName
+              }</div>
+                                    <div>物料编码: ${materialCode}</div>
+                                    <div>条码: ${cleanValue}</div>
+                                    ${this.enableConversion
+                ? `<div>转化条码: ${transformedBarcode}</div>`
+                : ""
+              }
+                                </div>
+                            `,
+            type: "success",
+            duration: 3000,
+            position: "top-right",
+          });
+
+          // 所有条码都已扫描完成，自动提交
+          await this.handleConfirm();
+        } else {
+          this.$message.error("条码不匹配主物料");
+          this.popupType = "ng";
+          this.showPopup = true;
+          setTimeout(() => {
+            tone(tmyw);
+          }, 300);
+        }
+      } catch (error) {
+        console.error("扫描处理失败:", error);
+        setTimeout(() => {
+          tone(tmyw);
+        }, 1000);
+        this.$notify({
+          title: "扫描失败",
+          message: error.message || "扫描处理失败",
+          type: "error",
+          duration: 3000,
+          position: "top-right",
+        });
+      } finally {
+        this.unifiedScanInput = "";
+        this.$refs.scanInput.focus();
+      }
     },
 
     // 新增获取焦点方法
@@ -2012,9 +2006,6 @@ export default {
   },
   // 组件销毁时清除定时器
   beforeDestroy() {
-    if (this.scanTimer) {
-      clearTimeout(this.scanTimer);
-    }
 
     // 关闭WebSocket连接
     if (this.ws) {

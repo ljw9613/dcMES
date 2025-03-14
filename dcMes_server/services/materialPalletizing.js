@@ -291,6 +291,15 @@ class MaterialPalletizingService {
           );
         }
 
+        // 减少工单产出量 - 解绑箱中每个条码减少一个产出量
+        if (pallet.productionPlanWorkOrderId) {
+          await materialProcessFlowService.updateWorkOrderQuantity(
+            pallet.productionPlanWorkOrderId.toString(),
+            "output",
+            -boxItem.boxBarcodes.length // 负数表示减少产出量
+          );
+        }
+
         // 2. 从托盘条码列表中移除箱内所有条码
         pallet.palletBarcodes = pallet.palletBarcodes.filter(
           (pb) => !boxItem.boxBarcodes.some((bb) => bb.barcode === pb.barcode)
@@ -353,6 +362,15 @@ class MaterialPalletizingService {
               true // 不解绑后续工序
             );
           }
+        }
+
+        // 减少工单产出量 - 解绑单个条码减少一个产出量
+        if (pallet.productionPlanWorkOrderId) {
+          await materialProcessFlowService.updateWorkOrderQuantity(
+            pallet.productionPlanWorkOrderId.toString(),
+            "output",
+            -1 // 负数表示减少产出量
+          );
         }
 
         // 2. 从托盘条码列表中移除
@@ -437,6 +455,15 @@ class MaterialPalletizingService {
         );
       }
 
+      // 减少工单产出量 - 解绑托盘中所有条码减少相应产出量
+      if (pallet.productionPlanWorkOrderId && pallet.barcodeCount > 0) {
+        await materialProcessFlowService.updateWorkOrderQuantity(
+          pallet.productionPlanWorkOrderId.toString(),
+          "output",
+          -pallet.barcodeCount // 负数表示减少产出量
+        );
+      }
+
       // 2. 清空托盘条码列表和箱记录
       pallet.palletBarcodes = [];
       pallet.boxItems = [];
@@ -476,6 +503,11 @@ class MaterialPalletizingService {
       
       if (!originalPallet) {
         throw new Error("未找到原托盘记录");
+      }
+
+      // 检查原托盘的出入库状态
+      if (originalPallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+        throw new Error("已出库的托盘不可拆分");
       }
 
       // 2. 验证所有条码是否存在于原托盘
@@ -610,12 +642,44 @@ class MaterialPalletizingService {
       });
       
       updatedOriginalPallet.boxCount = updatedOriginalPallet.boxItems.length;
+      
+      // 减少原托盘的总数量(totalQuantity)，减少的数量等于拆分出去的条码数量
+      updatedOriginalPallet.totalQuantity -= barcodes.length;
+      
+      // 根据剩余条码数量与更新后的总数量比较，确定组托状态
+      if (updatedOriginalPallet.barcodeCount === updatedOriginalPallet.totalQuantity) {
+        updatedOriginalPallet.status = "STACKED"; // 组托完成
+      } else {
+        updatedOriginalPallet.status = "STACKING"; // 组托中
+      }
+      
       await updatedOriginalPallet.save();
 
       // 11. 处理入库单中的关联关系
       await this.updateWarehouseEntryAfterSplit(originalPalletCode, newPalletCode, barcodes);
 
-      // 12. 创建拆分日志记录
+      // 12. 处理工单产出量
+      // 在拆分托盘的情况下，不需要减少总产出量，因为条码只是从一个托盘移动到另一个
+      // 但由于系统可能是通过托盘数量来跟踪产出量，我们需要更新工单记录
+      // 对于原托盘，减去移出的条码数量
+      // if (originalPallet.productionPlanWorkOrderId) {
+      //   await materialProcessFlowService.updateWorkOrderQuantity(
+      //     originalPallet.productionPlanWorkOrderId.toString(),
+      //     "output",
+      //     -barcodes.length // 从原托盘中减去的数量
+      //   );
+      // }
+      
+      // // 对于新托盘，添加新增的条码数量
+      // if (newPallet.productionPlanWorkOrderId) {
+      //   await materialProcessFlowService.updateWorkOrderQuantity(
+      //     newPallet.productionPlanWorkOrderId.toString(),
+      //     "output",
+      //     barcodes.length // 添加到新托盘的数量
+      //   );
+      // }
+
+      // 13. 创建拆分日志记录
       // await MaterialPalletizingUnbindLog.create({
       //   palletCode: originalPalletCode,
       //   unbindType: "SPLIT",

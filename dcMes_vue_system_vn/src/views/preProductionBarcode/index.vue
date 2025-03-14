@@ -573,7 +573,7 @@ export default {
                 ]);
 
                 // 计算剩余可生成数量
-                this.maxQuantity = workOrder.planQuantity - (countResult.countnum || 0);
+                this.maxQuantity = workOrder.planProductionQuantity - (countResult.countnum || 0);
 
                 // 设置起始序号为最大序号+1或1
                 this.generateForm.startNumber = maxSerialResult.data && maxSerialResult.data.length > 0
@@ -770,19 +770,46 @@ export default {
                     }
                 }
 
-                // 检查条码是否已存在（排除已作废的）
-                const existingBarcodes = await getData('preProductionBarcode', {
-                    query: {
-                        $or: [
-                            { barcode: { $in: barcodes.map(item => item.barcode) } },
-                            { transformedBarcode: { $in: barcodes.map(item => item.transformedBarcode).filter(Boolean) } }
-                        ],
-                        status: { $ne: 'VOIDED' }
+                // 检查条码是否已存在（排除已作废的）- 分批次查询
+                const batchSize = 100;
+                let allExistingBarcodes = { data: [] };
+                
+                // 常规条码批次查询
+                const normalBarcodes = barcodes.map(item => item.barcode);
+                for (let i = 0; i < normalBarcodes.length; i += batchSize) {
+                    const batchBarcodes = normalBarcodes.slice(i, i + batchSize);
+                    const batchResult = await getData('preProductionBarcode', {
+                        query: {
+                            barcode: { $in: batchBarcodes },
+                            status: { $ne: 'VOIDED' }
+                        }
+                    });
+                    
+                    if (batchResult.data && batchResult.data.length > 0) {
+                        allExistingBarcodes.data = [...allExistingBarcodes.data, ...batchResult.data];
                     }
-                });
+                }
+                
+                // 转换条码批次查询
+                const transformedBarcodes = barcodes.map(item => item.transformedBarcode).filter(Boolean);
+                if (transformedBarcodes.length > 0) {
+                    for (let i = 0; i < transformedBarcodes.length; i += batchSize) {
+                        const batchTransformedBarcodes = transformedBarcodes.slice(i, i + batchSize);
+                        const batchResult = await getData('preProductionBarcode', {
+                            query: {
+                                transformedBarcode: { $in: batchTransformedBarcodes },
+                                status: { $ne: 'VOIDED' }
+                            }
+                        });
+                        
+                        if (batchResult.data && batchResult.data.length > 0) {
+                            allExistingBarcodes.data = [...allExistingBarcodes.data, ...batchResult.data];
+                        }
+                    }
+                }
 
-                if (existingBarcodes.data && existingBarcodes.data.length > 0) {
-                    const duplicates = existingBarcodes.data.map(item => ({
+                if (allExistingBarcodes.data && allExistingBarcodes.data.length > 0) {
+                    const duplicates = allExistingBarcodes.data.map(item => ({
                         barcode: item.barcode,
                         transformedBarcode: item.transformedBarcode,
                         workOrderNo: item.workOrderNo,

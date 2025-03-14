@@ -1287,6 +1287,7 @@ class MaterialProcessFlowService {
         craftId: craft._id,
       })
         .populate("machineId")
+        .populate("machineIds")
         .sort({ sort: 1 });
 
       const result = [];
@@ -1726,8 +1727,13 @@ class MaterialProcessFlowService {
             )
           : undefined; // 投入量不影响进度
 
+      // 检查quantity是否为负数且工单状态为已完成，如果是则将工单状态更新为暂停
+      if (quantity < 0 && workOrder.status === "COMPLETED") {
+        workOrder.status = "PAUSED";
+        console.log(`工单(ID: ${workOrderId})因quantity为负数(${quantity})且原状态为已完成，被设置为暂停状态`);
+      }
       // 检查工单状态
-      if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
+      else if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
         // 更新工单完成状态和时间
         workOrder.status = "COMPLETED";
         workOrder.endTime = new Date();
