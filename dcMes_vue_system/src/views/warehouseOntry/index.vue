@@ -11,9 +11,8 @@
                         <el-form-item label="出库单号">
                             <!-- <el-input v-model="searchForm.entryNo" placeholder="请输入出库单号" clearable></el-input> -->
                             <zr-select v-model="searchForm.entryNo" collection="warehouse_ontry"
-                                :search-fields="['entryNo']" label-key="entryNo" value-key="entryNo"
-                                 :multiple="false" placeholder="请输入出库单号" clearable
-                                style="width: 100%">
+                                :search-fields="['entryNo']" label-key="entryNo" value-key="entryNo" :multiple="false"
+                                placeholder="请输入出库单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
@@ -26,15 +25,15 @@
                                 </template>
                             </zr-select>
                         </el-form-item>
-                    
+
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="生产订单号">
                             <!-- <el-input v-model="searchForm.productionOrderNo" placeholder="请输入生产订单号"
                                 clearable></el-input> -->
-                                <zr-select v-model="searchForm.productionOrderNo" collection="warehouse_ontry"
-                                :search-fields="['productionOrderNo']" label-key="productionOrderNo" value-key="productionOrderNo"
-                                 :multiple="false" placeholder="请输入生产订单号" clearable
+                            <zr-select v-model="searchForm.productionOrderNo" collection="warehouse_ontry"
+                                :search-fields="['productionOrderNo']" label-key="productionOrderNo"
+                                value-key="productionOrderNo" :multiple="false" placeholder="请输入生产订单号" clearable
                                 style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
@@ -54,8 +53,7 @@
                             <!-- <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单号" clearable></el-input> -->
                             <zr-select v-model="searchForm.saleOrderNo" collection="warehouse_ontry"
                                 :search-fields="['saleOrderNo']" label-key="saleOrderNo" value-key="saleOrderNo"
-                                 :multiple="false" placeholder="请输入销售订单号" clearable
-                                style="width: 100%">
+                                :multiple="false" placeholder="请输入销售订单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
@@ -70,16 +68,28 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
+                        <el-form-item label="工单编号">
+                            <zr-select v-model="searchForm.workOrderNo" collection="production_plan_work_order"
+                                :search-fields="['workOrderNo']" label-key="workOrderNo" value-key="workOrderNo"
+                                :multiple="false" placeholder="请输入工单编号" clearable style="width: 100%">
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.workOrderNo }}</span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="6">
                         <el-form-item label="托盘编号">
                             <!-- <el-input v-model="searchForm.palletCode" placeholder="请输入托盘编号" clearable></el-input> -->
                             <zr-select v-model="searchForm.palletCode" collection="material_palletizing"
-                                :search-fields="['palletCode']" 
-                                label-key="palletCode" 
-                                value-key="palletCode"
-                                :multiple="false" 
-                                placeholder="请输入托盘编号" 
-                                clearable
-                                style="width: 100%">
+                                :search-fields="['palletCode']" label-key="palletCode" value-key="palletCode"
+                                :multiple="false" placeholder="请输入托盘编号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
                                         <div class="option-main">
@@ -90,8 +100,6 @@
                             </zr-select>
                         </el-form-item>
                     </el-col>
-                </el-row>
-                <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="出库状态">
                             <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 100%">
@@ -116,6 +124,8 @@
                     <el-button @click="resetForm">重置</el-button>
                     <!-- 扫码出库 -->
                     <el-button type="primary" @click="handlePalletBarcodeOpen">新增</el-button>
+                    <!-- 导出按钮 -->
+                    <el-button type="success" @click="handleExport" :loading="exportLoading">导出数据</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -192,10 +202,14 @@
 
                 <el-table-column label="操作" align="center" width="200">
                     <template slot-scope="scope">
-                     
-                        <el-button type="text" style="color: orange" @click="handleUpdateNumber(scope.row)">修改应出库数量</el-button>
-                        <el-button type="text" style="color: green" @click="handleChuKu(scope.row)" v-if="scope.row.outboundQuantity>scope.row.outNumber&&scope.row.status=='IN_PROGRESS'">继续出库</el-button>
-                        <el-button type="text" style="color: red" v-if="hasDeletePermission" @click="handleDelete(scope.row)">删除</el-button>
+
+                        <el-button type="text" style="color: orange"
+                            @click="handleUpdateNumber(scope.row)">修改应出库数量</el-button>
+                        <el-button type="text" style="color: green" @click="handleChuKu(scope.row)"
+                            v-if="scope.row.outboundQuantity > scope.row.outNumber && scope.row.status == 'IN_PROGRESS'">继续出库</el-button>
+                        <el-button type="text" style="color: red" v-if="hasDeletePermission"
+                            @click="handleDelete(scope.row)">删除</el-button>
+                        <el-button type="text" style="color: blue" @click="handleSingleExport(scope.row)">导出</el-button>
                         <!-- <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button> -->
                     </template>
                 </el-table-column>
@@ -229,12 +243,7 @@
 
 
         <!-- 应出库数量输入对话框 -->
-        <el-dialog
-            title="基础信息"
-            :visible.sync="outboundQuantityDialog"
-            width="30%"
-            :close-on-click-modal="false"
-        >
+        <el-dialog title="基础信息" :visible.sync="outboundQuantityDialog" width="30%" :close-on-click-modal="false">
             <el-form>
 
                 <el-row :gutter="20">
@@ -260,12 +269,7 @@
         </el-dialog>
 
         <!-- 托盘扫描对话框 -->
-        <el-dialog
-            title="扫描托盘"
-            :visible.sync="scanPalletDialog"
-            width="80%"
-            :close-on-click-modal="false"
-        >
+        <el-dialog title="扫描托盘" :visible.sync="scanPalletDialog" width="80%" :close-on-click-modal="false">
             <el-form>
                 <el-row :gutter="20">
                     <el-col :span="12">
@@ -338,14 +342,14 @@
 
 
         <!-- 使用通用扫描弹窗 -->
-        <scan-dialog :visible.sync="scanDialogVisible" title="托盘扫码出库" placeholder="请扫描托盘条码" @scan="handleScan" :scanData="scanData"
-            @complete="handleScanComplete" @delete="handleScanDelete" />
+        <scan-dialog :visible.sync="scanDialogVisible" title="托盘扫码出库" placeholder="请扫描托盘条码" @scan="handleScan"
+            :scanData="scanData" @complete="handleScanComplete" @delete="handleScanDelete" />
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
-import {  syncWarehouseOn } from "@/api/warehouse/entry";
+import { syncWarehouseOn } from "@/api/warehouse/entry";
 import ScanDialog from './components/ScanDialog.vue';
 import { query } from "quill";
 
@@ -356,21 +360,22 @@ export default {
     },
     data() {
         return {
-            scanData:{
-                FBillNo:null,
-                FaQIaoNo:null,
-                HuoGuiCode:null,
-                materialSpec:null,
-                materialName:null,
-                outboundQuantity:0,
-                FQty:0,
+            scanData: {
+                FBillNo: null,
+                FaQIaoNo: null,
+                HuoGuiCode: null,
+                materialSpec: null,
+                materialName: null,
+                outboundQuantity: 0,
+                FQty: 0,
             },
-            palletList:[],
+            palletList: [],
             searchForm: {
                 entryNo: '',
                 productionOrderNo: '',
                 saleOrderNo: '',
                 palletCode: '',
+                workOrderNo: '',
                 status: '',
                 dateRange: []
             },
@@ -435,36 +440,36 @@ export default {
                 this.$message({
                     type: 'info',
                     message: '取消输入'
-                });       
+                });
             });
         },
-        handleChuKu(row){
+        handleChuKu(row) {
             this.scanData = row;
             this.scanDialogVisible = true;
 
         },
         handlePalletBarcodeOpen() {
-            this.scanData ={
-          FBillNo: null,
-          HuoGuiCode: null,
-          FaQIaoNo: null,
-          materialName: null,
-          materialSpec: null,
-          plannedQuantity: null,
-          outboundQuantity: null,
-          outNumber: null,
-          saleNumber: null,
-          actualQuantity: 0,
-          palletCount: 0,
-          progress: 0,
-          status:null,
-          entryItems:[]
-        }
+            this.scanData = {
+                FBillNo: null,
+                HuoGuiCode: null,
+                FaQIaoNo: null,
+                materialName: null,
+                materialSpec: null,
+                plannedQuantity: null,
+                outboundQuantity: null,
+                outNumber: null,
+                saleNumber: null,
+                actualQuantity: 0,
+                palletCount: 0,
+                progress: 0,
+                status: null,
+                entryItems: []
+            }
             // this.outboundQuantityDialog = true;
             this.scanDialogVisible = true;
         },
 
-        
+
         confirmOutboundQuantity() {
             if (!this.scanData.outboundQuantity) {
                 this.$message.warning('请输入应出库数量')
@@ -474,27 +479,27 @@ export default {
             this.scanDialogVisible = true;
             // this.scanPalletDialog = true
         },
-       async handlePalletScan() {
-            console.log('palletBarcode',this.palletBarcode)
-                const result = await getData("material_palletizing", {
-                    query:{
-                        palletCode:this.palletBarcode
-                    },
-                    populate: JSON.stringify([{ path: 'saleOrderId' }])
-                });
-                console.log('result',result)
-                if(result.data.length>0){
-                    this.scanData['FBillNo']=result.data[0].saleOrderId.FBillNo;
-                    this.scanData['FQty']=result.data[0].saleOrderId.FQty;
-                    this.scanData['palletCode']=result.data[0].palletCode;
-                    this.scanData['materialName']=result.data[0].materialName;
-                    this.scanData['materialSpec']=result.data[0].materialSpec;
-                    this.palletList.push({...result.data[0],scanTime:new Date()})
-                
-                }
+        async handlePalletScan() {
+            console.log('palletBarcode', this.palletBarcode)
+            const result = await getData("material_palletizing", {
+                query: {
+                    palletCode: this.palletBarcode
+                },
+                populate: JSON.stringify([{ path: 'saleOrderId' }])
+            });
+            console.log('result', result)
+            if (result.data.length > 0) {
+                this.scanData['FBillNo'] = result.data[0].saleOrderId.FBillNo;
+                this.scanData['FQty'] = result.data[0].saleOrderId.FQty;
+                this.scanData['palletCode'] = result.data[0].palletCode;
+                this.scanData['materialName'] = result.data[0].materialName;
+                this.scanData['materialSpec'] = result.data[0].materialSpec;
+                this.palletList.push({ ...result.data[0], scanTime: new Date() })
+
+            }
         },
         // 构建查询条件
-        searchData() {
+        async searchData() {
             let req = {
                 query: {
                     $and: []
@@ -539,6 +544,22 @@ export default {
                 });
             }
 
+            if (this.searchForm.workOrderNo) {
+                //用工单查询相关的托盘单据
+                let palletIds = [];
+                const palletData = await getData("material_palletizing", {
+                    query: { workOrderNo: this.searchForm.workOrderNo },
+                    select: '_id palletCode'
+                });
+                palletIds = palletData.data.map(item => item._id);
+
+                req.query.$and.push({
+                    'entryItems.palletId': {
+                        $in: palletIds
+                    }
+                });
+            }
+
             if (this.searchForm.status) {
                 req.query.$and.push({
                     status: this.searchForm.status
@@ -566,7 +587,7 @@ export default {
         async fetchData() {
             this.listLoading = true;
             try {
-                let req = this.searchData();
+                let req = await this.searchData();
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
                 req.limit = this.pageSize;
@@ -663,9 +684,9 @@ export default {
                 entryId: row._id
             }
             syncWarehouseOn(req).then(res => {
-                if(res.code==200){
+                if (res.code == 200) {
                     this.$message.success('同步成功');
-                }else{
+                } else {
                     this.$message.error(res.message);
                 }
             }).catch(error => {
@@ -741,15 +762,16 @@ export default {
         },
         resetForm() {
             this.$refs.searchForm.resetFields()
-            this.searchForm ={
+            this.searchForm = {
                 entryNo: '',
                 productionOrderNo: '',
                 saleOrderNo: '',
                 palletCode: '',
+                workOrderNo: '',
                 status: '',
                 dateRange: []
             },
-            this.search()
+                this.search()
         },
         handleAdd() {
             this.dialogStatus = 'create'
@@ -763,7 +785,196 @@ export default {
         baseTableHandleSizeChange(pageSize) {
             this.pageSize = pageSize;
             this.fetchData();
-        }
+        },
+        // 导出数据
+        async handleExport() {
+            try {
+                this.exportLoading = true;
+                // 获取所有数据
+                let req = await this.searchData();
+                req.skip = 0;
+                req.page = 1;
+                req.sort = { createAt: -1 };
+                req.populate = JSON.stringify([{ path: 'entryItems.palletId' }]);
+
+                const result = await getData("warehouse_ontry", req);
+
+                // 准备导出数据 - 以条码为基础进行导出，只保留指定字段
+                const exportData = [];
+
+                result.data.forEach(item => {
+                    // 检查是否有托盘和条码数据
+                    if (item.entryItems && item.entryItems.length > 0) {
+                        item.entryItems.forEach(entryItem => {
+                            // 检查托盘是否有条码数据
+                            if (entryItem.palletId && entryItem.palletId.palletBarcodes && entryItem.palletId.palletBarcodes.length > 0) {
+                                // 遍历每个条码，为每个条码创建一行数据
+                                entryItem.palletId.palletBarcodes.forEach(barcodeItem => {
+                                    exportData.push({
+                                        '出库单号': item.entryNo || '',
+                                        '工单编号': item.productionOrderNo || '',
+                                        '销售单号': item.saleOrderNo || '',
+                                        '托盘编码': entryItem.palletCode || '',
+                                        '出库时间': item.endTime ? this.formatDate(item.endTime) : '',
+                                        '产品型号': item.materialSpec || '',
+                                        '物料信息': item.materialName || '',
+                                        '产品条码': barcodeItem.barcode || ''
+                                    });
+                                });
+                            } else {
+                                // 如果没有条码数据，仍然为托盘创建一行
+                                exportData.push({
+                                    '出库单号': item.entryNo || '',
+                                    '工单编号': item.productionOrderNo || '',
+                                    '销售单号': item.saleOrderNo || '',
+                                    '托盘编码': entryItem.palletCode || '',
+                                    '出库时间': item.endTime ? this.formatDate(item.endTime) : '',
+                                    '产品型号': item.materialSpec || '',
+                                    '物料信息': item.materialName || '',
+                                    '产品条码': ''
+                                });
+                            }
+                        });
+                    } else {
+                        // 如果没有托盘数据，为出库单创建一行
+                        exportData.push({
+                            '出库单号': item.entryNo || '',
+                            '工单编号': item.productionOrderNo || '',
+                            '销售单号': item.saleOrderNo || '',
+                            '托盘编码': '',
+                            '出库时间': item.endTime ? this.formatDate(item.endTime) : '',
+                            '产品型号': item.materialSpec || '',
+                            '物料信息': item.materialName || '',
+                            '产品条码': ''
+                        });
+                    }
+                });
+
+                // 转换为CSV格式
+                const csvContent = this.convertToCSV(exportData);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+
+                link.setAttribute('href', url);
+                link.setAttribute('download', `出库条码数据_${new Date().toLocaleDateString()}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                this.$message.success('导出成功');
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败');
+            } finally {
+                this.exportLoading = false;
+            }
+        },
+
+        // 将数据转换为CSV格式
+        convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+
+            const headers = Object.keys(data[0]);
+            const rows = data.map(item =>
+                headers.map(header => {
+                    const value = item[header] || '';
+                    // 处理包含逗号的值
+                    return value.includes(',') ? `"${value}"` : value;
+                }).join(',')
+            );
+
+            return [headers.join(','), ...rows].join('\n');
+        },
+
+        // 导出单个出库单数据
+        async handleSingleExport(row) {
+            try {
+                this.exportLoading = true;
+                // 获取单个出库单数据
+                let req = {
+                    query: { _id: row._id },
+                    populate: JSON.stringify([{ path: 'entryItems.palletId' }])
+                };
+
+                const result = await getData("warehouse_ontry", req);
+
+                if (!result.data || result.data.length === 0) {
+                    this.$message.warning('未找到出库单数据');
+                    return;
+                }
+
+                const item = result.data[0];
+                const exportData = [];
+
+                // 检查是否有托盘和条码数据
+                if (item.entryItems && item.entryItems.length > 0) {
+                    item.entryItems.forEach(entryItem => {
+                        // 检查托盘是否有条码数据
+                        if (entryItem.palletId && entryItem.palletId.palletBarcodes && entryItem.palletId.palletBarcodes.length > 0) {
+                            // 遍历每个条码，为每个条码创建一行数据
+                            entryItem.palletId.palletBarcodes.forEach(barcodeItem => {
+                                exportData.push({
+                                    '出库单号': item.entryNo || '',
+                                    '工单编号': item.productionOrderNo || '',
+                                    '销售单号': item.saleOrderNo || '',
+                                    '托盘编码': entryItem.palletCode || '',
+                                    '出库时间': item.endTime ? this.formatDate(item.endTime) : '',
+                                    '产品型号': item.materialSpec || '',
+                                    '物料信息': item.materialName || '',
+                                    '产品条码': barcodeItem.barcode || ''
+                                });
+                            });
+                        } else {
+                            // 如果没有条码数据，仍然为托盘创建一行
+                            exportData.push({
+                                '出库单号': item.entryNo || '',
+                                '工单编号': item.productionOrderNo || '',
+                                '销售单号': item.saleOrderNo || '',
+                                '托盘编码': entryItem.palletCode || '',
+                                '出库时间': item.endTime ? this.formatDate(item.endTime) : '',
+                                '产品型号': item.materialSpec || '',
+                                '物料信息': item.materialName || '',
+                                '产品条码': ''
+                            });
+                        }
+                    });
+                } else {
+                    // 如果没有托盘数据，为出库单创建一行
+                    exportData.push({
+                        '出库单号': item.entryNo || '',
+                        '工单编号': item.productionOrderNo || '',
+                        '销售单号': item.saleOrderNo || '',
+                        '托盘编码': '',
+                        '出库时间': item.endTime ? this.formatDate(item.endTime) : '',
+                        '产品型号': item.materialSpec || '',
+                        '物料信息': item.materialName || '',
+                        '产品条码': ''
+                    });
+                }
+
+                // 转换为CSV格式
+                const csvContent = this.convertToCSV(exportData);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+
+                link.setAttribute('href', url);
+                link.setAttribute('download', `出库单_${item.entryNo}_${new Date().toLocaleDateString()}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                this.$message.success('导出成功');
+            } catch (error) {
+                console.error('导出失败:', error);
+                this.$message.error('导出失败');
+            } finally {
+                this.exportLoading = false;
+            }
+        },
     },
     created() {
         this.fetchData()
