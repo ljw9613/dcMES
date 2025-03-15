@@ -224,6 +224,7 @@ export default {
               select: "lineNum",
             },
           ]),
+          sort: { _id: -1 },
           limit: this.pageSize,
           count: true,
         };
@@ -352,7 +353,7 @@ export default {
 
     resetForm() {
       this.$refs.searchForm.resetFields();
-      this.searchForm={
+      this.searchForm = {
         workOrderNo: "",
         materialNumber: "",
         barcode: "",
@@ -360,7 +361,7 @@ export default {
         status: "",
         lineNum: "",
         printBarcode: "",
-      }
+      };
       this.search();
     },
   },
