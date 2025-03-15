@@ -6,9 +6,15 @@
         <div class="card-header">
           <span>
             <i class="el-icon-setting"></i>
-            工序设置</span>
-          <el-switch v-model="autoInit" active-text="自动" inactive-text="手动" class="print-switch"
-            @change="handleAutoInitChange">
+            工序设置</span
+          >
+          <el-switch
+            v-model="autoInit"
+            active-text="自动"
+            inactive-text="手动"
+            class="print-switch"
+            @change="handleAutoInitChange"
+          >
           </el-switch>
         </div>
         <el-form :model="formData" label-width="100px">
@@ -17,37 +23,63 @@
             <div class="section-header">
               <el-tag :type="websocketConnected ? 'success' : 'danger'">
                 <i class="el-icon-goods"></i>
-                {{ websocketConnected ? "已连接" : "未连接" }}</el-tag>
+                {{ websocketConnected ? "已连接" : "未连接" }}</el-tag
+              >
               <span> 基础信息 </span>
             </div>
 
             <el-form-item label="产品型号">
-              <zr-select v-if="!mainMaterialId" v-model="formData.productModel" collection="k3_BD_MATERIAL"
-                :disabled="!!mainMaterialId && !!processStepId" :search-fields="['FNumber', 'FName']" label-key="FName"
-                sub-key="FMATERIALID" :multiple="false" placeholder="请输入物料编码/名称搜索" @select="handleProductChange">
+              <zr-select
+                v-if="!mainMaterialId"
+                v-model="formData.productModel"
+                collection="k3_BD_MATERIAL"
+                :disabled="!!mainMaterialId && !!processStepId"
+                :search-fields="['FNumber', 'FName']"
+                label-key="FName"
+                sub-key="FMATERIALID"
+                :multiple="false"
+                placeholder="请输入物料编码/名称搜索"
+                @select="handleProductChange"
+              >
                 <template #option="{ item }">
                   <div class="item-option">
                     <div class="item-info">
                       <span>{{ item.FNumber }} - {{ item.FName }}</span>
-                      <el-tag size="mini" type="info">{{ item.FMATERIALID }} -{{
-                        item.FUseOrgId_FName
-                      }}</el-tag>
+                      <el-tag size="mini" type="info"
+                        >{{ item.FMATERIALID }} -{{
+                          item.FUseOrgId_FName
+                        }}</el-tag
+                      >
                     </div>
                   </div>
                 </template>
               </zr-select>
-              <el-input v-else v-model="formData.productName" placeholder="请输入物料编码/名称搜索"
-                :disabled="!!mainMaterialId && !!processStepId" />
+              <el-input
+                v-else
+                v-model="formData.productName"
+                placeholder="请输入物料编码/名称搜索"
+                :disabled="!!mainMaterialId && !!processStepId"
+              />
             </el-form-item>
 
             <el-form-item label="产品工序">
-              <el-select v-model="formData.processStep" placeholder="请选择产品工序" @change="handleProcessChange"
-                class="custom-select" :disabled="!!mainMaterialId && !!processStepId">
-                <el-option v-for="item in processStepOptions" :key="item._id" :label="item.processName"
-                  :value="item._id">
+              <el-select
+                v-model="formData.processStep"
+                placeholder="请选择产品工序"
+                @change="handleProcessChange"
+                class="custom-select"
+                :disabled="!!mainMaterialId && !!processStepId"
+              >
+                <el-option
+                  v-for="item in processStepOptions"
+                  :key="item._id"
+                  :label="item.processName"
+                  :value="item._id"
+                >
                   <div class="option-content">
                     <span class="option-main">{{
-                      `${item.levelPrefix || ""}${item.sort}.${item.processName
+                      `${item.levelPrefix || ""}${item.sort}.${
+                        item.processName
                       }`
                     }}</span>
                     <span class="option-sub">{{ item.processCode }}</span>
@@ -57,22 +89,44 @@
             </el-form-item>
 
             <el-form-item label="产线编码">
-              <zr-select v-if="!mainMaterialId" :disabled="!!mainMaterialId && !!processStepId"
-                v-model="formData.productLine" collection="production_line" :search-fields="['lineCode', 'lineName']"
-                label-key="lineName" tag-key="lineCode" sub-key="workshop" :multiple="false" placeholder="请输入产线信息搜索"
-                @select="handleProductionLineSelect" />
-              <el-input v-else v-model="formData.lineName" placeholder="请输入产线信息搜索"
-                :disabled="!!mainMaterialId && !!processStepId" />
+              <zr-select
+                v-if="!mainMaterialId"
+                :disabled="!!mainMaterialId && !!processStepId"
+                v-model="formData.productLine"
+                collection="production_line"
+                :search-fields="['lineCode', 'lineName']"
+                label-key="lineName"
+                tag-key="lineCode"
+                sub-key="workshop"
+                :multiple="false"
+                placeholder="请输入产线信息搜索"
+                @select="handleProductionLineSelect"
+              />
+              <el-input
+                v-else
+                v-model="formData.lineName"
+                placeholder="请输入产线信息搜索"
+                :disabled="!!mainMaterialId && !!processStepId"
+              />
             </el-form-item>
           </div>
 
           <!-- 按钮部分 -->
           <div class="button-group" v-if="hasEditPermission">
-            <el-button type="danger" @click="handleCancelSave" icon="el-icon-close"
-              v-if="mainMaterialId && processStepId">
+            <el-button
+              type="danger"
+              @click="handleCancelSave"
+              icon="el-icon-close"
+              v-if="mainMaterialId && processStepId"
+            >
               取消设置
             </el-button>
-            <el-button type="primary" v-else @click="handleSave" icon="el-icon-check">
+            <el-button
+              type="primary"
+              v-else
+              @click="handleSave"
+              icon="el-icon-check"
+            >
               保存设置
             </el-button>
           </div>
@@ -80,9 +134,11 @@
       </el-card>
     </div>
     <div class="right-content">
-      <template v-if="
-        mainMaterialId && processStepId && processStepData.processType !== 'F'
-      ">
+      <template
+        v-if="
+          mainMaterialId && processStepId && processStepData.processType !== 'F'
+        "
+      >
         <el-card class="scan-card">
           <!-- 标题部分 -->
           <div class="card-header">
@@ -90,14 +146,21 @@
               <i class="el-icon-scan"></i>
               <span>条码扫描</span>
               <el-button type="text" @click="toggleCollapse">
-                <i :class="isCollapsed
-                    ? 'el-icon-d-arrow-right'
-                    : 'el-icon-d-arrow-left'
-                  "></i>
+                <i
+                  :class="
+                    isCollapsed
+                      ? 'el-icon-d-arrow-right'
+                      : 'el-icon-d-arrow-left'
+                  "
+                ></i>
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
             </div>
-            <el-button type="text" @click="handleClearCache" icon="el-icon-delete">
+            <el-button
+              type="text"
+              @click="handleClearCache"
+              icon="el-icon-delete"
+            >
               清除批次物料缓存
             </el-button>
           </div>
@@ -108,8 +171,14 @@
               <span>统一扫描区域</span>
             </div>
             <div class="scan-input-section">
-              <el-input v-model="unifiedScanInput" placeholder="请扫描条码"
-                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)" ref="scanInput" clearable @clear="focusInput">
+              <el-input
+                v-model="unifiedScanInput"
+                placeholder="请扫描条码"
+                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
+                ref="scanInput"
+                clearable
+                @clear="focusInput"
+              >
               </el-input>
             </div>
             <!-- 主物料部分 -->
@@ -119,21 +188,38 @@
                 <span>主物料</span>
               </div>
               <div class="print-batch-btn">
-                <hir-input ref="hirInput" :default-template="localPrintTemplate" @template-change="handleTemplateChange"
-                  :show-preview="true" :show-browser-print="false" :show-silent-print="true" :printData="printData" />
+                <hir-input
+                  ref="hirInput"
+                  :default-template="localPrintTemplate"
+                  @template-change="handleTemplateChange"
+                  :show-preview="true"
+                  :show-browser-print="false"
+                  :show-silent-print="true"
+                  :printData="printData"
+                />
               </div>
             </div>
             <div class="material-section">
-              <el-form-item :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`" label-width="100%"
-                class="vertical-form-item">
+              <el-form-item
+                :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`"
+                label-width="100%"
+                class="vertical-form-item"
+              >
                 <div class="input-with-status">
-                  <el-input v-model="scanForm.mainBarcode" placeholder="请扫描主物料条码"
-                    :class="{ 'valid-input': validateStatus['mainBarcode'] }" readonly>
+                  <el-input
+                    v-model="scanForm.mainBarcode"
+                    placeholder="请扫描主物料条码"
+                    :class="{ 'valid-input': validateStatus['mainBarcode'] }"
+                    readonly
+                  >
                     <template slot="prefix">
                       <i class="el-icon-full-screen"></i>
                     </template>
                   </el-input>
-                  <div class="status-indicator" :class="{ valid: validateStatus['mainBarcode'] }">
+                  <div
+                    class="status-indicator"
+                    :class="{ valid: validateStatus['mainBarcode'] }"
+                  >
                     <i :class="getValidateIcon('mainBarcode')"></i>
                   </div>
                 </div>
@@ -147,15 +233,27 @@
             </div>
             <div class="material-section">
               <el-row :gutter="20">
-                <el-col :span="12" v-for="material in processMaterials" :key="material._id">
-                  <el-form-item :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
-                    class="vertical-form-item">
+                <el-col
+                  :span="12"
+                  v-for="material in processMaterials"
+                  :key="material._id"
+                >
+                  <el-form-item
+                    :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
+                    class="vertical-form-item"
+                  >
                     <div class="input-with-status">
-                      <el-input v-model="scanForm.barcodes[material._id]" :placeholder="!material.scanOperation
-                          ? '无需扫码'
-                          : '请扫描子物料条码'
-                        " :class="{ 'valid-input': validateStatus[material._id] }" :readonly="material.scanOperation"
-                        :disabled="!material.scanOperation">
+                      <el-input
+                        v-model="scanForm.barcodes[material._id]"
+                        :placeholder="
+                          !material.scanOperation
+                            ? '无需扫码'
+                            : '请扫描子物料条码'
+                        "
+                        :class="{ 'valid-input': validateStatus[material._id] }"
+                        :readonly="material.scanOperation"
+                        :disabled="!material.scanOperation"
+                      >
                         <template slot="prefix">
                           <i class="el-icon-full-screen"></i>
                         </template>
@@ -164,15 +262,21 @@
                             <el-tag type="info">无需扫码</el-tag>
                           </template>
                           <template v-else-if="material.isBatch">
-                            <el-tag type="warning" v-if="material.batchQuantity">
+                            <el-tag
+                              type="warning"
+                              v-if="material.batchQuantity"
+                            >
                               {{ getBatchUsageText(material._id) }}
                             </el-tag>
                             <el-tag type="warning" v-else>批次物料</el-tag>
                           </template>
                         </template>
                       </el-input>
-                      <div class="status-indicator" :class="{ valid: validateStatus[material._id] }"
-                        v-if="material.scanOperation">
+                      <div
+                        class="status-indicator"
+                        :class="{ valid: validateStatus[material._id] }"
+                        v-if="material.scanOperation"
+                      >
                         <i :class="getValidateIcon(material._id)"></i>
                       </div>
                     </div>
@@ -183,8 +287,15 @@
 
             <!-- 按钮组 -->
             <div class="button-group">
-              <el-button plain @click="resetScanForm" icon="el-icon-refresh">重置</el-button>
-              <el-button type="primary" @click="handleConfirm" icon="el-icon-check">确认</el-button>
+              <el-button plain @click="resetScanForm" icon="el-icon-refresh"
+                >重置</el-button
+              >
+              <el-button
+                type="primary"
+                @click="handleConfirm"
+                icon="el-icon-check"
+                >确认</el-button
+              >
             </div>
           </el-form>
         </el-card>
@@ -198,8 +309,16 @@
         </div>
       </template>
     </div>
-    <status-popup :visible.sync="showPopup" :type="popupType" :duration="1500" />
-    <tsc-printer ref="tscPrinter" :materialCode="mainMaterialCode" :barcode="currentBatchBarcode" />
+    <status-popup
+      :visible.sync="showPopup"
+      :type="popupType"
+      :duration="1500"
+    />
+    <tsc-printer
+      ref="tscPrinter"
+      :materialCode="mainMaterialCode"
+      :barcode="currentBatchBarcode"
+    />
   </div>
 </template>
 
@@ -501,11 +620,13 @@ export default {
             this.workProductionPlanWorkOrderNo =
               productionPlanWorkOrderId &&
               productionPlanWorkOrderId.workOrderNo;
-            
+
             // 更新生产计划ID缓存
-            localStorage.setItem('lastWorkProductionPlanWorkOrderId_pack', 
-              productionPlanWorkOrderId && productionPlanWorkOrderId._id || '');
-            
+            localStorage.setItem(
+              "lastWorkProductionPlanWorkOrderId_pack",
+              (productionPlanWorkOrderId && productionPlanWorkOrderId._id) || ""
+            );
+
             // 更新名称信息
             this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
             this.processName = processStepId.processName;
@@ -807,9 +928,12 @@ export default {
         this.mainMaterialId = this.formData.productModel;
         this.processStepId = this.formData.processStep;
         this.productLineId = this.formData.productLine;
-        
+
         // 更新生产计划ID缓存
-        localStorage.setItem('lastWorkProductionPlanWorkOrderId_pack', this.formData.workProductionPlanWorkOrderId || '');
+        localStorage.setItem(
+          "lastWorkProductionPlanWorkOrderId_pack",
+          this.formData.workProductionPlanWorkOrderId || ""
+        );
 
         // 获取并保存物料名称
         const material = await this.getMaterialById(this.formData.productModel);
@@ -871,17 +995,17 @@ export default {
     // 获取工序相关物料
     async getProcessMaterials() {
       try {
-        console.log('正在获取工序信息，ID:', this.processStepId);
+        console.log("正在获取工序信息，ID:", this.processStepId);
 
         // 获取工序信息
-        const stepResponse = await getData('processStep', {
+        const stepResponse = await getData("processStep", {
           query: { _id: this.processStepId },
           page: 1,
-          limit: 1
+          limit: 1,
         });
 
         if (!stepResponse.data || !stepResponse.data.length === 0) {
-          throw new Error('未找到工序信息');
+          throw new Error("未找到工序信息");
         }
 
         const processStep = stepResponse.data[0];
@@ -889,14 +1013,14 @@ export default {
         this.processStepData = processStep;
 
         // 获取该工序所属的工艺信息
-        const craftResponse = await getData('craft', {
+        const craftResponse = await getData("craft", {
           query: { _id: processStep.craftId },
           page: 1,
-          limit: 1
+          limit: 1,
         });
 
         if (!craftResponse.data || !craftResponse.data.length === 0) {
-          throw new Error('未找到工艺信息');
+          throw new Error("未找到工艺信息");
         }
 
         const craft = craftResponse.data[0];
@@ -907,7 +1031,7 @@ export default {
         const material = await this.getMaterialById(craft.materialId);
 
         if (!material) {
-          throw new Error('未找到物料信息');
+          throw new Error("未找到物料信息");
         }
 
         // 更新工序对应的主物料信息
@@ -918,42 +1042,53 @@ export default {
 
         // 获取工序关联的物料
         try {
-          const processMaterialsResponse = await getData('processMaterials', {
-            query: { processStepId: this.processStepId }
+          const processMaterialsResponse = await getData("processMaterials", {
+            query: { processStepId: this.processStepId },
           });
 
           if (processMaterialsResponse.data) {
             // 检查生产计划是否有变化，如果有变化则清空批次物料缓存
             const currentPlanId = this.workProductionPlanWorkOrderId;
-            const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_pack');
-            
+            const storedPlanId = localStorage.getItem(
+              "lastWorkProductionPlanWorkOrderId_pack"
+            );
+
             if (currentPlanId && currentPlanId !== storedPlanId) {
-              console.log('生产计划已变更，清空批次物料缓存');
+              console.log("生产计划已变更，清空批次物料缓存");
               // 清除所有批次物料缓存
               const keys = Object.keys(localStorage);
-              keys.forEach(key => {
-                if (key.startsWith('batch_')) {
+              keys.forEach((key) => {
+                if (key.startsWith("batch_")) {
                   localStorage.removeItem(key);
                   localStorage.removeItem(`${key}_usage`);
                 }
               });
               // 更新存储的生产计划ID
-              localStorage.setItem('lastWorkProductionPlanWorkOrderId_pack', currentPlanId || '');
+              localStorage.setItem(
+                "lastWorkProductionPlanWorkOrderId_pack",
+                currentPlanId || ""
+              );
             }
-            
+
             this.processMaterials = processMaterialsResponse.data;
 
             // 查找包装箱物料
-            const boxMaterial = this.processMaterials.find(m => m.isPackingBox);
+            const boxMaterial = this.processMaterials.find(
+              (m) => m.isPackingBox
+            );
             if (boxMaterial) {
               this.boxMaterial = boxMaterial;
-              console.log('找到包装箱物料:', this.boxMaterial);
+              console.log("找到包装箱物料:", this.boxMaterial);
+
+              setTimeout(() => {
+                this.initializePackingBarcode(); // 初始化装箱条码
+              }, 1000);
             }
 
             // 收集所有物料ID（包括主物料和子物料）
             const allMaterialIds = [
               material._id, // 主物料ID
-              ...this.processMaterials.map(m => m.materialId) // 子物料IDs
+              ...this.processMaterials.map((m) => m.materialId), // 子物料IDs
             ];
 
             // 获取所有相关物料的条码规则
@@ -963,9 +1098,9 @@ export default {
             this.validateStatus = { mainBarcode: false };
             this.scanForm.barcodes = {};
 
-            this.processMaterials.forEach(material => {
+            this.processMaterials.forEach((material) => {
               this.validateStatus[material._id] = false;
-              this.$set(this.scanForm.barcodes, material._id, '');
+              this.$set(this.scanForm.barcodes, material._id, "");
             });
           } else {
             this.processMaterials = [];
@@ -973,15 +1108,15 @@ export default {
             this.scanForm.barcodes = {};
           }
         } catch (error) {
-          console.error('获取工序物料失败:', error);
-          this.$message.error('获取工序物料失败');
+          console.error("获取工序物料失败:", error);
+          this.$message.error("获取工序物料失败");
           this.processMaterials = [];
           this.validateStatus = { mainBarcode: false };
           this.scanForm.barcodes = {};
         }
       } catch (error) {
-        console.error('获取工序物料失败:', error);
-        this.$message.error(error.message || '获取工序物料失败');
+        console.error("获取工序物料失败:", error);
+        this.$message.error(error.message || "获取工序物料失败");
         this.processMaterials = [];
         this.validateStatus = { mainBarcode: false };
         this.scanForm.barcodes = {};
@@ -1056,7 +1191,8 @@ export default {
         // 遍历规则进行匹配
         for (const rule of rules) {
           console.log(
-            `尝试匹配规则: ${rule.name} (${rule.isProductSpecific ? "产品特定" : "全局规则"
+            `尝试匹配规则: ${rule.name} (${
+              rule.isProductSpecific ? "产品特定" : "全局规则"
             })`
           );
 
@@ -1166,7 +1302,8 @@ export default {
             // 如果成功提取到物料编码，验证是否匹配当前工序
             if (isValid && materialCode) {
               console.log(
-                `条码匹配成功: ${rule.name} (${rule.isProductSpecific ? "产品特定" : "全局规则"
+                `条码匹配成功: ${rule.name} (${
+                  rule.isProductSpecific ? "产品特定" : "全局规则"
                 })`
               );
               return {
@@ -1324,9 +1461,9 @@ export default {
 
       //当打印模板未选择时提醒
       if (!this.$refs.hirInput.selectedTemplate) {
-        this.unifiedScanInput = '';
+        this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
-        this.$message.warning('请先选择打印模板');
+        this.$message.warning("请先选择打印模板");
         return;
       }
 
@@ -1565,15 +1702,18 @@ export default {
                   dangerouslyUseHTMLString: true,
                   message: `
                                         <div style="line-height: 1.5">
-                                            <div>物料名称: ${material.materialName
-                    }</div>
-                                            <div>物料编码: ${material.materialCode
-                    }</div>
+                                            <div>物料名称: ${
+                                              material.materialName
+                                            }</div>
+                                            <div>物料编码: ${
+                                              material.materialCode
+                                            }</div>
                                             <div>条码: ${cleanValue}</div>
-                                            ${isValidResult.relatedBill
-                      ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
-                      : ""
-                    }
+                                            ${
+                                              isValidResult.relatedBill
+                                                ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
+                                                : ""
+                                            }
                                         </div>
                                     `,
                   type: "success",
@@ -1825,7 +1965,6 @@ export default {
 
           throw new Error(scanResponse.message || "扫码失败");
         }
-
 
         if (scanResponse.code == 200) {
           // 提交成功后，更新批次物料的使用次数
@@ -2153,7 +2292,8 @@ export default {
               10000
             ); // 指数退避，最大10秒
             this.$message.warning(
-              `设备连接已断开，${delay / 1000}秒后尝试第${this.reconnectAttempts
+              `设备连接已断开，${delay / 1000}秒后尝试第${
+                this.reconnectAttempts
               }次重连...`
             );
             setTimeout(() => {
@@ -2827,7 +2967,7 @@ export default {
   width: 100%;
 }
 
-.valid-input>>>.el-input__inner {
+.valid-input >>> .el-input__inner {
   border-color: #67c23a;
   transition: all 0.3s ease;
 }
@@ -2925,7 +3065,7 @@ export default {
 }
 
 /* 输入框动画效果 */
-.el-input>>>.el-input__inner:focus {
+.el-input >>> .el-input__inner:focus {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -2985,16 +3125,16 @@ export default {
   width: 100%;
 }
 
-.custom-select>>>.el-input__inner {
+.custom-select >>> .el-input__inner {
   border-radius: 6px;
   transition: all 0.3s ease;
 }
 
-.custom-select>>>.el-input__inner:hover {
+.custom-select >>> .el-input__inner:hover {
   border-color: #409eff;
 }
 
-.custom-select>>>.el-input__inner:focus {
+.custom-select >>> .el-input__inner:focus {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -3020,7 +3160,7 @@ export default {
 }
 
 /* 加载状态样式 */
-.el-select>>>.el-input.is-loading .el-input__inner {
+.el-select >>> .el-input.is-loading .el-input__inner {
   padding-right: 30px;
 }
 
@@ -3057,7 +3197,7 @@ export default {
   flex-direction: column;
 }
 
-.vertical-form-item>>>.el-form-item__label {
+.vertical-form-item >>> .el-form-item__label {
   text-align: left;
   padding: 0 0 10px 0;
   line-height: 1.4;
@@ -3065,7 +3205,7 @@ export default {
   /* 允许标签文字换行 */
 }
 
-.vertical-form-item>>>.el-form-item__content {
+.vertical-form-item >>> .el-form-item__content {
   margin-left: 0 !important;
 }
 
@@ -3113,12 +3253,12 @@ export default {
 }
 
 /* 开关文字样式 */
-.print-switch>>>.el-switch__label {
+.print-switch >>> .el-switch__label {
   color: #606266;
   font-size: 12px;
 }
 
-.print-switch>>>.el-switch__label.is-active {
+.print-switch >>> .el-switch__label.is-active {
   color: #409eff;
 }
 
