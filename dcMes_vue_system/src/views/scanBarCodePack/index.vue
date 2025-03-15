@@ -146,10 +146,13 @@
               <i class="el-icon-scan"></i>
               <span>条码扫描</span>
               <el-button type="text" @click="toggleCollapse">
-                <i :class="isCollapsed
-                  ? 'el-icon-d-arrow-right'
-                  : 'el-icon-d-arrow-left'
-                  "></i>
+                <i
+                  :class="
+                    isCollapsed
+                      ? 'el-icon-d-arrow-right'
+                      : 'el-icon-d-arrow-left'
+                  "
+                ></i>
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
             </div>
@@ -240,11 +243,17 @@
                     class="vertical-form-item"
                   >
                     <div class="input-with-status">
-                      <el-input v-model="scanForm.barcodes[material._id]" :placeholder="!material.scanOperation
-                        ? '无需扫码'
-                        : '请扫描子物料条码'
-                        " :class="{ 'valid-input': validateStatus[material._id] }" :readonly="material.scanOperation"
-                        :disabled="!material.scanOperation">
+                      <el-input
+                        v-model="scanForm.barcodes[material._id]"
+                        :placeholder="
+                          !material.scanOperation
+                            ? '无需扫码'
+                            : '请扫描子物料条码'
+                        "
+                        :class="{ 'valid-input': validateStatus[material._id] }"
+                        :readonly="material.scanOperation"
+                        :disabled="!material.scanOperation"
+                      >
                         <template slot="prefix">
                           <i class="el-icon-full-screen"></i>
                         </template>
@@ -612,8 +621,10 @@ export default {
               productionPlanWorkOrderId.workOrderNo;
 
             // 更新生产计划ID缓存
-            localStorage.setItem('lastWorkProductionPlanWorkOrderId_pack',
-              productionPlanWorkOrderId && productionPlanWorkOrderId._id || '');
+            localStorage.setItem(
+              "lastWorkProductionPlanWorkOrderId_pack",
+              (productionPlanWorkOrderId && productionPlanWorkOrderId._id) || ""
+            );
 
             // 更新名称信息
             this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
@@ -1037,7 +1048,9 @@ export default {
           if (processMaterialsResponse.data) {
             // 检查生产计划是否有变化，如果有变化则清空批次物料缓存
             const currentPlanId = this.workProductionPlanWorkOrderId;
-            const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_pack');
+            const storedPlanId = localStorage.getItem(
+              "lastWorkProductionPlanWorkOrderId_pack"
+            );
 
             if (currentPlanId && currentPlanId !== storedPlanId) {
               console.log("生产计划已变更，清空批次物料缓存");
@@ -1453,7 +1466,6 @@ export default {
         return;
       }
 
-
       try {
         // 更严格地清理输入值中的所有空格和换行符
         const cleanValue = value.replace(/[\s\r\n]/g, "");
@@ -1640,6 +1652,20 @@ export default {
                     this.popupType = "ng";
                     this.showPopup = true;
 
+                    if (material.isPackingBox) {
+                      await updateData("packBarcode", {
+                        query: {
+                          printBarcode: cleanValue,
+                        },
+                        update: {
+                          status: "USED",
+                        },
+                      });
+                      setTimeout(() => {
+                        this.initializePackingBarcode(); // 初始化装箱条码
+                      }, 1000);
+                    }
+
                     return;
                   }
 
@@ -1667,6 +1693,19 @@ export default {
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
                     tone(pcwlxz);
+                    if (material.isPackingBox) {
+                      await updateData("packBarcode", {
+                        query: {
+                          printBarcode: cleanValue,
+                        },
+                        update: {
+                          status: "USED",
+                        },
+                      });
+                      setTimeout(() => {
+                        this.initializePackingBarcode(); // 初始化装箱条码
+                      }, 1000);
+                    }
                     return;
                   }
                 }
@@ -1684,15 +1723,18 @@ export default {
                 dangerouslyUseHTMLString: true,
                 message: `
                                         <div style="line-height: 1.5">
-                                            <div>物料名称: ${material.materialName
-                  }</div>
-                                            <div>物料编码: ${material.materialCode
-                  }</div>
+                                            <div>物料名称: ${
+                                              material.materialName
+                                            }</div>
+                                            <div>物料编码: ${
+                                              material.materialCode
+                                            }</div>
                                             <div>条码: ${cleanValue}</div>
-                                            ${isValidResult.relatedBill
-                    ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
-                    : ""
-                  }
+                                            ${
+                                              isValidResult.relatedBill
+                                                ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
+                                                : ""
+                                            }
                                         </div>
                                     `,
                 type: "success",
@@ -1752,8 +1794,7 @@ export default {
                 !this.validateStatus[material._id] && material.scanOperation
             )
             .map(
-              (material) =>
-                `${material.materialName}(${material.materialCode})`
+              (material) => `${material.materialName}(${material.materialCode})`
             )
             .join("\n");
 
@@ -1971,12 +2012,6 @@ export default {
 
                 // 查询是否有包装箱
                 if (this.packingBarcode) {
-                  await updateData("packBarcode", {
-                    query: { _id: this.packingBarcode._id },
-                    update: {
-                      status: "USED",
-                    },
-                  });
                   console.log(this.packingBarcode, "this.packingBarcode");
                   // 查询批次物料相关的主条码
                   const mainBarcode = await getData("material_process_flow", {
@@ -2085,6 +2120,7 @@ export default {
                     this.$refs.hirInput.handlePrints2();
                   });
                   console.log(printData, "printData");
+
                   setTimeout(() => {
                     this.packingBarcode = {};
                     this.initializePackingBarcode();
@@ -2386,10 +2422,12 @@ export default {
     },
 
     async initializePackingBarcode() {
+      console.log("初始化装箱条码");
       // 如果产线有未装满的装箱条码，则不初始化
       const searchPackBarcode = await getData("packBarcode", {
         query: {
           productionLineId: this.formData.productLine, // 关联产线
+          materialNumber: this.boxMaterial.materialCode,
           status: "PENDING",
         },
         sort: { serialNumber: -1 },
@@ -2823,6 +2861,17 @@ export default {
               localStorage.removeItem(cacheKey);
               this.$set(this.scanForm.barcodes, material._id, "");
               this.$set(this.validateStatus, material._id, false);
+              if (material.isPackingBox) {
+                await updateData("packBarcode", {
+                  query: { printBarcode: cachedBarcode },
+                  update: {
+                    status: "USED",
+                  },
+                });
+                setTimeout(() => {
+                  this.initializePackingBarcode(); // 初始化装箱条码
+                }, 1000);
+              }
             } else {
               this.$set(this.batchUsageCount, material._id, count);
             }
@@ -2848,7 +2897,6 @@ export default {
   },
   // 组件销毁时清除定时器
   beforeDestroy() {
-
     // 关闭WebSocket连接
     if (this.ws) {
       this.ws.close();
