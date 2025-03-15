@@ -250,6 +250,11 @@ class MaterialPalletizingService {
         throw new Error("未找到对应的托盘记录");
       }
 
+      // 检查托盘是否已出库
+      if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+        throw new Error("已出库的托盘不可以进行解绑操作");
+      }
+
       // 保存解绑前的托盘数据快照
       const originalData = pallet.toObject();
       const affectedBarcodes = [];
@@ -309,6 +314,9 @@ class MaterialPalletizingService {
         pallet.boxItems = pallet.boxItems.filter(
           (item) => item.boxBarcode !== barcode
         );
+        
+        // 4. 更新入库单中的数据
+        await this.updateWarehouseEntryAfterUnbind(palletCode, boxItem.boxBarcodes.map(bb => bb.barcode));
       } else {
         // 检查条码是否在箱内
         const isInBox = pallet.boxItems.some((item) =>
@@ -377,6 +385,9 @@ class MaterialPalletizingService {
         pallet.palletBarcodes = pallet.palletBarcodes.filter(
           (pb) => pb.barcode !== barcode
         );
+        
+        // 3. 更新入库单中的数据
+        await this.updateWarehouseEntryAfterUnbind(palletCode, [barcode]);
       }
 
       // 更新托盘状态和计数
@@ -403,6 +414,11 @@ class MaterialPalletizingService {
       const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
         throw new Error("未找到对应的托盘记录");
+      }
+
+      // 检查托盘是否已出库
+      if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+        throw new Error("已出库的托盘不可以进行解绑操作");
       }
 
       // 保存解绑前的托盘数据快照
@@ -443,6 +459,9 @@ class MaterialPalletizingService {
         createBy: userId,
       });
 
+      // 收集所有条码，用于更新入库单
+      const allBarcodes = pallet.palletBarcodes.map(pb => pb.barcode);
+
       // 解绑整个托盘
       // 1. 解绑所有条码的工序状态
       for (const palletBarcode of pallet.palletBarcodes) {
@@ -467,6 +486,9 @@ class MaterialPalletizingService {
       // 2. 清空托盘条码列表和箱记录
       pallet.palletBarcodes = [];
       pallet.boxItems = [];
+
+      // 3. 更新入库单中的数据
+      await this.updateWarehouseEntryAfterUnbind(palletCode, allBarcodes);
 
       // 更新托盘状态和计数
       pallet.barcodeCount = 0;
@@ -823,6 +845,82 @@ class MaterialPalletizingService {
       }
     } catch (error) {
       console.error("更新入库单关联关系失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新入库单中的数据（解绑条码后）
+   * @param {String} palletCode - 托盘编号
+   * @param {Array} barcodes - 解绑的条码列表
+   */
+  static async updateWarehouseEntryAfterUnbind(palletCode, barcodes) {
+    try {
+      // 查找包含该托盘的入库单
+      const warehouseEntries = await WarehouseEntry.find({
+        "entryItems.palletCode": palletCode
+      });
+
+      if (!warehouseEntries || warehouseEntries.length === 0) {
+        // 没有关联的入库单，不需要处理
+        return;
+      }
+
+      // 处理每个包含该托盘的入库单
+      for (const entry of warehouseEntries) {
+        // 找到托盘在入库单中的记录索引
+        const itemIndex = entry.entryItems.findIndex(
+          item => item.palletCode === palletCode
+        );
+
+        if (itemIndex === -1) {
+          continue;
+        }
+
+        const entryItem = entry.entryItems[itemIndex];
+        
+        // 更新托盘在入库单中的数量（减去解绑的条码数量）
+        const updatedQuantity = entryItem.quantity - barcodes.length;
+        entry.entryItems[itemIndex].quantity = updatedQuantity > 0 ? updatedQuantity : 0;
+
+        // 如果托盘数量为0，考虑是否需要从入库单中移除该托盘
+        if (entry.entryItems[itemIndex].quantity === 0) {
+          // 可以选择移除托盘记录或保留记录但标记数量为0
+          // 这里选择保留记录但标记数量为0，以保持历史记录完整性
+          // entry.entryItems.splice(itemIndex, 1);
+        } else {
+          // 更新托盘的箱数
+          const pallet = await MaterialPalletizing.findOne({ palletCode });
+          if (pallet) {
+            entry.entryItems[itemIndex].boxCount = pallet.boxCount;
+          }
+        }
+
+        // 更新入库单的总数量和托盘数量
+        entry.actualQuantity = entry.entryItems.reduce((sum, item) => sum + item.quantity, 0);
+        entry.palletCount = entry.entryItems.filter(item => item.quantity > 0).length;
+        entry.totalBoxCount = entry.entryItems.reduce((sum, item) => sum + (item.boxCount || 0), 0);
+        
+        // 计算入库进度
+        if (entry.plannedQuantity && entry.plannedQuantity > 0) {
+          entry.progress = Math.min(100, (entry.actualQuantity / entry.plannedQuantity) * 100);
+        }
+
+        // 更新入库单状态
+        if (entry.progress === 0) {
+          entry.status = "PENDING"; // 如果进度为0，重置为待处理状态
+        } else if (entry.progress < 100) {
+          entry.status = "IN_PROGRESS"; // 如果进度小于100%，设置为进行中
+          if (!entry.startTime) {
+            entry.startTime = new Date();
+          }
+        }
+        // 注意：不会将状态从COMPLETED改回IN_PROGRESS，因为可能已经完成了其他操作
+        
+        await entry.save();
+      }
+    } catch (error) {
+      console.error("更新入库单数据失败:", error);
       throw error;
     }
   }
