@@ -3,46 +3,20 @@
     <!-- 搜索区域 -->
     <div class="screen1">
       <div class="screen_content_first">
-        <el-form
-          :inline="true"
-          :model="searchForm"
-          ref="searchForm"
-          size="small"
-        >
+        <el-form :inline="true" :model="searchForm" ref="searchForm" size="small">
           <el-form-item label="型号" prop="materialName">
-            <el-input
-              v-model="searchForm.materialName"
-              placeholder="请输入型号"
-              clearable
-            ></el-input>
+            <el-input v-model="searchForm.materialName" placeholder="请输入型号" clearable></el-input>
           </el-form-item>
           <el-form-item label="UDI序列号" prop="barcode">
-            <el-input
-              v-model="searchForm.barcode"
-              placeholder="请输入UDI序列号"
-              clearable
-            ></el-input>
+            <el-input v-model="searchForm.barcode" placeholder="请输入UDI序列号" clearable></el-input>
           </el-form-item>
           <el-form-item label="生产批号" prop="batchNo">
-            <el-input
-              v-model="searchForm.batchNo"
-              placeholder="请输入生产批号"
-              clearable
-            ></el-input>
+            <el-input v-model="searchForm.batchNo" placeholder="请输入生产批号" clearable></el-input>
           </el-form-item>
           <el-form-item label="销售订单" prop="saleOrderNo">
-            <zr-select
-              v-model="searchForm.saleOrderNo"
-              collection="k3_SAL_SaleOrder"
-              :search-fields="['FBillNo']"
-              label-key="FBillNo"
-              value-key="FBillNo"
-              sub-key="FBillNo"
-              :multiple="false"
-              placeholder="请输入销售单号"
-              clearable
-              style="width: 240px"
-            >
+            <zr-select v-model="searchForm.saleOrderNo" collection="k3_SAL_SaleOrder" :search-fields="['FBillNo']"
+              label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false" placeholder="请输入销售单号"
+              clearable style="width: 240px">
               <template #option="{ item }">
                 <div class="select-option">
                   <div class="option-main">
@@ -56,78 +30,34 @@
             </zr-select>
           </el-form-item>
           <el-form-item label="客户订单号" prop="custOrderNo">
-            <el-input
-              v-model="searchForm.custOrderNo"
-              placeholder="请输入客户订单号"
-              clearable
-            ></el-input>
+            <el-input v-model="searchForm.custOrderNo" placeholder="请输入客户订单号" clearable></el-input>
           </el-form-item>
           <el-form-item label="RFID标签" prop="rfidBarcode">
-            <el-input
-              v-model="searchForm.rfidBarcode"
-              placeholder="请输入RFID标签"
-              clearable
-            ></el-input>
+            <el-input v-model="searchForm.rfidBarcode" placeholder="请输入RFID标签" clearable></el-input>
           </el-form-item>
           <el-form-item label="生产日期" prop="dateRange">
-            <el-date-picker
-              v-model="searchForm.dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              value-format="yyyy-MM-dd"
-              style="width: 240px"
-            ></el-date-picker>
+            <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
+              end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 240px"></el-date-picker>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="search" icon="el-icon-search"
-              >搜索</el-button
-            >
-            <el-button @click="resetForm" icon="el-icon-refresh"
-              >重置</el-button
-            >
-            <el-button
-              type="success"
-              @click="handleAllExcel"
-              icon="el-icon-download"
-              >导出数据</el-button
-            >
+            <el-button type="primary" @click="search" icon="el-icon-search">搜索</el-button>
+            <el-button @click="resetForm" icon="el-icon-refresh">重置</el-button>
+            <el-button type="success" @click="handleAllExcel" icon="el-icon-download">导出数据</el-button>
           </el-form-item>
         </el-form>
       </div>
     </div>
 
     <!-- 表格区域 -->
-    <el-table
-      v-loading="listLoading"
-      :data="tableList"
-      border
-      style="width: 100%"
-      :header-cell-style="{ background: '#f5f7fa' }"
-    >
-      <el-table-column
-        type="index"
-        label="序号"
-        width="50"
-        align="center"
-      ></el-table-column>
-      <el-table-column
-        prop="saleOrderNo"
-        label="销售订单"
-        min-width="160"
-        show-overflow-tooltip
-      >
+    <el-table v-loading="listLoading" :data="tableList" border style="width: 100%"
+      :header-cell-style="{ background: '#f5f7fa' }">
+      <el-table-column type="index" label="序号" width="50" align="center"></el-table-column>
+      <el-table-column prop="saleOrderNo" label="销售订单" min-width="160" show-overflow-tooltip>
         <template slot-scope="scope">
           {{ scope.row.saleOrderNo || "-" }}
         </template>
       </el-table-column>
-      <el-table-column
-        prop="materialName"
-        label="型号"
-        min-width="160"
-        show-overflow-tooltip
-      ></el-table-column>
+      <el-table-column prop="materialName" label="型号" min-width="160" show-overflow-tooltip></el-table-column>
       <el-table-column label="UDI序列号" min-width="150" show-overflow-tooltip>
         <template slot-scope="scope">
           {{
@@ -137,22 +67,12 @@
           }}
         </template>
       </el-table-column>
-      <el-table-column
-        prop="batchNo"
-        label="生产批号"
-        min-width="160"
-        show-overflow-tooltip
-      ></el-table-column>
-      <el-table-column
-        prop="custOrderNo"
-        label="客户订单号"
-        min-width="160"
-        show-overflow-tooltip
-      >
+      <el-table-column prop="batchNo" label="生产批号" min-width="160" show-overflow-tooltip></el-table-column>
+      <el-table-column prop="custOrderNo" label="客户订单号" min-width="160" show-overflow-tooltip>
         <template slot-scope="scope">
           {{
             (scope.row.productionPlanWorkOrderId &&
-              scope.row.productionPlanWorkOrderId.FSapId) ||
+              scope.row.productionPlanWorkOrderId.custPO) ||
             "-"
           }}
         </template>
@@ -175,18 +95,8 @@
           }}
         </template>
       </el-table-column>
-      <el-table-column
-        prop="barcode"
-        label="产品UDI"
-        min-width="150"
-        show-overflow-tooltip
-      ></el-table-column>
-      <el-table-column
-        prop="rfidBarcode"
-        label="RFID标签"
-        min-width="150"
-        show-overflow-tooltip
-      ></el-table-column>
+      <el-table-column prop="barcode" label="产品UDI" min-width="150" show-overflow-tooltip></el-table-column>
+      <el-table-column prop="rfidBarcode" label="RFID标签" min-width="150" show-overflow-tooltip></el-table-column>
       <el-table-column label="生产日期" min-width="150" show-overflow-tooltip>
         <template slot-scope="scope">
           {{ formatDate(scope.row.createAt) }}
@@ -209,109 +119,62 @@
 
     <!-- 分页 -->
     <div class="pagination-container">
-      <el-pagination
-        @size-change="baseTableHandleSizeChange"
-        @current-change="baseTableHandleCurrentChange"
-        :current-page="currentPage"
-        :page-sizes="[10, 20, 50, 100]"
-        :page-size="pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-      >
+      <el-pagination @size-change="baseTableHandleSizeChange" @current-change="baseTableHandleCurrentChange"
+        :current-page="currentPage" :page-sizes="[10, 20, 50, 100]" :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper" :total="total">
       </el-pagination>
     </div>
 
     <!-- 详情弹窗 -->
-    <el-dialog
-      title="UDI数据详情"
-      :visible.sync="detailDialogVisible"
-      width="800px"
-      custom-class="udi-detail-dialog"
-    >
+    <el-dialog title="UDI数据详情" :visible.sync="detailDialogVisible" width="800px" custom-class="udi-detail-dialog">
       <div class="detail-container" v-if="currentDetail">
         <div class="detail-header">
           <h3>基本信息</h3>
         </div>
 
         <el-descriptions :column="2" border size="medium">
-          <el-descriptions-item
-            label="型号"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-          >
+          <el-descriptions-item label="型号" label-class-name="detail-label" content-class-name="detail-content">
             <el-tag size="medium" type="primary">{{
               currentDetail.materialName || "-"
             }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item
-            label="UDI序列号"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-          >
+          <el-descriptions-item label="UDI序列号" label-class-name="detail-label" content-class-name="detail-content">
             <el-tag size="medium" type="success">
               {{
                 currentDetail.barcode
                   ? currentDetail.barcode.substring(
-                      currentDetail.barcode.length - 12
-                    )
+                    currentDetail.barcode.length - 12
+                  )
                   : "-"
               }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item
-            label="生产批号"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-          >
+          <el-descriptions-item label="生产批号" label-class-name="detail-label" content-class-name="detail-content">
             {{ currentDetail.batchNo || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="客户订单号"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-          >
+          <el-descriptions-item label="客户订单号" label-class-name="detail-label" content-class-name="detail-content">
             {{
               (currentDetail.productionPlanWorkOrderId &&
-                currentDetail.productionPlanWorkOrderId.FSapId) ||
+                currentDetail.productionPlanWorkOrderId.custPO) ||
               "-"
             }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="产品UDI"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-          >
-            <el-tooltip
-              :content="currentDetail.barcode || '-'"
-              placement="top"
-              effect="light"
-            >
+          <el-descriptions-item label="产品UDI" label-class-name="detail-label" content-class-name="detail-content">
+            <el-tooltip :content="currentDetail.barcode || '-'" placement="top" effect="light">
               <span class="truncate-text">{{
                 currentDetail.barcode || "-"
               }}</span>
             </el-tooltip>
           </el-descriptions-item>
-          <el-descriptions-item
-            label="RFID标签"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-          >
-            <el-tooltip
-              :content="currentDetail.rfidBarcode || '-'"
-              placement="top"
-              effect="light"
-            >
+          <el-descriptions-item label="RFID标签" label-class-name="detail-label" content-class-name="detail-content">
+            <el-tooltip :content="currentDetail.rfidBarcode || '-'" placement="top" effect="light">
               <span class="truncate-text">{{
                 currentDetail.rfidBarcode || "-"
               }}</span>
             </el-tooltip>
           </el-descriptions-item>
-          <el-descriptions-item
-            label="生产日期"
-            label-class-name="detail-label"
-            content-class-name="detail-content"
-            :span="2"
-          >
+          <el-descriptions-item label="生产日期" label-class-name="detail-label" content-class-name="detail-content"
+            :span="2">
             <i class="el-icon-time"></i>
             {{ formatDate(currentDetail.createAt) }}
           </el-descriptions-item>
@@ -322,20 +185,11 @@
             <h3>条码验证信息</h3>
           </div>
           <el-descriptions :column="2" border size="medium">
-            <el-descriptions-item
-              label="彩盒UDI"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
-              <el-tooltip
-                :content="
-                  (currentDetail.barcodeValidation &&
-                    currentDetail.barcodeValidation.printBarcode) ||
-                  '-'
-                "
-                placement="top"
-                effect="light"
-              >
+            <el-descriptions-item label="彩盒UDI" label-class-name="detail-label" content-class-name="detail-content">
+              <el-tooltip :content="(currentDetail.barcodeValidation &&
+                currentDetail.barcodeValidation.printBarcode) ||
+                '-'
+                " placement="top" effect="light">
                 <span class="truncate-text">
                   {{
                     (currentDetail.barcodeValidation &&
@@ -345,50 +199,30 @@
                 </span>
               </el-tooltip>
             </el-descriptions-item>
-            <el-descriptions-item
-              label="彩盒条码验证"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
-              <el-tag
-                :type="
-                  getValidationTagType(
-                    currentDetail.barcodeValidation &&
-                      currentDetail.barcodeValidation.isPrintBarcodeValid
-                  )
-                "
-                effect="dark"
-              >
-                <i
-                  :class="
-                    currentDetail.barcodeValidation &&
-                    currentDetail.barcodeValidation.isPrintBarcodeValid
-                      ? 'el-icon-check'
-                      : 'el-icon-close'
-                  "
-                ></i>
+            <el-descriptions-item label="彩盒条码验证" label-class-name="detail-label" content-class-name="detail-content">
+              <el-tag :type="getValidationTagType(
+                currentDetail.barcodeValidation &&
+                currentDetail.barcodeValidation.isPrintBarcodeValid
+              )
+                " effect="dark">
+                <i :class="currentDetail.barcodeValidation &&
+                  currentDetail.barcodeValidation.isPrintBarcodeValid
+                  ? 'el-icon-check'
+                  : 'el-icon-close'
+                  "></i>
                 {{
                   currentDetail.barcodeValidation &&
-                  currentDetail.barcodeValidation.isPrintBarcodeValid
+                    currentDetail.barcodeValidation.isPrintBarcodeValid
                     ? "验证通过"
                     : "验证失败"
                 }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item
-              label="外箱UDI"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
-              <el-tooltip
-                :content="
-                  (currentDetail.barcodeValidation &&
-                    currentDetail.barcodeValidation.transformedBarcode) ||
-                  '-'
-                "
-                placement="top"
-                effect="light"
-              >
+            <el-descriptions-item label="外箱UDI" label-class-name="detail-label" content-class-name="detail-content">
+              <el-tooltip :content="(currentDetail.barcodeValidation &&
+                currentDetail.barcodeValidation.transformedBarcode) ||
+                '-'
+                " placement="top" effect="light">
                 <span class="truncate-text">
                   {{
                     (currentDetail.barcodeValidation &&
@@ -398,47 +232,32 @@
                 </span>
               </el-tooltip>
             </el-descriptions-item>
-            <el-descriptions-item
-              label="外箱条码验证"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
-              <el-tag
-                :type="
-                  getValidationTagType(
-                    currentDetail.barcodeValidation &&
-                      currentDetail.barcodeValidation.isTransformedBarcodeValid
-                  )
-                "
-                effect="dark"
-              >
-                <i
-                  :class="
-                    currentDetail.barcodeValidation &&
-                    currentDetail.barcodeValidation.isTransformedBarcodeValid
-                      ? 'el-icon-check'
-                      : 'el-icon-close'
-                  "
-                ></i>
+            <el-descriptions-item label="外箱条码验证" label-class-name="detail-label" content-class-name="detail-content">
+              <el-tag :type="getValidationTagType(
+                currentDetail.barcodeValidation &&
+                currentDetail.barcodeValidation.isTransformedBarcodeValid
+              )
+                " effect="dark">
+                <i :class="currentDetail.barcodeValidation &&
+                  currentDetail.barcodeValidation.isTransformedBarcodeValid
+                  ? 'el-icon-check'
+                  : 'el-icon-close'
+                  "></i>
                 {{
                   currentDetail.barcodeValidation &&
-                  currentDetail.barcodeValidation.isTransformedBarcodeValid
+                    currentDetail.barcodeValidation.isTransformedBarcodeValid
                     ? "验证通过"
                     : "验证失败"
                 }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item
-              label="验证时间"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-              :span="2"
-            >
+            <el-descriptions-item label="验证时间" label-class-name="detail-label" content-class-name="detail-content"
+              :span="2">
               <i class="el-icon-time"></i>
               {{
                 formatDate(
                   currentDetail.barcodeValidation &&
-                    currentDetail.barcodeValidation.validationTime
+                  currentDetail.barcodeValidation.validationTime
                 )
               }}
             </el-descriptions-item>
@@ -450,36 +269,20 @@
             <h3>生产信息</h3>
           </div>
           <el-descriptions :column="2" border size="medium">
-            <el-descriptions-item
-              label="销售订单号"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
+            <el-descriptions-item label="销售订单号" label-class-name="detail-label" content-class-name="detail-content">
               <el-tag size="medium" type="info">{{
                 currentDetail.saleOrderNo || "-"
               }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item
-              label="生产订单号"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
+            <el-descriptions-item label="生产订单号" label-class-name="detail-label" content-class-name="detail-content">
               <el-tag size="medium" type="info">{{
                 currentDetail.productionOrderNo || "-"
               }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item
-              label="生产线"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
+            <el-descriptions-item label="生产线" label-class-name="detail-label" content-class-name="detail-content">
               {{ currentDetail.productionLineName || "-" }}
             </el-descriptions-item>
-            <el-descriptions-item
-              label="物料编码"
-              label-class-name="detail-label"
-              content-class-name="detail-content"
-            >
+            <el-descriptions-item label="物料编码" label-class-name="detail-label" content-class-name="detail-content">
               {{ currentDetail.materialCode || "-" }}
             </el-descriptions-item>
           </el-descriptions>
@@ -487,9 +290,7 @@
       </div>
       <div slot="footer" class="dialog-footer">
         <el-button @click="detailDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleExportSingle(currentDetail)"
-          >导出数据</el-button
-        >
+        <el-button type="primary" @click="handleExportSingle(currentDetail)">导出数据</el-button>
       </div>
     </el-dialog>
   </div>
@@ -545,7 +346,7 @@ export default {
           const barcodes = result.data
             .filter(item => item.barcode)
             .map(item => item.barcode);
-          
+
           // 批量查询条码信息
           let barcodeValidationMap = {};
           if (barcodes.length > 0) {
@@ -553,7 +354,7 @@ export default {
               const barcodeResult = await getData("preProductionBarcode", {
                 query: { printBarcode: { $in: barcodes } },
               });
-              
+
               if (barcodeResult.code === 200 && barcodeResult.data.length > 0) {
                 // 创建映射表以便快速查找
                 barcodeValidationMap = barcodeResult.data.reduce((map, item) => {
@@ -714,7 +515,7 @@ export default {
 
         if (this.searchForm.custOrderNo && this.searchForm.custOrderNo.trim()) {
           workOrderQuery.$or.push({
-            FSapId: this.searchForm.custOrderNo.trim(),
+            custPO: this.searchForm.custOrderNo.trim(),
           });
         }
 
@@ -808,77 +609,53 @@ export default {
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
+        // SKU#	SN_PO#	SN_NO#	BATCH_NO#	MASTER_CARTON_UDI#	COLOR_BOX_UDI#	UNIT_UDI#	RFID_NO#	
 
         // 准备导出数据
-        const excelData = [
+        const csvData = [
           {
-            型号: row.materialName || "-",
-            客户订单: row.saleOrderNo || "-",
-            客户订单号:
+            'SKU#': row.materialName || "-",
+            'SN_PO#':
               (row.productionPlanWorkOrderId &&
-                row.productionPlanWorkOrderId.FSapId) ||
+                row.productionPlanWorkOrderId.custPO) ||
               "-",
-            UDI序列号: row.barcode
+            'SN_NO#': row.barcode
               ? row.barcode.substring(row.barcode.length - 12)
               : "-",
-            生产批号: row.batchNo || "-",
-            外箱UDI:
+            'BATCH_NO#': row.batchNo || "-",
+            'MASTER_CARTON_UDI#':
               (row.barcodeValidation &&
                 row.barcodeValidation.transformedBarcode) ||
               "-",
-            彩盒UDI:
+            'COLOR_BOX_UDI#':
               (row.barcodeValidation && row.barcodeValidation.printBarcode) ||
               "-",
-            产品UDI: row.barcode || "-",
-            RFID标签: row.rfidBarcode || "-",
-            生产日期: row.createAt ? this.formatDate(row.createAt) : "-",
+            'UNIT_UDI#': row.barcode || "-",
+            'RFID_NO#': row.rfidBarcode || "-",
+            'MANUFACTURING_DATE': row.createAt ? this.formatDate(row.createAt) : "-",
           },
         ];
 
-        // 创建工作簿
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
+        // 转换为CSV格式
+        const headers = Object.keys(csvData[0]);
+        const csvContent = [
+          headers.join(","), // 表头
+          ...csvData.map(item =>
+            headers.map(header =>
+              // 处理可能包含逗号的内容，用双引号包围
+              `"${String(item[header]).replace(/"/g, '""')}"`
+            ).join(",")
+          )
+        ].join("\n");
 
-        // 设置列宽
-        const colWidths = [
-          { wch: 15 }, // 型号
-          { wch: 15 }, // 客户订单
-          { wch: 15 }, // 客户订单号
-          { wch: 20 }, // UDI序列号
-          { wch: 15 }, // 生产批号
-          { wch: 20 }, // 外箱UDI
-          { wch: 20 }, // 彩盒UDI
-          { wch: 20 }, // 产品UDI
-          { wch: 20 }, // RFID标签
-          { wch: 20 }, // 生产日期
-        ];
-        ws["!cols"] = colWidths;
-
-        // 设置表头样式
-        const range = XLSX.utils.decode_range(ws["!ref"]);
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const address = XLSX.utils.encode_cell({ r: 0, c: C });
-          if (!ws[address]) continue;
-          ws[address].s = {
-            font: { bold: true },
-            alignment: { horizontal: "center" },
-            fill: { fgColor: { rgb: "f5f7fa" } },
-          };
-        }
-
-        // 将工作表添加到工作簿
-        XLSX.utils.book_append_sheet(wb, ws, "UDI数据");
-
-        // 生成Excel文件并下载
-        const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([excelBuffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        // 创建Blob对象
+        const blob = new Blob(["\uFEFF" + csvContent], { // 添加BOM标记支持中文
+          type: "text/csv;charset=utf-8",
         });
 
         // 生成文件名
-        const fileName = `UDI数据_${
-          row.barcode ? row.barcode.substring(row.barcode.length - 12) : "未知"
-        }_${new Date().toLocaleDateString()}.xlsx`;
+        const fileName = `UDI数据_${row.barcode ? row.barcode.substring(row.barcode.length - 12) : "未知"
+          }_${new Date().toLocaleDateString()}.csv`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);
@@ -903,173 +680,215 @@ export default {
           background: "rgba(0, 0, 0, 0.7)",
         });
 
-        // 获取表格数据（使用当前搜索条件，但不分页）
-        let req = await this.searchData();
-        req.sort = { createAt: -1 };
-        req.populate = JSON.stringify([
-          {
-            path: "productionPlanWorkOrderId",
-          },
-        ]);
+        // 设置每批次请求的数据量
+        const batchSize = 100;
 
-        const result = await getData("material_process_flow", req);
+        // 将存储所有批次的数据
+        let allResultData = [];
 
-        if (result.code !== 200) {
-          throw new Error(result.msg || "获取数据失败");
-        }
+        // 用于存储所有条码，后续批量查询条码信息
+        let allBarcodes = [];
 
-        // 收集所有需要查询的条码
-        const barcodes = result.data
-          .filter(item => item.barcode)
-          .map(item => item.barcode);
-        
-        // 批量查询条码信息
-        let barcodeValidationMap = {};
-        if (barcodes.length > 0) {
-          try {
-            const barcodeResult = await getData("preProductionBarcode", {
-              query: { printBarcode: { $in: barcodes } },
-            });
-            
-            if (barcodeResult.code === 200 && barcodeResult.data.length > 0) {
-              // 创建映射表以便快速查找
-              barcodeValidationMap = barcodeResult.data.reduce((map, item) => {
-                map[item.printBarcode] = {
-                  printBarcode: item.printBarcode || "-", // 彩箱码
-                  transformedBarcode: item.transformedPrintBarcode || "-", // 黄板箱
-                  isPrintBarcodeValid: true,
-                  isTransformedBarcodeValid: true,
-                  validationTime: item.validationTime || new Date(),
-                };
-                return map;
-              }, {});
-            }
-          } catch (error) {
-            console.error("批量获取条码信息失败:", error);
+        let hasMoreData = true;
+        let currentBatch = 0;
+        let totalCount = 0;
+
+        // 分批次请求数据，直到没有更多数据
+        while (hasMoreData) {
+          const batchReq = await this.searchData();
+          batchReq.sort = { createAt: -1 };
+          batchReq.skip = currentBatch * batchSize;
+          batchReq.limit = batchSize;
+          batchReq.count = true;
+          batchReq.populate = JSON.stringify([
+            {
+              path: "productionPlanWorkOrderId",
+            },
+          ]);
+
+          const loadingText = `正在获取数据，已加载 ${currentBatch * batchSize} 条...`;
+          loading.text = loadingText;
+
+          const batchResult = await getData("material_process_flow", batchReq);
+
+          if (batchResult.code !== 200) {
+            throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
           }
-        }
 
-        // 处理数据
-        let resultData = [];
-        for (const item of result.data) {
-          // 查找包含RFID的节点
-          let rfidBarcode = "-";
-          if (item.processNodes && item.processNodes.length > 0) {
-            const rfidNodes = item.processNodes.filter(
-              (node) =>
-                (node.materialName && node.materialName.includes("RFID")) ||
-                node.isRfid === true
-            );
+          // 第一次请求时获取总数
+          if (currentBatch === 0) {
+            totalCount = batchResult.countnum || 0;
 
-            // 提取对应的barcode
-            if (rfidNodes.length > 0 && rfidNodes[0].barcode) {
-              rfidBarcode = rfidNodes[0].barcode;
+            if (totalCount === 0) {
+              this.$message.info("没有找到符合条件的数据");
+              loading.close();
+              return;
             }
           }
 
-          // 从映射表中获取条码验证信息
-          let barcodeValidation = {
-            printBarcode: "-",
-            transformedBarcode: "-",
-            isPrintBarcodeValid: true,
-            isTransformedBarcodeValid: true,
-            validationTime: item.endTime || item.createAt,
-          };
+          // 处理当前批次数据
+          const batchData = batchResult.data || [];
 
-          if (item.barcode && barcodeValidationMap[item.barcode]) {
-            barcodeValidation = barcodeValidationMap[item.barcode];
+          // 如果返回数据少于批次大小，说明没有更多数据了
+          if (batchData.length < batchSize) {
+            hasMoreData = false;
           }
 
-          resultData.push({
-            ...item,
-            batchNo:
-              item.productionPlanWorkOrderId &&
-              item.productionPlanWorkOrderId.custPO,
-            saleOrderNo:
-              item.productionPlanWorkOrderId &&
-              item.productionPlanWorkOrderId.saleOrderNo,
-            productionOrderNo:
-              item.productionPlanWorkOrderId &&
-              item.productionPlanWorkOrderId.productionOrderNo,
-            productionLineId:
-              item.productionPlanWorkOrderId &&
-              item.productionPlanWorkOrderId.productionLineId,
-            productionLineName:
-              item.productionPlanWorkOrderId &&
-              item.productionPlanWorkOrderId.productionLineName,
-            rfidBarcode: rfidBarcode,
-            barcodeValidation,
+          // 收集当前批次的条码
+          const batchBarcodes = batchData
+            .filter(item => item.barcode)
+            .map(item => item.barcode);
+
+          allBarcodes = [...allBarcodes, ...batchBarcodes];
+
+          // 处理基础数据，暂时不处理条码验证信息
+          const processedBatchData = batchData.map(item => {
+            // 查找包含RFID的节点
+            let rfidBarcode = "-";
+            if (item.processNodes && item.processNodes.length > 0) {
+              const rfidNodes = item.processNodes.filter(
+                (node) =>
+                  (node.materialName && node.materialName.includes("RFID")) ||
+                  node.isRfid === true
+              );
+              // 提取对应的barcode
+              if (rfidNodes.length > 0 && rfidNodes[0].barcode) {
+                rfidBarcode = rfidNodes[0].barcode;
+              }
+            }
+
+            return {
+              ...item,
+              batchNo:
+                item.productionPlanWorkOrderId &&
+                item.productionPlanWorkOrderId.custPO,
+              saleOrderNo:
+                item.productionPlanWorkOrderId &&
+                item.productionPlanWorkOrderId.saleOrderNo,
+              productionOrderNo:
+                item.productionPlanWorkOrderId &&
+                item.productionPlanWorkOrderId.productionOrderNo,
+              productionLineId:
+                item.productionPlanWorkOrderId &&
+                item.productionPlanWorkOrderId.productionLineId,
+              productionLineName:
+                item.productionPlanWorkOrderId &&
+                item.productionPlanWorkOrderId.productionLineName,
+              rfidBarcode: rfidBarcode,
+              // 暂时设置空的条码验证信息，后续会更新
+              barcodeValidation: {
+                printBarcode: "-",
+                transformedBarcode: "-",
+                isPrintBarcodeValid: true,
+                isTransformedBarcodeValid: true,
+                validationTime: item.endTime || item.createAt,
+              },
+            };
           });
+
+          allResultData = [...allResultData, ...processedBatchData];
+          currentBatch++;
+
+          // 显示加载进度
+          const loadedPercent = Math.min(100, Math.floor((allResultData.length / totalCount) * 100));
+          loading.text = `正在获取数据，进度：${loadedPercent}%...`;
+
+          // 如果已加载数据达到总数，结束加载
+          if (allResultData.length >= totalCount) {
+            hasMoreData = false;
+          }
         }
 
-        // 转换数据为Excel格式
-        const excelData = resultData.map((item) => ({
-          型号: item.materialName || "-",
-          客户订单: item.saleOrderNo || "-",
-          客户订单号:
+        // 批量查询条码信息
+        loading.text = "正在处理条码数据，请稍候...";
+
+        let barcodeValidationMap = {};
+        if (allBarcodes.length > 0) {
+          // 分批查询条码信息
+          const barcodeBatchSize = 100;
+          const barcodeBatchCount = Math.ceil(allBarcodes.length / barcodeBatchSize);
+
+          for (let i = 0; i < barcodeBatchCount; i++) {
+            const batchBarcodes = allBarcodes.slice(i * barcodeBatchSize, (i + 1) * barcodeBatchSize);
+
+            try {
+              const barcodeResult = await getData("preProductionBarcode", {
+                query: { printBarcode: { $in: batchBarcodes } },
+              });
+
+              if (barcodeResult.code === 200 && barcodeResult.data.length > 0) {
+                // 添加到映射表
+                barcodeResult.data.forEach(item => {
+                  barcodeValidationMap[item.printBarcode] = {
+                    printBarcode: item.printBarcode || "-", // 彩箱码
+                    transformedBarcode: item.transformedPrintBarcode || "-", // 黄板箱
+                    isPrintBarcodeValid: true,
+                    isTransformedBarcodeValid: true,
+                    validationTime: item.validationTime || new Date(),
+                  };
+                });
+              }
+            } catch (error) {
+              console.error(`批量获取第${i + 1}批条码信息失败:`, error);
+            }
+          }
+        }
+
+        // 更新所有数据的条码验证信息
+        loading.text = "正在准备导出数据，请稍候...";
+
+        const finalResultData = allResultData.map(item => {
+          if (item.barcode && barcodeValidationMap[item.barcode]) {
+            item.barcodeValidation = barcodeValidationMap[item.barcode];
+          }
+          return item;
+        });
+        // SKU#	SN_PO#	SN_NO#	BATCH_NO#	MASTER_CARTON_UDI#	COLOR_BOX_UDI#	UNIT_UDI#	RFID_NO#	MANUFACTURING_DATE
+
+        // 转换数据为CSV格式
+        const csvData = finalResultData.map((item) => ({
+          'SKU#': item.materialName || "-",
+          'SN_PO#':
             (item.productionPlanWorkOrderId &&
-              item.productionPlanWorkOrderId.FSapId) ||
+              item.productionPlanWorkOrderId.custPO) ||
             "-",
-          UDI序列号: item.barcode
+          'SN_NO#': item.barcode
             ? item.barcode.substring(item.barcode.length - 12)
             : "-",
-          生产批号: item.batchNo || "-",
-          外箱UDI:
+          'BATCH_NO#': item.batchNo || "-",
+          'MASTER_CARTON_UDI#':
             (item.barcodeValidation &&
               item.barcodeValidation.transformedBarcode) ||
             "-",
-          彩盒UDI:
+          'COLOR_BOX_UDI#':
             (item.barcodeValidation && item.barcodeValidation.printBarcode) ||
             "-",
-          产品UDI: item.barcode || "-",
-          RFID标签: item.rfidBarcode || "-",
-          生产日期: item.endTime
-            ? this.formatDate(item.endTime)
-            : this.formatDate(item.createAt),
+          'UNIT_UDI#': item.barcode || "-",
+          'RFID_NO': item.rfidBarcode || "-",
+          'MANUFACTURING_DATE': item.endTime
+            ? this.formatDateForExport(item.endTime)
+            : this.formatDateForExport(item.createAt),
         }));
 
-        // 创建工作簿
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
+        // 转换为CSV格式
+        const headers = Object.keys(csvData[0]);
+        const csvContent = [
+          headers.join(","), // 表头
+          ...csvData.map(item =>
+            headers.map(header =>
+              // 处理可能包含逗号的内容，用双引号包围
+              `"${String(item[header]).replace(/"/g, '""')}"`
+            ).join(",")
+          )
+        ].join("\n");
 
-        // 设置列宽
-        const colWidths = [
-          { wch: 15 }, // 型号
-          { wch: 15 }, // 客户订单
-          { wch: 15 }, // 客户订单号
-          { wch: 20 }, // UDI序列号
-          { wch: 15 }, // 生产批号
-          { wch: 20 }, // 外箱UDI
-          { wch: 20 }, // 彩盒UDI
-          { wch: 20 }, // 产品UDI
-          { wch: 20 }, // RFID标签
-          { wch: 20 }, // 生产日期
-        ];
-        ws["!cols"] = colWidths;
-
-        // 设置表头样式
-        const range = XLSX.utils.decode_range(ws["!ref"]);
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const address = XLSX.utils.encode_cell({ r: 0, c: C });
-          if (!ws[address]) continue;
-          ws[address].s = {
-            font: { bold: true },
-            alignment: { horizontal: "center" },
-            fill: { fgColor: { rgb: "f5f7fa" } },
-          };
-        }
-
-        // 将工作表添加到工作簿
-        XLSX.utils.book_append_sheet(wb, ws, "UDI数据列表");
-
-        // 生成Excel文件并下载
-        const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([excelBuffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        // 创建Blob对象
+        const blob = new Blob(["\uFEFF" + csvContent], { // 添加BOM标记支持中文
+          type: "text/csv;charset=utf-8",
         });
 
         // 生成文件名
-        const fileName = `UDI数据导出_${new Date().toLocaleDateString()}.xlsx`;
+        const fileName = `UDI数据导出_${new Date().toLocaleDateString()}.csv`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);
@@ -1082,6 +901,15 @@ export default {
         // 关闭加载提示
         this.$loading().close();
       }
+    },
+    // 为导出格式化日期 (MM/DD/YYYY)
+    formatDateForExport(date) {
+      if (!date) return "-";
+      const d = new Date(date);
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const year = d.getFullYear();
+      return `${month}/${day}/${year}`;
     },
   },
   created() {
@@ -1203,4 +1031,4 @@ export default {
     color: #303133;
   }
 }
-</style> 
+</style>

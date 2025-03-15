@@ -861,7 +861,7 @@ export default {
         ]);
 
         // 计算剩余可生成数量
-        this.maxQuantity = workOrder.planQuantity - (countResult.countnum || 0);
+        this.maxQuantity = workOrder.planProductionQuantity - (countResult.countnum || 0);
 
         // 设置起始序号为最大序号+1或1
         this.generateForm.startNumber =
@@ -1214,25 +1214,49 @@ export default {
           }
         }
 
-        // 检查条码是否已存在（排除已作废的）
-        const existingBarcodes = await getData("preProductionBarcode", {
-          query: {
-            $or: [
-              { barcode: { $in: barcodes.map((item) => item.barcode) } },
-              {
-                transformedBarcode: {
-                  $in: barcodes
-                    .map((item) => item.transformedBarcode)
-                    .filter(Boolean),
-                },
-              },
-            ],
-            status: { $ne: "VOIDED" },
-          },
-        });
+        // 检查条码是否已存在（排除已作废的），按批次查询避免条件过大
+        const batchSize = 100; // 每批次查询的条码数量
+        let allExistingBarcodes = { data: [] };
 
-        if (existingBarcodes.data && existingBarcodes.data.length > 0) {
-          const duplicates = existingBarcodes.data.map((item) => ({
+        // 对明码和转换明码分别进行批量查询
+        const regularBarcodes = barcodes.map(item => item.barcode);
+        const transformedBarcodes = barcodes.map(item => item.transformedBarcode).filter(Boolean);
+
+        // 查询普通条码
+        for (let i = 0; i < regularBarcodes.length; i += batchSize) {
+          const batchBarcodes = regularBarcodes.slice(i, i + batchSize);
+          const batchResult = await getData("preProductionBarcode", {
+            query: {
+              barcode: { $in: batchBarcodes },
+              status: { $ne: "VOIDED" },
+            },
+          });
+          
+          if (batchResult.data && batchResult.data.length > 0) {
+            allExistingBarcodes.data = [...allExistingBarcodes.data, ...batchResult.data];
+          }
+        }
+
+        // 如果有转换明码，也需要查询
+        if (transformedBarcodes.length > 0) {
+          for (let i = 0; i < transformedBarcodes.length; i += batchSize) {
+            const batchTransformedBarcodes = transformedBarcodes.slice(i, i + batchSize);
+            const batchResult = await getData("preProductionBarcode", {
+              query: {
+                transformedBarcode: { $in: batchTransformedBarcodes },
+                status: { $ne: "VOIDED" },
+              },
+            });
+            
+            if (batchResult.data && batchResult.data.length > 0) {
+              allExistingBarcodes.data = [...allExistingBarcodes.data, ...batchResult.data];
+            }
+          }
+        }
+
+        // 检查是否有重复条码
+        if (allExistingBarcodes.data && allExistingBarcodes.data.length > 0) {
+          const duplicates = allExistingBarcodes.data.map((item) => ({
             barcode: item.barcode,
             transformedBarcode: item.transformedBarcode,
             workOrderNo: item.workOrderNo,
@@ -1249,7 +1273,20 @@ export default {
           return;
         }
 
-        await addData("preProductionBarcode", barcodes);
+        // 按批次提交条码数据
+        for (let i = 0; i < barcodes.length; i += batchSize) {
+          const batchBarcodes = barcodes.slice(i, i + batchSize);
+          await addData("preProductionBarcode", batchBarcodes);
+          
+          // 显示进度
+          const progress = Math.min(100, Math.round(((i + batchSize) / barcodes.length) * 100));
+          this.$message({
+            type: 'info',
+            message: `正在保存条码数据：${progress}%`,
+            duration: 1000
+          });
+        }
+
         this.$message.success(`成功生成 ${barcodes.length} 个条码`);
 
         // 重置表单和关闭对话框

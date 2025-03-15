@@ -124,4 +124,38 @@ router.post("/api/v1/unbindPalletBarcode", async (req, res) => {
   }
 });
 
+// 添加拆分托盘接口
+router.post("/api/v1/splitPallet", async (req, res) => {
+  try {
+    const { originalPalletCode, barcodes, userId } = req.body;
+
+    // 参数验证
+    if (!originalPalletCode || !barcodes || !barcodes.length || !userId) {
+      return res.status(200).json({
+        success: false,
+        message: "缺少必要参数",
+      });
+    }
+
+    const result = await materialPalletizingService.splitPallet(
+      originalPalletCode,
+      barcodes,
+      userId
+    );
+
+    return res.status(200).json({
+      code: 200,
+      success: true,
+      data: result,
+      message: "拆分托盘成功",
+    });
+  } catch (error) {
+    return res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;

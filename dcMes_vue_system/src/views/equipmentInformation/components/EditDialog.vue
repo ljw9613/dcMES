@@ -64,12 +64,36 @@
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                    <el-form-item label="厂区名称" prop="machineIp">
+                    <el-form-item label="厂区名称" prop="factoryName">
                         <el-select v-model="form.factoryName" placeholder="请选择厂区名称" clearable style="width: 100%"
                             :popper-append-to-body="true">
                             <el-option v-for="dict in dict.type.factoryName_type" :key="dict.value" :label="dict.label"
                                 :value="dict.value" />
                         </el-select>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" v-if="form.processStepId">
+                <el-col :span="24">
+                    <el-form-item label="关联工序信息">
+                        <el-card shadow="never" class="process-info-card">
+                            <div slot="header" class="clearfix">
+                                <span>{{ form.processStepId.processName }} ({{ form.processStepId.processCode }})</span>
+                                <el-tag size="mini" :type="getRelationshipType(form)" style="margin-left: 10px">
+                                    {{ getRelationshipLabel(form) }}
+                                </el-tag>
+                                <el-button style="float: right; padding: 3px 0" type="text" @click="handleUnbindProcess">
+                                    解除关联
+                                </el-button>
+                            </div>
+                            <div class="process-info">
+                                <p><strong>工序描述:</strong> {{ form.processStepId.processDesc || '无' }}</p>
+                                <p><strong>生产阶级:</strong> {{ form.processStepId.processStage || '无' }}</p>
+                                <p><strong>工序类型:</strong> {{ form.processStepId.processType || '无' }}</p>
+                                <p><strong>工序状态:</strong> {{ form.processStepId.status || '无' }}</p>
+                            </div>
+                        </el-card>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -103,7 +127,7 @@
 
             <el-row :gutter="20">
                 <el-col :span="24">
-                    <el-form-item label="是否需要维修检验" prop="isNeedMaintain">
+                    <el-form-item label="需要维修检验" prop="isNeedMaintain">
                         <el-switch
                             v-model="form.isNeedMaintain"
                             active-text="是"
@@ -245,22 +269,72 @@ export default {
     },
     watch: {
         visible(val) {
-            this.dialogVisible = val
+            this.dialogVisible = val;
             if (val) {
-                this.initFormData()
+                this.initForm();
             }
         },
         rowData: {
             handler(val) {
-                if (val && this.dialogVisible) {
-                    this.initFormData()
+                if (val && Object.keys(val).length > 0 && this.dialogVisible) {
+                    this.initForm();
                 }
-
             },
             deep: true
         }
     },
     methods: {
+        initForm() {
+            if (this.dialogStatus === 'edit' && this.rowData && Object.keys(this.rowData).length > 0) {
+                // 编辑模式，使用传入的行数据
+                this.form = JSON.parse(JSON.stringify(this.rowData));
+                this.autoGenerateCode = false; // 编辑模式下默认不自动生成
+                
+                // 如果有工序关联，获取完整的工序信息
+                if (this.form.processStepId) {
+                    this.fetchProcessStepDetail(this.form.processStepId._id);
+                }
+            } else {
+                // 新增模式，初始化表单
+                this.form = {
+                    machineName: '',
+                    machineCode: '',
+                    machineIp: '',
+                    principal: '',
+                    lineId: '',
+                    lineName: '',
+                    lineCode: '',
+                    machineType: '',
+                    factoryName: '',
+                    comment: '',
+                    upperLimit: null,
+                    lowerLimit: null,
+                    status: false,
+                    isNeedMaintain: false
+                };
+                this.autoGenerateCode = true;
+                this.generateCode(); // 使用正确的方法名
+            }
+        },
+        
+        // 获取工序详细信息
+        async fetchProcessStepDetail(processStepId) {
+            try {
+                const result = await getData('processStep', {
+                    query: { _id: processStepId },
+                    populate: JSON.stringify([
+                        { path: 'machineId' },
+                        { path: 'machineIds' }
+                    ])
+                });
+                
+                if (result.data && result.data.length > 0) {
+                    this.form.processStepId = result.data[0];
+                }
+            } catch (error) {
+                console.error('获取工序详情失败:', error);
+            }
+        },
         // 切换自动生成编号模式
         toggleAutoGenerate() {
             this.autoGenerateCode = !this.autoGenerateCode;
@@ -355,35 +429,6 @@ export default {
                 this.generateMachineCode();
             }
         },
-        async initFormData() {
-            if (this.dialogStatus === 'edit') {
-                this.form = { ...this.rowData }
-                this.autoGenerateCode = false; // 编辑模式下默认不自动生成
-                // 如果存在materialId，加载对应的工序选项
-                if (this.form.materialId) {
-                    try {
-                        const { data: processSteps } = await getAllProcessSteps(this.form.materialId);
-                        console.log("获取到的工序:", processSteps);
-                        this.processStepOptions = processSteps;
-                    } catch (error) {
-                        console.error('初始化工序列表失败:', error);
-                        this.$message.error('初始化工序列表失败');
-                    }
-                }
-            } else {
-                this.form = {
-                    machineName: '',
-                    machineCode: '',
-                    machineIp: '',
-                    principal: '',
-                    comment: '',
-                    upperLimit: null,
-                    lowerLimit: null,
-                    machineType: undefined,
-                    isNeedMaintain: false,
-                }
-            }
-        },
         handleClose() {
             this.$emit('update:visible', false)
             this.$refs.form && this.$refs.form.resetFields()
@@ -410,6 +455,105 @@ export default {
                 }
             })
         },
+        // 获取设备与工序的关联类型
+        getRelationshipType(row) {
+            if (!row.processStepId) return 'info';
+            
+            // 检查是否为主设备
+            if (row.processStepId.machineId && row.processStepId.machineId._id === row._id) {
+                return 'success';
+            }
+            
+            // 检查是否为关联设备
+            if (row.processStepId.machineIds && row.processStepId.machineIds.some(m => m._id === row._id)) {
+                return 'primary';
+            }
+            
+            return 'info';
+        },
+        
+        // 获取设备与工序的关联标签
+        getRelationshipLabel(row) {
+            if (!row.processStepId) return '未关联';
+            
+            // 检查是否为主设备
+            if (row.processStepId.machineId && row.processStepId.machineId._id === row._id) {
+                return '主检验设备';
+            }
+            
+            // 检查是否为关联设备
+            if (row.processStepId.machineIds && row.processStepId.machineIds.some(m => m._id === row._id)) {
+                return '关联设备';
+            }
+            
+            return '未关联';
+        },
+        
+        // 解除设备与工序的关联
+        async handleUnbindProcess() {
+            try {
+                this.$confirm('确定要解除该设备与工序的关联吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(async () => {
+                    const processStepId = this.form.processStepId._id;
+                    const machineId = this.form._id;
+                    
+                    // 获取工序详情
+                    const processStep = await getData('processStep', {
+                        query: { _id: processStepId },
+                        populate: JSON.stringify([
+                            { path: 'machineId' },
+                            { path: 'machineIds' }
+                        ])
+                    });
+                    
+                    if (processStep.data && processStep.data.length > 0) {
+                        const process = processStep.data[0];
+                        const updateData = {};
+                        
+                        // 如果是主设备，清除主设备关联
+                        if (process.machineId && process.machineId._id === machineId) {
+                            updateData.machineId = null;
+                        }
+                        
+                        // 如果是关联设备，从关联设备列表中移除
+                        if (process.machineIds && process.machineIds.length > 0) {
+                            updateData.machineIds = process.machineIds
+                                .filter(m => m._id !== machineId)
+                                .map(m => m._id);
+                        }
+                        
+                        // 更新工序
+                        await updateData('processStep', {
+                            query: { _id: processStepId },
+                            update: updateData
+                        });
+                        
+                        // 更新设备
+                        await updateData('machine', {
+                            query: { _id: machineId },
+                            update: {
+                                processStepId: null,
+                                materialId: null
+                            }
+                        });
+                        
+                        this.$message.success('解除关联成功');
+                        
+                        // 更新表单数据
+                        this.form.processStepId = null;
+                        this.form.materialId = null;
+                    }
+                }).catch(() => {
+                    this.$message.info('已取消操作');
+                });
+            } catch (error) {
+                console.error('解除关联失败:', error);
+                this.$message.error('解除关联失败: ' + error.message);
+            }
+        },
     }
 }
 </script>
@@ -433,6 +577,16 @@ export default {
         &::before {
             content: "⚠️";
             margin-right: 8px;
+        }
+    }
+}
+
+.process-info-card {
+    margin-bottom: 10px;
+    
+    .process-info {
+        p {
+            margin: 5px 0;
         }
     }
 }

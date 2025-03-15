@@ -146,13 +146,10 @@
               <i class="el-icon-scan"></i>
               <span>条码扫描</span>
               <el-button type="text" @click="toggleCollapse">
-                <i
-                  :class="
-                    isCollapsed
-                      ? 'el-icon-d-arrow-right'
-                      : 'el-icon-d-arrow-left'
-                  "
-                ></i>
+                <i :class="isCollapsed
+                  ? 'el-icon-d-arrow-right'
+                  : 'el-icon-d-arrow-left'
+                  "></i>
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
             </div>
@@ -243,17 +240,11 @@
                     class="vertical-form-item"
                   >
                     <div class="input-with-status">
-                      <el-input
-                        v-model="scanForm.barcodes[material._id]"
-                        :placeholder="
-                          !material.scanOperation
-                            ? '无需扫码'
-                            : '请扫描子物料条码'
-                        "
-                        :class="{ 'valid-input': validateStatus[material._id] }"
-                        :readonly="material.scanOperation"
-                        :disabled="!material.scanOperation"
-                      >
+                      <el-input v-model="scanForm.barcodes[material._id]" :placeholder="!material.scanOperation
+                        ? '无需扫码'
+                        : '请扫描子物料条码'
+                        " :class="{ 'valid-input': validateStatus[material._id] }" :readonly="material.scanOperation"
+                        :disabled="!material.scanOperation">
                         <template slot="prefix">
                           <i class="el-icon-full-screen"></i>
                         </template>
@@ -404,7 +395,6 @@ export default {
       loading: false, // 加载状态
       unifiedScanInput: "", // 新增统一扫描输入框的值
       hasEditPermission: false, // 添加权限控制状态
-      scanTimer: null, // 添加定时器属性
       batchMaterialCache: {}, // 新增：用于存储批次物料缓存
       printDialogVisible: false,
       currentBatchBarcode: "", // 当前要打印的批次条码
@@ -622,10 +612,8 @@ export default {
               productionPlanWorkOrderId.workOrderNo;
 
             // 更新生产计划ID缓存
-            localStorage.setItem(
-              "lastWorkProductionPlanWorkOrderId_pack",
-              (productionPlanWorkOrderId && productionPlanWorkOrderId._id) || ""
-            );
+            localStorage.setItem('lastWorkProductionPlanWorkOrderId_pack',
+              productionPlanWorkOrderId && productionPlanWorkOrderId._id || '');
 
             // 更新名称信息
             this.materialName = `${materialId.FNumber} - ${materialId.FName}`;
@@ -1049,9 +1037,7 @@ export default {
           if (processMaterialsResponse.data) {
             // 检查生产计划是否有变化，如果有变化则清空批次物料缓存
             const currentPlanId = this.workProductionPlanWorkOrderId;
-            const storedPlanId = localStorage.getItem(
-              "lastWorkProductionPlanWorkOrderId_pack"
-            );
+            const storedPlanId = localStorage.getItem('lastWorkProductionPlanWorkOrderId_pack');
 
             if (currentPlanId && currentPlanId !== storedPlanId) {
               console.log("生产计划已变更，清空批次物料缓存");
@@ -1467,350 +1453,342 @@ export default {
         return;
       }
 
-      if (this.scanTimer) {
-        clearTimeout(this.scanTimer);
-      }
 
-      this.scanTimer = setTimeout(async () => {
-        try {
-          // 更严格地清理输入值中的所有空格和换行符
-          const cleanValue = value.replace(/[\s\r\n]/g, "");
-          if (!cleanValue) return;
+      try {
+        // 更严格地清理输入值中的所有空格和换行符
+        const cleanValue = value.replace(/[\s\r\n]/g, "");
+        if (!cleanValue) return;
 
-          const isValidResult = await this.validateBarcode(cleanValue);
-          if (!isValidResult.isValid) {
-            this.popupType = "ng";
-            this.showPopup = true;
-            setTimeout(() => {
-              tone(tmyw); // 延迟播放错误提示音
-            }, 300);
-            this.$notify({
-              title: "条码验证失败",
-              message: "条码格式不正确,未在系统中注册",
-              type: "error",
-              duration: 3000,
-              position: "top-right",
-            });
-            this.unifiedScanInput = "";
-            this.$refs.scanInput.focus();
-            return;
-          }
+        const isValidResult = await this.validateBarcode(cleanValue);
+        if (!isValidResult.isValid) {
+          this.popupType = "ng";
+          this.showPopup = true;
+          setTimeout(() => {
+            tone(tmyw); // 延迟播放错误提示音
+          }, 300);
+          this.$notify({
+            title: "条码验证失败",
+            message: "条码格式不正确,未在系统中注册",
+            type: "error",
+            duration: 3000,
+            position: "top-right",
+          });
+          this.unifiedScanInput = "";
+          this.$refs.scanInput.focus();
+          return;
+        }
 
-          const materialCode = isValidResult.materialCode;
-          let matched = false;
+        const materialCode = isValidResult.materialCode;
+        let matched = false;
 
-          // TODO 国内检查非成品条码检测是否有未完成的维修记录
-          if (
-            this.craftInfo &&
-            (!this.craftInfo.isProduct ||
-              this.craftInfo.materialCode !== materialCode)
-          ) {
-            // "PENDING_REVIEW", "REVIEWED", "VOIDED"
-            console.log("非成品条码检测是否有未完成的维修记录");
-            const repairRecord = await getData("product_repair", {
-              query: { barcode: cleanValue },
-              sort: { _id: -1 },
-            });
-            if (repairRecord.data.length > 0) {
-              if (repairRecord.data[0].status == "PENDING_REVIEW") {
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
-                this.$message.error("该条码存在未完成的维修记录");
-                this.popupType = "ng";
-                this.showPopup = true;
-                tone(dwx);
-                return;
-              }
-              if (
-                repairRecord.data[0].status == "REVIEWED" &&
-                repairRecord.data[0].repairResult !== "QUALIFIED"
-              ) {
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
-                this.$message.error("该条码已完成维修,但维修结果为不合格");
-                this.popupType = "ng";
-                this.showPopup = true;
-                tone(wxsb);
-                return;
-              }
+        // TODO 国内检查非成品条码检测是否有未完成的维修记录
+        if (
+          this.craftInfo &&
+          (!this.craftInfo.isProduct ||
+            this.craftInfo.materialCode !== materialCode)
+        ) {
+          // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+          console.log("非成品条码检测是否有未完成的维修记录");
+          const repairRecord = await getData("product_repair", {
+            query: { barcode: cleanValue },
+            sort: { _id: -1 },
+          });
+          if (repairRecord.data.length > 0) {
+            if (repairRecord.data[0].status == "PENDING_REVIEW") {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码存在未完成的维修记录");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(dwx);
+              return;
+            }
+            if (
+              repairRecord.data[0].status == "REVIEWED" &&
+              repairRecord.data[0].repairResult !== "QUALIFIED"
+            ) {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码已完成维修,但维修结果为不合格");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(wxsb);
+              return;
             }
           }
+        }
 
-          // 检查主物料
-          if (materialCode === this.mainMaterialCode) {
-            // 添加主物料条码顺序检查
-            try {
-              // 判断是否为第一道工序
-              if (this.processStepData && this.processStepData.sort === 1) {
-                const preProductionResponse = await getData(
-                  "preProductionBarcode",
-                  {
-                    query: {
-                      materialNumber: materialCode,
-                      lineNum: this.lineNum, // 添加产线编码条件
-                      status: "PENDING", // 只查询待使用的条码
-                    },
-                    sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
-                    limit: 1,
-                  }
-                );
+        // 检查主物料
+        if (materialCode === this.mainMaterialCode) {
+          // 添加主物料条码顺序检查
+          try {
+            // 判断是否为第一道工序
+            if (this.processStepData && this.processStepData.sort === 1) {
+              const preProductionResponse = await getData(
+                "preProductionBarcode",
+                {
+                  query: {
+                    materialNumber: materialCode,
+                    lineNum: this.lineNum, // 添加产线编码条件
+                    status: "PENDING", // 只查询待使用的条码
+                  },
+                  sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
+                  limit: 1,
+                }
+              );
 
-                if (
-                  preProductionResponse.data &&
-                  preProductionResponse.data.length > 0
-                ) {
-                  const expectedBarcode =
-                    preProductionResponse.data[0].printBarcode;
-                  if (cleanValue !== expectedBarcode) {
-                    this.$message.error(
-                      `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`
-                    );
-                    this.popupType = "ng";
-                    this.showPopup = true;
-                    tone(tmyw);
-                    return;
-                  }
+              if (
+                preProductionResponse.data &&
+                preProductionResponse.data.length > 0
+              ) {
+                const expectedBarcode =
+                  preProductionResponse.data[0].printBarcode;
+                if (cleanValue !== expectedBarcode) {
+                  this.$message.error(
+                    `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`
+                  );
+                  this.popupType = "ng";
+                  this.showPopup = true;
+                  tone(tmyw);
+                  return;
                 }
               }
-              // 如果不是第一道工序或没有找到对应的预生产条码记录，继续正常流程
-            } catch (error) {
-              console.warn("检查主物料条码顺序失败:", error);
-              // 如果查询失败，不阻止正常流程
             }
+            // 如果不是第一道工序或没有找到对应的预生产条码记录，继续正常流程
+          } catch (error) {
+            console.warn("检查主物料条码顺序失败:", error);
+            // 如果查询失败，不阻止正常流程
+          }
 
-            // 验证通过，继续原有逻辑
-            this.scanForm.mainBarcode = cleanValue;
-            this.validateStatus.mainBarcode = true;
+          // 验证通过，继续原有逻辑
+          this.scanForm.mainBarcode = cleanValue;
+          this.validateStatus.mainBarcode = true;
 
-            await this.handleMainBarcode(cleanValue);
+          await this.handleMainBarcode(cleanValue);
 
-            tone(smcg);
-            this.$notify({
-              title: "主物料扫描成功",
-              dangerouslyUseHTMLString: true,
-              message: `
+          tone(smcg);
+          this.$notify({
+            title: "主物料扫描成功",
+            dangerouslyUseHTMLString: true,
+            message: `
                                 <div style="line-height: 1.5">
                                     <div>物料名称: ${this.mainMaterialName}</div>
                                     <div>物料编码: ${materialCode}</div>
                                     <div>条码: ${cleanValue}</div>
                                 </div>
                             `,
-              type: "success",
-              duration: 3000,
-              position: "top-right",
-            });
-            matched = true;
-          }
+            type: "success",
+            duration: 3000,
+            position: "top-right",
+          });
+          matched = true;
+        }
 
-          // 检查子物料
-          if (!matched) {
-            for (const material of this.processMaterials) {
-              if (material.materialCode === materialCode) {
-                // TODO 国内新增：检查materialBarcodeBatch表中是否存在该物料编码的未使用条码
-                // try {
-                //     const batchResponse = await getData('materialBarcodeBatch', {
-                //         query: {
-                //             materialCode: materialCode,
-                //             isUsed: false
-                //         },
-                //         sort: { createAt: 1 }, // 按创建时间正序排序，获取最早的未使用条码
-                //         limit: 1
-                //     });
+        // 检查子物料
+        if (!matched) {
+          for (const material of this.processMaterials) {
+            if (material.materialCode === materialCode) {
+              // TODO 国内新增：检查materialBarcodeBatch表中是否存在该物料编码的未使用条码
+              // try {
+              //     const batchResponse = await getData('materialBarcodeBatch', {
+              //         query: {
+              //             materialCode: materialCode,
+              //             isUsed: false
+              //         },
+              //         sort: { createAt: 1 }, // 按创建时间正序排序，获取最早的未使用条码
+              //         limit: 1
+              //     });
 
-                //     if (batchResponse.data && batchResponse.data.length > 0) {
-                //         const expectedBatchId = batchResponse.data[0].batchId;
-                //         if (cleanValue !== expectedBatchId) {
-                //             this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
-                //             tone(tmyw)
-                //             return;
-                //         }
-                //     }
-                //     // 如果没有找到对应的批次记录，继续正常流程
-                // } catch (error) {
-                //     console.warn('检查批次条码顺序失败:', error);
-                //     // 如果查询失败，不阻止正常流程
-                // }
+              //     if (batchResponse.data && batchResponse.data.length > 0) {
+              //         const expectedBatchId = batchResponse.data[0].batchId;
+              //         if (cleanValue !== expectedBatchId) {
+              //             this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
+              //             tone(tmyw)
+              //             return;
+              //         }
+              //     }
+              //     // 如果没有找到对应的批次记录，继续正常流程
+              // } catch (error) {
+              //     console.warn('检查批次条码顺序失败:', error);
+              //     // 如果查询失败，不阻止正常流程
+              // }
 
-                // 如果是批次物料
-                if (material.isBatch) {
-                  const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                  const usageKey = `${cacheKey}_usage`;
-                  const cachedBarcode = localStorage.getItem(cacheKey);
+              // 如果是批次物料
+              if (material.isBatch) {
+                const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                const usageKey = `${cacheKey}_usage`;
+                const cachedBarcode = localStorage.getItem(cacheKey);
 
-                  // 如果扫描的是新的批次条码
-                  if (cachedBarcode !== cleanValue) {
-                    // 查询新批次条码的使用次数
-                    const count = await this.queryBatchUsageCount(
-                      cleanValue,
-                      material._id
+                // 如果扫描的是新的批次条码
+                if (cachedBarcode !== cleanValue) {
+                  // 查询新批次条码的使用次数
+                  const count = await this.queryBatchUsageCount(
+                    cleanValue,
+                    material._id
+                  );
+
+                  // 如果设置了使用次数限制且已达到限制
+                  if (
+                    material.batchQuantity &&
+                    count >= material.batchQuantity &&
+                    material.batchQuantity > 0
+                  ) {
+                    this.$message.warning(
+                      `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
+                    tone(pcwlxz);
+                    this.popupType = "ng";
+                    this.showPopup = true;
 
-                    // 如果设置了使用次数限制且已达到限制
-                    if (
-                      material.batchQuantity &&
-                      count >= material.batchQuantity &&
-                      material.batchQuantity > 0
-                    ) {
-                      this.$message.warning(
-                        `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
-                      );
-                      tone(pcwlxz);
-                      this.popupType = "ng";
-                      this.showPopup = true;
+                    return;
+                  }
 
-                      return;
-                    }
+                  // 更新缓存和使用次数
+                  localStorage.setItem(cacheKey, cleanValue);
+                  localStorage.setItem(usageKey, count.toString());
+                  this.$set(this.batchUsageCount, material._id, count);
+                } else {
+                  // 使用现有批次条码
+                  const currentUsage = parseInt(
+                    localStorage.getItem(usageKey) || "0"
+                  );
 
-                    // 更新缓存和使用次数
-                    localStorage.setItem(cacheKey, cleanValue);
-                    localStorage.setItem(usageKey, count.toString());
-                    this.$set(this.batchUsageCount, material._id, count);
-                  } else {
-                    // 使用现有批次条码
-                    const currentUsage = parseInt(
-                      localStorage.getItem(usageKey) || "0"
+                  // 只有当达到使用限制时才清除
+                  if (
+                    material.batchQuantity &&
+                    currentUsage >= material.batchQuantity &&
+                    material.batchQuantity > 0
+                  ) {
+                    localStorage.removeItem(cacheKey);
+                    localStorage.removeItem(usageKey);
+                    this.$set(this.scanForm.barcodes, material._id, "");
+                    this.$set(this.validateStatus, material._id, false);
+                    this.$message.warning(
+                      `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-
-                    // 只有当达到使用限制时才清除
-                    if (
-                      material.batchQuantity &&
-                      currentUsage >= material.batchQuantity &&
-                      material.batchQuantity > 0
-                    ) {
-                      localStorage.removeItem(cacheKey);
-                      localStorage.removeItem(usageKey);
-                      this.$set(this.scanForm.barcodes, material._id, "");
-                      this.$set(this.validateStatus, material._id, false);
-                      this.$message.warning(
-                        `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
-                      );
-                      tone(pcwlxz);
-                      return;
-                    }
+                    tone(pcwlxz);
+                    return;
                   }
                 }
+              }
 
-                this.$set(this.scanForm.barcodes, material._id, cleanValue);
-                this.$set(this.validateStatus, material._id, true);
+              this.$set(this.scanForm.barcodes, material._id, cleanValue);
+              this.$set(this.validateStatus, material._id, true);
 
-                // 处理子物料条码
-                await this.handleSubBarcode(material._id, materialCode);
+              // 处理子物料条码
+              await this.handleSubBarcode(material._id, materialCode);
 
-                tone(smcg);
-                this.$notify({
-                  title: "子物料扫描成功",
-                  dangerouslyUseHTMLString: true,
-                  message: `
+              tone(smcg);
+              this.$notify({
+                title: "子物料扫描成功",
+                dangerouslyUseHTMLString: true,
+                message: `
                                         <div style="line-height: 1.5">
-                                            <div>物料名称: ${
-                                              material.materialName
-                                            }</div>
-                                            <div>物料编码: ${
-                                              material.materialCode
-                                            }</div>
+                                            <div>物料名称: ${material.materialName
+                  }</div>
+                                            <div>物料编码: ${material.materialCode
+                  }</div>
                                             <div>条码: ${cleanValue}</div>
-                                            ${
-                                              isValidResult.relatedBill
-                                                ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
-                                                : ""
-                                            }
+                                            ${isValidResult.relatedBill
+                    ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
+                    : ""
+                  }
                                         </div>
                                     `,
-                  type: "success",
-                  duration: 3000,
-                  position: "top-right",
-                });
-                matched = true;
-                break;
-              }
+                type: "success",
+                duration: 3000,
+                position: "top-right",
+              });
+              matched = true;
+              break;
             }
           }
+        }
 
-          if (!matched) {
-            this.$message.error("条码不匹配");
-            this.popupType = "ng";
-            this.showPopup = true;
-            setTimeout(() => {
-              tone(tmyw); // 延迟播放错误提示音
-            }, 300);
-            this.unifiedScanInput = "";
-            this.$refs.scanInput.focus();
-            return;
+        if (!matched) {
+          this.$message.error("条码不匹配");
+          this.popupType = "ng";
+          this.showPopup = true;
+          setTimeout(() => {
+            tone(tmyw); // 延迟播放错误提示音
+          }, 300);
+          this.unifiedScanInput = "";
+          this.$refs.scanInput.focus();
+          return;
+        }
+
+        // 检查是否所有需要扫描的条码都已扫描
+        const allScanned = Object.values(this.validateStatus).every(
+          (status) => {
+            const material = this.processMaterials.find(
+              (m) => this.validateStatus[m._id] === status && !m.scanOperation
+            );
+            return material ? true : status === true;
           }
+        );
 
-          // 检查是否所有需要扫描的条码都已扫描
-          const allScanned = Object.values(this.validateStatus).every(
-            (status) => {
-              const material = this.processMaterials.find(
-                (m) => this.validateStatus[m._id] === status && !m.scanOperation
-              );
-              return material ? true : status === true;
-            }
-          );
-
-          if (allScanned) {
-            this.$notify({
-              title: "扫描完成",
-              dangerouslyUseHTMLString: true,
-              message: `
+        if (allScanned) {
+          this.$notify({
+            title: "扫描完成",
+            dangerouslyUseHTMLString: true,
+            message: `
                                 <div style="line-height: 1.5">
                                     <div>所有物料已扫描完成</div>
                                     <div style="color: #67C23A">正在发送确认提交...</div>
                                 </div>
                             `,
-              type: "success",
-              duration: 3000,
-              position: "top-right",
-            });
+            type: "success",
+            duration: 3000,
+            position: "top-right",
+          });
 
-            // 所有条码都已扫描完成,进行scanComponents提交
-            await this.handleConfirm();
-          } else {
-            // 显示剩余需要扫描的物料
-            const remainingMaterials = this.processMaterials
-              .filter(
-                (material) =>
-                  !this.validateStatus[material._id] && material.scanOperation
-              )
-              .map(
-                (material) =>
-                  `${material.materialName}(${material.materialCode})`
-              )
-              .join("\n");
+          // 所有条码都已扫描完成,进行scanComponents提交
+          await this.handleConfirm();
+        } else {
+          // 显示剩余需要扫描的物料
+          const remainingMaterials = this.processMaterials
+            .filter(
+              (material) =>
+                !this.validateStatus[material._id] && material.scanOperation
+            )
+            .map(
+              (material) =>
+                `${material.materialName}(${material.materialCode})`
+            )
+            .join("\n");
 
-            if (remainingMaterials) {
-              this.$notify({
-                title: "继续扫描",
-                dangerouslyUseHTMLString: true,
-                message: `
+          if (remainingMaterials) {
+            this.$notify({
+              title: "继续扫描",
+              dangerouslyUseHTMLString: true,
+              message: `
                                     <div style="line-height: 1.5">
                                         <div>请继续扫描以下物料：</div>
                                         <div style="color: #E6A23C; white-space: pre-line">${remainingMaterials}</div>
                                     </div>
                                 `,
-                type: "info",
-                duration: 3000,
-                position: "top-right",
-              });
-            }
+              type: "info",
+              duration: 3000,
+              position: "top-right",
+            });
           }
-        } catch (error) {
-          console.error("扫描处理失败:", error);
-          setTimeout(() => {
-            tone(tmyw); // 延迟播放错误提示音
-          }, 1000);
-          this.$notify({
-            title: "扫描失败",
-            message: error.message || "扫描处理失败",
-            type: "error",
-            duration: 3000,
-            position: "top-right",
-          });
-        } finally {
-          this.unifiedScanInput = "";
-          this.$refs.scanInput.focus();
         }
-      }, 1000);
+      } catch (error) {
+        console.error("扫描处理失败:", error);
+        setTimeout(() => {
+          tone(tmyw); // 延迟播放错误提示音
+        }, 1000);
+        this.$notify({
+          title: "扫描失败",
+          message: error.message || "扫描处理失败",
+          type: "error",
+          duration: 3000,
+          position: "top-right",
+        });
+      } finally {
+        this.unifiedScanInput = "";
+        this.$refs.scanInput.focus();
+      }
     },
 
     // 新增获取焦点方法
@@ -2870,9 +2848,6 @@ export default {
   },
   // 组件销毁时清除定时器
   beforeDestroy() {
-    if (this.scanTimer) {
-      clearTimeout(this.scanTimer);
-    }
 
     // 关闭WebSocket连接
     if (this.ws) {

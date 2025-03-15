@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-// /api/v1/handlePalletBarcode
+// 添加托盘条码接口
 export function handlePalletBarcode(data) {
     return request({
         url: '/handlePalletBarcode',
@@ -9,8 +9,7 @@ export function handlePalletBarcode(data) {
     })
 }
 
-
-//unbindPalletBarcode
+// 解绑条码接口
 export function unbindPalletBarcode(data) {
     return request({
         url: '/unbindPalletBarcode',
@@ -19,10 +18,19 @@ export function unbindPalletBarcode(data) {
     })
 }
 
-//unbindPalletBarcode
+// 解绑托盘所有条码接口
 export function unbindPalletAllBarcode(data) {
     return request({
         url: '/unbindPalletAllBarcode',
+        method: 'post',
+        data
+    })
+}
+
+// 拆分托盘接口
+export function splitPallet(data) {
+    return request({
+        url: '/splitPallet',
         method: 'post',
         data
     })

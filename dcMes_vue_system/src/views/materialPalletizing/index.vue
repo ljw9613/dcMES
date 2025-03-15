@@ -212,6 +212,7 @@
                         <el-button type="text" @click="handlePrint(scope.row)">打印单据</el-button>
                         <el-button type="text" style="color: orange" @click="showHistory(scope.row)">解绑记录</el-button>
                         <el-button type="text" style="color: #409EFF" @click="showDetail(scope.row)">查看详情</el-button>
+                        <el-button type="text" style="color: #67C23A" @click="handleSplitPallet(scope.row)">拆分托盘</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -380,6 +381,9 @@
                 </el-card>
             </div>
         </el-dialog>
+
+        <!-- 添加拆分托盘弹窗 -->
+        <split-pallet-dialog :visible.sync="splitPalletDialogVisible" :pallet="dataForm" @success="handleSplitSuccess" />
     </div>
 </template>
 
@@ -388,11 +392,14 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { unbindPalletBarcode, unbindPalletAllBarcode } from "@/api/materialPalletizing";
 import EditDialog from './components/EditDialog'
 import HirInput from '@/components/hirInput'
+import SplitPalletDialog from './components/SplitPalletDialog'
+
 export default {
     name: 'MaterialPalletizing',
     components: {
         EditDialog,
-        HirInput
+        HirInput,
+        SplitPalletDialog
     },
     data() {
         return {
@@ -430,7 +437,8 @@ export default {
 
             hasInitializeTrayDocumentsPermission: false,
             detailDialogVisible: false,
-            detailData: null
+            detailData: null,
+            splitPalletDialogVisible: false
         }
     },
     computed: {
@@ -927,6 +935,16 @@ export default {
         showDetail(row) {
             this.detailData = JSON.parse(JSON.stringify(row));
             this.detailDialogVisible = true;
+        },
+
+        handleSplitPallet(row) {
+            this.dataForm = JSON.parse(JSON.stringify(row));
+            this.splitPalletDialogVisible = true;
+        },
+        
+        handleSplitSuccess() {
+            this.$message.success('托盘拆分成功');
+            this.fetchData();
         }
     },
     created() {

@@ -102,6 +102,9 @@ const materialPalletizingSchema = new mongoose.Schema({
   inWarehouseTime: { type: Date }, // 入库时间
   outWarehouseTime: { type: Date }, // 出库时间
 
+  // 拆分托盘信息
+  splitFrom: { type: String }, // 拆分托盘编号
+
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
