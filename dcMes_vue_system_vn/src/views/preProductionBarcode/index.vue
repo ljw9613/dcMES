@@ -564,6 +564,7 @@ export default {
                     }),
                     getData('preProductionBarcode', {
                         query: {
+                            workOrderId,
                             'segmentBreakdown.value': lineNum,
                             // status: { $ne: 'VOIDED' }
                         },
