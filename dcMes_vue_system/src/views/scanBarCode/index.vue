@@ -1375,6 +1375,30 @@ export default {
           try {
             // 判断是否为第一道工序
             if (this.processStepData && this.processStepData.sort === 1) {
+              //判断改生产条码是否作废
+              const checkPreProduction = await getData(
+                "preProductionBarcode",
+                {
+                  query: {
+                    printBarcode: cleanValue,
+                  },
+                  limit: 1,
+                  select: "status",
+                }
+              );
+              console.log(checkPreProduction, "checkPreProduction");
+              if (checkPreProduction.data && checkPreProduction.data.length > 0) {
+                if (checkPreProduction.data[0].status === "VOIDED") {
+                  this.unifiedScanInput = "";
+                  this.$refs.scanInput.focus();
+                  this.$message.error("该条码已作废");
+                  this.popupType = "ng";
+                  this.showPopup = true;
+                  tone(tmyw);
+                  return;
+                }
+              }
+
               const preProductionResponse = await getData(
                 "preProductionBarcode",
                 {

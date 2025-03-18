@@ -91,6 +91,11 @@ class MaterialProcessFlowService {
         planWorkOrder
       );
 
+      // 成品工艺必须有工单存在
+      if (craft.isProduct && !planWorkOrder) {
+        throw new Error("未查询到生产工单");
+      }
+
       // 只有在工单ID存在时才添加到记录中
       if (planWorkOrder) {
         flowRecordData.productionPlanWorkOrderId = planWorkOrder._id;
