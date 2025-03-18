@@ -631,12 +631,26 @@ class MaterialProcessFlowService {
 
       //对比当前产线工单和条码的工单
       if (flowRecord.isProduct) {
-        if (!flowRecord.productionPlanWorkOrderId) {
-          throw new Error("产品条码未绑定工单");
+        // 先检查planWorkOrder是否存在
+        if (!planWorkOrder) {
+          throw new Error("未找到有效的产线工单");
         }
 
-        if (planWorkOrder._id.toString() !== flowRecord.productionPlanWorkOrderId.toString()) {
-          throw new Error("当前产线工单与产品条码工单不一致");
+        if (processPosition.isFirst) {
+          //首道工序绑定可更新工单计划
+          flowRecord.productionPlanWorkOrderId = planWorkOrder._id;
+        } else {
+          // 非首道工序才检查工单绑定
+          if (!flowRecord.productionPlanWorkOrderId) {
+            throw new Error("产品条码未绑定工单");
+          }
+
+          if (
+            planWorkOrder._id.toString() !==
+            flowRecord.productionPlanWorkOrderId.toString()
+          ) {
+            throw new Error("当前产线工单与产品条码工单不一致");
+          }
         }
       }
 
