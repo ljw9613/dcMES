@@ -38,8 +38,8 @@ module.exports = {
   // outputDir: "../dcMes_server/adminVNCS",
   // publicPath: "/dcMesVNCN/",
   // outputDir: "../dcMes_server/adminVNCN",
-  assetsDir: "static",
-  lintOnSave: process.env.NODE_ENV === "development",
+  // assetsDir: "static",
+  // lintOnSave: process.env.NODE_ENV === "development",
   productionSourceMap: false,
   devServer: {
     host: "0.0.0.0", // 添加这一行
