@@ -410,7 +410,7 @@ export default {
               rfidBarcode,
               batchNo:
                 item.productionPlanWorkOrderId &&
-                item.productionPlanWorkOrderId.custPO,
+                item.productionPlanWorkOrderId.custPOLineNo,
               saleOrderNo:
                 item.productionPlanWorkOrderId &&
                 item.productionPlanWorkOrderId.saleOrderNo,
@@ -510,7 +510,7 @@ export default {
         let workOrderQuery = { $or: [] };
 
         if (this.searchForm.batchNo && this.searchForm.batchNo.trim()) {
-          workOrderQuery.$or.push({ custPO: this.searchForm.batchNo.trim() });
+          workOrderQuery.$or.push({ custPOLineNo: this.searchForm.batchNo.trim() });
         }
 
         if (this.searchForm.custOrderNo && this.searchForm.custOrderNo.trim()) {
@@ -761,7 +761,7 @@ export default {
               ...item,
               batchNo:
                 item.productionPlanWorkOrderId &&
-                item.productionPlanWorkOrderId.custPO,
+                item.productionPlanWorkOrderId.custPOLineNo,
               saleOrderNo:
                 item.productionPlanWorkOrderId &&
                 item.productionPlanWorkOrderId.saleOrderNo,
