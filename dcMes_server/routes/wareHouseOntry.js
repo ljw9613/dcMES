@@ -27,7 +27,6 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         saleOrderNo: entryInfo.saleOrderNo,
       });
     }
-    console.log(pallet, "pallet");
 
     if (!pallet) {
       return res.status(200).json({
@@ -61,16 +60,18 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     }
 
     // start 根据pallet.saleOrderNo(销售单号)去wareHouseOntry表查询是否有值
-    console.log("pallet.saleOrderNo", pallet);
-    //  先判断是否应出库数量和已出库数量相等;
+    console.log("pallet.saleOrderNo", pallet.saleOrderNo);
+    //先判断是否应出库数量和已出库数量相等;
     //不相等则显示已存在未完成出库单号:xxxxxx
     let entry1 = await wareHouseOntry.findOne({
       saleOrderId: pallet.saleOrderId,
+      status: { $ne: "COMPLETED" },
       outNumber: {
         $ne: pallet.outboundQuantity,
       },
     });
-    if (entry1 && entry1.entryNo != entryInfo.entryNo) {
+    console.log("entry1", entry1, entryInfo);
+    if ((entry1 && entry1.entryNo) != entryInfo.entryNo) {
       return res.status(200).json({
         code: 404,
         message: "已存在未完成出库单号:" + entry1.entryNo,
