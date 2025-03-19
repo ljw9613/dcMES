@@ -9,7 +9,7 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
     productionOrderNo: { type: String }, // 生产单号
 
 
-    
+    custInfoId: { type: mongoose.Schema.ObjectId, ref: "k3_SAL_SaleOrder_CustInfo" }, // 关联客户信息
     custPO: { type: String }, // 客户PO号（客户物料编码）
     custPOLineNo: { type: String }, // 客户PO行号（69码）
     sapId: { type: String }, // sapID （DUN码）

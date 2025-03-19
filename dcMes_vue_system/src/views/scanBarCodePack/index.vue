@@ -2075,6 +2075,9 @@ export default {
                         productionLineId: this.formData.productLine,
                         status: "IN_PROGRESS",
                       },
+                      populate: JSON.stringify({
+                        path: "custInfoId",
+                      }),
                     }
                   );
 
@@ -2115,6 +2118,25 @@ export default {
                     ...saleOrderExtData,
                     productionDate: productionDate,
                   };
+
+                  if (workOrderData.custInfoId) {
+                    printData.custPO =
+                      workOrderData.custInfoId &&
+                      workOrderData.custInfoId.custPO;
+                    printData.custPOLineNo =
+                      workOrderData.custInfoId &&
+                      workOrderData.custInfoId.custPOLineNo;
+                    printData.sapId =
+                      workOrderData.custInfoId &&
+                      workOrderData.custInfoId.sapId;
+                    printData.custMaterialName =
+                      workOrderData.custInfoId &&
+                      workOrderData.custInfoId.custMaterialName;
+                    printData.custMaterialNameEn =
+                      workOrderData.custInfoId &&
+                      workOrderData.custInfoId.custMaterialNameEn;
+                  }
+
                   this.printData = printData;
                   this.$nextTick(() => {
                     this.$refs.hirInput.handlePrints2();

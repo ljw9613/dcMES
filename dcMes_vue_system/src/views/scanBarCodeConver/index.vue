@@ -1576,11 +1576,31 @@ export default {
             let eanNum = workOrderResult.data[0].custPOLineNo;
             printData.eanNum = eanNum;
 
+            // 获取销售订单拓展数据
+            if (workOrderResult.data[0].saleOrderId) {
+              const saleOrderExtResult = await getData(
+                "k3_SAL_SaleOrderExt",
+                {
+                  query: {
+                    FSaleOrderId: workOrderResult.data[0].saleOrderId,
+                  },
+                }
+              );
+              if (saleOrderExtResult.data.length > 0) {
+                // 将销售订单拓展数据合并到printData中
+                Object.assign(printData, saleOrderExtResult.data[0]);
+              }
+            }
+
             //生产日期
             const now = new Date();
             const month = String(now.getMonth() + 1).padStart(2, "0");
             const year = now.getFullYear();
             printData.ProductionDate = `${month}/${year}`;
+
+            //无线吸尘器生产日期
+            printData.wxxcqProductionDate = `${year}.${month}`;
+
           }
 
           this.printData = printData;

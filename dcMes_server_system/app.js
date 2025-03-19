@@ -114,6 +114,8 @@ app.use('/', require('./routes/wareHouseEntry.js'));
 app.use('/', require('./routes/wareHouseOntry.js'));
 app.use('/', require('./routes/productRepair.js'));
 app.use('/', require('./routes/uploadMesFile.js'));
+app.use('/', require('./routes/dashboard.js'));
+
 
 require("./routes/upload")
 require("./utils/scheduleTask")

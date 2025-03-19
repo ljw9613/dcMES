@@ -9,6 +9,7 @@ const productBarcodeRule = require("../model/project/productBarcodeRule");
 // 创建流程记录
 router.post("/api/v1/create-flow", async (req, res) => {
   try {
+    console.log("[API] 创建流程记录 - 请求参数:", req.body);
     const {
       mainMaterialId,
       materialCode,
@@ -41,6 +42,7 @@ router.post("/api/v1/create-flow", async (req, res) => {
 // 工序子物料批量扫码提交
 router.post("/api/v1/scan-components", async (req, res) => {
   try {
+    console.log("[API] 工序子物料批量扫码提交 - 请求参数:", req.body);
     const {
       mainBarcode, // 主条码
       processStepId, // 工序ID
@@ -87,6 +89,7 @@ router.post("/api/v1/scan-components", async (req, res) => {
 // 工序解绑
 router.post("/api/v1/unbind-components", async (req, res) => {
   try {
+    console.log("[API] 工序解绑 - 请求参数:", req.body);
     const {
       mainBarcode, // 主条码
       processStepId, // 工序ID
@@ -128,6 +131,7 @@ router.post("/api/v1/unbind-components", async (req, res) => {
 // 更新流程节点
 router.post("/api/v1/update-flow-nodes", async (req, res) => {
   try {
+    console.log("[API] 更新流程节点 - 请求参数:", req.body);
     const { barcode } = req.body;
     const result = await MaterialProcessFlowService.updateFlowNodes(barcode);
     res.json({
@@ -147,6 +151,7 @@ router.post("/api/v1/update-flow-nodes", async (req, res) => {
 // 自动修复主条码中的异常子条码数据
 router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
   try {
+    console.log("[API] 自动修复主条码中的异常子条码数据 - 请求参数:", req.body);
     const { barcode } = req.body;
     const result = await MaterialProcessFlowService.autoFixInconsistentProcessNodes(barcode);
     res.json({
@@ -163,13 +168,10 @@ router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
   }
 });
 
-
-
-
-
 // 获取物料相关的所有工序
 router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {
   try {
+    console.log("[API] 获取物料相关的所有工序 - 请求参数:", { params: req.params, query: req.query });
     const { materialId } = req.params;
 
     if (!materialId) {
@@ -200,6 +202,7 @@ router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {
 // 设备条码初始化
 router.post("/api/v1/initialize-machine-barcode", async (req, res) => {
   try {
+    console.log("[API] 设备条码初始化 - 请求参数:", req.body);
     const { barcode, machineIp } = req.body;
 
     // 参数验证
@@ -234,6 +237,7 @@ router.post("/api/v1/initialize-machine-barcode", async (req, res) => {
  */
 router.get("/api/v1/exportBOM", async (req, res) => {
   try {
+    console.log("[API] 导出BOM结构 - 请求参数:", req.query);
     const { materialId } = req.query;
     if (!materialId) {
       return res.status(400).json({ error: "缺少必要参数: materialId" });
@@ -251,6 +255,7 @@ router.get("/api/v1/exportBOM", async (req, res) => {
 // 修复流程进度和状态
 router.post("/api/v1/fix-flow-progress", async (req, res) => {
   try {
+    console.log("[API] 修复流程进度和状态 - 请求参数:", req.body);
     const { barcode } = req.body;
 
     if (!barcode) {
@@ -280,6 +285,7 @@ router.post("/api/v1/fix-flow-progress", async (req, res) => {
 // 批量修复流程进度和状态
 router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
   try {
+    console.log("[API] 批量修复流程进度和状态 - 请求参数:", req.body);
     const { barcodes } = req.body;
 
     if (!Array.isArray(barcodes) || barcodes.length === 0) {
@@ -327,6 +333,7 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
 // 设备扫码提交
 router.post("/api/v1/machine-scan-components", async (req, res) => {
   try {
+    console.log("[API] 设备扫码提交 - 请求参数:", req.body);
     const { mainBarcode, processStepId, barcodes, userId, lineId } = req.body;
     console.log("req.body===", req.body);
     // 参数验证
@@ -660,7 +667,7 @@ async function validateBarcodeWithRule(barcode, rule, material) {
 // 批量更新关联单据
 router.post("/api/v1/batch-update-related-bills", async (req, res) => {
   try {
-    console.log("批量更新关联单据");
+    console.log("[API] 批量更新关联单据 - 开始执行");
     const result = await MaterialProcessFlowService.batchUpdateRelatedBills();
     res.json({
       code: 200,
@@ -680,6 +687,7 @@ router.post("/api/v1/batch-update-related-bills", async (req, res) => {
 // 验证最近10天的流程数据
 router.get("/api/v1/validate-recent-flows", async (req, res) => {
   try {
+    console.log("[API] 验证最近10天的流程数据 - 开始执行");
     const result = await MaterialProcessFlowService.validateRecentFlows();
     res.json({
       code: 200,
@@ -699,6 +707,7 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
 // 检查条码节点完成情况
 router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
   try {
+    console.log("[API] 检查条码节点完成情况 - 请求参数:", { params: req.params, query: req.query });
     const { barcode } = req.params;
     
     if (!barcode) {

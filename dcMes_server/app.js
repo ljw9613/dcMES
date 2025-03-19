@@ -118,6 +118,7 @@ app.use('/', require('./routes/dashboard.js'));
 
 
 require("./routes/upload")
+require("./routes/fixFunction")
 // require("./utils/scheduleTask")
 
 // 更新工艺编码
