@@ -19,6 +19,7 @@ var processStepSchema = new mongoose.Schema({
     // 关联工序物料
     materials: [{ type: mongoose.Schema.ObjectId, ref: "processMaterials" }], // 关联工序物料ID数组
     machineId: {type: mongoose.Schema.ObjectId, ref: "machine", description: '检验设备'},
+    machineIds: [{type: mongoose.Schema.ObjectId, ref: "machine", description: '检验设备'}], // 关联检验设备ID数组
 
     // 批次单相关
     batchDocRequired: { type: Boolean, default: false }, // 是否需要批次单据

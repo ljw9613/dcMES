@@ -16,6 +16,8 @@ var materialBarcodeSchema = new mongoose.Schema({
     updateBy: { type: String }, // 更新人
     //是否使用
     isUsed: { type: Boolean, default: false },
+    //备注
+    remark: { type: String },
     createAt: { type: Date, default: Date.now }, // 创建时间
     updateAt: { type: Date, default: Date.now } // 更新时间
 });

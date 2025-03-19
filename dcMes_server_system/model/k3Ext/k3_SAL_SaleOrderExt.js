@@ -19,6 +19,7 @@ var saleOrderExtSchema = new mongoose.Schema({
   FMinSpecImage: { type: String }, // 铭牌图片路径
   FVoltageRatio: { type: String, required: true }, // 电压功率
   FBatterySpec: { type: String, required: true }, // 锂电池规格
+
   
   // 印刷和包装信息
   FPrintPosition: { type: String, required: true }, // 印刷位置
@@ -33,6 +34,12 @@ var saleOrderExtSchema = new mongoose.Schema({
   FColorLabel: { type: String, required: true }, // 彩盒标贴
   FColorLabelImage: { type: String }, // 彩盒标贴图片路径
   FTrademark: { type: String, required: true }, // 商标
+
+  // UDI信息
+  FUDI: { type: String, required: true }, // UDI
+  FUDISerialNoRule: { type: String, required: true }, // 序列号规则
+  FUDIType: { type: String, required: true }, // 形制
+  
   
   // 包装要求
   FPEBagReq: { type: String, required: true }, // PE袋要求
