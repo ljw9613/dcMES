@@ -97,7 +97,6 @@
               clearable
               style="width: 100%"
               @change="handleBusinessTypeChange"
-              disabled
             >
               <!-- 添加disabled属性 -->
               <el-option
@@ -442,6 +441,7 @@ export default {
           lineId: "",
           lineName: "",
           lineCode: "",
+          businessType: "",
           machineType: "",
           factoryName: "",
           comment: "",
@@ -517,11 +517,13 @@ export default {
       // 从设备名称中提取前两个字符
       const namePrefix = this.form.machineName.substr(0, 2);
 
-      // 生成随机数（4位）
+      const businessPrefix = this.form.businessType || "";
+
+      // 生成随机数（4位）作为流水号
       const randomNum = Math.floor(1000 + Math.random() * 9000);
 
-      // 组合编号: 类型缩写-名称前缀-年月日-随机数
-      this.form.machineCode = `${typePrefix}-${namePrefix}-${year}${month}${day}-${randomNum}`;
+      // 组合编号: 类型缩写-名称前缀-业务类型-年月日-流水号
+      this.form.machineCode = `${typePrefix}-${namePrefix}-${businessPrefix}-${year}${month}${day}-${randomNum}`;
     },
 
     // 工序选择变化处理
@@ -531,6 +533,14 @@ export default {
         return;
       }
       this.form.processStepId = processId;
+    },
+    //切换业务类型
+    handleBusinessTypeChange(val) {
+      console.log(val, "val===");
+      this.form.businessType = val;
+      if (this.autoGenerateCode) {
+        this.generateMachineCode();
+      }
     },
     // 产品型号变化处理
     async handleProductChange(material) {
