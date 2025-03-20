@@ -27,6 +27,14 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       });
     }
 
+    //判断托盘单据是否处于抽检状态
+    if (pallet.inspectionStatus === "INSPECTING") {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据处于抽检状态",
+      });
+    }
+
     // 2. 获取或创建入库单
     let entry = await WarehouseEntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
