@@ -124,7 +124,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       saleOrderId: pallet.saleOrderId,
       status: { $ne: "COMPLETED" },
     });
-    if (entry1 && entry1.entryNo) {
+    if (entry1 && entry1.entryNo !== entryInfo.entryNo) {
       //判断是新建单据还是继续入库
       return res.status(200).json({
         code: 404,
