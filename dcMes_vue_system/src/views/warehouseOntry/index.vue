@@ -696,18 +696,45 @@ export default {
 
         // 删除出库单
         async handleDelete(row) {
-            this.$confirm('确认删除该出库单？', '提示', {
+            this.$confirm('确认删除该出库单？删除后将恢复相关托盘的入库状态', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(async () => {
                 try {
+                    // 1. 获取出库单详情，确保有托盘信息
+                    const entryDetail = await getData("warehouse_ontry", {
+                        query: { _id: row._id }
+                    });
+                    
+                    if (entryDetail.data && entryDetail.data.length > 0) {
+                        const entryData = entryDetail.data[0];
+                        
+                        // 2. 检查并处理托盘项
+                        if (entryData.entryItems && entryData.entryItems.length > 0) {
+                            // 批量处理所有托盘状态
+                            const palletCodes = entryData.entryItems.map(item => item.palletCode);
+                            
+                            // 3. 更新托盘状态为"已入库"
+                            await updateData("material_palletizing", {
+                                query: { palletCode: { $in: palletCodes } },
+                                update: { inWarehouseStatus: "IN_WAREHOUSE" },
+                                multi: true
+                            });
+                            
+                            this.$message.success(`已恢复 ${palletCodes.length} 个托盘的入库状态`);
+                        }
+                    }
+                    
+                    // 4. 删除出库单
                     await removeData("warehouse_ontry", {
                         query: { _id: row._id }
                     });
+                    
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {
+                    console.error('删除失败:', error);
                     this.$message.error('删除失败');
                 }
             });
