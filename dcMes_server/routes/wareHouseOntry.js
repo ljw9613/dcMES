@@ -5,6 +5,31 @@ const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
 const { k3cMethod } = require("./k3cMethod");
 const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
+// 创建一个生成出库单号的辅助函数
+async function generateEntryNoByProductionOrder(productionOrderNo) {
+  const baseEntryNo = "SCCK-MES-" + productionOrderNo;
+  
+  // 查询相同生产订单号下最大序号
+  const existingEntries = await wareHouseOntry.find({
+    productionOrderNo: productionOrderNo
+  }).sort({ entryNo: -1 }).limit(1);
+  
+  let sequenceNo = 1;
+  if (existingEntries.length > 0) {
+    // 从最后一个单号中提取序号并加1
+    const lastEntryNo = existingEntries[0].entryNo;
+    const matches = lastEntryNo.match(/-(\d+)$/);
+    if (matches && matches[1]) {
+      sequenceNo = parseInt(matches[1]) + 1;
+    } else {
+      // 如果之前的记录没有序号格式，从1开始
+      sequenceNo = 1;
+    }
+  }
+  
+  return `${baseEntryNo}-${sequenceNo}`;
+}
+
 // 扫码出库（包含自动创建出库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
   try {
@@ -122,13 +147,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             });
           }
 
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(order.FBillNo);
+          
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: entryInfo.outboundQuantity, //应出库数量
             outNumber: sum, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,
@@ -151,13 +179,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         } else {
           //小于应出库数量则返回,该销售单号销售数量为x,已完成出库数量为x,剩余出库数量为x;  saleOrder.FQty - sum = 剩余出库数量
           console.log("小于应出库数量");
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(order.FBillNo);
+          
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: saleOrder.FQty - sum, //应出库数量
             outNumber: sum, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,
@@ -194,13 +225,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
               message: "生产订单不存在",
             });
           }
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(order.FBillNo);
+          
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: entryInfo.outboundQuantity, //应出库数量
             outNumber: 0, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,
@@ -224,13 +258,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         } else {
           //等于0则返回,该销售单号销售数量为x,剩余出库数量为x;
           console.log("等于0则返回,该销售单号销售数量为x,剩余出库数量为x");
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(order.FBillNo);
+          
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: saleOrder.FQty, //应出库数量 == 销售数量
             outNumber: 0, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,

@@ -108,6 +108,7 @@
             @handleSizeChange="baseTableHandleSizeChange">
             <template slot="law">
                 <el-table-column label="产线名称" prop="lineName" />
+                <el-table-column label="设备名称" prop="machineName" />
                 <el-table-column label="设备类型">
                     <template slot-scope="scope">
                         <el-tag>{{ scope.row.machineType }}</el-tag>

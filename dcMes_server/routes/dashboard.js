@@ -54,6 +54,10 @@ router.get('/api/v1/dashboard', async (req, res) => {
     
     // 如果有当前工单，获取工单关联的工艺流程数据
     let workOrderProgress = null;
+    // 在 if 语句外部声明这些变量，确保它们始终存在
+    const processHourlyOutput = {};
+    const workOrderHourlyOutput = {};
+
     if (currentWorkOrder) {
       // 获取当日该工单的生产进度
       const today = new Date();
@@ -61,6 +65,55 @@ router.get('/api/v1/dashboard', async (req, res) => {
       
       const materialFlows = await MaterialProcessFlow.find({
         productionPlanWorkOrderId: currentWorkOrder._id,
+      });
+      
+      // 获取当天的所有材料流程
+      const todayMaterialFlows = await MaterialProcessFlow.find({
+        productionPlanWorkOrderId: currentWorkOrder._id,
+        updatedAt: { $gte: today }
+      });
+
+      // 初始化24小时的数据结构
+      for (let hour = 0; hour < 24; hour++) {
+        workOrderHourlyOutput[hour] = 0;
+        
+        processStepIds.forEach(processId => {
+          if (!processHourlyOutput[processId]) {
+            processHourlyOutput[processId] = {};
+          }
+          processHourlyOutput[processId][hour] = 0;
+        });
+      }
+
+      // 统计每小时产能
+      todayMaterialFlows.forEach(flow => {
+        // 获取最后更新时间的小时
+        const updateHour = new Date(flow.updatedAt).getHours();
+        
+        // 如果是已完成状态，计入工单总体小时产能
+        if (flow.status === 'COMPLETED') {
+          workOrderHourlyOutput[updateHour]++;
+        }
+        
+        // 计算各工序小时产能
+        flow.processNodes.forEach(node => {
+          if (node.nodeType === 'PROCESS_STEP' && node.processStepId && node.status === 'COMPLETED') {
+            const processId = node.processStepId.toString();
+            const completeTime = node.completedTime ? new Date(node.completedTime) : null;
+            
+            // 如果有完成时间且是今天的数据，将其计入对应小时的产能
+            if (completeTime && completeTime >= today) {
+              const hour = completeTime.getHours();
+              if (!processHourlyOutput[processId]) {
+                processHourlyOutput[processId] = {};
+              }
+              if (!processHourlyOutput[processId][hour]) {
+                processHourlyOutput[processId][hour] = 0;
+              }
+              processHourlyOutput[processId][hour]++;
+            }
+          }
+        });
       });
       
       // 统计各工序的生产数量
@@ -153,7 +206,9 @@ router.get('/api/v1/dashboard', async (req, res) => {
           comment: m.comment,
           productionData: m.productionData
         })),
-        workOrderProgress
+        workOrderProgress,
+        processHourlyOutput,
+        workOrderHourlyOutput
       }
     });
   } catch (error) {

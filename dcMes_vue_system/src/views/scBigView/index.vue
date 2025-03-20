@@ -152,11 +152,19 @@
       </div>
     </div>
 
-    <!-- 下半部分 - 设备和工序信息 -->
+    <!-- 修改设备和工序信息部分，整合小时产能 -->
     <div class="machines-section">
       <div class="section-title">
         <span>设备生产状态</span>
         <div class="divider"></div>
+      </div>
+      
+      <!-- 添加一个紧凑的小时产能概览 -->
+      <div class="hourly-overview" v-if="currentWorkOrder">
+        <div class="overview-chart-container">
+          <div class="overview-title">工单小时产能</div>
+          <div id="workOrderHourlyChart" class="overview-chart"></div>
+        </div>
       </div>
 
       <div class="machines-carousel-container">
@@ -270,6 +278,8 @@ export default {
       refreshTimer: null,
       currentPage: 0,
       machinesPerPage: 10,
+      processHourlyOutput: {},  // 各工序小时产能
+      workOrderHourlyOutput: {} // 工单小时产能
     };
   },
   created() {
@@ -369,11 +379,16 @@ export default {
               }
             });
 
+            // 获取小时产能数据
+            this.processHourlyOutput = response.data.processHourlyOutput || {};
+            this.workOrderHourlyOutput = response.data.workOrderHourlyOutput || {};
+
             this.$nextTick(() => {
               if (this.currentWorkOrder) {
                 this.initNumberScrolling();
               }
               this.renderCharts();
+              this.renderHourlyCharts(); // 添加渲染小时产能图表
             });
           } else {
             this.$message.error("获取大屏数据失败");
@@ -630,6 +645,96 @@ export default {
     getSequenceNumber(machineIndex, groupIndex) {
       return groupIndex * this.machinesPerPage + machineIndex + 1;
     },
+
+    // 修改图表渲染方法，简化为只显示工单小时产能
+    renderHourlyCharts() {
+      // 只渲染工单小时产能图表
+      this.renderWorkOrderHourlyChart();
+    },
+    
+    // 修改工单小时产能图表，适配小尺寸
+    renderWorkOrderHourlyChart() {
+      const chartDom = document.getElementById('workOrderHourlyChart');
+      if (!chartDom) return;
+      
+      let chart = this.charts['workOrderHourlyChart'];
+      if (chart) {
+        chart.dispose();
+      }
+      
+      chart = echarts.init(chartDom);
+      this.charts['workOrderHourlyChart'] = chart;
+      
+      const hours = [];
+      const outputData = [];
+      
+      for (let hour = 0; hour < 24; hour++) {
+        hours.push(hour + ':00');
+        outputData.push(this.workOrderHourlyOutput[hour] || 0);
+      }
+      
+      const option = {
+        grid: {
+          left: '2%',
+          right: '2%',
+          bottom: '10%',
+          top: '15%',
+          containLabel: true
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: hours,
+          axisLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.3)'
+            }
+          },
+          axisLabel: {
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: 9,
+            interval: 3
+          }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: {
+            show: false
+          },
+          axisLabel: {
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: 9
+          },
+          splitLine: {
+            lineStyle: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        },
+        series: [{
+          name: '产量',
+          type: 'bar',
+          data: outputData,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(0, 255, 159, 0.9)' },
+              { offset: 1, color: 'rgba(0, 161, 101, 0.5)' }
+            ])
+          }
+        }]
+      };
+      
+      chart.setOption(option);
+      
+      window.addEventListener('resize', () => {
+        chart.resize();
+      });
+    }
   },
   computed: {
     machinesGroups() {
@@ -645,6 +750,11 @@ export default {
     
     totalPages() {
       return this.machinesGroups.length;
+    },
+
+    // 将工序信息转为数组
+    processStepsArray() {
+      return Object.values(this.processSteps);
     }
   },
 };
@@ -1404,5 +1514,38 @@ export default {
   .machines-carousel-page {
     grid-template-columns: 1fr;
   }
+}
+
+/* 小时产能区域样式 */
+.hourly-overview {
+  margin-bottom: 15px;
+  display: flex;
+  z-index: 1;
+}
+
+.overview-chart-container {
+  flex: 1;
+  height: 120px;
+  background: rgba(0, 31, 63, 0.6);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0, 162, 255, 0.3);
+  border: 1px solid rgba(0, 162, 255, 0.3);
+  padding: 8px;
+  position: relative;
+}
+
+.overview-title {
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 5px;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(0, 162, 255, 0.5);
+}
+
+.overview-chart {
+  height: 85px;
+  width: 100%;
 }
 </style>

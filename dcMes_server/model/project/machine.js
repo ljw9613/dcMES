@@ -48,6 +48,8 @@ var machineSchema = new mongoose.Schema(
     lineName: { type: String }, // 产线名称 (对应 line_name)
     // 设备类型
     machineType: { type: String, description: "设备类型" },
+    businessType: { type: String }, // 业务类型
+
     collectionMethod: { type: String, description: "采集方式" },
     //设备当前生产相关
 
