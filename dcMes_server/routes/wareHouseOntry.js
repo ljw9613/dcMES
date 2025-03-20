@@ -5,13 +5,23 @@ const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
 const { k3cMethod } = require("./k3cMethod");
 const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
-// 创建一个生成出库单号的辅助函数
+// 创建一个生成出库单号的辅助函数（按日期生成流水号）
 async function generateEntryNoByProductionOrder(productionOrderNo) {
-  const baseEntryNo = "SCCK-MES-" + productionOrderNo;
+  // 获取当前日期并格式化为YYYYMMDD
+  const today = new Date();
+  const dateStr = today.getFullYear() +
+                  String(today.getMonth() + 1).padStart(2, '0') +
+                  String(today.getDate()).padStart(2, '0');
   
-  // 查询相同生产订单号下最大序号
+  const baseEntryNo = "SCCK-" + dateStr;
+  
+  // 获取今天的开始时间（00:00:00）
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+  
+  // 查询当天创建的所有出库单，按entryNo降序排列
   const existingEntries = await wareHouseOntry.find({
-    productionOrderNo: productionOrderNo
+    createAt: { $gte: startOfDay },
+    entryNo: { $regex: `^${baseEntryNo}-\\d+$` }
   }).sort({ entryNo: -1 }).limit(1);
   
   let sequenceNo = 1;
@@ -21,13 +31,13 @@ async function generateEntryNoByProductionOrder(productionOrderNo) {
     const matches = lastEntryNo.match(/-(\d+)$/);
     if (matches && matches[1]) {
       sequenceNo = parseInt(matches[1]) + 1;
-    } else {
-      // 如果之前的记录没有序号格式，从1开始
-      sequenceNo = 1;
     }
   }
   
-  return `${baseEntryNo}-${sequenceNo}`;
+  // 序号格式化为3位数字（例如：001, 012, 123）
+  const formattedSequenceNo = String(sequenceNo).padStart(4, '0');
+  
+  return `${baseEntryNo}-${formattedSequenceNo}`;
 }
 
 // 扫码出库（包含自动创建出库单的逻辑）
