@@ -161,7 +161,7 @@ router.post("/api/v1/splitPallet", async (req, res) => {
 // 更新托盘检测状态接口
 router.post("/api/v1/updatePalletInspectionStatus", async (req, res) => {
   try {
-    const { barcode, userId, remarks } = req.body;
+    const { barcode, userId, remarks, status } = req.body;
 
     // 参数验证
     if (!barcode) {
@@ -174,7 +174,8 @@ router.post("/api/v1/updatePalletInspectionStatus", async (req, res) => {
     const result = await materialPalletizingService.updatePalletInspectionStatus(
       barcode,
       userId,
-      remarks
+      remarks,
+      status
     );
 
     return res.status(200).json({

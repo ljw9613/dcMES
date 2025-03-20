@@ -92,7 +92,7 @@ ADDROUTER(router, "processStep", processStep);
 ADDROUTER(router, "scanRecord", scanRecord);
 ADDROUTER(router, "processMaterials", processMaterials);
 ADDROUTER(router, "material_process_flow", materialProcessFlow);
-ADDROUTER(router, "sampling_nspection_flow", SamplingInspectionFlow);
+ADDROUTER(router, "sampling_inspection_flow", SamplingInspectionFlow);
 ADDROUTER(router, "udi_sampling_inspection_flow", udiSamplingInspectionFlow);
 ADDROUTER(router, "production_plan_work_order", productionPlanWorkOrder);
 ADDROUTER(router, "production_line", productionLine);

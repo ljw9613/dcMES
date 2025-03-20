@@ -666,8 +666,36 @@
                   }}
                 </el-tag>
                 <div v-if="barcodeScope.row.inspectionStatus">
-                  <div>
+                  <div
+                    class="inspection-time"
+                    v-if="barcodeScope.row.inspectionResult"
+                  >
+                    抽检结果:
+                    <el-tag
+                      :type="
+                        getInspectionResultType(
+                          barcodeScope.row.inspectionResult
+                        )
+                      "
+                    >
+                      {{
+                        getInspectionResultText(
+                          barcodeScope.row.inspectionResult
+                        )
+                      }}
+                    </el-tag>
+                  </div>
+                  <div
+                    class="inspection-time"
+                    v-if="barcodeScope.row.inspectionTime"
+                  >
                     抽检时间: {{ formatDate(barcodeScope.row.inspectionTime) }}
+                  </div>
+                  <div
+                    class="inspection-remarks"
+                    v-if="barcodeScope.row.inspectionRemarks"
+                  >
+                    备注: {{ barcodeScope.row.inspectionRemarks }}
                   </div>
                 </div>
               </template>
@@ -1232,7 +1260,7 @@ export default {
         let req = this.searchData();
         req.populate = JSON.stringify([
           { path: "productLineId" },
-          { path: "productionOrderId" }
+          { path: "productionOrderId" },
         ]);
 
         // 获取所有数据（不分页）
@@ -1257,16 +1285,16 @@ export default {
           "总数量",
           "箱数量",
           "创建时间",
-          "条码信息"
+          "条码信息",
         ];
 
         for (let i = 0; i < totalItems; i += batchSize) {
-          const batch = result.data.slice(i, i + batchSize).map(item => {
+          const batch = result.data.slice(i, i + batchSize).map((item) => {
             // 获取条码信息字符串
-            const barcodes = item.palletBarcodes 
-              ? item.palletBarcodes.map(b => b.barcode).join(", ")
+            const barcodes = item.palletBarcodes
+              ? item.palletBarcodes.map((b) => b.barcode).join(", ")
               : "";
-            
+
             return [
               item.palletCode,
               item.saleOrderNo || "--",
@@ -1282,27 +1310,29 @@ export default {
               item.totalQuantity || 0,
               item.boxCount || 0,
               this.formatDate(item.createAt),
-              barcodes
+              barcodes,
             ];
           });
 
           exportData.push(...batch);
 
           // 更新进度
-          this.exportProgress = Math.round(((i + batch.length) / totalItems) * 100);
+          this.exportProgress = Math.round(
+            ((i + batch.length) / totalItems) * 100
+          );
 
           // 给UI一个更新的机会
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
 
         // 导出Excel
-        import("@/vendor/Export2Excel").then(excel => {
+        import("@/vendor/Export2Excel").then((excel) => {
           excel.export_json_to_excel({
             header: header,
             data: exportData,
             filename: "托盘组托数据_" + new Date().getTime(),
             autoWidth: true,
-            bookType: "xlsx"
+            bookType: "xlsx",
           });
           this.exportProgress = 100;
           this.$message.success("导出成功");
@@ -1412,6 +1442,27 @@ export default {
         null: "info",
       };
       return typeMap[status] || "info";
+    },
+
+    getInspectionResultType(result) {
+      const typeMap = {
+        PASS: "success",
+        FAIL: "danger",
+        PENDING: "info",
+        PARTIAL: "warning",
+        undefined: "info",
+        null: "info",
+      };
+      return typeMap[result] || "info";
+    },
+
+    getInspectionResultText(result) {
+      const resultMap = {
+        PASS: "合格",
+        FAIL: "不合格",
+        PENDING: "待定",
+      };
+      return resultMap[result] || "未知状态";
     },
 
     getWarehouseStatusText(status) {
@@ -1683,5 +1734,18 @@ export default {
   margin-top: 15px;
   display: flex;
   justify-content: flex-end;
+}
+
+.inspection-time {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
+.inspection-remarks {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 3px;
+  word-break: break-all;
 }
 </style>

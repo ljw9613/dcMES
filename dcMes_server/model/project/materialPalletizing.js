@@ -95,6 +95,12 @@ const materialPalletizingSchema = new mongoose.Schema({
       inspectionTime: { type: Date }, // 巡检时间
       inspectionBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 巡检人
       inspectionRemarks: { type: String }, // 巡检备注
+      //巡检结果
+      inspectionResult: {
+        type: String,
+        enum: ["PENDING", "PASS", "FAIL"], // 巡检结果 待巡检 合格 不合格
+        default: "PENDING",
+      },
     },
   ], // 托盘条码
 

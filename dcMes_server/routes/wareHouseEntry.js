@@ -35,6 +35,16 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       });
     }
 
+    //判断托盘单据里面的条码是否有存在巡检不合格的数据
+    const inspectionResult = pallet.palletBarcodes.some(
+      (item) => item.inspectionResult === "FAIL"
+    );
+    if (inspectionResult) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在巡检不合格的数据",
+      });
+    }
     // 2. 获取或创建入库单
     let entry = await WarehouseEntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
@@ -77,7 +87,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         materialCode: pallet.materialCode,
         materialName: pallet.materialName,
         materialSpec: pallet.materialSpec,
-        plannedQuantity:order.FQty?order.FQty:0,
+        plannedQuantity: order.FQty ? order.FQty : 0,
         unit: order.FUnitId,
         workShop: order.FWorkShopID_FName,
         productType: order.FProductType,

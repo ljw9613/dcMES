@@ -380,7 +380,9 @@
           type="primary"
           @click="handleScanConfirm"
           :loading="scanLoading"
-          :disabled="!isAllBarcodeValid"
+          :disabled="
+            !scanForm.printBarcode || !scanForm.transformedPrintBarcode
+          "
           v-if="showBarcodeValidation"
         >
           确 定
@@ -2073,17 +2075,17 @@ export default {
 
       if (!this.barcodeValidation.printBarcode) {
         this.$message.error("彩箱条码不匹配");
-        this.scanForm.printBarcode = "";
+        // this.scanForm.printBarcode = "";
         // 重新聚焦到彩箱条码输入框
-        this.$nextTick(() => {
-          const printBarcodeInput = this.$refs.scanForm.querySelector(
-            'input[placeholder="请扫描彩箱条码"]'
-          );
-          if (printBarcodeInput) {
-            printBarcodeInput.focus();
-          }
-        });
-        return;
+        // this.$nextTick(() => {
+        //   const printBarcodeInput = this.$refs.scanForm.querySelector(
+        //     'input[placeholder="请扫描彩箱条码"]'
+        //   );
+        //   if (printBarcodeInput) {
+        //     printBarcodeInput.focus();
+        //   }
+        // });
+        // return;
       }
 
       // 自动聚焦到黄板箱条码输入框
@@ -2110,22 +2112,22 @@ export default {
 
       if (!this.barcodeValidation.transformedPrintBarcode) {
         this.$message.error("黄板箱条码不匹配");
-        this.scanForm.transformedPrintBarcode = "";
-        // 重新聚焦到黄板箱条码输入框
-        this.$nextTick(() => {
-          const transformedPrintBarcodeInput =
-            this.$refs.scanForm.querySelector(
-              'input[placeholder="请扫描黄板箱条码"]'
-            );
-          if (transformedPrintBarcodeInput) {
-            transformedPrintBarcodeInput.focus();
-          }
-        });
-        return;
+        // this.scanForm.transformedPrintBarcode = "";
+        // // 重新聚焦到黄板箱条码输入框
+        // this.$nextTick(() => {
+        //   const transformedPrintBarcodeInput =
+        //     this.$refs.scanForm.querySelector(
+        //       'input[placeholder="请扫描黄板箱条码"]'
+        //     );
+        //   if (transformedPrintBarcodeInput) {
+        //     transformedPrintBarcodeInput.focus();
+        //   }
+        // });
+        // return;
       }
 
       // 如果所有验证都通过，可以自动触发提交
-      if (this.isAllBarcodeValid) {
+      if (this.scanForm.printBarcode && this.scanForm.transformedPrintBarcode) {
         this.handleScanConfirm();
       }
     },
@@ -2150,7 +2152,7 @@ export default {
     async handleScanConfirm() {
       try {
         this.$refs.scanForm.validate(async (valid) => {
-          if (valid && this.isAllBarcodeValid) {
+          if (valid) {
             this.scanLoading = true;
 
             // 构建抽检记录数据
@@ -2160,7 +2162,7 @@ export default {
                 this.currentBarcodeData.materialProcessFlowId,
               materialCode: this.currentBarcodeData.materialNumber,
               materialName: this.currentBarcodeData.materialName,
-              isQualified: true, // 所有条码都匹配则为合格
+              isQualified: this.isAllBarcodeValid, // 所有条码都匹配则为合格
               samplingStatus: "COMPLETED",
               samplingTime: new Date(),
               samplingOperator: this.$store.state.user.name,
@@ -2188,6 +2190,7 @@ export default {
               barcode: this.scanForm.printBarcode,
               userId: this.$store.state.user.id,
               remarks: "抽检中",
+              status: this.isAllBarcodeValid,
             });
 
             if (result.code === 200) {

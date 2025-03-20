@@ -128,6 +128,15 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="记录结果" prop="isQualified">
+          <template slot-scope="scope">
+            <el-tag :type="scope.row.samplingStatus == 'VOIDED' ? 'danger' : scope.row.samplingStatus == 'COMPLETED' ? 'success' : 'warning'">
+                {{ scope.row.samplingStatus == 'VOIDED' ? "作废" : scope.row.samplingStatus == 'COMPLETED' ? "已完成" : "待处理" }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        
+
         <el-table-column label="物料编码" prop="materialCode">
           <template slot-scope="scope">
             {{
@@ -645,7 +654,7 @@ export default {
         req.count = true;
         req.populate = JSON.stringify([{ path: "materialProcessFlowId" }]);
 
-        const result = await getData("sampling_nspection_flow", req);
+        const result = await getData("sampling_inspection_flow", req);
 
         if (result.code === 200) {
           this.tableList = result.data;
@@ -730,7 +739,7 @@ export default {
           return;
         }
         // 调用成品初始化 API
-        const result = await removeData("sampling_nspection_flow", {
+        const result = await removeData("sampling_inspection_flow", {
           query: { _id: row._id },
         });
 
@@ -775,7 +784,7 @@ export default {
       try {
         console.log(row, "row");
         this.listLoading = true;
-        const result = await getData("sampling_nspection_flow", {
+        const result = await getData("sampling_inspection_flow", {
           query: { _id: row._id },
         });
         console.log(result, "result");
@@ -1215,7 +1224,7 @@ export default {
         };
 
         const mainBarcodeResult = await getData(
-          "sampling_nspection_flow",
+          "sampling_inspection_flow",
           searchQuery
         );
         if (
@@ -1244,7 +1253,7 @@ export default {
           },
         };
         const currentBarcodeResult = await getData(
-          "sampling_nspection_flow",
+          "sampling_inspection_flow",
           currentSearchQuery
         );
 
@@ -1437,7 +1446,7 @@ export default {
         // 根据选择获取要导出的数据
         switch (exportOption) {
           case "all":
-            const allResult = await getData("sampling_nspection_flow", {
+            const allResult = await getData("sampling_inspection_flow", {
               query: {},
             });
             if (allResult.code === 200) {
@@ -1453,7 +1462,7 @@ export default {
             req.limit = this.pageSize;
             req.sort = { createAt: -1 };
             req.count = true;
-            const searchResult = await getData("sampling_nspection_flow", req);
+            const searchResult = await getData("sampling_inspection_flow", req);
             if (searchResult.code === 200) {
               exportData = searchResult.data;
             } else {
@@ -1488,7 +1497,7 @@ export default {
           const item = exportData[i];
 
           try {
-            const result = await getData("sampling_nspection_flow", {
+            const result = await getData("sampling_inspection_flow", {
               query: { _id: item._id },
             });
 
@@ -1606,7 +1615,7 @@ export default {
 
         try {
           // 获取详细数据
-          const result = await getData("sampling_nspection_flow", {
+          const result = await getData("sampling_inspection_flow", {
             query: { _id: row._id },
           });
 
@@ -1744,6 +1753,54 @@ export default {
     // 处理扫码确认
     async handleScanConfirm() {
       try {
+        // 先检查是否已经存在抽检记录
+        const existingRecord = await getData("sampling_inspection_flow", {
+          query: {
+            barcode: this.scanForm.barcode,
+            samplingStatus: { $ne: "VOIDED" }, // 排除已作废的记录
+          },
+        });
+
+        if (existingRecord.code === 200 && existingRecord.data.length > 0) {
+          // 显示确认对话框
+          try {
+            await this.$confirm(
+              "该条码已存在抽检记录，是否作废原记录并重新抽检？",
+              "提示",
+              {
+                confirmButtonText: "作废并重新抽检",
+                cancelButtonText: "取消",
+                type: "warning",
+              }
+            );
+
+            // 作废原记录
+            const voidResult = await updateData("sampling_inspection_flow", {
+              query: { barcode: this.scanForm.barcode },
+              update: {
+                $set: {
+                  samplingStatus: "VOIDED",
+                  voidReason: "重新抽检",
+                  voidTime: new Date(),
+                  voidOperator: this.$store.state.user.name,
+                  updateBy: this.$store.state.user.id,
+                },
+              },
+            });
+
+            if (voidResult.code !== 200) {
+              throw new Error("作废原记录失败");
+            }
+          } catch (error) {
+            if (error === "cancel") {
+              this.scanForm.barcode = "";
+              this.$refs.barcodeInput.focus();
+              return;
+            }
+            throw error;
+          }
+        }
+
         this.$refs.scanForm.validate(async (valid) => {
           if (valid) {
             this.scanLoading = true;
@@ -1756,6 +1813,7 @@ export default {
               materialName: this.currentFlowData.materialName,
               materialSpec: this.currentFlowData.materialSpec,
               isQualified: this.scanForm.isQualified,
+              samplingStatus: "COMPLETED",
               remark: this.scanForm.remark,
               samplingTime: new Date(),
               samplingOperator: this.$store.state.user.name,
@@ -1766,7 +1824,7 @@ export default {
 
             // 保存抽检记录
             const result = await addData(
-              "sampling_nspection_flow",
+              "sampling_inspection_flow",
               inspectionData
             );
 
@@ -1775,6 +1833,7 @@ export default {
               barcode: this.scanForm.barcode,
               userId: this.$store.state.user.id,
               remarks: "抽检中",
+              status: this.scanForm.isQualified,
             });
 
             if (result.code === 200) {
