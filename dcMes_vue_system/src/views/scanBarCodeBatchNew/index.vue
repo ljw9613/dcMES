@@ -489,6 +489,7 @@ export default {
       scannedList: [], // 已扫描条码列表
       boxList: [], // 包装箱列表
       palletForm: {
+        productionPlanWorkOrderId: "",
         palletCode: "",
         saleOrderId: "",
         saleOrderNo: "",
@@ -2474,6 +2475,8 @@ export default {
         });
         console.log(response, "response");
         if (response.code === 200 && response.data.length > 0) {
+          this.palletForm.productionPlanWorkOrderId =
+            response.data[0]._id;
           this.palletForm.saleOrderId = response.data[0].saleOrderId._id;
           this.palletForm.saleOrderNo = response.data[0].saleOrderNo;
           this.palletForm.productionOrderId =
@@ -2490,6 +2493,7 @@ export default {
         if (this.mainMaterialId && this.palletForm.productionOrderId) {
           const palletResponse = await getData("material_palletizing", {
             query: {
+              productionPlanWorkOrderId: this.palletForm.productionPlanWorkOrderId, // 添加工单ID筛选
               productionOrderId: this.palletForm.productionOrderId, // 添加工单ID筛选
               productLineId: this.productLineId,
               status: "STACKING",
