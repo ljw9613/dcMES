@@ -924,6 +924,75 @@ class MaterialPalletizingService {
       throw error;
     }
   }
+
+  /**
+   * 更新托盘检测状态
+   * @param {String} barcode - 托盘条码/产品条码
+   * @param {String} userId - 操作用户ID
+   * @param {String} remarks - 备注信息
+   * @returns {Object} 更新结果
+   */
+  static async updatePalletInspectionStatus(barcode, userId, remarks = "") {
+    try {
+      // 查找包含该条码的托盘
+      const pallet = await MaterialPalletizing.findOne({
+        "palletBarcodes.barcode": barcode
+      });
+
+      if (!pallet) {
+        throw new Error("未找到对应的托盘记录");
+      }
+
+      // 更新整个托盘的检测状态
+      pallet.inspectionStatus = "INSPECTING";
+      pallet.inspectionTime = new Date();
+      pallet.inspectionRemarks = remarks;
+      pallet.inspectionBy = userId;
+
+      // 更新对应条码的检测状态
+      for (const pb of pallet.palletBarcodes) {
+        if (pb.barcode === barcode) {
+          pb.inspectionStatus = "INSPECTING";
+          pb.inspectionTime = new Date();
+        }
+      }
+
+      // 使用arrayFilters更新对应的条码元素
+      const updateResult = await MaterialPalletizing.updateOne(
+        { "palletBarcodes.barcode": barcode },
+        {
+          $set: {
+            inspectionStatus: "INSPECTING",
+            inspectionTime: new Date(),
+            inspectionRemarks: remarks,
+            inspectionBy: userId,
+            "palletBarcodes.$[elem].inspectionStatus": "INSPECTING",
+            "palletBarcodes.$[elem].inspectionTime": new Date(),
+            updateAt: new Date(),
+            updateBy: userId
+          }
+        },
+        {
+          arrayFilters: [{ "elem.barcode": barcode }]
+        }
+      );
+
+      if (updateResult.modifiedCount === 0) {
+        throw new Error("更新托盘检测状态失败");
+      }
+
+      return {
+        palletCode: pallet.palletCode,
+        barcode: barcode,
+        inspectionStatus: "INSPECTING",
+        inspectionTime: new Date(),
+        updateResult
+      };
+    } catch (error) {
+      console.error("更新托盘检测状态失败:", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = MaterialPalletizingService;

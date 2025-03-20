@@ -1350,7 +1350,7 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
-            throw new Error(createResponse.msg || "创建成品条码追溯记录失败");
+            throw new Error(createResponse.message || "创建成品条码追溯记录失败");
           }
         }
       } catch (error) {

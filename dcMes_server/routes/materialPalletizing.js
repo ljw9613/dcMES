@@ -158,4 +158,38 @@ router.post("/api/v1/splitPallet", async (req, res) => {
   }
 });
 
+// 更新托盘检测状态接口
+router.post("/api/v1/updatePalletInspectionStatus", async (req, res) => {
+  try {
+    const { barcode, userId, remarks } = req.body;
+
+    // 参数验证
+    if (!barcode) {
+      return res.status(200).json({
+        success: false,
+        message: "缺少必要参数：条码信息",
+      });
+    }
+
+    const result = await materialPalletizingService.updatePalletInspectionStatus(
+      barcode,
+      userId,
+      remarks
+    );
+
+    return res.status(200).json({
+      code: 200,
+      success: true,
+      data: result,
+      message: "托盘检测状态更新成功",
+    });
+  } catch (error) {
+    return res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;

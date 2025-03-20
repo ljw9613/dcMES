@@ -32,7 +32,8 @@ router.post("/api/v1/create-flow", async (req, res) => {
       data: flowRecord,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(200).json({
+      code: 500,
       success: false,
       message: error.message,
     });

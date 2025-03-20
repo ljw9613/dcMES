@@ -36,3 +36,11 @@ export function splitPallet(data) {
     })
 }
 
+// 更新托盘检测状态接口
+export function updatePalletInspectionStatus(data) {
+    return request({
+        url: '/updatePalletInspectionStatus',
+        method: 'post',
+        data
+    })
+}

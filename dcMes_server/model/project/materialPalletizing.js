@@ -86,6 +86,15 @@ const materialPalletizingSchema = new mongoose.Schema({
       barcode: { type: String }, // 托盘条码
       barcodeType: { type: String }, // 托盘条码类型
       scanTime: { type: Date }, // 扫码时间
+      inspectionStatus: {
+        type: String,
+        enum: ["PENDING", "INSPECTING", "INSPECTED"], // 抽检状态 待抽检 抽检中 抽检完成
+        default: "PENDING",
+      },
+      // 巡检时间
+      inspectionTime: { type: Date }, // 巡检时间
+      inspectionBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 巡检人
+      inspectionRemarks: { type: String }, // 巡检备注
     },
   ], // 托盘条码
 
@@ -105,6 +114,16 @@ const materialPalletizingSchema = new mongoose.Schema({
   // 拆分托盘信息
   splitFrom: { type: String }, // 拆分托盘编号
 
+  //抽检状态
+  inspectionStatus: {
+    type: String,
+    enum: ["PENDING", "INSPECTING", "INSPECTED"], // 抽检状态 待抽检 抽检中 抽检完成
+    default: "PENDING",
+  },
+  // 抽检时间
+  inspectionTime: { type: Date }, // 抽检时间
+  inspectionBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 抽检人
+  inspectionRemarks: { type: String }, // 抽检备注
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },

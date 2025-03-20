@@ -4,7 +4,11 @@
     <el-card class="filter-container">
       <div slot="header" class="clearfix">
         <span>筛选搜索</span>
-        <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced">
+        <el-button
+          style="float: right; padding: 3px 0"
+          type="text"
+          @click="toggleAdvanced"
+        >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
       </div>
@@ -13,12 +17,21 @@
         <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="产品编码">
-              <el-input v-model="searchForm.materialCode" placeholder="请输入产品编码" clearable></el-input>
+              <el-input
+                v-model="searchForm.materialCode"
+                placeholder="请输入产品编码"
+                clearable
+              ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="检验结果">
-              <el-select v-model="searchForm.isQualified" placeholder="请选择检验结果" clearable style="width: 100%">
+              <el-select
+                v-model="searchForm.isQualified"
+                placeholder="请选择检验结果"
+                clearable
+                style="width: 100%"
+              >
                 <el-option label="合格" :value="true" />
                 <el-option label="不合格" :value="false" />
               </el-select>
@@ -26,31 +39,50 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="销售单号">
-              <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售单号" clearable></el-input>
+              <el-input
+                v-model="searchForm.saleOrderNo"
+                placeholder="请输入销售单号"
+                clearable
+              ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="抽检状态">
-              <el-select v-model="searchForm.samplingStatus" placeholder="请选择抽检状态" clearable style="width: 100%">
+              <el-select
+                v-model="searchForm.samplingStatus"
+                placeholder="请选择抽检状态"
+                clearable
+                style="width: 100%"
+              >
                 <el-option label="已完成" value="COMPLETED" />
                 <el-option label="作废" value="VOIDED" />
               </el-select>
             </el-form-item>
           </el-col>
-         
         </el-row>
 
         <div v-show="showAdvanced">
           <el-row :gutter="20">
             <el-col :span="6">
               <el-form-item label="批次号">
-                <el-input v-model="searchForm.batchNo" placeholder="请输入批次号" clearable></el-input>
+                <el-input
+                  v-model="searchForm.batchNo"
+                  placeholder="请输入批次号"
+                  clearable
+                ></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="抽检时间">
-                <el-date-picker v-model="searchForm.samplingTimeRange" type="daterange" range-separator="至"
-                  start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
+                <el-date-picker
+                  v-model="searchForm.samplingTimeRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  style="width: 100%"
+                >
                 </el-date-picker>
               </el-form-item>
             </el-col>
@@ -71,7 +103,9 @@
         <div class="screen_content_first">
           <i class="el-icon-tickets">抽检记录表</i>
           <div>
-            <el-button type="primary" @click="handleAllExcel">导出数据表</el-button>
+            <el-button type="primary" @click="handleAllExcel"
+              >导出数据表</el-button
+            >
             <!-- <el-button type="primary" @click="handleAllExport"
               >批量导出数据</el-button
             > -->
@@ -81,10 +115,19 @@
     </div>
 
     <!-- 表格区域 -->
-    <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
-      :tableData="tableList" :tableDataloading="listLoading" :total="total" @selection-change="handleSelectionChange"
-      @handleCurrentChange="baseTableHandleCurrentChange" :cell-style="{ textAlign: 'center' }"
-      @handleSizeChange="baseTableHandleSizeChange">
+    <base-table
+      ref="baseTable"
+      :currentPage="currentPage"
+      :highlight-current-row="true"
+      :pageSize="pageSize"
+      :tableData="tableList"
+      :tableDataloading="listLoading"
+      :total="total"
+      @selection-change="handleSelectionChange"
+      @handleCurrentChange="baseTableHandleCurrentChange"
+      :cell-style="{ textAlign: 'center' }"
+      @handleSizeChange="baseTableHandleSizeChange"
+    >
       <template slot="law">
         <!-- 基本信息列 -->
         <el-table-column label="主条码" prop="barcode" min-width="180">
@@ -126,19 +169,35 @@
         <el-table-column label="条码验证" min-width="200">
           <template slot-scope="scope">
             <div class="validation-tags">
-              <el-tooltip effect="dark" :content="getValidationTooltip(scope.row, 'print')" placement="top">
-                <el-tag size="mini" :type="getValidationTagType(
-                  scope.row.barcodeValidation.isPrintBarcodeValid
-                )
-                  ">
+              <el-tooltip
+                effect="dark"
+                :content="getValidationTooltip(scope.row, 'print')"
+                placement="top"
+              >
+                <el-tag
+                  size="mini"
+                  :type="
+                    getValidationTagType(
+                      scope.row.barcodeValidation.isPrintBarcodeValid
+                    )
+                  "
+                >
                   彩箱条码
                 </el-tag>
               </el-tooltip>
-              <el-tooltip effect="dark" :content="getValidationTooltip(scope.row, 'transformed')" placement="top">
-                <el-tag size="mini" :type="getValidationTagType(
-                  scope.row.barcodeValidation.isTransformedBarcodeValid
-                )
-                  ">
+              <el-tooltip
+                effect="dark"
+                :content="getValidationTooltip(scope.row, 'transformed')"
+                placement="top"
+              >
+                <el-tag
+                  size="mini"
+                  :type="
+                    getValidationTagType(
+                      scope.row.barcodeValidation.isTransformedBarcodeValid
+                    )
+                  "
+                >
                   黄板箱条码
                 </el-tag>
               </el-tooltip>
@@ -161,7 +220,12 @@
 
         <el-table-column label="备注" prop="remark" min-width="150">
           <template slot-scope="scope">
-            <el-tooltip v-if="scope.row.remark" effect="dark" :content="scope.row.remark" placement="top">
+            <el-tooltip
+              v-if="scope.row.remark"
+              effect="dark"
+              :content="scope.row.remark"
+              placement="top"
+            >
               <span class="remark-text">{{ scope.row.remark }}</span>
             </el-tooltip>
             <span v-else>-</span>
@@ -171,8 +235,12 @@
         <!-- 操作列 -->
         <el-table-column label="操作" width="120" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="scope.row.samplingStatus !== 'VOIDED'" type="text" size="mini"
-              @click="handleVoid(scope.row)">
+            <el-button
+              v-if="scope.row.samplingStatus !== 'VOIDED'"
+              type="text"
+              size="mini"
+              @click="handleVoid(scope.row)"
+            >
               作废
             </el-button>
             <el-button type="text" size="mini" @click="handleDetail(scope.row)">
@@ -184,49 +252,96 @@
     </base-table>
 
     <!-- 导出选项弹窗 -->
-    <el-dialog title="导出选项" :visible.sync="exportDialogVisible" width="400px" :close-on-click-modal="false">
+    <el-dialog
+      title="导出选项"
+      :visible.sync="exportDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+    >
       <el-form :model="exportForm" label-width="0px">
         <el-form-item>
-          <el-radio-group v-model="exportForm.exportOption"
-            style="width: 100%; display: flex; justify-content: space-around">
-            <el-radio-button border label="按搜索结果导出" value="search"></el-radio-button>
-            <el-radio-button border label="导出全部数据" value="all"></el-radio-button>
+          <el-radio-group
+            v-model="exportForm.exportOption"
+            style="width: 100%; display: flex; justify-content: space-around"
+          >
+            <el-radio-button
+              border
+              label="按搜索结果导出"
+              value="search"
+            ></el-radio-button>
+            <el-radio-button
+              border
+              label="导出全部数据"
+              value="all"
+            ></el-radio-button>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="exportDialogVisible = false" type="default">取 消</el-button>
-        <el-button type="primary" @click="confirmExport" :loading="exportLoading">
+        <el-button @click="exportDialogVisible = false" type="default"
+          >取 消</el-button
+        >
+        <el-button
+          type="primary"
+          @click="confirmExport"
+          :loading="exportLoading"
+        >
           确 定
         </el-button>
       </div>
     </el-dialog>
 
     <!-- 添加扫码弹窗 -->
-    <el-dialog title="扫码抽检" :visible.sync="scanDialogVisible" width="500px" :close-on-click-modal="false">
-      <el-form :model="scanForm" ref="scanForm" :rules="scanRules" label-width="120px">
+    <el-dialog
+      title="扫码抽检"
+      :visible.sync="scanDialogVisible"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        :model="scanForm"
+        ref="scanForm"
+        :rules="scanRules"
+        label-width="120px"
+      >
         <el-form-item label="主产品条码" prop="barcode">
-          <el-input v-model="scanForm.barcode" placeholder="请扫描主产品条码" ref="barcodeInput"
-            @keyup.enter.native="handleBarcodeEnter"></el-input>
+          <el-input
+            v-model="scanForm.barcode"
+            placeholder="请扫描主产品条码"
+            ref="barcodeInput"
+            @keyup.enter.native="handleBarcodeEnter"
+          ></el-input>
         </el-form-item>
 
         <div v-if="showBarcodeValidation">
           <!-- 基础信息显示 -->
           <el-form-item label="物料编码">
-            <el-input v-model="currentBarcodeData.materialNumber" readonly></el-input>
+            <el-input
+              v-model="currentBarcodeData.materialNumber"
+              readonly
+            ></el-input>
           </el-form-item>
           <el-form-item label="物料名称">
-            <el-input v-model="currentBarcodeData.materialName" readonly></el-input>
+            <el-input
+              v-model="currentBarcodeData.materialName"
+              readonly
+            ></el-input>
           </el-form-item>
 
           <!-- 条码验证部分 -->
           <el-form-item label="彩箱条码" prop="printBarcode">
-            <el-input v-model="scanForm.printBarcode" placeholder="请扫描彩箱条码"
-              @keyup.enter.native="handlePrintBarcodeEnter"></el-input>
+            <el-input
+              v-model="scanForm.printBarcode"
+              placeholder="请扫描彩箱条码"
+              @keyup.enter.native="handlePrintBarcodeEnter"
+            ></el-input>
           </el-form-item>
           <el-form-item label="黄板箱条码" prop="transformedPrintBarcode">
-            <el-input v-model="scanForm.transformedPrintBarcode" placeholder="请扫描黄板箱条码"
-              @keyup.enter.native="handletransformedPrintBarcodeEnter"></el-input>
+            <el-input
+              v-model="scanForm.transformedPrintBarcode"
+              placeholder="请扫描黄板箱条码"
+              @keyup.enter.native="handletransformedPrintBarcodeEnter"
+            ></el-input>
           </el-form-item>
 
           <!-- 验证结果显示 -->
@@ -235,31 +350,50 @@
               <el-tag :type="getValidationTagType('barcode')" size="medium">
                 主条码: {{ getValidationText("barcode") }}
               </el-tag>
-              <el-tag :type="getValidationTagType('printBarcode')" size="medium">
+              <el-tag
+                :type="getValidationTagType('printBarcode')"
+                size="medium"
+              >
                 彩箱条码: {{ getValidationText("printBarcode") }}
               </el-tag>
-              <el-tag :type="getValidationTagType('transformedPrintBarcode')" size="medium">
+              <el-tag
+                :type="getValidationTagType('transformedPrintBarcode')"
+                size="medium"
+              >
                 黄板箱条码: {{ getValidationText("transformedPrintBarcode") }}
               </el-tag>
             </div>
           </el-form-item>
 
           <el-form-item label="备注说明">
-            <el-input type="textarea" v-model="scanForm.remark" placeholder="请输入备注说明"></el-input>
+            <el-input
+              type="textarea"
+              v-model="scanForm.remark"
+              placeholder="请输入备注说明"
+            ></el-input>
           </el-form-item>
         </div>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="scanDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handleScanConfirm" :loading="scanLoading" :disabled="!isAllBarcodeValid"
-          v-if="showBarcodeValidation">
+        <el-button
+          type="primary"
+          @click="handleScanConfirm"
+          :loading="scanLoading"
+          :disabled="!isAllBarcodeValid"
+          v-if="showBarcodeValidation"
+        >
           确 定
         </el-button>
       </div>
     </el-dialog>
 
     <!-- 添加详情弹窗 -->
-    <el-dialog title="抽检记录详情" :visible.sync="detailDialogVisible" width="700px">
+    <el-dialog
+      title="抽检记录详情"
+      :visible.sync="detailDialogVisible"
+      width="700px"
+    >
       <div class="detail-container" v-if="currentDetail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="主条码">{{
@@ -285,10 +419,13 @@
               currentDetail.barcodeValidation.printBarcode
             }}</el-descriptions-item>
             <el-descriptions-item label="彩箱条码验证">
-              <el-tag :type="getValidationTagType(
-                currentDetail.barcodeValidation.isPrintBarcodeValid
-              )
-                ">
+              <el-tag
+                :type="
+                  getValidationTagType(
+                    currentDetail.barcodeValidation.isPrintBarcodeValid
+                  )
+                "
+              >
                 {{
                   currentDetail.barcodeValidation.isPrintBarcodeValid
                     ? "验证通过"
@@ -300,10 +437,13 @@
               currentDetail.barcodeValidation.transformedBarcode
             }}</el-descriptions-item>
             <el-descriptions-item label="黄板箱条码验证">
-              <el-tag :type="getValidationTagType(
-                currentDetail.barcodeValidation.isTransformedBarcodeValid
-              )
-                ">
+              <el-tag
+                :type="
+                  getValidationTagType(
+                    currentDetail.barcodeValidation.isTransformedBarcodeValid
+                  )
+                "
+              >
                 {{
                   currentDetail.barcodeValidation.isTransformedBarcodeValid
                     ? "验证通过"
@@ -329,6 +469,7 @@ import {
   unbindComponents,
   updateFlowNodes,
 } from "@/api/materialProcessFlowService";
+import { updatePalletInspectionStatus } from "@/api/materialPalletizing";
 import XLSX from "xlsx";
 import JSZip from "jszip";
 import FileSaver from "file-saver";
@@ -468,9 +609,9 @@ export default {
         formattedTime: this.formatDate(record.operateTime),
         materialList: record.unbindMaterials
           ? record.unbindMaterials.map((m) => ({
-            ...m,
-            displayText: `${m.materialCode} - ${m.materialName}`,
-          }))
+              ...m,
+              displayText: `${m.materialCode} - ${m.materialName}`,
+            }))
           : [],
       }));
     },
@@ -1419,11 +1560,13 @@ export default {
           const processNodes = item.materialProcessFlowId.processNodes;
 
           // 查找 isRfid 为 true 的节点
-          const rfidNodes = processNodes.filter(node => node.materialName && node.materialName.includes("RFID"));
+          const rfidNodes = processNodes.filter(
+            (node) => node.materialName && node.materialName.includes("RFID")
+          );
           console.log(rfidNodes);
 
           // 提取对应的 barcode
-          const rfidBarcodes = rfidNodes.map(node => node.barcode);
+          const rfidBarcodes = rfidNodes.map((node) => node.barcode);
 
           // 输出结果
 
@@ -1708,8 +1851,9 @@ export default {
               物料名称: item.materialName || "-",
               规格型号: item.materialSpec || "-",
               状态: this.getProcessStatusText(item.status) || "-",
-              所属工序: `${item.processName || ""} ${item.processCode ? `(${item.processCode})` : ""
-                }`,
+              所属工序: `${item.processName || ""} ${
+                item.processCode ? `(${item.processCode})` : ""
+              }`,
               扫码时间: item.scanTime ? this.formatDate(item.scanTime) : "-",
             }));
 
@@ -2039,6 +2183,13 @@ export default {
               inspectionData
             );
 
+            //生成抽检记录时需要将托盘条码更新为已抽检
+            await updatePalletInspectionStatus({
+              barcode: this.scanForm.printBarcode,
+              userId: this.$store.state.user.id,
+              remarks: "抽检中",
+            });
+
             if (result.code === 200) {
               this.$message.success("抽检记录已保存");
               this.scanDialogVisible = false;
@@ -2105,12 +2256,15 @@ export default {
     // 获取验证提示信息
     getValidationTooltip(row, type) {
       if (type === "print") {
-        return `彩箱条码: ${row.barcodeValidation.printBarcode}\n验证结果: ${row.barcodeValidation.isPrintBarcodeValid ? "通过" : "失败"
-          }`;
+        return `彩箱条码: ${row.barcodeValidation.printBarcode}\n验证结果: ${
+          row.barcodeValidation.isPrintBarcodeValid ? "通过" : "失败"
+        }`;
       } else {
-        return `黄板箱条码: ${row.barcodeValidation.transformedBarcode
-          }\n验证结果: ${row.barcodeValidation.isTransformedBarcodeValid ? "通过" : "失败"
-          }`;
+        return `黄板箱条码: ${
+          row.barcodeValidation.transformedBarcode
+        }\n验证结果: ${
+          row.barcodeValidation.isTransformedBarcodeValid ? "通过" : "失败"
+        }`;
       }
     },
 
@@ -2390,7 +2544,7 @@ export default {
     font-size: 12px;
     color: #606266;
 
-    >div {
+    > div {
       margin-bottom: 3px;
     }
   }
@@ -2697,7 +2851,7 @@ export default {
   }
 
   .inner-table {
-    .el-tag+.el-tag {
+    .el-tag + .el-tag {
       margin-left: 5px;
     }
   }
@@ -2737,7 +2891,7 @@ export default {
         padding: 0;
       }
 
-      .el-tag+.el-tag {
+      .el-tag + .el-tag {
         margin-left: 4px;
       }
     }

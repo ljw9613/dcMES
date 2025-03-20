@@ -1430,7 +1430,9 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
-            throw new Error(createResponse.msg || "创建成品条码追溯记录失败");
+            throw new Error(
+              createResponse.message || "创建成品条码追溯记录失败"
+            );
           }
         }
       } catch (error) {
@@ -2357,7 +2359,18 @@ export default {
 
     // 处理批次数量变化
     handleBatchSizeChange(value) {
+      // 获取已入托数量
+      const usedQuantity = this.scannedList.length;
+
+      if (value < usedQuantity) {
+        this.$message.warning(`批次数量不能小于已入托数量(${usedQuantity})`);
+        // 恢复为原来的值或已入托数量
+        this.batchForm.batchSize = Math.max(this.savedBatchSize, usedQuantity);
+        return;
+      }
       this.batchForm.batchSize = value;
+
+    
     },
 
     // 新增保存批次数量方法
@@ -2372,6 +2385,28 @@ export default {
             type: "warning",
           }
         );
+
+        // 获取已入托数量
+        const usedQuantity = this.scannedList.length;
+
+        if (this.batchForm.batchSize < usedQuantity) {
+          this.$message.warning(`批次数量不能小于已入托数量(${usedQuantity})`);
+          // 恢复为原来的值或已入托数量
+          this.batchForm.batchSize = Math.max(
+            this.savedBatchSize,
+            usedQuantity
+          );
+          return;
+        }
+
+        // 检查是否有托盘单据
+        if (this.palletForm.palletCode) {
+          // 如果有托盘单据，调用更新方法
+          updateData("material_palletizing", {
+            query: { palletCode: this.palletForm.palletCode },
+            update: { totalQuantity: this.batchForm.batchSize },
+          });
+        }
 
         // 保存到本地存储
         this.savedBatchSize = this.batchForm.batchSize;
