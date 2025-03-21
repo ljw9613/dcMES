@@ -106,6 +106,39 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    //判断托盘单据里面的条码是否有存在巡检不合格的数据
+    const inspectionResult = pallet.palletBarcodes.some(
+      (item) => item.inspectionResult === "FAIL"
+    );
+    if (inspectionResult) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在巡检不合格的数据",
+      });
+    }
+
+    //判断托盘单据里面的条码是否全部完成状态
+    let barcodeArray = [];
+    pallet.palletBarcodes.forEach((item) => {
+      barcodeArray.push(item.barcode);
+    });
+    const barcodeRecords = await MaterialProcessFlow.find({
+      barcode: { $in: barcodeArray },
+    })
+      .select("barcode status")
+      .lean();
+
+    //判断barcodeRecords是否全部完成状态
+    const isAllCompleted = barcodeRecords.every(
+      (item) => item.status === "COMPLETED"
+    );
+    if (!isAllCompleted) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在未完成状态的条码",
+      });
+    }
+
     //判断托盘单据的销售单号和出库单销售单号是否一致
     if (entryInfo.saleOrderNo && pallet.saleOrderNo !== entryInfo.saleOrderNo) {
       return res.status(200).json({

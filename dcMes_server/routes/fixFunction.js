@@ -300,3 +300,248 @@ async function runAnalysis() {
 // setTimeout(() => {
 //   runAnalysis();
 // }, 5000);
+
+// 分析工单托盘中条码状态的函数
+async function analyzeWorkOrderBarcodeStatus(workOrderNo) {
+  try {
+    // 创建工作簿和工作表
+    const workbook = new Excel.Workbook();
+    const summarySheet = workbook.addWorksheet("汇总");
+    const incompleteBarcodesSheet = workbook.addWorksheet("未完成条码详情");
+
+    // 设置汇总表格式
+    summarySheet.columns = [
+      { header: "项目", key: "item", width: 30 },
+      { header: "数量", key: "count", width: 15 },
+      { header: "备注", key: "remark", width: 30 },
+    ];
+
+    // 设置未完成条码详情表格式
+    incompleteBarcodesSheet.columns = [
+      { header: "条码", key: "barcode", width: 20 },
+      { header: "当前状态", key: "status", width: 15 },
+      { header: "所在托盘", key: "palletCode", width: 20 },
+      { header: "物料编码", key: "materialCode", width: 20 },
+      { header: "物料名称", key: "materialName", width: 30 },
+      { header: "开始时间", key: "startTime", width: 20 },
+      { header: "进度", key: "progress", width: 10 },
+    ];
+
+    // 1. 通过工单号查找工单信息
+    const workOrder = await ProductionPlanWorkOrder.findOne({
+      workOrderNo,
+    }).lean();
+    if (!workOrder) {
+      console.log(`未找到工单: ${workOrderNo}`);
+      return;
+    }
+
+    const workOrderId = workOrder._id.toString();
+    console.log(`工单信息: ${workOrderNo} (ID: ${workOrderId})`);
+
+    // 添加工单信息到汇总表
+    summarySheet.addRow({ item: "工单号", count: workOrderNo });
+    summarySheet.addRow({ item: "工单ID", count: workOrderId });
+
+    // 2. 查找该工单对应的所有托盘
+    const pallets = await MaterialPalletizing.find({
+      productionPlanWorkOrderId: workOrderId,
+    }).exec();
+
+    console.log(`工单 ${workOrderNo} 对应的托盘数量: ${pallets.length}`);
+    summarySheet.addRow({ item: "关联托盘数量", count: pallets.length });
+
+    if (pallets.length === 0) {
+      console.log("该工单没有关联托盘!");
+      summarySheet.addRow({ item: "状态", count: "无关联托盘", remark: "无法分析条码状态" });
+
+      // 保存工作簿
+      const outputDir = path.join(__dirname, "../output/barcode_status");
+      ensureDirectoryExists(outputDir);
+      const outputFile = path.join(
+        outputDir,
+        `工单${workOrderNo}条码状态分析_${new Date()
+          .toISOString()
+          .replace(/[:.]/g, "-")}.xlsx`
+      );
+      await workbook.xlsx.writeFile(outputFile);
+      console.log(`分析结果已保存至: ${outputFile}`);
+      return;
+    }
+
+    // 3. 提取托盘包含的所有条码
+    const palletBarcodes = new Set();
+    const barcodeTopalletMap = {}; // 记录条码所属托盘
+    let totalBarcodeCount = 0;
+
+    for (const pallet of pallets) {
+      console.log(`托盘: ${pallet.palletCode}`);
+      const barcodes = pallet.palletBarcodes || [];
+      totalBarcodeCount += barcodes.length;
+
+      for (const barcodeObj of barcodes) {
+        if (barcodeObj && barcodeObj.barcode) {
+          palletBarcodes.add(barcodeObj.barcode);
+          // 记录条码所在托盘
+          barcodeTopalletMap[barcodeObj.barcode] = pallet.palletCode;
+        }
+      }
+    }
+
+    console.log(`托盘中包含的条码总数: ${totalBarcodeCount}`);
+    console.log(`托盘中不重复条码数: ${palletBarcodes.size}`);
+
+    // 添加托盘条码信息到汇总表
+    summarySheet.addRow({ item: "托盘中条码总数", count: totalBarcodeCount });
+    summarySheet.addRow({
+      item: "托盘中不重复条码数",
+      count: palletBarcodes.size,
+    });
+
+    // 4. 查询所有条码的工艺流程状态
+    const barcodeArray = [...palletBarcodes];
+    const barcodeRecords = await MaterialProcessFlow.find({
+      barcode: { $in: barcodeArray }
+    }).lean();
+
+    // 创建条码到记录的映射
+    const barcodeToRecordMap = {};
+    for (const record of barcodeRecords) {
+      barcodeToRecordMap[record.barcode] = record;
+    }
+
+    // 5. 筛选出状态不是"COMPLETED"的条码
+    const incompleteBarcodes = [];
+    const notFoundBarcodes = [];
+
+    for (const barcode of barcodeArray) {
+      const record = barcodeToRecordMap[barcode];
+      if (!record) {
+        notFoundBarcodes.push(barcode);
+        continue;
+      }
+
+      if (record.status !== "COMPLETED") {
+        incompleteBarcodes.push({
+          barcode: barcode,
+          status: record.status,
+          palletCode: barcodeTopalletMap[barcode],
+          materialCode: record.materialCode,
+          materialName: record.materialName,
+          startTime: record.startTime,
+          progress: record.progress
+        });
+      }
+    }
+
+    console.log(`未找到工艺记录的条码数量: ${notFoundBarcodes.length}`);
+    console.log(`状态不是"COMPLETED"的条码数量: ${incompleteBarcodes.length}`);
+
+    // 添加统计信息到汇总表
+    summarySheet.addRow({
+      item: "未找到工艺记录的条码数量",
+      count: notFoundBarcodes.length,
+    });
+    summarySheet.addRow({
+      item: "状态不是'COMPLETED'的条码数量",
+      count: incompleteBarcodes.length,
+    });
+
+    // 将未完成的条码信息添加到详情表
+    for (const item of incompleteBarcodes) {
+      incompleteBarcodesSheet.addRow({
+        barcode: item.barcode,
+        status: item.status,
+        palletCode: item.palletCode,
+        materialCode: item.materialCode,
+        materialName: item.materialName,
+        startTime: item.startTime ? new Date(item.startTime).toLocaleString() : "未开始",
+        progress: item.progress ? `${item.progress}%` : "0%"
+      });
+    }
+
+    // 如果有未找到记录的条码，增加专门的工作表
+    if (notFoundBarcodes.length > 0) {
+      const notFoundSheet = workbook.addWorksheet("未找到工艺记录的条码");
+      notFoundSheet.columns = [
+        { header: "条码", key: "barcode", width: 20 },
+        { header: "所在托盘", key: "palletCode", width: 20 },
+      ];
+
+      for (const barcode of notFoundBarcodes) {
+        notFoundSheet.addRow({
+          barcode: barcode,
+          palletCode: barcodeTopalletMap[barcode]
+        });
+      }
+
+      // 设置表头样式
+      notFoundSheet.getRow(1).font = { bold: true };
+      notFoundSheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFD3D3D3" },
+      };
+    }
+
+    // 应用样式
+    [summarySheet, incompleteBarcodesSheet].forEach((sheet) => {
+      // 设置表头样式
+      sheet.getRow(1).font = { bold: true };
+      sheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFD3D3D3" },
+      };
+    });
+
+    // 保存工作簿
+    const outputDir = path.join(__dirname, "../output/barcode_status");
+    ensureDirectoryExists(outputDir);
+    const outputFile = path.join(
+      outputDir,
+      `工单${workOrderNo}条码状态分析_${new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")}.xlsx`
+    );
+    await workbook.xlsx.writeFile(outputFile);
+    console.log(`分析结果已保存至: ${outputFile}`);
+    
+    // 返回统计数据
+    return {
+      totalBarcodes: palletBarcodes.size,
+      incompleteBarcodes: incompleteBarcodes.length,
+      notFoundBarcodes: notFoundBarcodes.length
+    };
+  } catch (error) {
+    console.error("分析过程中出错:", error);
+  }
+}
+
+// 修改主函数，增加命令行参数支持
+async function runStatusAnalysis() {
+  // 这里可以设置要分析的工单号，或者从命令行参数获取
+//   P202502241740363143817
+// P202502241740363797824
+// P202502241740363867363
+// P202502241740363914995
+// P202502241740363948378
+  const workOrderNo = "P202502241740363948378" || "请在此处设置工单号";
+  console.log(`开始分析工单条码状态: ${workOrderNo}`);
+  const result = await analyzeWorkOrderBarcodeStatus(workOrderNo);
+  if (result) {
+    console.log("\n===== 分析结果摘要 =====");
+    console.log(`总条码数: ${result.totalBarcodes}`);
+    console.log(`未完成状态条码: ${result.incompleteBarcodes}`);
+    console.log(`未找到工艺记录条码: ${result.notFoundBarcodes}`);
+  }
+}
+
+// 延迟执行，确保数据库连接已建立
+// setTimeout(() => {
+//   runStatusAnalysis();
+// }, 5000);
+
+module.exports = {
+  analyzeWorkOrderBarcodeStatus
+};

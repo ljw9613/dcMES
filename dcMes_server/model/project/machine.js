@@ -71,7 +71,7 @@ var machineSchema = new mongoose.Schema(
 
     status: { type: Boolean, default: false, description: "在线状态" },
 
-    isNeedMaintain: { type: Boolean, default: 0, description: "是否需要维修检验" },
+    isNeedMaintain: { type: Boolean, default: false, description: "是否需要维修检验" },
 
     createTime: { type: Date, default: Date.now, description: "创建时间" },
     updateTime: { type: Date, default: null, description: "更新时间" },

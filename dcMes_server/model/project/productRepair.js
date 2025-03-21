@@ -49,6 +49,13 @@ const productRepairSchema = new mongoose.Schema({
     default: "PENDING_REVIEW",
   }, // 状态
 
+  //核验
+  verify: {
+    type: Boolean,
+    default: false,
+  }, // 核验
+  verifyTime: { type: Date }, // 核验时间
+  
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },

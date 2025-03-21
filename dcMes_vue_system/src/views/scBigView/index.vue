@@ -162,7 +162,19 @@
       <!-- 添加一个紧凑的小时产能概览 -->
       <div class="hourly-overview" v-if="currentWorkOrder">
         <div class="overview-chart-container">
-          <div class="overview-title">工单小时产能</div>
+          <div class="overview-header">
+            <div class="overview-title">工单小时产能</div>
+            <div class="chart-type-selector">
+              <span 
+                :class="{'active': chartType === 'bar'}" 
+                @click="switchChartType('bar')"
+              >柱状图</span>
+              <span 
+                :class="{'active': chartType === 'line'}" 
+                @click="switchChartType('line')"
+              >折线图</span>
+            </div>
+          </div>
           <div id="workOrderHourlyChart" class="overview-chart"></div>
         </div>
       </div>
@@ -279,7 +291,8 @@ export default {
       currentPage: 0,
       machinesPerPage: 10,
       processHourlyOutput: {},  // 各工序小时产能
-      workOrderHourlyOutput: {} // 工单小时产能
+      workOrderHourlyOutput: {}, // 工单小时产能
+      chartType: 'bar', // 默认为柱状图
     };
   },
   created() {
@@ -652,7 +665,7 @@ export default {
       this.renderWorkOrderHourlyChart();
     },
     
-    // 修改工单小时产能图表，适配小尺寸
+    // 修改工单小时产能图表，支持切换图表类型
     renderWorkOrderHourlyChart() {
       const chartDom = document.getElementById('workOrderHourlyChart');
       if (!chartDom) return;
@@ -668,21 +681,29 @@ export default {
       const hours = [];
       const outputData = [];
       
+      // 获取当前时间
+      const currentHour = new Date().getHours();
+      
+      // 设置数据
       for (let hour = 0; hour < 24; hour++) {
         hours.push(hour + ':00');
         outputData.push(this.workOrderHourlyOutput[hour] || 0);
       }
       
+      // 自动计算Y轴的最大值，至少为10
+      const maxValue = Math.max(...outputData, 10);
+      
       const option = {
         grid: {
-          left: '2%',
-          right: '2%',
+          left: '3%',
+          right: '4%',
           bottom: '10%',
           top: '15%',
           containLabel: true
         },
         tooltip: {
           trigger: 'axis',
+          formatter: '{b}: {c} 件',
           axisPointer: {
             type: 'shadow'
           }
@@ -697,18 +718,34 @@ export default {
           },
           axisLabel: {
             color: 'rgba(255, 255, 255, 0.7)',
-            fontSize: 9,
-            interval: 3
+            fontSize: 10,
+            interval: 2,
+            // 高亮当前时间
+            formatter: (value) => {
+              const hour = parseInt(value);
+              if (hour === currentHour) {
+                return `{a|${value}}`;
+              }
+              return value;
+            },
+            rich: {
+              a: {
+                color: '#00ffcc',
+                fontWeight: 'bold'
+              }
+            }
           }
         },
         yAxis: {
           type: 'value',
+          min: 0,
+          max: maxValue + Math.ceil(maxValue * 0.1), // 最大值上方留一些空间
           axisLine: {
             show: false
           },
           axisLabel: {
             color: 'rgba(255, 255, 255, 0.7)',
-            fontSize: 9
+            fontSize: 10
           },
           splitLine: {
             lineStyle: {
@@ -718,14 +755,60 @@ export default {
         },
         series: [{
           name: '产量',
-          type: 'bar',
+          type: this.chartType,
           data: outputData,
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(0, 255, 159, 0.9)' },
-              { offset: 1, color: 'rgba(0, 161, 101, 0.5)' }
-            ])
-          }
+          markArea: {
+            silent: true,
+            itemStyle: {
+              opacity: 0.1
+            },
+            data: [
+              [{
+                xAxis: currentHour + ':00'
+              }, {
+                xAxis: currentHour + ':00'
+              }]
+            ]
+          },
+          // 柱状图样式
+          ...(this.chartType === 'bar' ? {
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(0, 255, 159, 0.9)' },
+                { offset: 1, color: 'rgba(0, 161, 101, 0.5)' }
+              ]),
+              borderRadius: 4
+            },
+            emphasis: {
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: 'rgba(0, 255, 159, 1)' },
+                  { offset: 1, color: 'rgba(0, 161, 101, 0.7)' }
+                ])
+              }
+            }
+          } : {}),
+          // 折线图样式
+          ...(this.chartType === 'line' ? {
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+              width: 3,
+              color: 'rgba(0, 255, 159, 0.9)'
+            },
+            itemStyle: {
+              color: 'rgba(0, 255, 159, 0.9)',
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(0, 255, 159, 0.3)' },
+                { offset: 1, color: 'rgba(0, 161, 101, 0.1)' }
+              ])
+            }
+          } : {})
         }]
       };
       
@@ -734,7 +817,12 @@ export default {
       window.addEventListener('resize', () => {
         chart.resize();
       });
-    }
+    },
+
+    switchChartType(type) {
+      this.chartType = type;
+      this.renderWorkOrderHourlyChart();
+    },
   },
   computed: {
     machinesGroups() {
@@ -1547,5 +1635,38 @@ export default {
 .overview-chart {
   height: 85px;
   width: 100%;
+}
+
+/* 为图表类型选择器添加样式 */
+.overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.chart-type-selector {
+  display: flex;
+  align-items: center;
+}
+
+.chart-type-selector span {
+  font-size: 12px;
+  padding: 3px 8px;
+  margin-left: 5px;
+  cursor: pointer;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.chart-type-selector span.active {
+  background: rgba(0, 255, 159, 0.3);
+  color: #00ffcc;
+  box-shadow: 0 0 5px rgba(0, 255, 159, 0.5);
+}
+
+.chart-type-selector span:hover {
+  background: rgba(0, 255, 159, 0.2);
 }
 </style>

@@ -9,6 +9,7 @@ let compression = require("compression");
 let config = require("./libs/config");
 //解析token
 var expressJwt = require("express-jwt");
+const systemLogRoutes = require("./routes/systemLog");
 
 let app = express();
 app.set('trust proxy', true);
@@ -118,7 +119,7 @@ app.use('/', require('./routes/dashboard.js'));
 
 
 require("./routes/upload")
-require("./routes/fixFunction")
+// require("./routes/fixFunction")
 // require("./utils/scheduleTask")
 
 // 更新工艺编码
@@ -149,5 +150,8 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.render("error");
 });
+
+// 注册路由
+app.use(systemLogRoutes);
 
 module.exports = app;

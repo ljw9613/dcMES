@@ -45,6 +45,28 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         message: "托盘单据存在巡检不合格的数据",
       });
     }
+    //判断托盘单据里面的条码是否全部完成状态
+    let barcodeArray = [];
+    pallet.palletBarcodes.forEach((item) => {
+      barcodeArray.push(item.barcode);
+    });
+    const barcodeRecords = await MaterialProcessFlow.find({
+      barcode: { $in: barcodeArray },
+    })
+      .select("barcode status")
+      .lean();
+
+    //判断barcodeRecords是否全部完成状态
+    const isAllCompleted = barcodeRecords.every(
+      (item) => item.status === "COMPLETED"
+    );
+    if (!isAllCompleted) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在未完成状态的条码",
+      });
+    }
+    
     // 2. 获取或创建入库单
     let entry = await WarehouseEntry.findOne({
       productionOrderNo: pallet.productionOrderNo,

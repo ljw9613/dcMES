@@ -5,6 +5,7 @@ const ProductionPlanWorkOrder = require('../model/project/productionPlanWorkOrde
 const Machine = require('../model/project/machine');
 const MaterialProcessFlow = require('../model/project/materialProcessFlow');
 const ProcessStep = require('../model/project/processStep');
+const craft = require('../model/project/craft');
 const mongoose = require('mongoose');
 
 
@@ -34,7 +35,7 @@ router.get('/api/v1/dashboard', async (req, res) => {
     // 查询产线设备列表
     const machines = await Machine.find({
       lineId: lineId
-    }).sort({ machineOrder: 1 });
+    });
     
     // 获取工序信息
     const processStepIds = [...new Set(machines.map(m => m.processStepId).filter(id => id))];
@@ -48,9 +49,47 @@ router.get('/api/v1/dashboard', async (req, res) => {
       processStepMap[step._id.toString()] = {
         _id: step._id,
         processName: step.processName,
-        processCode: step.processCode
+        processCode: step.processCode,
+        processOrder: step.processOrder || 0
       };
     });
+    
+    // 根据工单、工艺、工序排序设备列表
+    if (currentWorkOrder) {
+      // 获取当前工单对应的工艺路线信息
+      const craft = await craft.findOne({
+        materialId: currentWorkOrder.materialId
+      });
+
+      const processFlow = await ProcessStep.find({
+        craftId: craft._id 
+      }).sort({sort:1});
+      
+      // 创建工序顺序映射
+      const processOrderMap = {};
+      if (processFlow) {
+        processFlow.forEach((step, index) => {
+          processOrderMap[step._id.toString()] = index;
+        });
+      }
+      
+      // 根据工艺路线中的工序顺序排序设备
+      machines.sort((a, b) => {
+        // 如果两个设备都有工序ID
+        if (a.processStepId && b.processStepId) {
+          const orderA = processOrderMap[a.processStepId.toString()] !== undefined ? 
+                        processOrderMap[a.processStepId.toString()] : 999;
+          const orderB = processOrderMap[b.processStepId.toString()] !== undefined ? 
+                        processOrderMap[b.processStepId.toString()] : 999;
+          return orderA - orderB;
+        }
+        // 有工序的设备排在前面
+        else if (a.processStepId && !b.processStepId) return -1;
+        else if (!a.processStepId && b.processStepId) return 1;
+        // 如果都没有工序，按原来的顺序
+        return a.machineOrder - b.machineOrder;
+      });
+    }
     
     // 如果有当前工单，获取工单关联的工艺流程数据
     let workOrderProgress = null;
