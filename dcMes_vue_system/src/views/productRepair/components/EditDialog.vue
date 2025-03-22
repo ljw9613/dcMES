@@ -469,7 +469,7 @@ export default {
         //是否为升级条码
         const preProductionResponse = await getData("preProductionBarcode", {
           query: {
-            transformedPrintBarcode: this.searchBarcode.trim(),
+            transformedPrintBarcode: this.barcode.trim(),
           },
           select: {
             transformedPrintBarcode: 1,

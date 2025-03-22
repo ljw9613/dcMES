@@ -352,6 +352,7 @@ import pcwlxz from "@/assets/tone/pcwlxz.mp3";
 import cxwgd from "@/assets/tone/cxwgd.mp3";
 import dwx from "@/assets/tone/dwx.mp3";
 import wxsb from "@/assets/tone/wxsb.mp3";
+import smztm from "@/assets/tone/smztm.mp3";
 
 import StatusPopup from "@/components/StatusPopup/index.vue";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
@@ -1407,6 +1408,35 @@ export default {
         }
 
         const materialCode = isValidResult.materialCode;
+
+        const repairRecord = await getData("product_repair", {
+          query: { barcode: cleanValue },
+          sort: { _id: -1 },
+          limit: 1,
+        });
+        if (repairRecord.data.length > 0) {
+          if (repairRecord.data[0].status == "PENDING_REVIEW") {
+            this.unifiedScanInput = "";
+            this.$refs.scanInput.focus();
+            this.$message.error("该条码存在未完成的维修记录");
+            this.popupType = "ng";
+            this.showPopup = true;
+            tone(dwx);
+            return;
+          }
+          if (
+            repairRecord.data[0].status == "REVIEWED" &&
+            repairRecord.data[0].repairResult !== "QUALIFIED"
+          ) {
+            this.unifiedScanInput = "";
+            this.$refs.scanInput.focus();
+            this.$message.error("该条码已完成维修,但维修结果为不合格");
+            this.popupType = "ng";
+            this.showPopup = true;
+            tone(wxsb);
+            return;
+          }
+        }
 
         // 检查是否匹配主物料
         if (materialCode === this.mainMaterialCode) {
