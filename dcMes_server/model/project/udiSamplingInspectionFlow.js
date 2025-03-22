@@ -36,6 +36,9 @@ const SamplingInspectionFlowSchema = new mongoose.Schema({
     voidTime: { type: Date }, // 作废时间
     voidOperator: { type: String }, // 作废人员
 
+    // 抽检照片
+    photoUrl: { type: String }, // 抽检照片URL
+
     // 基础字段
     remark: { type: String }, // 备注说明
     createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 创建人

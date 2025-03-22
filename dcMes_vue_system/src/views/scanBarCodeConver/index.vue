@@ -1733,6 +1733,8 @@ export default {
           userId: this.$store.getters.id,
           lineId: this.formData.productLine,
         };
+        let mainBarcode = JSON.parse(JSON.stringify(this.scanForm.mainBarcode));
+
         const scanResponse = await scanComponents(scanReq);
 
         if (scanResponse.code !== 200) {
@@ -1772,13 +1774,13 @@ export default {
           this.showPopup = true;
 
           let printData = {
-            printBarcode: this.scanForm.mainBarcode,
+            printBarcode: mainBarcode,
           };
 
           if (this.craftInfo && this.craftInfo.isProduct) {
             //查询是否有相关的打印数据
             const prePrintData = await getData("preProductionBarcode", {
-              query: { printBarcode: this.scanForm.mainBarcode },
+              query: { printBarcode: mainBarcode },
             });
 
             if (prePrintData.data && prePrintData.data.length > 0) {
@@ -1808,6 +1810,7 @@ export default {
             }
             let eanNum = workOrderResult.data[0].custPOLineNo;
             printData.eanNum = eanNum;
+            console.log(workOrderResult, "workOrderResult");
 
             // 获取销售订单拓展数据
             if (workOrderResult.data[0].saleOrderId) {
@@ -1816,9 +1819,30 @@ export default {
                   FSaleOrderId: workOrderResult.data[0].saleOrderId,
                 },
               });
+              console.log(saleOrderExtResult, "saleOrderExtResult");
               if (saleOrderExtResult.data.length > 0) {
                 // 将销售订单拓展数据合并到printData中
-                Object.assign(printData, saleOrderExtResult.data[0]);
+                printData = {
+                  ...printData,
+                  ...saleOrderExtResult.data[0],
+                };
+              }
+              //获取客户拓展信息表
+              const saleOrderCustInfoResult = await getData(
+                "k3_SAL_SaleOrder_CustInfo",
+                {
+                  query: {
+                    FSaleOrderId: workOrderResult.data[0].saleOrderId,
+                  },
+                }
+              );
+              console.log(saleOrderCustInfoResult, "saleOrderCustInfoResult");
+              if (saleOrderCustInfoResult.data.length > 0) {
+                // 将销售订单拓展数据合并到printData中
+                printData = {
+                  ...printData,
+                  ...saleOrderCustInfoResult.data[0],
+                };
               }
             }
 

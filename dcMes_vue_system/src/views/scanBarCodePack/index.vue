@@ -226,6 +226,19 @@
               </el-form-item>
             </div>
 
+            <!-- 包装箱条码数据 -->
+            <div class="packing-details">
+              <el-tag type="info" v-if="!packingBarcode.printBarcode"
+                >未生成包装箱条码</el-tag
+              >
+              <el-tag type="info" v-if="packingBarcode.printBarcode"
+                >包装箱条码：{{ packingBarcode.printBarcode }}</el-tag
+              >
+              <el-tag type="warning" v-if="packingBarcode.status === 'PENDING'"
+                >待装满</el-tag
+              >
+            </div>
+
             <!-- 子物料部分 -->
             <div class="section-header">
               <i class="el-icon-box"></i>
@@ -1350,7 +1363,9 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
-            throw new Error(createResponse.message || "创建成品条码追溯记录失败");
+            throw new Error(
+              createResponse.message || "创建成品条码追溯记录失败"
+            );
           }
         }
       } catch (error) {
@@ -1648,9 +1663,9 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    tone(pcwlxz);
-                    this.popupType = "ng";
-                    this.showPopup = true;
+                    // tone(pcwlxz);
+                    // this.popupType = "ng";
+                    // this.showPopup = true;
 
                     if (material.isPackingBox) {
                       await updateData("packBarcode", {
@@ -2075,9 +2090,11 @@ export default {
                         productionLineId: this.formData.productLine,
                         status: "IN_PROGRESS",
                       },
-                      populate: JSON.stringify({
-                        path: "custInfoId",
-                      }),
+                      populate: JSON.stringify([
+                        {
+                          path: "custInfoId",
+                        },
+                      ]),
                     }
                   );
 
@@ -2101,6 +2118,22 @@ export default {
                     saleOrderExtData = saleOrderExtResult.data[0];
                   }
 
+                  //获取客户拓展信息表
+                  const saleOrderCustInfoResult = await getData(
+                    "k3_SAL_SaleOrder_CustInfo",
+                    {
+                      query: {
+                        FSaleOrderId: workOrderResult.data[0].saleOrderId,
+                      },
+                    }
+                  );
+                  let saleOrderCustInfo = {};
+
+                  if (saleOrderCustInfoResult.data.length > 0) {
+                    // 将销售订单拓展数据合并到printData中
+                    saleOrderCustInfo = saleOrderCustInfoResult.data[0];
+                  }
+
                   //productionDate的格式为20250305
                   let productionDate =
                     new Date().getFullYear().toString() +
@@ -2116,6 +2149,7 @@ export default {
                     SNlist: SNlist,
                     ...workOrderData,
                     ...saleOrderExtData,
+                    ...saleOrderCustInfo,
                     productionDate: productionDate,
                   };
 
@@ -2129,9 +2163,9 @@ export default {
                     printData.sapId =
                       workOrderData.custInfoId &&
                       workOrderData.custInfoId.sapId;
-                    printData.custMaterialName =
+                    printData.FCustMaterialName =
                       workOrderData.custInfoId &&
-                      workOrderData.custInfoId.custMaterialName;
+                      workOrderData.custInfoId.FCustMaterialName;
                     printData.custMaterialNameEn =
                       workOrderData.custInfoId &&
                       workOrderData.custInfoId.custMaterialNameEn;

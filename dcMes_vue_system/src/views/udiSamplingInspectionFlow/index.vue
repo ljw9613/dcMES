@@ -333,6 +333,7 @@
             <el-input
               v-model="scanForm.printBarcode"
               placeholder="请扫描彩箱条码"
+              ref="printBarcodeInput"
               @keyup.enter.native="handlePrintBarcodeEnter"
             ></el-input>
           </el-form-item>
@@ -340,6 +341,7 @@
             <el-input
               v-model="scanForm.transformedPrintBarcode"
               placeholder="请扫描黄板箱条码"
+              ref="transformedPrintBarcodeInput"
               @keyup.enter.native="handletransformedPrintBarcodeEnter"
             ></el-input>
           </el-form-item>
@@ -412,8 +414,26 @@
           <el-descriptions-item label="物料名称">{{
             currentDetail.materialName
           }}</el-descriptions-item>
+
+          <!-- 添加照片显示区域 -->
+          <el-descriptions-item
+            label="抽检照片"
+            :span="2"
+            v-if="currentDetail.photoUrl"
+          >
+            <div class="inspection-photo">
+              <el-image
+                :src="currentDetail.photoUrl"
+                :preview-src-list="[currentDetail.photoUrl]"
+                fit="contain"
+                style="max-height: 200px; max-width: 100%"
+              >
+              </el-image>
+            </div>
+          </el-descriptions-item>
         </el-descriptions>
 
+        <!-- 现有的其他详情部分 -->
         <div class="detail-section">
           <h4>条码验证信息</h4>
           <el-descriptions :column="2" border>
@@ -460,6 +480,103 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 摄像头对话框 -->
+    <el-dialog
+      title="拍摄抽检照片"
+      :visible.sync="cameraDialog"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="!photoUploading"
+      @close="closeCameraDialog"
+      width="800px"
+      class="camera-dialog"
+    >
+      <div v-if="cameraError" class="camera-error">
+        <i class="el-icon-warning"></i>
+        <p>{{ cameraError }}</p>
+        <el-button type="primary" @click="initCamera">重试</el-button>
+      </div>
+
+      <div v-else class="camera-container">
+        <div v-loading="cameraLoading" class="camera-wrapper">
+          <!-- 摄像头画面 -->
+          <video
+            v-show="!photoData"
+            ref="cameraVideo"
+            autoplay
+            playsinline
+            class="camera-video"
+          ></video>
+
+          <!-- 照片预览 -->
+          <div v-if="photoData" class="photo-preview">
+            <img :src="photoData" alt="抽检照片" class="preview-image" />
+          </div>
+
+          <!-- 用于截图的画布 (隐藏) -->
+          <canvas ref="cameraCanvas" style="display: none"></canvas>
+        </div>
+
+        <div class="camera-controls">
+          <!-- 摄像头选择 -->
+          <el-select
+            v-if="cameraDevices.length > 1 && !photoData"
+            v-model="selectedCamera"
+            placeholder="选择摄像头"
+            @change="changeCamera"
+            size="small"
+            style="width: 180px; margin-right: 10px"
+          >
+            <el-option
+              v-for="device in cameraDevices"
+              :key="device.deviceId"
+              :label="
+                device.label || `摄像头 ${cameraDevices.indexOf(device) + 1}`
+              "
+              :value="device.deviceId"
+            ></el-option>
+          </el-select>
+
+          <!-- 拍照/重拍按钮 -->
+          <el-button
+            v-if="!photoData"
+            type="primary"
+            icon="el-icon-camera-solid"
+            @click="takePhoto"
+            :disabled="!cameraStream || cameraLoading"
+            >拍照</el-button
+          >
+
+          <el-button
+            v-if="photoData"
+            icon="el-icon-refresh-left"
+            @click="retakePhoto"
+            :disabled="photoUploading"
+            >重新拍照</el-button
+          >
+
+          <!-- 确认使用按钮 -->
+          <el-button
+            v-if="photoData"
+            type="primary"
+            icon="el-icon-check"
+            @click="confirmUsePhoto"
+            :loading="photoUploading"
+            :disabled="photoUploading"
+            >确认使用</el-button
+          >
+
+          <!-- 取消按钮 -->
+          <el-button
+            icon="el-icon-close"
+            @click="closeCameraDialog"
+            :disabled="photoUploading"
+            >取消</el-button
+          >
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -476,6 +593,7 @@ import XLSX from "xlsx";
 import JSZip from "jszip";
 import FileSaver from "file-saver";
 import { query } from "quill";
+import { uploadInspectionImage } from "@/api/upload";
 
 export default {
   name: "SaleOrder",
@@ -568,6 +686,20 @@ export default {
       },
       detailDialogVisible: false,
       currentDetail: null,
+
+      // 摄像头相关
+      cameraDialog: false,
+      cameraStream: null,
+      photoData: null,
+      videoElement: null,
+      canvasElement: null,
+      cameraLoading: false,
+      cameraError: null,
+      cameraDevices: [],
+      selectedCamera: "",
+      photoUploading: false,
+      photoUrl: "",
+      isSubmitProcess: false, // 新增提交流程标记
     };
   },
   computed: {
@@ -2043,12 +2175,7 @@ export default {
 
           // 自动聚焦到彩箱条码输入框
           this.$nextTick(() => {
-            const printBarcodeInput = this.$refs.scanForm.querySelector(
-              'input[placeholder="请扫描彩箱条码"]'
-            );
-            if (printBarcodeInput) {
-              printBarcodeInput.focus();
-            }
+            this.$refs.printBarcodeInput.focus();
           });
         } else {
           this.$message.error("未找到该产品条码记录");
@@ -2090,12 +2217,7 @@ export default {
 
       // 自动聚焦到黄板箱条码输入框
       this.$nextTick(() => {
-        const transformedPrintBarcodeInput = this.$refs.scanForm.querySelector(
-          'input[placeholder="请扫描黄板箱条码"]'
-        );
-        if (transformedPrintBarcodeInput) {
-          transformedPrintBarcodeInput.focus();
-        }
+        this.$refs.transformedPrintBarcodeInput.focus();
       });
     },
     // 处理黄板箱条码输入
@@ -2153,60 +2275,70 @@ export default {
       try {
         this.$refs.scanForm.validate(async (valid) => {
           if (valid) {
-            this.scanLoading = true;
+            // 先打开拍照对话框
+            this.cameraDialog = true;
 
-            // 构建抽检记录数据
-            const inspectionData = {
-              barcode: this.scanForm.barcode,
-              materialProcessFlowId:
-                this.currentBarcodeData.materialProcessFlowId,
-              materialCode: this.currentBarcodeData.materialNumber,
-              materialName: this.currentBarcodeData.materialName,
-              isQualified: this.isAllBarcodeValid, // 所有条码都匹配则为合格
-              samplingStatus: "COMPLETED",
-              samplingTime: new Date(),
-              samplingOperator: this.$store.state.user.name,
-              remark: this.scanForm.remark,
-              barcodeValidation: {
-                printBarcode: this.scanForm.printBarcode,
-                transformedBarcode: this.scanForm.transformedPrintBarcode,
-                isPrintBarcodeValid: this.barcodeValidation.printBarcode,
-                isTransformedBarcodeValid:
-                  this.barcodeValidation.transformedPrintBarcode,
-                validationTime: new Date(),
-              },
-              createBy: this.$store.state.user.id,
-              updateBy: this.$store.state.user.id,
-            };
+            // 在组件的data中添加标记，表示当前正在执行提交流程
+            this.isSubmitProcess = true;
 
-            // 保存抽检记录
-            const result = await addData(
-              "udi_sampling_inspection_flow",
-              inspectionData
-            );
-
-            //生成抽检记录时需要将托盘条码更新为已抽检
-            await updatePalletInspectionStatus({
-              barcode: this.scanForm.printBarcode,
-              userId: this.$store.state.user.id,
-              remarks: "抽检中",
-              status: this.isAllBarcodeValid,
+            // 初始化摄像头
+            this.$nextTick(() => {
+              this.initCamera();
             });
-
-            if (result.code === 200) {
-              this.$message.success("抽检记录已保存");
-              this.scanDialogVisible = false;
-              this.fetchData(); // 刷新列表
-            } else {
-              throw new Error(result.msg || "保存失败");
-            }
           }
         });
       } catch (error) {
-        console.error("保存失败:", error);
-        this.$message.error("保存失败: " + error.message);
+        console.error("提交过程发生错误:", error);
+        this.$message.error(`提交失败: ${error.message}`);
+        this.scanLoading = false;
+      }
+    },
+    // 添加一个新方法，用于照片上传成功后继续提交流程
+    async continueSubmitAfterPhoto(photoData) {
+      try {
+        this.scanLoading = true;
+
+        // 构建抽检记录数据
+        const inspectionData = {
+          barcode: this.scanForm.barcode,
+          materialProcessFlowId: this.currentBarcodeData.materialProcessFlowId,
+          materialCode: this.currentBarcodeData.materialNumber,
+          materialName: this.currentBarcodeData.materialName,
+          isQualified: this.isAllBarcodeValid, // 所有条码都匹配则为合格
+          samplingStatus: "COMPLETED",
+          samplingTime: new Date(),
+          samplingOperator: this.$store.state.user.name,
+          remark: this.scanForm.remark,
+          barcodeValidation: {
+            printBarcode: this.scanForm.printBarcode,
+            transformedBarcode: this.scanForm.transformedPrintBarcode,
+            isPrintBarcodeValid: this.barcodeValidation.printBarcode,
+            isTransformedBarcodeValid:
+              this.barcodeValidation.transformedPrintBarcode,
+            validationTime: new Date(),
+          },
+          // 添加照片URL
+          photoUrl: photoData ? photoData.url : "",
+        };
+
+        // 调用API提交数据
+        const response = await addData(
+          "udi_sampling_inspection_flow",
+          inspectionData
+        );
+
+        if (response.code === 200) {
+          this.$message.success("抽检记录提交成功");
+          this.scanDialogVisible = false;
+        } else {
+          throw new Error(response.message || "提交失败");
+        }
+      } catch (error) {
+        console.error("提交抽检记录失败:", error);
+        this.$message.error(`提交失败: ${error.message}`);
       } finally {
         this.scanLoading = false;
+        this.isSubmitProcess = false; // 清除提交流程标记
       }
     },
     // 重置扫码表单
@@ -2327,9 +2459,275 @@ export default {
       this.currentDetail = row;
       this.detailDialogVisible = true;
     },
+
+    // 打开摄像头对话框
+    openCameraDialog() {
+      this.cameraDialog = true;
+      this.$nextTick(() => {
+        this.initCamera();
+      });
+    },
+
+    // 初始化摄像头
+    async initCamera() {
+      this.cameraLoading = true;
+      this.cameraError = null;
+
+      try {
+        // 获取可用的摄像头列表
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        this.cameraDevices = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
+
+        if (this.cameraDevices.length === 0) {
+          this.cameraError = "未检测到摄像头设备";
+          this.cameraLoading = false;
+          return;
+        }
+
+        // 默认选择第一个摄像头
+        this.selectedCamera = this.cameraDevices[0].deviceId;
+        this.startCamera();
+      } catch (error) {
+        console.error("获取摄像头列表失败:", error);
+        this.cameraError = `无法访问摄像头: ${error.message}`;
+        this.cameraLoading = false;
+      }
+    },
+
+    // 启动摄像头
+    async startCamera() {
+      this.cameraLoading = true;
+      this.cameraError = null;
+
+      try {
+        // 如果已有流，先停止
+        if (this.cameraStream) {
+          this.stopCamera();
+        }
+
+        // 获取视频流
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: this.selectedCamera
+              ? { exact: this.selectedCamera }
+              : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+
+        this.cameraStream = stream;
+        this.videoElement = this.$refs.cameraVideo;
+        this.videoElement.srcObject = stream;
+        this.photoData = null;
+        this.cameraLoading = false;
+      } catch (error) {
+        console.error("启动摄像头失败:", error);
+        this.cameraError = `启动摄像头失败: ${error.message}`;
+        this.cameraLoading = false;
+      }
+    },
+
+    // 切换摄像头
+    changeCamera() {
+      this.startCamera();
+    },
+
+    // 拍照
+    takePhoto() {
+      if (!this.cameraStream) return;
+
+      // 创建canvas并截取当前视频帧
+      const video = this.$refs.cameraVideo;
+      const canvas = this.$refs.cameraCanvas;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // 转换为图片数据
+      this.photoData = canvas.toDataURL("image/jpeg", 0.9);
+    },
+
+    // 重新拍照
+    retakePhoto() {
+      this.photoData = null;
+    },
+
+    // 停止摄像头
+    stopCamera() {
+      if (this.cameraStream) {
+        this.cameraStream.getTracks().forEach((track) => track.stop());
+        this.cameraStream = null;
+      }
+    },
+
+    // 关闭摄像头对话框
+    closeCameraDialog() {
+      this.stopCamera();
+      this.cameraDialog = false;
+
+      // 如果是从提交流程打开的相机，且用户直接关闭对话框，询问是否继续提交
+      if (this.isSubmitProcess) {
+        if (!this.photoData) {
+          // 只有在真正未拍照的情况下才询问
+          this.$confirm("未拍摄照片，是否继续提交抽检记录？", "提示", {
+            confirmButtonText: "继续提交",
+            cancelButtonText: "取消",
+            type: "warning",
+          })
+            .then(() => {
+              // 用户选择继续提交
+              this.continueSubmitAfterPhoto(null);
+            })
+            .catch(() => {
+              // 用户取消提交
+              this.scanLoading = false;
+              this.isSubmitProcess = false;
+              this.$message.info("已取消提交");
+            });
+        } else {
+          // 如果已经拍照，直接继续提交流程
+          this.continueSubmitAfterPhoto(this.photoData);
+          this.photoData = null; // 清空照片数据
+        }
+      } else {
+        this.photoData = null; // 非提交流程清空照片数据
+      }
+    },
+
+    // 更新上传照片函数
+    async uploadPhoto() {
+      if (!this.photoData) {
+        this.$message.warning("请先拍照");
+        return;
+      }
+
+      this.photoUploading = true;
+
+      try {
+        // 将Base64图片数据转换为Blob
+        const byteString = atob(this.photoData.split(",")[1]);
+        const mimeType = this.photoData
+          .split(",")[0]
+          .split(":")[1]
+          .split(";")[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+
+        const blob = new Blob([ab], { type: mimeType });
+
+        // 使用主条码作为文件名
+        const fileName = this.scanForm.barcode;
+        const file = new File([blob], `${fileName}.jpg`, {
+          type: "image/jpeg",
+        });
+
+        // 使用API函数上传
+        const response = await uploadInspectionImage({
+          image: file,
+          filename: fileName, // 传递纯条码作为文件名，不包含扩展名
+          inspectionId:
+            (this.currentBarcodeData && this.currentBarcodeData._id) || "",
+          barcode: this.scanForm.barcode,
+          inspectionType: "sampling",
+          userId: this.$store.getters.userId || "",
+          remark: `条码${this.scanForm.barcode}的抽检照片`,
+        });
+
+        if (response.code === 20000) {
+          this.photoUrl = response.data.url;
+          this.$message.success("照片上传成功");
+          this.isSubmitProcess = true;
+          this.closeCameraDialog();
+          return response.data;
+        } else {
+          throw new Error(response.message || "上传失败");
+        }
+      } catch (error) {
+        console.error("上传照片失败:", error);
+        this.$message.error(`上传照片失败: ${error.message}`);
+        return null;
+      } finally {
+        this.photoUploading = false;
+      }
+    },
+
+    // 修改提交抽检记录方法，添加拍照和上传逻辑
+    async handleSubmitSamplingResult() {
+      // 现有表单验证逻辑...
+
+      try {
+        // 先打开摄像头对话框拍照
+        await new Promise((resolve) => {
+          this.openCameraDialog();
+          this.$once("photo-submitted", resolve);
+        });
+
+        // 拍照完成后，继续原有的提交逻辑
+        // ... 现有提交代码 ...
+
+        // 将photoUrl添加到提交的数据中
+        const submitData = {
+          // ... 原有数据 ...
+          photoUrl: this.photoUrl,
+        };
+
+        // 调用原有的提交接口
+        // ...
+      } catch (error) {
+        console.error("提交失败:", error);
+        this.$message.error(`提交失败: ${error.message}`);
+      }
+    },
+
+    // 照片确认使用
+    async confirmUsePhoto() {
+      const photoData = await this.uploadPhoto();
+
+      // 关闭相机对话框
+      this.closeCameraDialog();
+
+      if (photoData) {
+        // 如果是从提交流程打开的相机，则继续提交
+        if (this.isSubmitProcess) {
+          this.continueSubmitAfterPhoto(photoData);
+        }
+
+        // 触发事件（如果有其他地方需要用到照片数据）
+        this.$emit("photo-submitted", photoData);
+      } else if (this.isSubmitProcess) {
+        // 如果上传失败但正在提交流程中，询问用户是否继续提交
+        try {
+          await this.$confirm("照片上传失败，是否继续提交抽检记录？", "提示", {
+            confirmButtonText: "继续提交",
+            cancelButtonText: "取消",
+            type: "warning",
+          });
+
+          // 用户选择继续提交
+          this.continueSubmitAfterPhoto(null);
+        } catch (e) {
+          // 用户取消提交
+          this.scanLoading = false;
+          this.isSubmitProcess = false;
+          this.$message.info("已取消提交");
+        }
+      }
+    },
   },
   created() {
     this.fetchData();
+  },
+  beforeDestroy() {
+    this.stopCamera();
   },
 };
 </script>
@@ -2987,5 +3385,72 @@ export default {
       width: 120px;
     }
   }
+}
+
+/* 摄像头对话框样式 */
+.camera-dialog ::v-deep .el-dialog {
+  max-width: 90%;
+}
+
+.camera-dialog ::v-deep .el-dialog__body {
+  padding: 10px 20px;
+}
+
+.camera-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.camera-wrapper {
+  width: 100%;
+  height: 480px;
+  background-color: #000;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.photo-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #000;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.camera-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.camera-error {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.camera-error i {
+  font-size: 48px;
+  color: #e6a23c;
+  margin-bottom: 20px;
+}
+
+.camera-error p {
+  margin-bottom: 20px;
+  color: #606266;
 }
 </style>

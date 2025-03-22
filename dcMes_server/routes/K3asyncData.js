@@ -9,7 +9,18 @@ const Craft = require("../model/project/craft");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const ProductDiNum = require("../model/project/ProductDiNum");
 const processMaterials = require("../model/project/processMaterials");
-const { syncK3Data, syncTasks, SyncTask, syncPurchaseOrderData, syncPickMtrlData, syncDeliveryNoticeData, syncInStockData, syncRequisitionBillData, syncOutStockData } = require("../services/syncServices");
+const {
+  syncK3Data,
+  syncStockData,
+  syncTasks,
+  SyncTask,
+  syncPurchaseOrderData,
+  syncPickMtrlData,
+  syncDeliveryNoticeData,
+  syncInStockData,
+  syncRequisitionBillData,
+  syncOutStockData,
+} = require("../services/syncServices");
 
 // 同步生产订单数据F
 router.post("/sync/PRD_MO", async (req, res) => {
@@ -604,7 +615,6 @@ router.post("/sync/BD_STOCK", async (req, res) => {
   }
 });
 
-
 // 同步采购订单数据
 router.post("/sync/PUR_PurchaseOrder", async (req, res) => {
   try {
@@ -644,7 +654,6 @@ router.post("/sync/PUR_PurchaseOrder", async (req, res) => {
   }
 });
 
-
 // 同步生产领料单数据
 router.post("/sync/PRD_PickMtrl", async (req, res) => {
   try {
@@ -683,7 +692,6 @@ router.post("/sync/PRD_PickMtrl", async (req, res) => {
     });
   }
 });
-
 
 // 同步发货通知单数据
 router.post("/sync/SAL_DeliveryNotice", async (req, res) => {
@@ -840,8 +848,6 @@ router.post("/sync/SAL_OutStock", async (req, res) => {
     });
   }
 });
-
-
 
 // 修改最后的导出
 module.exports = router;

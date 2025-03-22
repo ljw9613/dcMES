@@ -4,6 +4,7 @@ const wareHouseOntry = require("../model/warehouse/warehouseOntry");
 const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
 const { k3cMethod } = require("./k3cMethod");
+const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
 // 创建一个生成出库单号的辅助函数（按日期生成流水号）
 async function generateEntryNoByProductionOrder(productionOrderNo) {

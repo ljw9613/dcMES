@@ -12,6 +12,7 @@ var saleOrderExtSchema = new mongoose.Schema({
   FQty: { type: Number }, // 数量
   FCustOrderNo: { type: String }, // 客户订单号
   FProductName: { type: String }, // 产品名称
+  FProductModel: { type: String }, // 产品型号
 
   // 产品详细信息
   FSaleCountry: { type: String, required: true }, // 销售国家地区

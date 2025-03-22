@@ -168,6 +168,7 @@
                 <el-form-item label="同步方式">
                     <el-radio-group v-model="syncForm.syncType">
                         <el-radio label="date">按日期同步</el-radio>
+                        <el-radio label="number">按仓库编号同步</el-radio>
                         <el-radio label="all">同步全部</el-radio>
                     </el-radio-group>
                 </el-form-item>
@@ -175,6 +176,9 @@
                     <el-date-picker v-model="syncForm.dateRange" type="daterange" range-separator="至"
                         start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
                     </el-date-picker>
+                </el-form-item>
+                <el-form-item label="仓库编号" required v-if="syncForm.syncType === 'number'">
+                    <el-input v-model="syncForm.stockNumber" placeholder="请输入仓库编号" clearable></el-input>
                 </el-form-item>
                 <el-form-item label="单据状态">
                     <el-select :disabled="syncForm.syncType === 'all'" v-model="syncForm.documentStatus"
@@ -259,9 +263,10 @@ export default {
             syncProgressTimer: null,
             syncDialogVisible: false,
             syncForm: {
-                syncType: 'all',
+                syncType: 'date',
                 dateRange: [],
                 documentStatus: 'C',
+                stockNumber: ''
             },
             activeTab: 'basic',
             flexDetailVisible: false,
@@ -720,7 +725,7 @@ export default {
                 syncType: 'date',
                 dateRange: [],
                 documentStatus: 'C',
-                billNo: ''
+                stockNumber: ''
             };
         },
 
@@ -731,8 +736,8 @@ export default {
                 this.$message.warning('请选择审核日期范围');
                 return;
             }
-            if (this.syncForm.syncType === 'billNo' && !this.syncForm.billNo) {
-                this.$message.warning('请输入仓库单号');
+            if (this.syncForm.syncType === 'number' && !this.syncForm.stockNumber) {
+                this.$message.warning('请输入仓库编号');
                 return;
             }
 
@@ -745,8 +750,8 @@ export default {
                     case 'date':
                         confirmMessage = '确认要同步规则筛选的仓库数据吗？此操作可能需要一些时间';
                         break;
-                    case 'billNo':
-                        confirmMessage = `确认要同步单号为 ${this.syncForm.billNo} 的仓库数据吗？`;
+                    case 'number':
+                        confirmMessage = `确认要同步编号为 ${this.syncForm.stockNumber} 的仓库数据吗？`;
                         break;
                 }
 
@@ -798,12 +803,12 @@ export default {
                                 }
                             ];
                             break;
-                        case 'billNo':
+                        case 'number':
                             req.FilterString = [
                                 {
-                                    "FieldName": "FBillNo",
+                                    "FieldName": "FNumber",
                                     "Compare": "=",
-                                    "Value": this.syncForm.billNo,
+                                    "Value": this.syncForm.stockNumber,
                                     "Left": "",
                                     "Right": "",
                                     "Logic": 0
