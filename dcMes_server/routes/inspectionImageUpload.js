@@ -12,18 +12,10 @@ const path = require("path");
 
 // 配置图片存储路径和重命名
 const storage = multer.diskStorage({
-    // 根据检验类型和原始文件名设置存储路径
+    // 使用临时文件夹
     destination: function (req, file, cb) {
-        // 使用条码作为文件夹名
-        const barcode = req.body.barcode || 'unknown';
-        // 文件夹名去除特殊字符，避免路径问题
-        const folderName = barcode.replace(/[^\w\u4e00-\u9fa5]/g, '_');
+        const uploadPath = path.join(__dirname, `../public/uploads/inspection/temp`);
         
-        const inspectionType = req.body.inspectionType || 'sampling';
-        // 构建最终存储路径：.../uploads/inspection/检验类型/条码/
-        const uploadPath = path.join(__dirname, `../public/uploads/inspection/${inspectionType}/${folderName}`);
-        
-        // 确保目录存在
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -34,10 +26,9 @@ const storage = multer.diskStorage({
         // 获取扩展名
         const extname = file.originalname.split('.').pop();
         
-        // 使用条码作为文件名
-        const barcode = req.body.barcode || 'unknown';
-        // 文件名去除特殊字符
-        const safeFilename = barcode.replace(/[^\w\u4e00-\u9fa5]/g, '_');
+        // 临时文件名使用时间戳和随机数
+        const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, '').substring(0, 14);
+        const serialNumber = Math.floor(100000 + Math.random() * 900000);
         
         // 确保文件是图片
         const allowedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -45,12 +36,8 @@ const storage = multer.diskStorage({
             return cb(new Error('只允许上传图片文件'));
         }
         
-        // 添加时间戳和随机数，确保即使重复使用相同条码也不会覆盖
-        const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, '').substring(0, 14);
-        const serialNumber = Math.floor(100000 + Math.random() * 900000);
-        
-        // 组合最终文件名：条码_时间编码_流水号.扩展名
-        const filename = `${safeFilename}_${dateCode}_${serialNumber}.${extname}`;
+        // 组合临时文件名
+        const filename = `temp_${dateCode}_${serialNumber}.${extname}`;
         cb(null, filename);
     }
 });
@@ -77,6 +64,9 @@ const upload = multer({
 // 接收检验记录图片上传请求
 router.post('/api/v1/uploadInspectionImage', upload.single('image'), async (req, res) => {
     try {
+        console.log("请求体:", req.body);
+        console.log("条码值:", req.body.barcode);
+        
         if (!req.file) {
             return res.json({
                 code: 400,
@@ -84,10 +74,32 @@ router.post('/api/v1/uploadInspectionImage', upload.single('image'), async (req,
             });
         }
 
+        // 获取实际条码和检验类型
+        const barcode = req.body.barcode || 'unknown';
+        const folderName = barcode.replace(/[^\w\u4e00-\u9fa5]/g, '_');
         const inspectionType = req.body.inspectionType || 'sampling';
-        // 获取原始文件名（不含扩展名）作为文件夹名
-        const originalNameWithoutExt = req.file.originalname.replace(/\.[^/.]+$/, "");
-        const folderName = originalNameWithoutExt.replace(/[^\w\u4e00-\u9fa5]/g, '_');
+        
+        // 构建目标路径
+        const targetDir = path.join(__dirname, `../public/uploads/inspection/${inspectionType}/${folderName}`);
+        
+        // 确保目标目录存在
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+        
+        // 生成正确的文件名
+        const extname = req.file.originalname.split('.').pop();
+        const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, '').substring(0, 14);
+        const serialNumber = Math.floor(100000 + Math.random() * 900000);
+        const newFilename = `${folderName}_${dateCode}_${serialNumber}.${extname}`;
+        
+        // 移动文件到目标路径并重命名
+        const targetPath = path.join(targetDir, newFilename);
+        fs.renameSync(req.file.path, targetPath);
+        
+        // 更新文件路径和文件名
+        req.file.path = targetPath;
+        req.file.filename = newFilename;
         
         const fileData = {
             fileName: req.file.originalname,
@@ -96,7 +108,7 @@ router.post('/api/v1/uploadInspectionImage', upload.single('image'), async (req,
             mimeType: req.file.mimetype,
             storageType: 'LOCAL',
             storagePath: req.file.path,
-            url: `/uploads/inspection/${inspectionType}/${folderName}/${req.file.filename}`,
+            url: `/uploads/inspection/${inspectionType}/${folderName}/${newFilename}`,
             category: 'inspection',
             businessType: 'inspection',
             businessId: req.body.inspectionId, // 关联的检验记录ID

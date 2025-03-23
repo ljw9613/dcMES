@@ -399,84 +399,175 @@
       width="700px"
     >
       <div class="detail-container" v-if="currentDetail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="主条码">{{
-            currentDetail.barcode
-          }}</el-descriptions-item>
-          <el-descriptions-item label="检验结果">
-            <el-tag :type="currentDetail.isQualified ? 'success' : 'danger'">
-              {{ currentDetail.isQualified ? "合格" : "不合格" }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="物料编码">{{
-            currentDetail.materialCode
-          }}</el-descriptions-item>
-          <el-descriptions-item label="物料名称">{{
-            currentDetail.materialName
-          }}</el-descriptions-item>
+        <!-- 替换el-descriptions为el-table布局 -->
+        <h4>基础信息</h4>
+        <el-table
+          :data="[currentDetail]"
+          border
+          style="width: 100%; margin-bottom: 20px"
+          :show-header="false"
+        >
+          <el-table-column prop="barcode" label="主条码">
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">主条码</div>
+                <div class="detail-value">{{ scope.row.barcode }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="isQualified" label="检验结果">
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">检验结果</div>
+                <div class="detail-value">
+                  <el-tag :type="scope.row.isQualified ? 'success' : 'danger'">
+                    {{ scope.row.isQualified ? "合格" : "不合格" }}
+                  </el-tag>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
-          <!-- 添加照片显示区域 -->
-          <el-descriptions-item
-            label="抽检照片"
-            :span="2"
-            v-if="currentDetail.photoUrl"
-          >
-            <div class="inspection-photo">
-              <el-image
-                :src="currentDetail.photoUrl"
-                :preview-src-list="[currentDetail.photoUrl]"
-                fit="contain"
-                style="max-height: 200px; max-width: 100%"
-              >
-              </el-image>
-            </div>
-          </el-descriptions-item>
-        </el-descriptions>
+        <el-table
+          :data="[currentDetail]"
+          border
+          style="width: 100%; margin-bottom: 20px"
+          :show-header="false"
+        >
+          <el-table-column prop="materialCode" label="物料编码">
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">物料编码</div>
+                <div class="detail-value">{{ scope.row.materialCode }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="materialName" label="物料名称">
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">物料名称</div>
+                <div class="detail-value">{{ scope.row.materialName }}</div>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
-        <!-- 现有的其他详情部分 -->
+        <!-- 添加照片显示区域 -->
+        <div v-if="currentDetail.photoUrl" class="photo-section">
+          <h4>抽检照片</h4>
+          <div class="inspection-photo">
+            <el-image
+              :src="baseFileUrl + currentDetail.photoUrl"
+              :preview-src-list="[baseFileUrl + currentDetail.photoUrl]"
+              fit="contain"
+              style="max-height: 200px; max-width: 100%"
+            >
+            </el-image>
+          </div>
+        </div>
+
+        <!-- 条码验证信息 -->
         <div class="detail-section">
           <h4>条码验证信息</h4>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="彩箱条码">{{
-              currentDetail.barcodeValidation.printBarcode
-            }}</el-descriptions-item>
-            <el-descriptions-item label="彩箱条码验证">
-              <el-tag
-                :type="
-                  getValidationTagType(
-                    currentDetail.barcodeValidation.isPrintBarcodeValid
-                  )
-                "
-              >
-                {{
-                  currentDetail.barcodeValidation.isPrintBarcodeValid
-                    ? "验证通过"
-                    : "验证失败"
-                }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="黄板箱条码">{{
-              currentDetail.barcodeValidation.transformedBarcode
-            }}</el-descriptions-item>
-            <el-descriptions-item label="黄板箱条码验证">
-              <el-tag
-                :type="
-                  getValidationTagType(
-                    currentDetail.barcodeValidation.isTransformedBarcodeValid
-                  )
-                "
-              >
-                {{
-                  currentDetail.barcodeValidation.isTransformedBarcodeValid
-                    ? "验证通过"
-                    : "验证失败"
-                }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="验证时间" :span="2">
-              {{ formatDate(currentDetail.barcodeValidation.validationTime) }}
-            </el-descriptions-item>
-          </el-descriptions>
+          <el-table
+            :data="[currentDetail.barcodeValidation]"
+            border
+            style="width: 100%; margin-bottom: 20px"
+            :show-header="false"
+          >
+            <el-table-column prop="printBarcode" label="彩箱条码">
+              <template slot-scope="scope">
+                <div class="detail-row">
+                  <div class="detail-label">彩箱条码</div>
+                  <div class="detail-value">{{ scope.row.printBarcode }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="isPrintBarcodeValid" label="彩箱条码验证">
+              <template slot-scope="scope">
+                <div class="detail-row">
+                  <div class="detail-label">彩箱条码验证</div>
+                  <div class="detail-value">
+                    <el-tag
+                      :type="
+                        getValidationTagType(scope.row.isPrintBarcodeValid)
+                      "
+                    >
+                      {{
+                        scope.row.isPrintBarcodeValid ? "验证通过" : "验证失败"
+                      }}
+                    </el-tag>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <el-table
+            :data="[currentDetail.barcodeValidation]"
+            border
+            style="width: 100%; margin-bottom: 20px"
+            :show-header="false"
+          >
+            <el-table-column prop="transformedBarcode" label="黄板箱条码">
+              <template slot-scope="scope">
+                <div class="detail-row">
+                  <div class="detail-label">黄板箱条码</div>
+                  <div class="detail-value">
+                    {{ scope.row.transformedBarcode }}
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="isTransformedBarcodeValid"
+              label="黄板箱条码验证"
+            >
+              <template slot-scope="scope">
+                <div class="detail-row">
+                  <div class="detail-label">黄板箱条码验证</div>
+                  <div class="detail-value">
+                    <el-tag
+                      :type="
+                        getValidationTagType(
+                          scope.row.isTransformedBarcodeValid
+                        )
+                      "
+                    >
+                      {{
+                        scope.row.isTransformedBarcodeValid
+                          ? "验证通过"
+                          : "验证失败"
+                      }}
+                    </el-tag>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <el-table
+            :data="[
+              {
+                validationTime: currentDetail.barcodeValidation.validationTime,
+              },
+            ]"
+            border
+            style="width: 100%"
+            :show-header="false"
+          >
+            <el-table-column prop="validationTime" label="验证时间">
+              <template slot-scope="scope">
+                <div class="detail-row">
+                  <div class="detail-label">验证时间</div>
+                  <div class="detail-value">
+                    {{ formatDate(scope.row.validationTime) }}
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
       </div>
     </el-dialog>
@@ -488,7 +579,6 @@
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       :show-close="!photoUploading"
-      @close="closeCameraDialog"
       width="800px"
       class="camera-dialog"
     >
@@ -700,6 +790,8 @@ export default {
       photoUploading: false,
       photoUrl: "",
       isSubmitProcess: false, // 新增提交流程标记
+      isProcessingBarcode: false, // 添加一个标志位来防止重复调用
+      baseFileUrl: process.env.VUE_APP_UPLOADS || "",
     };
   },
   computed: {
@@ -2085,6 +2177,13 @@ export default {
         return;
       }
 
+      // 添加一个标志位来防止重复调用
+      if (this.isProcessingBarcode) {
+        return;
+      }
+
+      this.isProcessingBarcode = true;
+
       try {
         // 先检查是否已经存在抽检记录
         const existingRecord = await getData("udi_sampling_inspection_flow", {
@@ -2092,6 +2191,7 @@ export default {
             barcode: this.scanForm.barcode,
             samplingStatus: { $ne: "VOIDED" }, // 排除已作废的记录
           },
+          sort: { _id: -1 },
         });
 
         if (existingRecord.code === 200 && existingRecord.data.length > 0) {
@@ -2111,7 +2211,7 @@ export default {
             const voidResult = await updateData(
               "udi_sampling_inspection_flow",
               {
-                query: { _id: existingRecord.data[0]._id },
+                query: { barcode: this.scanForm.barcode },
                 update: {
                   samplingStatus: "VOIDED",
                   voidReason: "重新抽检",
@@ -2129,6 +2229,7 @@ export default {
             if (error === "cancel") {
               this.scanForm.barcode = "";
               this.$refs.barcodeInput.focus();
+              this.isProcessingBarcode = false;
               return;
             }
             throw error;
@@ -2187,6 +2288,9 @@ export default {
         this.$message.error("查询失败: " + error.message);
         this.scanForm.barcode = "";
         this.$refs.barcodeInput.focus();
+      } finally {
+        // 重置处理标志位
+        this.isProcessingBarcode = false;
       }
     },
     // 处理彩箱条码输入
@@ -2339,6 +2443,7 @@ export default {
       } finally {
         this.scanLoading = false;
         this.isSubmitProcess = false; // 清除提交流程标记
+        this.fetchData()
       }
     },
     // 重置扫码表单
@@ -2539,17 +2644,45 @@ export default {
     takePhoto() {
       if (!this.cameraStream) return;
 
-      // 创建canvas并截取当前视频帧
       const video = this.$refs.cameraVideo;
       const canvas = this.$refs.cameraCanvas;
+      const context = canvas.getContext("2d");
+
+      // 设置canvas尺寸与视频一致
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      const context = canvas.getContext("2d");
+      // 将视频帧绘制到canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 转换为图片数据
+      // 添加水印
+      this.addWatermark(context, canvas.width, canvas.height);
+
+      // 从canvas获取图片数据
       this.photoData = canvas.toDataURL("image/jpeg", 0.9);
+    },
+
+    // 添加水印方法
+    addWatermark(context, width, height) {
+      const currentTime = new Date().toLocaleString('zh-CN');
+      const barcodeText = this.scanForm.barcode || "";
+      
+      // 设置水印样式
+      context.font = "bold 24px Arial";
+      context.fillStyle = "rgba(255, 255, 255, 0.8)";
+      context.textAlign = "left";
+      
+      // 添加阴影使文字在任何背景上都清晰可见
+      context.shadowColor = "rgba(0, 0, 0, 0.7)";
+      context.shadowBlur = 6;
+      context.shadowOffsetX = 2;
+      context.shadowOffsetY = 2;
+      
+      // 绘制时间水印在左下角
+      context.fillText(`时间: ${currentTime}`, 20, height - 60);
+      
+      // 绘制条码水印在左下角
+      context.fillText(`条码: ${barcodeText}`, 20, height - 20);
     },
 
     // 重新拍照
@@ -2571,32 +2704,27 @@ export default {
       this.cameraDialog = false;
 
       // 如果是从提交流程打开的相机，且用户直接关闭对话框，询问是否继续提交
-      if (this.isSubmitProcess) {
-        if (!this.photoData) {
-          // 只有在真正未拍照的情况下才询问
-          this.$confirm("未拍摄照片，是否继续提交抽检记录？", "提示", {
-            confirmButtonText: "继续提交",
-            cancelButtonText: "取消",
-            type: "warning",
+      if (this.isSubmitProcess && !this.photoData) {
+        // 只有在真正未拍照的情况下才询问
+        this.$confirm("未拍摄照片，是否继续提交抽检记录？", "提示", {
+          confirmButtonText: "继续提交",
+          cancelButtonText: "取消",
+          type: "warning",
+        })
+          .then(() => {
+            // 用户选择继续提交
+            this.continueSubmitAfterPhoto(null);
           })
-            .then(() => {
-              // 用户选择继续提交
-              this.continueSubmitAfterPhoto(null);
-            })
-            .catch(() => {
-              // 用户取消提交
-              this.scanLoading = false;
-              this.isSubmitProcess = false;
-              this.$message.info("已取消提交");
-            });
-        } else {
-          // 如果已经拍照，直接继续提交流程
-          this.continueSubmitAfterPhoto(this.photoData);
-          this.photoData = null; // 清空照片数据
-        }
-      } else {
-        this.photoData = null; // 非提交流程清空照片数据
+          .catch(() => {
+            // 用户取消提交
+            this.scanLoading = false;
+            this.isSubmitProcess = false;
+            this.$message.info("已取消提交");
+          });
       }
+
+      // 清空照片数据 - 所有情况下都重置照片
+      this.photoData = null;
     },
 
     // 更新上传照片函数
@@ -2690,36 +2818,48 @@ export default {
 
     // 照片确认使用
     async confirmUsePhoto() {
-      const photoData = await this.uploadPhoto();
+      try {
+        // 上传照片
+        const photoData = await this.uploadPhoto();
 
-      // 关闭相机对话框
-      this.closeCameraDialog();
+        // 关闭相机对话框
+        this.stopCamera();
+        this.cameraDialog = false;
 
-      if (photoData) {
-        // 如果是从提交流程打开的相机，则继续提交
-        if (this.isSubmitProcess) {
-          this.continueSubmitAfterPhoto(photoData);
+        // 如果是提交流程中打开的相机，继续提交流程
+        if (this.isSubmitProcess && photoData) {
+          // 直接用上传结果继续提交流程
+          await this.continueSubmitAfterPhoto(photoData);
+        } else if (this.isSubmitProcess) {
+          // 如果没有照片数据但在提交流程中，询问用户
+          try {
+            await this.$confirm(
+              "照片上传失败，是否继续提交抽检记录？",
+              "提示",
+              {
+                confirmButtonText: "继续提交",
+                cancelButtonText: "取消",
+                type: "warning",
+              }
+            );
+            await this.continueSubmitAfterPhoto(null);
+          } catch (e) {
+            this.scanLoading = false;
+            this.isSubmitProcess = false;
+            this.$message.info("已取消提交");
+          }
         }
 
-        // 触发事件（如果有其他地方需要用到照片数据）
-        this.$emit("photo-submitted", photoData);
-      } else if (this.isSubmitProcess) {
-        // 如果上传失败但正在提交流程中，询问用户是否继续提交
-        try {
-          await this.$confirm("照片上传失败，是否继续提交抽检记录？", "提示", {
-            confirmButtonText: "继续提交",
-            cancelButtonText: "取消",
-            type: "warning",
-          });
+        // 清空照片数据
+        this.photoData = null;
+      } catch (error) {
+        console.error("照片处理失败:", error);
+        this.$message.error(`照片处理失败: ${error.message}`);
+        this.photoData = null;
 
-          // 用户选择继续提交
-          this.continueSubmitAfterPhoto(null);
-        } catch (e) {
-          // 用户取消提交
-          this.scanLoading = false;
-          this.isSubmitProcess = false;
-          this.$message.info("已取消提交");
-        }
+        // 关闭相机对话框
+        this.stopCamera();
+        this.cameraDialog = false;
       }
     },
   },
@@ -3452,5 +3592,51 @@ export default {
 .camera-error p {
   margin-bottom: 20px;
   color: #606266;
+}
+
+/* 添加这些新样式 */
+.detail-container h4 {
+  margin-top: 16px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #303133;
+  font-weight: 600;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+}
+
+.detail-label {
+  min-width: 100px;
+  font-weight: bold;
+  color: #606266;
+}
+
+.detail-value {
+  flex: 1;
+  word-break: break-all;
+}
+
+.photo-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.inspection-photo {
+  display: flex;
+  justify-content: center;
+  background-color: #f5f7fa;
+  padding: 15px;
+  border-radius: 4px;
+}
+
+.detail-section {
+  margin-top: 20px;
 }
 </style>

@@ -6,6 +6,21 @@
 
     <!-- 托盘单据输入区域 -->
     <div class="scan-input-area" v-if="!palletLoaded">
+      <!-- 已完成托盘记录 -->
+      <div v-if="completedPallets.length > 0" class="completed-pallets-container">
+        <div class="completed-pallets-header">已完成托盘</div>
+        <div class="completed-pallets-list">
+          <el-tag 
+            v-for="(pallet, index) in completedPallets" 
+            :key="index" 
+            type="success" 
+            effect="plain"
+            class="completed-pallet-tag">
+            {{ pallet.palletCode }} ({{ pallet.verifiedBarcodes }}/{{ pallet.totalBarcodes }})
+          </el-tag>
+        </div>
+      </div>
+      
       <div class="input-wrapper">
         <el-input ref="palletInput" v-model="palletCode" placeholder="请扫描托盘单据编号" class="barcode-input"
           @keyup.enter.native="handlePalletCodeInput" @focus="handleFocus">
@@ -152,9 +167,15 @@
           <el-card class="barcode-list-card">
             <div slot="header">
               <span>托盘条码列表</span>
-              <span style="float: right; color: #909399; font-size: 13px;">
-                共 {{ palletInfo.barcodes.length }} 个条码
-              </span>
+              <div style="float: right; display: flex; align-items: center;">
+                <el-radio-group v-model="barcodeFilter" size="small" style="margin-right: 15px;">
+                  <el-radio-button label="all">全部条码</el-radio-button>
+                  <el-radio-button label="unverified">待校验条码</el-radio-button>
+                </el-radio-group>
+                <span style="color: #909399; font-size: 13px;">
+                  共 {{ filteredBarcodes.length }} 个条码
+                </span>
+              </div>
             </div>
             <el-table 
               :data="paginatedBarcodes" 
@@ -194,7 +215,7 @@
                 :page-sizes="[10, 20, 50, 100]"
                 :page-size="pageSize"
                 layout="total, sizes, prev, pager, next, jumper"
-                :total="palletInfo.barcodes.length">
+                :total="filteredBarcodes.length">
               </el-pagination>
             </div>
           </el-card>
@@ -258,6 +279,12 @@ export default {
       // 分页相关
       currentPage: 1,
       pageSize: 10,
+      
+      // 条码筛选
+      barcodeFilter: 'all',
+      
+      // 已完成托盘记录
+      completedPallets: [],
     }
   },
 
@@ -270,10 +297,17 @@ export default {
       if (!this.palletInfo.totalBarcodes) return 0
       return Math.round((this.palletInfo.verifiedBarcodes / this.palletInfo.totalBarcodes) * 100)
     },
+    filteredBarcodes() {
+      if (this.barcodeFilter === 'all') {
+        return this.palletInfo.barcodes;
+      } else {
+        return this.palletInfo.barcodes.filter(item => !item.verified);
+      }
+    },
     paginatedBarcodes() {
       const start = (this.currentPage - 1) * this.pageSize;
       const end = start + this.pageSize;
-      return this.palletInfo.barcodes.slice(start, end);
+      return this.filteredBarcodes.slice(start, end);
     }
   },
 
@@ -540,7 +574,32 @@ export default {
             })
           }
 
-          if (this.scanResult.isCompleted) {
+          // 检查是否所有条码都已校验完成
+          if (this.palletInfo.verifiedBarcodes === this.palletInfo.totalBarcodes) {
+            this.$message.success('所有条码已完成校验，托盘校验完成')
+            this.showPopup = true
+            this.popupType = 'ok'
+            tone(lcywc)
+            
+            // 记录已完成的托盘
+            this.completedPallets.push({
+              palletCode: this.palletInfo.palletCode,
+              materialName: this.palletInfo.materialName,
+              totalBarcodes: this.palletInfo.totalBarcodes,
+              verifiedBarcodes: this.palletInfo.verifiedBarcodes,
+              completedTime: new Date()
+            })
+            
+            // 限制显示的托盘数量，只保留最近的10个
+            if (this.completedPallets.length > 10) {
+              this.completedPallets = this.completedPallets.slice(-10)
+            }
+            
+            // 延迟一点时间后自动重置到托盘扫描页面
+            setTimeout(() => {
+              this.resetPallet()
+            }, 1500)
+          } else if (this.scanResult.isCompleted) {
             this.$message.success('条码检查完成')
             this.showPopup = true
             this.popupType = 'ok'
@@ -856,5 +915,35 @@ export default {
   .pallet-info-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.completed-pallets-container {
+  margin-bottom: 20px;
+  text-align: left;
+  background-color: #f0f9eb;
+  border-radius: 4px;
+  padding: 10px;
+  border: 1px solid #e1f3d8;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.completed-pallets-header {
+  font-size: 14px;
+  color: #67c23a;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.completed-pallets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.completed-pallet-tag {
+  margin-right: 5px;
+  margin-bottom: 5px;
 }
 </style> 

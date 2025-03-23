@@ -1,9 +1,3 @@
-<!--
- * @Autor: Wei
- * @Date: 2020-03-07 13:25:20
- * @LastEditors: Please set LastEditors
- * @LastEditTime: 2020-06-05 15:00:28
- -->
 <template>
   <div :class="classObj" class="app-wrapper">
     <div v-if="device==='mobile'&&sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
