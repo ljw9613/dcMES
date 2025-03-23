@@ -69,6 +69,17 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/redirect',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '/redirect/:path(.*)',
+        component: () => import('@/views/redirect/index')
+      }
+    ]
+  },
 ];
 
 // 动态路由，基于用户权限动态去加载

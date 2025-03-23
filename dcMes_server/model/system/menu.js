@@ -8,9 +8,11 @@ const MenuSchema = new mongoose.Schema({
     sortNum: {type: Number, default: 0},//顺序
     path: {type: String},//路由路径
     component: {type: String},//文件路径
+    componentName: {type: String},//组件名称，用于keep-alive缓存匹配
     query: {type: String},//访问路由的默认传递参数
     type: {type: String},//类型 目录 菜单 权限
     visible: {type: Boolean, default: true},//是否可见 0显示 1隐藏
+    isCache: {type: Boolean, default: true},//是否缓存 true缓存 false不缓存
     perms: {type: String},//权限标签
     icon: {type: String},//图标
     status: {type: Boolean, default: true},//状态 1正常 0禁用

@@ -80,7 +80,8 @@ function tree2Routes(menuList) {
           path: item.path,
           meta: {
             title: item.menuName,
-            icon: item.icon
+            icon: item.icon,
+            noCache: !item.isCache
           },
           component: Layout,
           sortNum: item.sortNum,
@@ -92,9 +93,11 @@ function tree2Routes(menuList) {
           type: item.type,
           path: item.path,
           component: Layout,
+          name: item.componentName || (item.component ? item.component.split('/').pop().replace(/\.vue$/, '') : ''),
           meta: {
             title: item.menuName,
-            icon: item.icon
+            icon: item.icon,
+            noCache: !item.isCache
           },
           sortNum: item.sortNum,
           hidden:!item.visible
@@ -108,33 +111,32 @@ function tree2Routes(menuList) {
           type: item.type,
           path: item.path,
           component:(resolve) => require([`@/views${item.component}`], resolve),
-          name: item.path,
+          name: item.componentName || item.path,
           meta: {
             title: item.menuName,
-            icon: item.icon
+            icon: item.icon,
+            noCache: !item.isCache
           },
           sortNum: item.sortNum,
           children: tree2Routes(item.children).length > 0 ? tree2Routes(item.children) : [],
           hidden:!item.visible
-
         }
       } else {
           return {
           type: item.type,
           path: item.path,
           component: (resolve) => require([`@/views${item.component}`], resolve),
-          name: item.path,
+          name: item.componentName || item.path,
           meta: {
             title: item.menuName,
-            icon: item.icon
+            icon: item.icon,
+            noCache: !item.isCache
           },
           sortNum: item.sortNum,
           hidden:!item.visible
-
         }
       }
     }
-
   })
 }
 
@@ -215,6 +217,35 @@ export const loadView = (view) => {
     // 使用 import 实现生产环境的路由懒加载
     return () => import(`@/views/${view}`)
   }
+}
+
+// 将后端菜单数据转换为路由对象
+function generateRoutes(menus) {
+  return menus.map(menu => {
+    // 使用componentName作为路由名称，这是关键点
+    const name = menu.componentName || '';
+    
+    console.log('生成路由:', {
+      path: menu.path,
+      componentName: menu.componentName,
+      cache: menu.isCache
+    });
+    
+    const route = {
+      path: menu.path,
+      name: name, // 确保这里的名称与组件中定义的name一致
+      component: loadComponent(menu.component),
+      meta: {
+        title: menu.menuName,
+        icon: menu.icon,
+        noCache: !menu.isCache
+      }
+    };
+    
+    // ... 其他逻辑
+    
+    return route;
+  });
 }
 
 export default permission

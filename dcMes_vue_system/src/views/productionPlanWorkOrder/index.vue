@@ -299,6 +299,7 @@
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
+import { checkComponentName } from '@/utils/debugHelper'
 
 export default {
     name: 'ProductionOrder',
@@ -786,6 +787,9 @@ export default {
     },
     created() {
         this.fetchData();
+    },
+    mounted() {
+        checkComponentName(this)
     }
 }
 </script>

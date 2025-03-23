@@ -77,8 +77,20 @@ router.beforeEach((to, from, next) => {
       NProgress.done()
     }
   }
+  
+  // 输出路由信息，检查meta.noCache是否正确设置
+  console.log('路由跳转:', to.path, 'meta:', to.meta, 'name:', to.name)
+  
+  next()
 })
 
-router.afterEach(() => {
+router.afterEach((to) => {
+  // 完成进度条
   NProgress.done()
+  
+  // 添加页面到tagsView (如果该行代码不存在，需要添加)
+  if (to.name && to.meta && to.meta.title) {
+    store.dispatch('tagsView/addView', to)
+    console.log('添加页面到TagsView:', to.name, to.path, to.meta)
+  }
 })

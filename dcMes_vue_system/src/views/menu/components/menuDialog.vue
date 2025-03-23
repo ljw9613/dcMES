@@ -25,7 +25,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="节点标题" label-width="100px">
-          <el-input v-model="postList.menuName" placeholder="请输入节点标题"/>
+          <el-input v-model="postList.menuName" placeholder="请输入节点标题" />
         </el-form-item>
 
         <el-form-item label="上级节点" label-width="100px">
@@ -53,14 +53,14 @@
           label="路由路径"
           label-width="100px"
         >
-          <el-input v-model="postList.path" placeholder="请输入路由路径"/>
+          <el-input v-model="postList.path" placeholder="请输入路由路径" />
         </el-form-item>
         <el-form-item
           v-if="postList.type === '菜单'"
           label="文件路径"
           label-width="100px"
         >
-          <el-input v-model="postList.component" placeholder="请输入文件路径"/>
+          <el-input v-model="postList.component" placeholder="请输入文件路径" />
         </el-form-item>
         <el-form-item
           v-if="postList.type === '菜单'"
@@ -77,7 +77,7 @@
           label="权限标签"
           label-width="100px"
         >
-          <el-input v-model="postList.perms" placeholder="请输入权限标签"/>
+          <el-input v-model="postList.perms" placeholder="请输入权限标签" />
         </el-form-item>
         <el-form-item
           v-if="postList.type != '权限'"
@@ -105,6 +105,29 @@
           >
           </el-switch>
         </el-form-item>
+        <el-form-item
+          label="组件名称"
+          label-width="100px"
+          prop="componentName"
+          v-if="postList.type === '菜单'"
+        >
+          <el-input
+            v-model="postList.componentName"
+            placeholder="请输入组件名称，需与vue文件中的name属性一致"
+          ></el-input>
+        </el-form-item>
+        <el-form-item
+          label="是否缓存"
+          label-width="100px"
+          prop="isCache"
+          v-if="postList.type === '菜单'"
+        >
+          <el-radio-group v-model="postList.isCache">
+            <el-radio :label="true">是</el-radio>
+            <el-radio :label="false">否</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
         <el-form-item label="备注" label-width="100px">
           <el-input
             v-model="postList.remark"
@@ -116,9 +139,8 @@
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取消</el-button>
         <el-button type="primary" @click="add ? createData() : editData()"
-        >确定
-        </el-button
-        >
+          >确定
+        </el-button>
       </div>
     </el-dialog>
     <!-- 弹窗end -->
@@ -126,12 +148,12 @@
 </template>
 
 <script>
-import {addData, getData, updateData} from "@/api/data";
+import { addData, getData, updateData } from "@/api/data";
 import IconSelect from "@/components/IconSelect";
-import {formatMenu2Tree} from "@/utils/format2Tree";
+import { formatMenu2Tree } from "@/utils/format2Tree";
 
 export default {
-  components: {IconSelect},
+  components: { IconSelect },
   porps: ["dialogFormVisible"],
   data() {
     return {
@@ -149,18 +171,17 @@ export default {
       isShow: false,
     };
   },
-  async created() {
-  },
+  async created() {},
   methods: {
     async getSelectData() {
-      let {data: dataList} = await getData("menu", {
+      let { data: dataList } = await getData("menu", {
         query: {},
         sort: {
           sortNum: 1,
         },
       });
       // let { data: dataList } = await getData("menu", {});
-      console.log("🚀 ~ getSelectData ~ dataList:", dataList)
+      console.log("🚀 ~ getSelectData ~ dataList:", dataList);
 
       this.optionsList = formatMenu2Tree(dataList, null, []);
       console.log(" this.optionsList", this.optionsList);
@@ -243,7 +264,7 @@ export default {
       }
       delete this.postList._id;
       var data = {
-        query: {_id: this._id},
+        query: { _id: this._id },
         update: {
           ...this.postList,
         },
@@ -270,4 +291,45 @@ export default {
   },
 };
 </script>
-<style scoped></style>
+<style lang="scss" scoped>
+.app-container {
+  .el-dialog {
+    .el-dialog__body {
+      padding: 10px 20px;
+    }
+
+    .el-form {
+      .el-form-item {
+        margin-bottom: 18px;
+
+        &.is-required .el-form-item__label:before {
+          color: #f56c6c;
+        }
+      }
+
+      .el-input,
+      .el-cascader,
+      .el-radio-group {
+        width: 100%;
+      }
+
+      .el-input-number {
+        width: 120px;
+      }
+    }
+
+    .el-divider {
+      margin: 15px 0;
+    }
+
+    .dialog-footer {
+      text-align: right;
+      padding-top: 10px;
+
+      .el-button + .el-button {
+        margin-left: 10px;
+      }
+    }
+  }
+}
+</style>
