@@ -312,7 +312,7 @@ import HirInput from '@/components/hirInput/index.vue'
 import SaleOrderCustInfoDialog from './components/SaleOrderCustInfoDialog.vue'
 
 export default {
-    name: 'SaleOrder',
+    name: 'saleOrder',
     components: {
         SaleOrderExtDialog,
         HirInput,

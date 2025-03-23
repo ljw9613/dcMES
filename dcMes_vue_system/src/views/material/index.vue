@@ -407,7 +407,7 @@ import MaterialFlowChart from './MaterialFlowChart.vue'
 import { query } from "quill";
 
 export default {
-    name: 'MaterialManagement',
+    name: 'material',
     dicts: ['product_type', 'document_Status', 'kingdee_cloud_product_types','kingdee_cloud_product_attribute'],
     components: {
         MaterialFlowChart

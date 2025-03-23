@@ -261,7 +261,7 @@ import { syncPUR_PurchaseOrder, getSyncStatus } from "@/api/K3Data";
 import HirInput from '@/components/hirInput/index.vue'
 import MaterialDetail from './components/MaterialDetail.vue'
 export default {
-    name: 'PurchaseOrder',
+    name: 'purchaseOrder',
     components: {
         HirInput,
         MaterialDetail

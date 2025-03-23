@@ -214,7 +214,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { syncPRD_MO, getSyncStatus } from "@/api/K3Data";
 
 export default {
-    name: 'ProductionOrder',
+    name: 'productionManagement',
     dicts: ['product_type','document_Status','kingdee_cloud_product_types'],
     data() {
         return {

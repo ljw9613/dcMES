@@ -358,7 +358,7 @@ import { syncWarehouseEntry } from "@/api/warehouse/entry";
 import ScanDialog from "./components/ScanDialog.vue";
 
 export default {
-  name: "WarehouseEntry",
+  name: "warehouseEntry",
   components: {
     ScanDialog,
   },

@@ -747,7 +747,7 @@ import Sortable from 'sortablejs'
 import { exportBOM } from '@/api/materialProcessFlowService'
 export default {
     components: { ZrSelect, workDialog },
-    name: 'CraftManagement',
+    name: 'craft',
     dicts: ['product_type', 'craftType', 'processType', 'processStage', 'businessType', 'processStatus'],
     data() {
         return {

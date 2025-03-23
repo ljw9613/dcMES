@@ -224,7 +224,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { syncBD_STOCK, getSyncStatus } from "@/api/K3Data";
 
 export default {
-    name: 'SaleOrder',
+    name: 'stock',
     data() {
         return {
             searchForm: {
