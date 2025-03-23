@@ -4,7 +4,7 @@ const productRepairSchema = new mongoose.Schema({
   // 产品基本信息
   barcode: { type: String, required: true }, // 产品条码
   newBarcode: { type: String }, // 更换后的产品条码
-  oldBarcode:{ type: String }, // 更换前的产品条码
+  oldBarcode: { type: String }, // 更换前的产品条码
   //产品名称
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 关联物料表
   materialNumber: { type: String }, // 物料编码
@@ -51,11 +51,12 @@ const productRepairSchema = new mongoose.Schema({
 
   //核验
   verify: {
-    type: Boolean,
-    default: false,
-  }, // 核验
+    type: String,
+    enum: ["PENDING", "PASS", "FAIL"], // 待审核、已审核、已作废
+    default: "PENDING",
+  }, // 状态
   verifyTime: { type: Date }, // 核验时间
-  
+
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
