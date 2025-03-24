@@ -4,7 +4,47 @@ const wareHouseOntry = require("../model/warehouse/warehouseOntry");
 const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
 const { k3cMethod } = require("./k3cMethod");
+const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
+// 创建一个生成出库单号的辅助函数（按日期生成流水号）
+async function generateEntryNoByProductionOrder(productionOrderNo) {
+  // 获取当前日期并格式化为YYYYMMDD
+  const today = new Date();
+  const dateStr =
+    today.getFullYear() +
+    String(today.getMonth() + 1).padStart(2, "0") +
+    String(today.getDate()).padStart(2, "0");
+
+  const baseEntryNo = "SCCK-" + dateStr;
+
+  // 获取今天的开始时间（00:00:00）
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+
+  // 查询当天创建的所有出库单，按entryNo降序排列
+  const existingEntries = await wareHouseOntry
+    .find({
+      createAt: { $gte: startOfDay },
+      entryNo: { $regex: `^${baseEntryNo}-\\d+$` },
+    })
+    .sort({ entryNo: -1 })
+    .limit(1);
+
+  let sequenceNo = 1;
+  if (existingEntries.length > 0) {
+    // 从最后一个单号中提取序号并加1
+    const lastEntryNo = existingEntries[0].entryNo;
+    const matches = lastEntryNo.match(/-(\d+)$/);
+    if (matches && matches[1]) {
+      sequenceNo = parseInt(matches[1]) + 1;
+    }
+  }
+
+  // 序号格式化为3位数字（例如：001, 012, 123）
+  const formattedSequenceNo = String(sequenceNo).padStart(4, "0");
+
+  return `${baseEntryNo}-${formattedSequenceNo}`;
+}
+
 // 扫码出库（包含自动创建出库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
   try {
@@ -27,7 +67,6 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         saleOrderNo: entryInfo.saleOrderNo,
       });
     }
-    console.log(pallet, "pallet");
 
     if (!pallet) {
       return res.status(200).json({
@@ -60,17 +99,67 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    //判断托盘单据是否处于抽检状态
+    if (pallet.inspectionStatus === "INSPECTING") {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据处于抽检状态",
+      });
+    }
+
+    //判断托盘单据里面的条码是否有存在巡检不合格的数据
+    const inspectionResult = pallet.palletBarcodes.some(
+      (item) => item.inspectionResult === "FAIL"
+    );
+    if (inspectionResult) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在巡检不合格的数据",
+      });
+    }
+
+    //判断托盘单据里面的条码是否全部完成状态
+    let barcodeArray = [];
+    pallet.palletBarcodes.forEach((item) => {
+      barcodeArray.push(item.barcode);
+    });
+    const barcodeRecords = await MaterialProcessFlow.find({
+      barcode: { $in: barcodeArray },
+    })
+      .select("barcode status")
+      .lean();
+
+    //判断barcodeRecords是否全部完成状态
+    const isAllCompleted = barcodeRecords.every(
+      (item) => item.status === "COMPLETED"
+    );
+    if (!isAllCompleted) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在未完成状态的条码",
+      });
+    }
+
+    //判断托盘单据的销售单号和出库单销售单号是否一致
+    if (entryInfo.saleOrderNo && pallet.saleOrderNo !== entryInfo.saleOrderNo) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据销售单号和出库单销售单号不一致",
+      });
+    }
+
     // start 根据pallet.saleOrderNo(销售单号)去wareHouseOntry表查询是否有值
-    console.log("pallet.saleOrderNo", pallet);
-    //  先判断是否应出库数量和已出库数量相等;
+    console.log("pallet.saleOrderNo", pallet.saleOrderNo, pallet.saleOrderId);
+    //判断当前托盘和
+
+    //先判断是否应出库数量和已出库数量相等;
     //不相等则显示已存在未完成出库单号:xxxxxx
     let entry1 = await wareHouseOntry.findOne({
       saleOrderId: pallet.saleOrderId,
-      outNumber: {
-        $ne: pallet.outboundQuantity,
-      },
+      status: { $ne: "COMPLETED" },
     });
-    if (entry1 && entry1.entryNo != entryInfo.entryNo) {
+    if (entry1 && entry1.entryNo !== entryInfo.entryNo) {
+      //判断是新建单据还是继续入库
       return res.status(200).json({
         code: 404,
         message: "已存在未完成出库单号:" + entry1.entryNo,
@@ -121,13 +210,18 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             });
           }
 
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(
+            order.FBillNo
+          );
+
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: entryInfo.outboundQuantity, //应出库数量
             outNumber: sum, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,
@@ -150,13 +244,18 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         } else {
           //小于应出库数量则返回,该销售单号销售数量为x,已完成出库数量为x,剩余出库数量为x;  saleOrder.FQty - sum = 剩余出库数量
           console.log("小于应出库数量");
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(
+            order.FBillNo
+          );
+
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: saleOrder.FQty - sum, //应出库数量
             outNumber: sum, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,
@@ -193,13 +292,18 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
               message: "生产订单不存在",
             });
           }
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(
+            order.FBillNo
+          );
+
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: entryInfo.outboundQuantity, //应出库数量
             outNumber: 0, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,
@@ -223,13 +327,18 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         } else {
           //等于0则返回,该销售单号销售数量为x,剩余出库数量为x;
           console.log("等于0则返回,该销售单号销售数量为x,剩余出库数量为x");
+          // 使用辅助函数生成单据编号
+          const newEntryNo = await generateEntryNoByProductionOrder(
+            order.FBillNo
+          );
+
           let entry = await wareHouseOntry.create({
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: saleOrder.FQty, //应出库数量 == 销售数量
             outNumber: 0, //已出库数量
             saleNumber: saleOrder.FQty, //销售数量
-            entryNo: "SCCK-" + order.FBillNo,
+            entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
             saleOrderId: saleOrder._id,
             saleOrderNo: order.FSaleOrderNo,

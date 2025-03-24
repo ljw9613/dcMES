@@ -5,6 +5,7 @@ const ProductLine = require("../model/project/productionLine");
 const materialProcessFlowService = require("./materialProcessFlowService");
 const MaterialPalletizingUnbindLog = require("../model/project/materialPalletizingUnbindLog");
 const WarehouseEntry = require("../model/warehouse/warehouseEntry");
+const mongoose = require('mongoose');
 
 class MaterialPalletizingService {
   /**
@@ -46,11 +47,6 @@ class MaterialPalletizingService {
         throw new Error("托盘数量不能小于等于0");
       }
 
-      // //校验托盘数量是否大于工单数量
-      // if (totalQuantity > productionPlan.planProductionQuantity) {
-      //   throw new Error("托盘数量不能大于工单数量");
-      // }
-
       if (!productionPlan) {
         throw new Error("未找到对应的产线计划");
       }
@@ -59,14 +55,17 @@ class MaterialPalletizingService {
       let pallet = await MaterialPalletizing.findOne({
         productLineId: lineId,
         materialId: materialId,
-        productionPlanWorkOrderId: productionPlan._id,
+        saleOrderId: productionPlan.saleOrderId, // 按销售订单ID查询
         status: "STACKING",
       });
 
-      // // 如果找到未完成的托盘，检查是否属于同一工单
-      // if (pallet && pallet.productionPlanWorkOrderId.toString() !== productionPlan._id.toString()) {
-      //   throw new Error("当前有未完成的托盘属于其他工单，请先完成该托盘");
-      // }
+      // 计算当前销售订单下所有托盘的条码总数
+      const existingPallets = await MaterialPalletizing.find({
+        saleOrderId: productionPlan.saleOrderId,
+        materialId: materialId
+      });
+      
+      const totalExistingBarcodes = existingPallets.reduce((sum, p) => sum + p.barcodeCount, 0);
 
       // 如果不存在托盘，则创建新的托盘
       if (!pallet) {
@@ -74,24 +73,39 @@ class MaterialPalletizingService {
 
         if (
           typeof totalQuantity === "number" &&
-          typeof productionPlan.planProductionQuantity === "number" &&
-          typeof productionPlan.outputQuantity === "number"
+          typeof productionPlan.saleOrderQuantity === "number"
         ) {
+          // 使用销售订单数量减去已有的所有托盘中的条码总数
           if (
             totalQuantity >
-            productionPlan.planProductionQuantity -
-              productionPlan.outputQuantity
+            productionPlan.saleOrderQuantity - totalExistingBarcodes
           ) {
             totalQuantity =
-              productionPlan.planProductionQuantity -
-              productionPlan.outputQuantity;
+              productionPlan.saleOrderQuantity - totalExistingBarcodes;
+              
+            if (totalQuantity <= 0) {
+              throw new Error("销售订单数量已达到上限，无法创建新托盘");
+            }
           }
         }
 
+        // 检查是否是尾数托盘（创建的托盘数量加上已有数量是否达到销售订单数量）
+        const isLastPallet = totalQuantity + totalExistingBarcodes >= productionPlan.saleOrderQuantity;
+
+        // 创建托盘时记录工单信息数组，以支持多工单
         pallet = new MaterialPalletizing({
           palletCode,
           saleOrderId: productionPlan.saleOrderId,
           saleOrderNo: productionPlan.saleOrderNo,
+          // 保存多个工单信息的数组
+          workOrders: [{
+            productionOrderId: productionPlan.productionOrderId,
+            productionOrderNo: productionPlan.productionOrderNo,
+            workOrderNo: productionPlan.workOrderNo,
+            productionPlanWorkOrderId: productionPlan._id,
+            quantity: 0 // 初始数量为0，后续会累加
+          }],
+          // 仍然保留原字段，保持向后兼容
           productionOrderId: productionPlan.productionOrderId,
           productionOrderNo: productionPlan.productionOrderNo,
           workOrderNo: productionPlan.workOrderNo,
@@ -109,9 +123,53 @@ class MaterialPalletizingService {
           barcodeCount: 0,
           boxCount: 0,
           totalQuantity,
+          isLastPallet, // 添加尾数托盘标识
           createAt: new Date(),
           updateAt: new Date(),
         });
+      } else {
+        // 检查该工单是否已在托盘的工单列表中
+        if (!pallet.workOrders) {
+          // 如果之前的托盘没有workOrders字段，初始化它
+          pallet.workOrders = [{
+            productionOrderId: productionPlan.productionOrderId,
+            productionOrderNo: productionPlan.productionOrderNo,
+            workOrderNo: productionPlan.workOrderNo,
+            productionPlanWorkOrderId: productionPlan._id,
+            quantity: 0
+          }];
+        } else {
+          // 检查当前工单是否已存在于工单列表中
+          const existingWorkOrder = pallet.workOrders.find(
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === productionPlan._id.toString()
+          );
+          
+          if (!existingWorkOrder) {
+            // 如果不存在，添加新工单信息
+            pallet.workOrders.push({
+              productionOrderId: productionPlan.productionOrderId,
+              productionOrderNo: productionPlan.productionOrderNo,
+              workOrderNo: productionPlan.workOrderNo,
+              productionPlanWorkOrderId: productionPlan._id,
+              quantity: 0
+            });
+          }
+        }
+        
+        // 验证当前托盘中添加新条码是否会超出销售订单数量
+        if (pallet.barcodeCount + 1 > pallet.totalQuantity) {
+          // 根据销售订单剩余数量调整托盘总数量
+          const remainingQuantity = productionPlan.saleOrderQuantity - (totalExistingBarcodes - pallet.barcodeCount);
+          if (remainingQuantity > pallet.totalQuantity) {
+            pallet.totalQuantity = remainingQuantity;
+            
+            // 更新是否为尾数托盘的标识
+            pallet.isLastPallet = (pallet.barcodeCount + 1 + (totalExistingBarcodes - pallet.barcodeCount)) >= productionPlan.saleOrderQuantity;
+          } else {
+            throw new Error("托盘条码数量已达到上限，请创建新托盘");
+          }
+        }
       }
 
       // 检查主条码是否重复
@@ -137,7 +195,20 @@ class MaterialPalletizingService {
         barcode: mainBarcode,
         barcodeType: "MAIN",
         scanTime: new Date(),
+        // 记录该条码属于哪个工单
+        productionPlanWorkOrderId: productionPlan._id,
+        workOrderNo: productionPlan.workOrderNo
       };
+
+      // 更新对应工单的数量
+      const workOrderIndex = pallet.workOrders.findIndex(
+        wo => wo.productionPlanWorkOrderId && 
+             wo.productionPlanWorkOrderId.toString() === productionPlan._id.toString()
+      );
+      
+      if (workOrderIndex !== -1) {
+        pallet.workOrders[workOrderIndex].quantity += 1;
+      }
 
       if (boxBarcode) {
         // 如果有箱条码，查找并更新boxItems
@@ -174,6 +245,8 @@ class MaterialPalletizingService {
             barcode: mainBarcode,
             barcodeType: "MAIN",
             scanTime: new Date(),
+            productionPlanWorkOrderId: productionPlan._id,
+            workOrderNo: productionPlan.workOrderNo
           };
 
           boxItem.boxBarcodes.push(boxPalletBarcode);
@@ -192,6 +265,8 @@ class MaterialPalletizingService {
             barcode: mainBarcode,
             barcodeType: "MAIN",
             scanTime: new Date(),
+            productionPlanWorkOrderId: productionPlan._id,
+            workOrderNo: productionPlan.workOrderNo
           };
 
           // 如果没超出，创建新的boxItem
@@ -215,6 +290,12 @@ class MaterialPalletizingService {
       // 检查是否达到总数量要求
       if (pallet.barcodeCount === pallet.totalQuantity) {
         pallet.status = "STACKED";
+      }
+      
+      // 检查添加条码后是否成为尾数托盘
+      if (!pallet.isLastPallet) {
+        const totalWithCurrent = totalExistingBarcodes - pallet.barcodeCount + pallet.palletBarcodes.length;
+        pallet.isLastPallet = totalWithCurrent >= productionPlan.saleOrderQuantity;
       }
 
       //对应主条码的工序完成触发
@@ -320,6 +401,19 @@ class MaterialPalletizingService {
           palletCode,
           boxItem.boxBarcodes.map((bb) => bb.barcode)
         );
+
+        // 找到条码对应的工单记录并减少计数
+        const palletBarcode = pallet.palletBarcodes.find(pb => pb.barcode === barcode);
+        if (palletBarcode && palletBarcode.productionPlanWorkOrderId && pallet.workOrders) {
+          const workOrderIndex = pallet.workOrders.findIndex(
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === palletBarcode.productionPlanWorkOrderId.toString()
+          );
+          
+          if (workOrderIndex !== -1 && pallet.workOrders[workOrderIndex].quantity > 0) {
+            pallet.workOrders[workOrderIndex].quantity -= 1;
+          }
+        }
       } else {
         // 检查条码是否在箱内
         const isInBox = pallet.boxItems.some((item) =>
@@ -549,22 +643,32 @@ class MaterialPalletizingService {
       const splitCount = await this.getSplitCount(originalPalletCode);
       const newPalletCode = `${originalPalletCode}-${splitCount + 1}`;
 
-      // 4. 创建新托盘对象（复制原托盘的基本信息）
+      // 4. 创建新托盘对象时包含工单信息
       const newPallet = {
         ...originalPallet,
-        _id: undefined, // 移除ID，让MongoDB自动生成新ID
+        _id: undefined,
         palletCode: newPalletCode,
         palletBarcodes: [],
         boxItems: [],
         barcodeCount: 0,
         boxCount: 0,
-        totalQuantity: barcodes.length, // 总数量直接等于拆分条码数量
-        status: "STACKED", // 初始状态为组托完成
+        totalQuantity: barcodes.length,
+        status: "STACKED",
         createAt: new Date(),
         updateAt: new Date(),
         createBy: userId,
         updateBy: userId,
-        splitFrom: originalPalletCode, // 记录从哪个托盘拆分出来的
+        splitFrom: originalPalletCode,
+        // 复制工单数组但重置数量
+        workOrders: originalPallet.workOrders ? 
+          originalPallet.workOrders.map(wo => ({...wo, quantity: 0})) :
+          [{
+            productionOrderId: originalPallet.productionOrderId,
+            productionOrderNo: originalPallet.productionOrderNo,
+            workOrderNo: originalPallet.workOrderNo,
+            productionPlanWorkOrderId: originalPallet.productionPlanWorkOrderId,
+            quantity: 0
+          }]
       };
 
       // 5. 处理要移动的条码
@@ -651,9 +755,26 @@ class MaterialPalletizingService {
         }
       }
 
-      // 7. 将所有移动的条码加入到新托盘
-      newPallet.palletBarcodes = barcodesToMove;
-      newPallet.barcodeCount = barcodesToMove.length;
+      // 7. 将所有移动的条码加入到新托盘，并更新工单数量
+      newPallet.palletBarcodes = barcodesToMove; // 将收集的条码添加到新托盘
+
+      for (const barcode of barcodes) {
+        const originalBarcode = originalPallet.palletBarcodes.find(pb => pb.barcode === barcode);
+        if (originalBarcode && originalBarcode.productionPlanWorkOrderId) {
+          // 找到对应的工单并增加数量
+          const workOrderIndex = newPallet.workOrders.findIndex(
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === originalBarcode.productionPlanWorkOrderId.toString()
+          );
+          
+          if (workOrderIndex !== -1) {
+            newPallet.workOrders[workOrderIndex].quantity += 1;
+          }
+        }
+      }
+
+      // 更新新托盘的条码计数和箱子计数
+      newPallet.barcodeCount = newPallet.palletBarcodes.length;
       newPallet.boxCount = newPallet.boxItems.length;
 
       // 8. 创建新托盘记录
@@ -674,85 +795,45 @@ class MaterialPalletizingService {
         }
       );
 
-      // 10. 更新原托盘的条码数量
+      // 10. 获取更新后的原托盘数据
       const updatedOriginalPallet = await MaterialPalletizing.findOne({
-        palletCode: originalPalletCode,
+        palletCode: originalPalletCode
       });
-      updatedOriginalPallet.barcodeCount =
-        updatedOriginalPallet.palletBarcodes.length;
 
-      // 移除空箱
-      updatedOriginalPallet.boxItems = updatedOriginalPallet.boxItems.filter(
-        (box) => {
-          if (!box.boxBarcodes || box.boxBarcodes.length === 0) {
-            return false;
+      // 11. 更新原托盘中各工单的数量
+      if (updatedOriginalPallet && updatedOriginalPallet.workOrders && updatedOriginalPallet.workOrders.length > 0) {
+        // 重置所有工单数量
+        updatedOriginalPallet.workOrders.forEach(wo => {
+          wo.quantity = 0;
+        });
+        
+        // 根据剩余条码重新计算各工单数量
+        updatedOriginalPallet.palletBarcodes.forEach(pb => {
+          if (pb.productionPlanWorkOrderId) {
+            const workOrderIndex = updatedOriginalPallet.workOrders.findIndex(
+              wo => wo.productionPlanWorkOrderId && 
+                   wo.productionPlanWorkOrderId.toString() === pb.productionPlanWorkOrderId.toString()
+            );
+            
+            if (workOrderIndex !== -1) {
+              updatedOriginalPallet.workOrders[workOrderIndex].quantity += 1;
+            }
           }
-          // 更新箱中的条码数量
-          box.quantity = box.boxBarcodes.length;
-          return true;
-        }
-      );
-
-      updatedOriginalPallet.boxCount = updatedOriginalPallet.boxItems.length;
-
-      // 减少原托盘的总数量(totalQuantity)，减少的数量等于拆分出去的条码数量
-      updatedOriginalPallet.totalQuantity -= barcodes.length;
-
-      // 根据剩余条码数量与更新后的总数量比较，确定组托状态
-      if (
-        updatedOriginalPallet.barcodeCount ===
-        updatedOriginalPallet.totalQuantity
-      ) {
-        updatedOriginalPallet.status = "STACKED"; // 组托完成
-      } else {
-        updatedOriginalPallet.status = "STACKING"; // 组托中
+        });
+        
+        // 更新原托盘的条码计数
+        updatedOriginalPallet.barcodeCount = updatedOriginalPallet.palletBarcodes.length;
+        
+        // 保存更新后的原托盘
+        await updatedOriginalPallet.save();
       }
 
-      await updatedOriginalPallet.save();
-
-      // 11. 处理入库单中的关联关系
+      // 12. 处理入库单中的关联关系
       await this.updateWarehouseEntryAfterSplit(
         originalPalletCode,
         newPalletCode,
         barcodes
       );
-
-      // 12. 处理工单产出量
-      // 在拆分托盘的情况下，不需要减少总产出量，因为条码只是从一个托盘移动到另一个
-      // 但由于系统可能是通过托盘数量来跟踪产出量，我们需要更新工单记录
-      // 对于原托盘，减去移出的条码数量
-      // if (originalPallet.productionPlanWorkOrderId) {
-      //   await materialProcessFlowService.updateWorkOrderQuantity(
-      //     originalPallet.productionPlanWorkOrderId.toString(),
-      //     "output",
-      //     -barcodes.length // 从原托盘中减去的数量
-      //   );
-      // }
-
-      // // 对于新托盘，添加新增的条码数量
-      // if (newPallet.productionPlanWorkOrderId) {
-      //   await materialProcessFlowService.updateWorkOrderQuantity(
-      //     newPallet.productionPlanWorkOrderId.toString(),
-      //     "output",
-      //     barcodes.length // 添加到新托盘的数量
-      //   );
-      // }
-
-      // 13. 创建拆分日志记录
-      // await MaterialPalletizingUnbindLog.create({
-      //   palletCode: originalPalletCode,
-      //   unbindType: "SPLIT",
-      //   unbindBarcode: newPalletCode,
-      //   originalData: originalPallet,
-      //   affectedBarcodes: barcodes.map(barcode => ({
-      //     barcode,
-      //     barcodeType: "MAIN",
-      //     newPalletCode
-      //   })),
-      //   reason: "托盘拆分",
-      //   createBy: userId,
-      //   createAt: new Date()
-      // });
 
       return createdPallet;
     } catch (error) {

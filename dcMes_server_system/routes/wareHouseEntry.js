@@ -3,6 +3,7 @@ const router = express.Router();
 const WarehouseEntry = require("../model/warehouse/warehouseEntry");
 const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
+const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const { k3cMethod } = require("./k3cMethod");
 const K3Stock = require("../model/k3/k3_BD_STOCK");
 // 扫码入库（包含自动创建入库单的逻辑）
@@ -27,6 +28,46 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       });
     }
 
+    //判断托盘单据是否处于抽检状态
+    if (pallet.inspectionStatus === "INSPECTING") {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据处于抽检状态",
+      });
+    }
+
+    //判断托盘单据里面的条码是否有存在巡检不合格的数据
+    const inspectionResult = pallet.palletBarcodes.some(
+      (item) => item.inspectionResult === "FAIL"
+    );
+    if (inspectionResult) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在巡检不合格的数据",
+      });
+    }
+    //判断托盘单据里面的条码是否全部完成状态
+    let barcodeArray = [];
+    pallet.palletBarcodes.forEach((item) => {
+      barcodeArray.push(item.barcode);
+    });
+    const barcodeRecords = await MaterialProcessFlow.find({
+      barcode: { $in: barcodeArray },
+    })
+      .select("barcode status")
+      .lean();
+
+    //判断barcodeRecords是否全部完成状态
+    const isAllCompleted = barcodeRecords.every(
+      (item) => item.status === "COMPLETED"
+    );
+    if (!isAllCompleted) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据存在未完成状态的条码",
+      });
+    }
+    
     // 2. 获取或创建入库单
     let entry = await WarehouseEntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
@@ -69,7 +110,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         materialCode: pallet.materialCode,
         materialName: pallet.materialName,
         materialSpec: pallet.materialSpec,
-        plannedQuantity:order.FQty?order.FQty:0,
+        plannedQuantity: order.FQty ? order.FQty : 0,
         unit: order.FUnitId,
         workShop: order.FWorkShopID_FName,
         productType: order.FProductType,

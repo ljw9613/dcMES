@@ -28,8 +28,10 @@ module.exports = {
 
   // publicPath: "/dcMes/",
   // outputDir: "../dcMes_server/admin",
-  publicPath: "/dcMesManage/",
-  outputDir: "../dcMes_server/adminManage",
+  // publicPath: "/dcMesManage/",
+  // outputDir: "../dcMes_server/adminManage",
+  publicPath: "/dcMesPzManage/",
+  outputDir: "../dcMes_server/adminPzManage",
   // publicPath: "/dcMesCs/",
   // outputDir: "../dcMes_server/adminCs",
   // publicPath: "/dcMesVN/",

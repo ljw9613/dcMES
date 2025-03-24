@@ -3,8 +3,16 @@ const express = require("express");
 const router = express.Router();
 const MaterialProcessFlowService = require("../services/materialProcessFlowService");
 const ProcessMaterial = require("../model/project/processMaterials");
+const processStep = require("../model/project/processStep");
 const barcodeRule = require("../model/project/barcodeRule");
 const productBarcodeRule = require("../model/project/productBarcodeRule");
+const apiLogger = require("../middleware/apiLogger");
+const MaterialProcessFlow = require("../model/project/materialProcessFlow");
+const Machine = require("../model/project/machine");
+const InspectionLastData = require("../model/project/InspectionLastData");
+const productRepair = require("../model/project/productRepair");
+// 使用API日志中间件，指定服务名称
+router.use(apiLogger("materialProcessFlowService"));
 
 // 创建流程记录
 router.post("/api/v1/create-flow", async (req, res) => {
@@ -32,7 +40,8 @@ router.post("/api/v1/create-flow", async (req, res) => {
       data: flowRecord,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(200).json({
+      code: 500,
       success: false,
       message: error.message,
     });
@@ -153,7 +162,8 @@ router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
   try {
     console.log("[API] 自动修复主条码中的异常子条码数据 - 请求参数:", req.body);
     const { barcode } = req.body;
-    const result = await MaterialProcessFlowService.autoFixInconsistentProcessNodes(barcode);
+    const result =
+      await MaterialProcessFlowService.autoFixInconsistentProcessNodes(barcode);
     res.json({
       code: 200,
       success: true,
@@ -171,7 +181,10 @@ router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
 // 获取物料相关的所有工序
 router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {
   try {
-    console.log("[API] 获取物料相关的所有工序 - 请求参数:", { params: req.params, query: req.query });
+    console.log("[API] 获取物料相关的所有工序 - 请求参数:", {
+      params: req.params,
+      query: req.query,
+    });
     const { materialId } = req.params;
 
     if (!materialId) {
@@ -673,13 +686,13 @@ router.post("/api/v1/batch-update-related-bills", async (req, res) => {
       code: 200,
       success: true,
       message: "批量更新关联单据成功",
-      data: result
+      data: result,
     });
   } catch (error) {
     res.status(200).json({
       code: 500,
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 });
@@ -693,13 +706,13 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
       code: 200,
       success: true,
       data: result,
-      message: "验证完成"
+      message: "验证完成",
     });
   } catch (error) {
     res.status(200).json({
       code: 500,
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 });
@@ -707,29 +720,190 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
 // 检查条码节点完成情况
 router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
   try {
-    console.log("[API] 检查条码节点完成情况 - 请求参数:", { params: req.params, query: req.query });
+    console.log("[API] 检查条码节点完成情况 - 请求参数:", {
+      params: req.params,
+      query: req.query,
+    });
     const { barcode } = req.params;
-    
+
     if (!barcode) {
       return res.status(200).json({
         code: 400,
         success: false,
-        message: "条码参数不能为空"
+        message: "条码参数不能为空",
       });
     }
 
-    const result = await MaterialProcessFlowService.checkBarcodeCompletion(barcode);
-    
+    const result = await MaterialProcessFlowService.checkBarcodeCompletion(
+      barcode
+    );
+
     res.json({
       code: 200,
       success: true,
-      data: result
+      data: result,
     });
   } catch (error) {
     res.status(200).json({
       code: 500,
       success: false,
-      message: error.message
+      message: error.message,
+    });
+  }
+});
+
+// 设备产品扫码前置校验
+router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
+  try {
+    console.log("[API] 设备产品扫码前置校验 - 请求参数:", req.body);
+    const { barcode, machineIp } = req.body;
+
+    // 参数验证
+    if (!barcode || !machineIp) {
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "缺少必要参数",
+      });
+    }
+
+    // 获取流程记录
+    const flowRecord = await MaterialProcessFlow.findOne({ barcode });
+
+    if (!flowRecord) {
+      return res.status(200).json({
+        code: 203,
+        success: false,
+        message: "未找到该条码对应的流程记录",
+      });
+    }
+
+    // 根据机器IP获取当前工序节点
+    // 这里假设已有映射关系，实际应根据系统设计调整
+    const machine = await Machine.findOne({ machineIp: machineIp });
+    if (!machine) {
+      return res.status(200).json({
+        code: 203,
+        success: false,
+        message: "未找到该机器IP对应的设备信息",
+      });
+    }
+
+    // 获取当前机器对应的工序节点
+    const processStepId = machine.processStepId;
+    if (!processStepId) {
+      return res.status(200).json({
+        code: 203,
+        success: false,
+        message: "该设备未关联工序信息",
+      });
+    }
+
+    let processStepInfo = await processStep.findOne({
+      _id: machine.processStepId,
+    });
+    console.log("processStepId===", processStepId);
+
+    // 在流程节点中查找当前工序对应的节点
+    const processNode = flowRecord.processNodes.find(
+      (node) =>
+        node.processStepId &&
+        node.processStepId.toString() === processStepId.toString() &&
+        node.nodeType === "PROCESS_STEP"
+    );
+
+    console.log("processNode===", processNode);
+
+    if (!processNode) {
+      return res.status(200).json({
+        code: 203,
+        success: false,
+        message: "流程中不包含该工序节点",
+      });
+    }
+
+    if (machine.isNeedMaintain) {
+      // 检查工序是否存在不合格的记录
+      const inspectionRecord = await InspectionLastData.findOne({
+        scanCode: barcode,
+        machineIp: processStepId,
+        error: true, // 假设"不合格"是表示检测失败的值
+      }).sort({ createTime: -1 }); // 获取最新的记录
+
+      if (inspectionRecord) {
+        //查询条码是否存在维修记录
+        const productRepairinfo = await productRepair.findOne({
+          barcode: barcode,
+          status: "PENDING_REVIEW",
+        });
+
+        if (!productRepairinfo) {
+          return res.status(200).json({
+            code: 201,
+            success: false,
+            message: `该条码在当前工序有不合格的检测记录，检测时间: ${new Date(
+              inspectionRecord.createTime
+            ).toLocaleString()}`,
+          });
+        }
+      }
+    }
+
+    // 验证工序节点状态
+    if (processNode.status == "COMPLETED") {
+      return res.status(200).json({
+        code: 204,
+        success: false,
+        message: "该主物料条码对应工序节点已完成或处于异常状态",
+      });
+    }
+
+    // 检查前置工序完成状态
+    const checkResult = MaterialProcessFlowService.checkPreviousProcessSteps(
+      flowRecord.processNodes,
+      processNode
+    );
+
+    if (!checkResult.isValid) {
+      return res.status(200).json({
+        code: 203,
+        success: false,
+        message: "前置工序未完成",
+        data: {
+          matchProcess: processStepInfo,
+          matchBindRecord: flowRecord,
+        },
+      });
+    }
+
+    res.json({
+      code: 200,
+      success: true,
+      message: "前置工序校验通过",
+      data: {
+        matchProcess: processStepInfo,
+        matchBindRecord: flowRecord,
+      },
+      // data: {
+      //   flowRecord: {
+      //     id: flowRecord._id,
+      //     barcode: flowRecord.barcode,
+      //     materialCode: flowRecord.materialCode,
+      //   },
+      //   processNode: {
+      //     id: processNode._id,
+      //     processStepName: processNode.processStepId?.name,
+      //     processStepCode: processNode.processStepId?.code,
+      //   },
+      //   checkResult,
+      // },
+    });
+  } catch (error) {
+    console.error("设备产品扫码前置校验失败:", error);
+    res.status(200).json({
+      code: 203,
+      success: false,
+      message: error.message,
     });
   }
 });

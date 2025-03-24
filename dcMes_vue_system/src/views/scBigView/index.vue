@@ -159,23 +159,72 @@
         <div class="divider"></div>
       </div>
       
-      <!-- 添加一个紧凑的小时产能概览 -->
+      <!-- 优化小时产能概览区域 -->
       <div class="hourly-overview" v-if="currentWorkOrder">
         <div class="overview-chart-container">
           <div class="overview-header">
-            <div class="overview-title">工单小时产能</div>
-            <div class="chart-type-selector">
-              <span 
-                :class="{'active': chartType === 'bar'}" 
-                @click="switchChartType('bar')"
-              >柱状图</span>
-              <span 
-                :class="{'active': chartType === 'line'}" 
-                @click="switchChartType('line')"
-              >折线图</span>
+            <div class="overview-title">
+              <i class="el-icon-data-analysis"></i> 工单小时产能
+            </div>
+            <div class="header-actions">
+              <div class="chart-type-selector">
+                <span 
+                  :class="{'active': chartType === 'bar'}" 
+                  @click="switchChartType('bar')"
+                >柱状图</span>
+                <span 
+                  :class="{'active': chartType === 'line'}" 
+                  @click="switchChartType('line')"
+                >折线图</span>
+              </div>
+              <div class="settings-button" @click="showTargetSettingDialog">
+                <i class="el-icon-setting"></i>
+              </div>
             </div>
           </div>
+          
+          <div class="hourly-stats">
+            <div class="hourly-stat-item">
+              <div class="stat-title">当前小时产能</div>
+              <div class="stat-value highlight-number">{{ getCurrentHourOutput() }}</div>
+              <div class="stat-label">件</div>
+            </div>
+            <div class="hourly-stat-item">
+              <div class="stat-title">最高小时产能</div>
+              <div class="stat-value highlight-number">{{ getMaxHourlyOutput() }}</div>
+              <div class="stat-label">件</div>
+            </div>
+            <div class="hourly-stat-item">
+              <div class="stat-title">今日总产能</div>
+              <div class="stat-value highlight-number">{{ getTotalDailyOutput() }}</div>
+              <div class="stat-label">件</div>
+            </div>
+          </div>
+          
           <div id="workOrderHourlyChart" class="overview-chart"></div>
+          
+          <div class="chart-legend">
+            <div class="legend-item">
+              <div class="legend-color current-hour"></div>
+              <span>当前小时</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color peak-hour"></div>
+              <span>峰值小时</span>
+            </div>
+            <div class="legend-item" v-if="hasHourlyTarget">
+              <div class="legend-color target-line"></div>
+              <span>预估产能</span>
+            </div>
+          </div>
+
+          <!-- 新增：效率指标 -->
+          <div class="efficiency-indicator" v-if="hasHourlyTarget">
+            <div class="efficiency-label">产能效率:</div>
+            <div class="efficiency-value" :class="getEfficiencyClass()">
+              {{ calculateEfficiency() }}%
+            </div>
+          </div>
         </div>
       </div>
 
@@ -264,6 +313,59 @@
         ></span>
       </div>
     </div>
+
+    <!-- 新增：预估产能设置弹窗 -->
+    <el-dialog
+      title="设置预估小时产能"
+      :visible.sync="targetSettingVisible"
+      width="30%"
+      custom-class="dark-dialog"
+    >
+      <div class="target-setting-form">
+        <div class="form-description">
+          设置工单的预估小时产能，系统将根据实际产能与预估产能进行对比分析。
+        </div>
+        
+        <div class="target-input-group">
+          <span class="input-label">预估小时产能:</span>
+          <el-input-number
+            v-model="hourlyTargetInput"
+            :min="1"
+            :max="9999"
+            size="medium"
+            controls-position="right"
+          ></el-input-number>
+          <span class="input-unit">件/小时</span>
+        </div>
+        
+        <!-- 新增参观模式设置 -->
+        <div class="demo-mode-setting">
+          <el-switch
+            v-model="demoModeEnabled"
+            active-color="#13ce66"
+            inactive-color="#ff4949"
+            active-text="启用参观模式"
+          >
+          </el-switch>
+          <div class="demo-mode-hint" v-if="demoModeEnabled">
+            <i class="el-icon-info"></i>
+            参观模式下，产能数据将被优化显示，确保达到或超过预估产能。
+          </div>
+        </div>
+        
+        <div class="current-setting" v-if="hourlyTarget > 0">
+          当前设置: {{ hourlyTarget }} 件/小时
+          <span class="demo-tag" v-if="isDemoMode">
+            <i class="el-icon-view"></i> 参观模式
+          </span>
+        </div>
+      </div>
+      
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="targetSettingVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveHourlyTarget">确定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
   
@@ -293,6 +395,11 @@ export default {
       processHourlyOutput: {},  // 各工序小时产能
       workOrderHourlyOutput: {}, // 工单小时产能
       chartType: 'bar', // 默认为柱状图
+      hourlyTarget: 0, // 预估小时产能
+      targetSettingVisible: false, // 预估产能设置弹窗可见性
+      hourlyTargetInput: 0, // 预估产能输入值
+      isDemoMode: false, // 参观模式状态
+      demoModeEnabled: false, // 参观模式设置临时值
     };
   },
   created() {
@@ -301,6 +408,9 @@ export default {
     
     // 初始化仪表板，加载缓存的产线
     this.initDashboard();
+    
+    // 加载保存的预估产能和参观模式设置
+    this.loadSettings();
   },
   mounted() {
     this.startAutoSlide();
@@ -367,6 +477,9 @@ export default {
       localStorage.setItem('selected_production_line', this.selectedLineId);
       
       this.fetchDashboardData();
+      
+      // 加载选中产线的预估产能和参观模式设置
+      this.loadSettings();
     },
 
     fetchDashboardData() {
@@ -665,7 +778,35 @@ export default {
       this.renderWorkOrderHourlyChart();
     },
     
-    // 修改工单小时产能图表，支持切换图表类型
+    // 获取当前小时产能
+    getCurrentHourOutput() {
+      const currentHour = new Date().getHours();
+      return this.isDemoMode && this.hasHourlyTarget 
+        ? this.optimizedHourlyOutput[currentHour] || 0
+        : this.workOrderHourlyOutput[currentHour] || 0;
+    },
+    
+    // 获取最高小时产能
+    getMaxHourlyOutput() {
+      const output = this.isDemoMode && this.hasHourlyTarget 
+        ? this.optimizedHourlyOutput
+        : this.workOrderHourlyOutput;
+      
+      if (!output) return 0;
+      return Math.max(...Object.values(output));
+    },
+    
+    // 获取今日总产能
+    getTotalDailyOutput() {
+      const output = this.isDemoMode && this.hasHourlyTarget 
+        ? this.optimizedHourlyOutput
+        : this.workOrderHourlyOutput;
+      
+      if (!output) return 0;
+      return Object.values(output).reduce((sum, value) => sum + value, 0);
+    },
+    
+    // 修改工单小时产能图表，支持高亮当前小时和峰值小时
     renderWorkOrderHourlyChart() {
       const chartDom = document.getElementById('workOrderHourlyChart');
       if (!chartDom) return;
@@ -684,14 +825,26 @@ export default {
       // 获取当前时间
       const currentHour = new Date().getHours();
       
+      // 找出峰值小时
+      let peakHour = 0;
+      let peakValue = 0;
+      
       // 设置数据
       for (let hour = 0; hour < 24; hour++) {
         hours.push(hour + ':00');
-        outputData.push(this.workOrderHourlyOutput[hour] || 0);
+        const value = this.isDemoMode && this.hasHourlyTarget 
+          ? this.optimizedHourlyOutput[hour] || 0
+          : this.workOrderHourlyOutput[hour] || 0;
+        outputData.push(value);
+        
+        if (value > peakValue) {
+          peakValue = value;
+          peakHour = hour;
+        }
       }
       
-      // 自动计算Y轴的最大值，至少为10
-      const maxValue = Math.max(...outputData, 10);
+      // 自动计算Y轴的最大值，考虑预估产能值
+      const maxValue = Math.max(...outputData, this.hourlyTarget || 0, 10);
       
       const option = {
         grid: {
@@ -703,7 +856,24 @@ export default {
         },
         tooltip: {
           trigger: 'axis',
-          formatter: '{b}: {c} 件',
+          formatter: function(params) {
+            let result = `${params[0].axisValue}<br/>`;
+            
+            // 添加实际产能提示
+            params.forEach(param => {
+              // 筛选出非预估产能线的提示
+              if (param.seriesName !== '预估产能') {
+                result += `${param.marker}${param.seriesName}: ${param.value} 件<br/>`;
+              }
+            });
+            
+            // 如果有预估产能线，添加相应提示
+            if (params.length > 1 && params[1].seriesName === '预估产能') {
+              result += `${params[1].marker}预估产能: ${params[1].value} 件<br/>`;
+            }
+            
+            return result;
+          },
           axisPointer: {
             type: 'shadow'
           }
@@ -753,63 +923,93 @@ export default {
             }
           }
         },
-        series: [{
-          name: '产量',
-          type: this.chartType,
-          data: outputData,
-          markArea: {
-            silent: true,
-            itemStyle: {
-              opacity: 0.1
-            },
-            data: [
-              [{
-                xAxis: currentHour + ':00'
-              }, {
-                xAxis: currentHour + ':00'
-              }]
-            ]
-          },
-          // 柱状图样式
-          ...(this.chartType === 'bar' ? {
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(0, 255, 159, 0.9)' },
-                { offset: 1, color: 'rgba(0, 161, 101, 0.5)' }
-              ]),
-              borderRadius: 4
-            },
+        series: [
+          {
+            name: '实际产能',
+            type: this.chartType,
+            data: outputData.map((value, index) => {
+              // 高亮当前小时和峰值小时
+              if (index === currentHour) {
+                return {
+                  value: value,
+                  itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                      { offset: 0, color: 'rgba(0, 255, 204, 0.9)' },
+                      { offset: 1, color: 'rgba(0, 161, 101, 0.5)' }
+                    ]),
+                    borderColor: 'rgba(0, 255, 204, 1)',
+                    borderWidth: 2,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 255, 204, 0.5)'
+                  }
+                };
+              } else if (index === peakHour) {
+                return {
+                  value: value,
+                  itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                      { offset: 0, color: 'rgba(255, 204, 0, 0.9)' },
+                      { offset: 1, color: 'rgba(255, 145, 0, 0.5)' }
+                    ]),
+                    borderColor: 'rgba(255, 204, 0, 1)',
+                    borderWidth: 2,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(255, 204, 0, 0.5)'
+                  }
+                };
+              }
+              return value;
+            }),
+            barWidth: '60%',
             emphasis: {
               itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            barBorderRadius: 4,
+            // 折线图样式
+            ...(this.chartType === 'line' ? {
+              smooth: true,
+              symbol: 'circle',
+              symbolSize: 8,
+              lineStyle: {
+                width: 3,
+                color: 'rgba(73, 152, 255, 0.9)'
+              },
+              itemStyle: {
+                // 定义在series.data中
+              },
+              areaStyle: {
                 color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: 'rgba(0, 255, 159, 1)' },
-                  { offset: 1, color: 'rgba(0, 161, 101, 0.7)' }
+                  { offset: 0, color: 'rgba(73, 152, 255, 0.3)' },
+                  { offset: 1, color: 'rgba(31, 96, 196, 0.1)' }
                 ])
               }
-            }
-          } : {}),
-          // 折线图样式
-          ...(this.chartType === 'line' ? {
-            smooth: true,
-            symbol: 'circle',
-            symbolSize: 6,
+            } : {})
+          },
+          // 添加预估产能线
+          ...(this.hasHourlyTarget ? [{
+            name: '预估产能',
+            type: 'line',
+            symbol: 'none',
+            data: new Array(24).fill(this.hourlyTarget),
             lineStyle: {
-              width: 3,
-              color: 'rgba(0, 255, 159, 0.9)'
+              width: 2,
+              type: 'dashed',
+              color: 'rgba(255, 64, 129, 0.7)'
             },
-            itemStyle: {
-              color: 'rgba(0, 255, 159, 0.9)',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(0, 255, 159, 0.3)' },
-                { offset: 1, color: 'rgba(0, 161, 101, 0.1)' }
-              ])
-            }
-          } : {})
-        }]
+            // 区域填充
+            ...(this.chartType === 'bar' ? {
+              areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: 'rgba(255, 64, 129, 0.15)' },
+                  { offset: 1, color: 'rgba(255, 64, 129, 0)' }
+                ])
+              }
+            } : {})
+          }] : [])
+        ]
       };
       
       chart.setOption(option);
@@ -822,6 +1022,58 @@ export default {
     switchChartType(type) {
       this.chartType = type;
       this.renderWorkOrderHourlyChart();
+    },
+
+    // 加载保存的设置
+    loadSettings() {
+      if (this.selectedLineId) {
+        const savedTarget = localStorage.getItem(`hourly_target_${this.selectedLineId}`);
+        if (savedTarget) {
+          this.hourlyTarget = parseInt(savedTarget);
+        }
+        
+        // 加载参观模式设置
+        const demoMode = localStorage.getItem(`demo_mode_${this.selectedLineId}`);
+        this.isDemoMode = demoMode === 'true';
+        this.demoModeEnabled = this.isDemoMode;
+      }
+    },
+    
+    // 显示预估产能设置窗口
+    showTargetSettingDialog() {
+      this.hourlyTargetInput = this.hourlyTarget || 0;
+      this.demoModeEnabled = this.isDemoMode;
+      this.targetSettingVisible = true;
+    },
+    
+    // 保存预估产能和参观模式设置
+    saveHourlyTarget() {
+      this.hourlyTarget = this.hourlyTargetInput;
+      this.isDemoMode = this.demoModeEnabled;
+      
+      if (this.selectedLineId) {
+        localStorage.setItem(`hourly_target_${this.selectedLineId}`, this.hourlyTarget.toString());
+        localStorage.setItem(`demo_mode_${this.selectedLineId}`, this.isDemoMode.toString());
+      }
+      
+      this.targetSettingVisible = false;
+      this.renderWorkOrderHourlyChart(); // 重新渲染图表
+    },
+    
+    // 计算效率(当前小时产能/预估产能)
+    calculateEfficiency() {
+      if (!this.hasHourlyTarget) return 0;
+      const currentHourOutput = this.getCurrentHourOutput();
+      const efficiency = (currentHourOutput / this.hourlyTarget) * 100;
+      return Math.round(efficiency);
+    },
+    
+    // 获取效率显示样式类
+    getEfficiencyClass() {
+      const efficiency = this.calculateEfficiency();
+      if (efficiency >= 100) return 'efficiency-high';
+      if (efficiency >= 80) return 'efficiency-medium';
+      return 'efficiency-low';
     },
   },
   computed: {
@@ -843,6 +1095,51 @@ export default {
     // 将工序信息转为数组
     processStepsArray() {
       return Object.values(this.processSteps);
+    },
+
+    // 是否有预估产能设置
+    hasHourlyTarget() {
+      return this.hourlyTarget > 0;
+    },
+    
+    // 获取优化后的工单小时产能数据
+    optimizedHourlyOutput() {
+      if (!this.isDemoMode || !this.hasHourlyTarget) {
+        return this.workOrderHourlyOutput;
+      }
+      
+      // 在参观模式下优化显示的产能数据
+      const optimized = { ...this.workOrderHourlyOutput };
+      const target = this.hourlyTarget;
+      
+      // 对每小时数据进行优化
+      for (let hour in optimized) {
+        // 基础数值：实际值的1.1-1.3倍，但不低于目标值
+        let enhancedValue = Math.round(optimized[hour] * (1.1 + Math.random() * 0.2));
+        
+        // 确保值至少达到目标的85%-115%
+        const minValue = Math.round(target * 0.85);
+        const maxValue = Math.round(target * 1.15);
+        
+        // 使用伪随机方式确保数据有波动但基本符合目标
+        enhancedValue = Math.max(enhancedValue, minValue);
+        
+        // 为高峰时段(9-11点和14-16点)添加额外提升
+        const peakHours = [9, 10, 11, 14, 15, 16];
+        if (peakHours.includes(parseInt(hour))) {
+          enhancedValue = Math.max(enhancedValue, Math.round(target * 1.05));
+        }
+        
+        // 为低谷时段(12点和晚上)降低数值，保持自然波动
+        const valleyHours = [12, 13, 19, 20, 21, 22, 23];
+        if (valleyHours.includes(parseInt(hour))) {
+          enhancedValue = Math.min(enhancedValue, Math.round(target * 1.05));
+        }
+        
+        optimized[hour] = enhancedValue;
+      }
+      
+      return optimized;
     }
   },
 };
@@ -1604,69 +1901,337 @@ export default {
   }
 }
 
-/* 小时产能区域样式 */
+/* 新增小时产能概览样式 */
 .hourly-overview {
-  margin-bottom: 15px;
-  display: flex;
-  z-index: 1;
+  margin-bottom: 20px;
 }
 
 .overview-chart-container {
-  flex: 1;
-  height: 120px;
   background: rgba(0, 31, 63, 0.6);
   border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 0 15px rgba(0, 162, 255, 0.3);
+  padding: 15px;
+  box-shadow: 0 0 20px rgba(0, 162, 255, 0.3);
   border: 1px solid rgba(0, 162, 255, 0.3);
-  padding: 8px;
   position: relative;
+  overflow: hidden;
 }
 
-.overview-title {
-  font-size: 14px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 5px;
-  color: #fff;
-  text-shadow: 0 0 5px rgba(0, 162, 255, 0.5);
-}
-
-.overview-chart {
-  height: 85px;
+.overview-chart-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.05), rgba(0, 37, 107, 0.1));
+  z-index: 0;
 }
 
-/* 为图表类型选择器添加样式 */
 .overview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: 15px;
+  position: relative;
+  z-index: 1;
 }
 
-.chart-type-selector {
+.overview-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
   display: flex;
   align-items: center;
 }
 
+.overview-title i {
+  margin-right: 8px;
+  color: #00ffcc;
+}
+
+.chart-type-selector {
+  display: flex;
+  background: rgba(0, 39, 78, 0.8);
+  border-radius: 15px;
+  padding: 3px;
+  border: 1px solid rgba(0, 162, 255, 0.3);
+}
+
 .chart-type-selector span {
-  font-size: 12px;
-  padding: 3px 8px;
-  margin-left: 5px;
+  padding: 5px 12px;
   cursor: pointer;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s;
 }
 
 .chart-type-selector span.active {
-  background: rgba(0, 255, 159, 0.3);
-  color: #00ffcc;
-  box-shadow: 0 0 5px rgba(0, 255, 159, 0.5);
+  background: rgba(0, 162, 255, 0.6);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0, 162, 255, 0.5);
 }
 
-.chart-type-selector span:hover {
-  background: rgba(0, 255, 159, 0.2);
+.overview-chart {
+  height: 250px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.hourly-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+.hourly-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 39, 78, 0.5);
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 162, 255, 0.3);
+  min-width: 150px;
+}
+
+.stat-title {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 5px;
+}
+
+.highlight-number {
+  font-size: 28px;
+  font-weight: bold;
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+  font-family: 'Digital', sans-serif;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 3px;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
+  border-radius: 3px;
+}
+
+.legend-color.current-hour {
+  background: linear-gradient(to bottom, rgba(0, 255, 204, 0.9), rgba(0, 161, 101, 0.5));
+}
+
+.legend-color.peak-hour {
+  background: linear-gradient(to bottom, rgba(255, 204, 0, 0.9), rgba(255, 145, 0, 0.5));
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+  }
+}
+
+.highlight-number {
+  animation: pulse-glow 2s infinite;
+}
+
+/* 预估产能设置弹窗样式 */
+.dark-dialog {
+  background: #001f3f;
+  border: 1px solid rgba(0, 162, 255, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 162, 255, 0.2);
+}
+
+.dark-dialog .el-dialog__title {
+  color: #ffffff;
+}
+
+.dark-dialog .el-dialog__body {
+  color: #e0e0e0;
+}
+
+.target-setting-form {
+  padding: 10px 0;
+}
+
+.form-description {
+  margin-bottom: 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.target-input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.input-label {
+  margin-right: 10px;
+  font-weight: bold;
+  min-width: 100px;
+}
+
+.input-unit {
+  margin-left: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.current-setting {
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(0, 162, 255, 0.1);
+  border-radius: 5px;
+  border-left: 3px solid rgba(0, 162, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 为头部操作区添加样式 */
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.settings-button {
+  margin-left: 10px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 39, 78, 0.8);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid rgba(0, 162, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.settings-button:hover {
+  background: rgba(0, 162, 255, 0.4);
+  transform: rotate(90deg);
+}
+
+.settings-button i {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+}
+
+/* 预估产能图例样式 */
+.legend-color.target-line {
+  background: linear-gradient(to right, rgba(255, 64, 129, 0.9), rgba(255, 64, 129, 0.5));
+  height: 2px;
+  border-top: 1px dashed rgba(255, 64, 129, 1);
+  border-bottom: none;
+}
+
+/* 效率指标样式 */
+.efficiency-indicator {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+  background: rgba(0, 39, 78, 0.5);
+  padding: 8px 15px;
+  border-radius: 20px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.efficiency-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 10px;
+}
+
+.efficiency-value {
+  font-size: 16px;
+  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 15px;
+}
+
+.efficiency-high {
+  background: rgba(0, 200, 83, 0.2);
+  color: #00c853;
+  border: 1px solid rgba(0, 200, 83, 0.5);
+}
+
+.efficiency-medium {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.efficiency-low {
+  background: rgba(255, 64, 129, 0.2);
+  color: #ff4081;
+  border: 1px solid rgba(255, 64, 129, 0.5);
+}
+
+/* 参观模式相关样式 */
+.demo-mode-setting {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(0, 39, 78, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 162, 255, 0.2);
+}
+
+.demo-mode-hint {
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(19, 206, 102, 0.1);
+  border-left: 3px solid #13ce66;
+  border-radius: 0 4px 4px 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+}
+
+.demo-mode-hint i {
+  margin-right: 5px;
+  color: #13ce66;
+}
+
+.demo-tag {
+  display: inline-block;
+  background: rgba(19, 206, 102, 0.2);
+  color: #13ce66;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 10px;
+  border: 1px solid rgba(19, 206, 102, 0.4);
+}
+
+.demo-tag i {
+  margin-right: 3px;
 }
 </style>
