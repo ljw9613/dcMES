@@ -16,6 +16,11 @@ const palletItemSchema = new mongoose.Schema(
         scanTime: { type: Date }, // 扫码时间
       },
     ],
+    productionPlanWorkOrderId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "production_plan_work_order",
+      description: "工单ID",
+    },
     quantity: { type: Number, default: 1 }, // 数量（箱子时为箱内数量）
     scanTime: { type: Date, default: Date.now }, // 扫描时间
     scanBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 扫描人
@@ -37,6 +42,23 @@ const materialPalletizingSchema = new mongoose.Schema({
   // 工序相关信息
   processStepId: { type: mongoose.Schema.ObjectId, ref: "process_step" }, // 工序ID
 
+  // 新增字段：工单数组
+  workOrders: [
+    {
+      productionOrderId: {
+        type: mongoose.Schema.ObjectId,
+        ref: "k3_PRD_MO",
+      },
+      productionOrderNo: String,
+      workOrderNo: String,
+      productionPlanWorkOrderId: {
+        type: mongoose.Schema.ObjectId,
+        ref: "production_plan_work_order",
+      },
+      quantity: { type: Number, default: 0 }, // 该工单在托盘中的数量
+    },
+  ],
+
   //工单信息
   workOrderNo: { type: String }, // 工单号
   productionPlanWorkOrderId: {
@@ -53,6 +75,8 @@ const materialPalletizingSchema = new mongoose.Schema({
   materialCode: { type: String }, // 主要物料编码
   materialName: { type: String }, // 主要物料名称
   materialSpec: { type: String }, // 规格型号
+
+  isLastPallet: { type: Boolean, default: false }, // 是否尾数托盘
 
   // 组托托盘状态
   status: {
@@ -100,6 +124,11 @@ const materialPalletizingSchema = new mongoose.Schema({
         type: String,
         enum: ["PENDING", "PASS", "FAIL"], // 巡检结果 待巡检 合格 不合格
         default: "PENDING",
+      },
+      productionPlanWorkOrderId: {
+        type: mongoose.Schema.ObjectId,
+        ref: "production_plan_work_order",
+        description: "工单ID",
       },
     },
   ], // 托盘条码
