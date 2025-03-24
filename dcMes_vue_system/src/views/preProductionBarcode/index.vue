@@ -106,6 +106,7 @@
             type="primary"
             icon="el-icon-printer"
             @click="handleBatchPrint"
+            :loading="batchPrinting"
             >批量打印</el-button
           >
         </el-form-item>
@@ -577,6 +578,7 @@ export default {
       batchPrintDialogVisible: false,
       printDataList: [],
       printing: false,
+      batchPrinting: false,  // 添加批量打印按钮的loading状态
       currentPrintData: {},
       // 添加打印搜索表单
       printSearchForm: {
@@ -1499,10 +1501,20 @@ export default {
 
     // 处理批量打印按钮点击
     async handleBatchPrint() {
-      this.printing = false;
-      this.batchPrintDialogVisible = true;
-      // 打开对话框后立即执行一次搜索
-      await this.searchPrintData();
+      if (this.batchPrinting) return; // 如果正在打印中，则不响应点击
+      
+      this.batchPrinting = true; // 设置按钮loading状态
+      try {
+        this.printing = false;
+        this.batchPrintDialogVisible = true;
+        // 打开对话框后立即执行一次搜索
+        await this.searchPrintData();
+      } catch (error) {
+        console.error("打开批量打印对话框失败:", error);
+        this.$message.error("打开批量打印对话框失败");
+      } finally {
+        this.batchPrinting = false; // 恢复按钮状态
+      }
     },
 
     // 搜索打印数据
@@ -1598,6 +1610,7 @@ export default {
       }
 
       this.printing = true;
+      this.batchPrinting = true; // 设置主页面按钮的loading状态
       try {
         // 准备打印数据列表
         const printList = this.printDataList.map((data) => ({
@@ -1623,6 +1636,7 @@ export default {
         this.$message.error("批量打印失败: " + error.message);
       } finally {
         this.printing = false;
+        this.batchPrinting = false; // 恢复按钮状态
       }
     },
 

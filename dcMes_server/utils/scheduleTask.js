@@ -6,17 +6,17 @@ const schedule = require("node-schedule");
 const BackupService = require("../services/backupService"); // 请根据实际路径调整
 
 // 导入K3同步相关依赖
-const { 
-  syncK3Data, 
-  syncStockData, 
-  syncPurchaseOrderData, 
-  syncPickMtrlData, 
-  syncDeliveryNoticeData, 
-  syncInStockData, 
-  syncRequisitionBillData, 
+const {
+  syncK3Data,
+  syncStockData,
+  syncPurchaseOrderData,
+  syncPickMtrlData,
+  syncDeliveryNoticeData,
+  syncInStockData,
+  syncRequisitionBillData,
   syncOutStockData,
   SyncTask,
-  syncTasks
+  syncTasks,
 } = require("../services/syncServices"); // 请根据实际路径调整
 
 // 定时任务: 每天凌晨3点执行生产条码过期处理
@@ -24,6 +24,10 @@ const productionBarcodeExpirationTask = async () => {
   console.log("生产条码过期定时任务开始执行"); // 添加日志记录
   schedule.scheduleJob("0 3 * * *", async () => {
     try {
+      const dayBeforeYesterday = new Date();
+      dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+      dayBeforeYesterday.setHours(0, 0, 0, 0); // 设置为前天的开始时间
+
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0); // 设置为昨天的开始时间
@@ -31,11 +35,11 @@ const productionBarcodeExpirationTask = async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // 设置为今天的开始时间
 
-      // 查找前一天未使用的条码
+      // 查找前天未使用的条码
       const result = await PreProductionBarcode.updateMany(
         {
           status: { $ne: "USED" }, // 状态不是已使用
-          createAt: { $gte: yesterday, $lt: today }, // 创建时间在昨天
+          createAt: { $gte: dayBeforeYesterday, $lt: yesterday }, // 创建时间在前天
         },
         {
           status: "VOIDED", // 更新状态为已作废
@@ -48,12 +52,12 @@ const productionBarcodeExpirationTask = async () => {
       );
 
       console.log(`作废条码数量: ${result.nModified}`);
-      
-      // 查找前一天未使用的物料条码批次并作废
+
+      // 查找前天未使用的物料条码批次并作废
       const materialBatchResult = await MaterialBarcodeBatch.updateMany(
         {
           isUsed: false, // 未使用状态
-          createAt: { $gte: yesterday, $lt: today }, // 创建时间在昨天
+          createAt: { $gte: yesterday, $lt: today }, // 创建时间在前天
         },
         {
           isUsed: true, // 更新为已使用状态
@@ -62,7 +66,7 @@ const productionBarcodeExpirationTask = async () => {
           updateAt: new Date(), // 更新时间
         }
       );
-      
+
       console.log(`作废物料条码批次数量: ${materialBatchResult.nModified}`);
     } catch (error) {
       console.error("定时任务失败:", error);
@@ -91,7 +95,7 @@ const k3DataSyncTask = async () => {
       const filterString = [
         {
           FieldName: "FDocumentStatus",
-          Compare: "StatusEqualto", 
+          Compare: "StatusEqualto",
           Value: "C",
           Left: "",
           Right: "",
@@ -116,35 +120,57 @@ const k3DataSyncTask = async () => {
       ];
 
       // 使用通用方法的表同步
-      await syncK3Data("k3_BD_MATERIAL", "BD_MATERIAL", "FMATERIALID", filterString);
-      await syncK3Data("k3_SAL_SaleOrder", "SAL_SaleOrder", "FID", filterString);
+      await syncK3Data(
+        "k3_BD_MATERIAL",
+        "BD_MATERIAL",
+        "FMATERIALID",
+        filterString
+      );
+      await syncK3Data(
+        "k3_SAL_SaleOrder",
+        "SAL_SaleOrder",
+        "FID",
+        filterString
+      );
       await syncK3Data("k3_PRD_MO", "PRD_MO", "FID", filterString);
-      
+
       // 使用特定方法的表同步
       const stockTask = new SyncTask("K3_BD_STOCK");
       syncTasks.set("K3_BD_STOCK", stockTask);
       await syncStockData("K3_BD_STOCK", filterString, stockTask);
-      
+
       const purchaseOrderTask = new SyncTask("K3_PUR_PurchaseOrder");
       syncTasks.set("K3_PUR_PurchaseOrder", purchaseOrderTask);
-      await syncPurchaseOrderData("K3_PUR_PurchaseOrder", filterString, purchaseOrderTask);
-      
+      await syncPurchaseOrderData(
+        "K3_PUR_PurchaseOrder",
+        filterString,
+        purchaseOrderTask
+      );
+
       const pickMtrlTask = new SyncTask("K3_PRD_PickMtrl");
       syncTasks.set("K3_PRD_PickMtrl", pickMtrlTask);
       await syncPickMtrlData("K3_PRD_PickMtrl", filterString, pickMtrlTask);
-      
+
       const deliveryNoticeTask = new SyncTask("K3_SAL_DeliveryNotice");
       syncTasks.set("K3_SAL_DeliveryNotice", deliveryNoticeTask);
-      await syncDeliveryNoticeData("K3_SAL_DeliveryNotice", filterString, deliveryNoticeTask);
-      
+      await syncDeliveryNoticeData(
+        "K3_SAL_DeliveryNotice",
+        filterString,
+        deliveryNoticeTask
+      );
+
       const inStockTask = new SyncTask("K3_PRD_InStock");
       syncTasks.set("K3_PRD_InStock", inStockTask);
       await syncInStockData("K3_PRD_InStock", filterString, inStockTask);
-      
+
       const requisitionBillTask = new SyncTask("K3_PUR_RequisitionBill");
       syncTasks.set("K3_PUR_RequisitionBill", requisitionBillTask);
-      await syncRequisitionBillData("K3_PUR_RequisitionBill", filterString, requisitionBillTask);
-      
+      await syncRequisitionBillData(
+        "K3_PUR_RequisitionBill",
+        filterString,
+        requisitionBillTask
+      );
+
       const outStockTask = new SyncTask("K3_SAL_OutStock");
       syncTasks.set("K3_SAL_OutStock", outStockTask);
       await syncOutStockData("K3_SAL_OutStock", filterString, outStockTask);
@@ -159,7 +185,7 @@ const k3DataSyncTask = async () => {
 // 定时任务: 每天凌晨2点执行工艺流程备份
 const materialProcessFlowBackupTask = async () => {
   console.log("工艺流程备份定时任务开始执行");
-  
+
   // 每天凌晨2点执行备份
   schedule.scheduleJob("0 2 * * *", async () => {
     try {
@@ -189,5 +215,5 @@ module.exports = {
   productionBarcodeExpirationTask,
   k3DataSyncTask,
   materialProcessFlowBackupTask,
-  initScheduleTasks
+  initScheduleTasks,
 };
