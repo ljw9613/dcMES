@@ -756,6 +756,8 @@ class MaterialPalletizingService {
       }
 
       // 7. 将所有移动的条码加入到新托盘，并更新工单数量
+      newPallet.palletBarcodes = barcodesToMove; // 将收集的条码添加到新托盘
+
       for (const barcode of barcodes) {
         const originalBarcode = originalPallet.palletBarcodes.find(pb => pb.barcode === barcode);
         if (originalBarcode && originalBarcode.productionPlanWorkOrderId) {
@@ -770,6 +772,10 @@ class MaterialPalletizingService {
           }
         }
       }
+
+      // 更新新托盘的条码计数和箱子计数
+      newPallet.barcodeCount = newPallet.palletBarcodes.length;
+      newPallet.boxCount = newPallet.boxItems.length;
 
       // 8. 创建新托盘记录
       const createdPallet = await MaterialPalletizing.create(newPallet);
@@ -795,7 +801,7 @@ class MaterialPalletizingService {
       });
 
       // 11. 更新原托盘中各工单的数量
-      if (updatedOriginalPallet.workOrders && updatedOriginalPallet.workOrders.length > 0) {
+      if (updatedOriginalPallet && updatedOriginalPallet.workOrders && updatedOriginalPallet.workOrders.length > 0) {
         // 重置所有工单数量
         updatedOriginalPallet.workOrders.forEach(wo => {
           wo.quantity = 0;
@@ -814,6 +820,9 @@ class MaterialPalletizingService {
             }
           }
         });
+        
+        // 更新原托盘的条码计数
+        updatedOriginalPallet.barcodeCount = updatedOriginalPallet.palletBarcodes.length;
         
         // 保存更新后的原托盘
         await updatedOriginalPallet.save();
