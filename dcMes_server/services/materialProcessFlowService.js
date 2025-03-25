@@ -542,15 +542,23 @@ class MaterialProcessFlowService {
             (scan) => scan.materialId.toString() === node.materialId.toString()
           );
 
+          console.log(
+            "🚀 ~ MaterialProcessFlowService ~ materialBarcode:",
+            materialBarcode
+          );
+
+          // 添加空值检查
+          if (!materialBarcode) {
+            throw new Error(`未找到与物料ID ${node.materialId} 匹配的扫描记录`);
+          }
+
           const subFlowRecord = await MaterialProcessFlow.findOne({
             barcode: materialBarcode.barcode,
           });
 
           // 添加空值检查
           if (!subFlowRecord) {
-            throw new Error(
-              `未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`
-            );
+            throw new Error(`未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`);
           }
 
           if (subFlowRecord.status !== "COMPLETED") {

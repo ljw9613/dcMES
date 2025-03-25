@@ -1853,6 +1853,16 @@ export default {
             const year = now.getFullYear();
             printData.ProductionDate = `${month}/${year}`;
 
+            //追觅综合字段
+            printData.printBarcodeZH =
+              printData.barcode +
+              "," +
+              printData.FCustPO +
+              "," +
+              printData.productionDate +
+              "," +
+              printData.quantity;
+
             //无线吸尘器生产日期
             printData.wxxcqProductionDate = `${year}.${month}`;
           }

@@ -2171,6 +2171,16 @@ export default {
                       workOrderData.custInfoId.custMaterialNameEn;
                   }
 
+                  //追觅综合字段
+                  printData.printBarcodeZH =
+                    printData.barcode +
+                    "," +
+                    printData.FCustPO +
+                    "," +
+                    printData.productionDate +
+                    "," +
+                    printData.quantity;
+
                   this.printData = printData;
                   this.$nextTick(() => {
                     this.$refs.hirInput.handlePrints2();

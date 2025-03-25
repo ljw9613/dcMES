@@ -2431,6 +2431,14 @@ export default {
           inspectionData
         );
 
+        //生成抽检记录时需要将托盘条码更新为已抽检
+        await updatePalletInspectionStatus({
+          barcode: this.scanForm.printBarcode,
+          userId: this.$store.state.user.id,
+          remarks: "抽检中",
+          status: this.isAllBarcodeValid,
+        });
+
         if (response.code === 200) {
           this.$message.success("抽检记录提交成功");
           this.scanDialogVisible = false;
@@ -2443,7 +2451,7 @@ export default {
       } finally {
         this.scanLoading = false;
         this.isSubmitProcess = false; // 清除提交流程标记
-        this.fetchData()
+        this.fetchData();
       }
     },
     // 重置扫码表单
@@ -2664,23 +2672,23 @@ export default {
 
     // 添加水印方法
     addWatermark(context, width, height) {
-      const currentTime = new Date().toLocaleString('zh-CN');
+      const currentTime = new Date().toLocaleString("zh-CN");
       const barcodeText = this.scanForm.barcode || "";
-      
+
       // 设置水印样式
       context.font = "bold 24px Arial";
       context.fillStyle = "rgba(255, 255, 255, 0.8)";
       context.textAlign = "left";
-      
+
       // 添加阴影使文字在任何背景上都清晰可见
       context.shadowColor = "rgba(0, 0, 0, 0.7)";
       context.shadowBlur = 6;
       context.shadowOffsetX = 2;
       context.shadowOffsetY = 2;
-      
+
       // 绘制时间水印在左下角
       context.fillText(`时间: ${currentTime}`, 20, height - 60);
-      
+
       // 绘制条码水印在左下角
       context.fillText(`条码: ${barcodeText}`, 20, height - 20);
     },
