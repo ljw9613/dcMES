@@ -1538,6 +1538,15 @@ export default {
         let cleanValue = value.trim().replace(/[\r\n]/g, "");
         if (!cleanValue) return;
 
+        // 特殊处理包含,的条码
+        if (cleanValue.includes(",")) {
+          //按,分割截取
+          const parts = cleanValue.split(",");
+
+          //取第一个
+          cleanValue = parts[0];
+        }
+
         // 根据不同模式处理扫描值
         if (this.scanMode === "rfid") {
           // 查询RFID标签对应的主条码

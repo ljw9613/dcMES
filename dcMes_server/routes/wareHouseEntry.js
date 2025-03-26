@@ -67,7 +67,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         message: "托盘单据存在未完成状态的条码",
       });
     }
-    
+
     // 2. 获取或创建入库单
     let entry = await WarehouseEntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
@@ -227,6 +227,31 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
         message: "生产订单不存在",
       });
     }
+
+    //查询金蝶云的生产订单信息
+    const k3_PRD_MO = await k3cMethod("View", "PRD_MO", {
+      Number: entry.productionOrderNo,
+      Id: "",
+      IsSortBySeq: "false",
+    });
+
+    if (k3_PRD_MO.Result.ResponseStatus.IsSuccess != true) {
+      throw new Error(
+        k3_PRD_MO.Result.ResponseStatus.Errors[0].Message || "同步失败"
+      );
+    }
+    let k3_PRD_MO_INFO = k3_PRD_MO.Result.Result;
+    let k3_PRD_MO_INFO_TreeEntity = k3_PRD_MO.Result.Result.TreeEntity;
+
+    // entry.materialCode 找到对应k3_PRD_MO_INFO_TreeEntity中MaterialId.Number比对找到对应的TreeEntity的Id
+    let k3_PRD_MO_INFO_TreeEntity_Id = k3_PRD_MO_INFO_TreeEntity.find(
+      (item) => item.MaterialId.Number === entry.materialCode
+    ).Id;
+
+    if (!k3_PRD_MO_INFO_TreeEntity_Id) {
+      throw new Error("物料不存在于生产订单明细中");
+    }
+
     //查询金蝶云是否已经拥有订单
     let k3Stock = await k3cMethod("BillQuery", "PRD_INSTOCK", {
       FormId: "PRD_INSTOCK",
@@ -335,10 +360,10 @@ router.post("/api/v1/k3/sync_warehouse_entry", async (req, res) => {
               FEntity_Link_FRuleId: "PRD_MO2INSTOCK",
               FEntity_Link_FSTableName: "T_PRD_MOENTRY",
               FEntity_Link_FSBillId: productionOrder.FID,
-              FEntity_Link_FSId: productionOrder.FID,
+              FEntity_Link_FSId: k3_PRD_MO_INFO_TreeEntity_Id,
               FEntity_Link_FFlowId: "f11b462a-8733-40bd-8f29-0906afc6a201",
               FEntity_Link_FFlowLineId: "5",
-              FEntity_Link_FBasePrdRealQtyOld: productionOrder.FBaseRealQty,
+              FEntity_Link_FBasePrdRealQtyOld: productionOrder.FQty,
               FEntity_Link_FBasePrdRealQty: entry.actualQuantity,
             },
           ],

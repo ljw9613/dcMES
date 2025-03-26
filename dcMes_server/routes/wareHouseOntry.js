@@ -477,6 +477,8 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       FBillNo: entry.productionOrderNo,
     });
 
+    console.log(productionOrder, "productionOrder");
+
     if (!productionOrder) {
       return res.status(200).json({
         code: 404,
@@ -504,6 +506,8 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       Limit: 2000,
       SubSystemId: "",
     });
+
+    
 
     // 2. 转换为金蝶云格式
     const k3Data = {
@@ -598,6 +602,8 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
         },
       ],
     };
+
+    console.log(k3Data, "k3Data");
 
     // 3. 调用金蝶云API
     let k3Response = await k3cMethod("Save", "SAL_OUTSTOCK", {

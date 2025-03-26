@@ -292,7 +292,7 @@
               @click="handleDelete(scope.row)"
               >删除</el-button
             >
-            <!-- <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button> -->
+            <el-button type="text" v-if="hasAsyncStockPermission" @click="handleSync(scope.row)">同步金蝶云</el-button>
           </template>
         </el-table-column>
       </template>
@@ -397,6 +397,7 @@ export default {
       exportLoading: false,
       exportProgress: 0,
       hasDeletePermission: false,
+      hasAsyncStockPermission: false,
     };
   },
   methods: {
@@ -719,9 +720,15 @@ export default {
     if (!roles || !roles.buttonList) {
       return false;
     }
+    
     if (roles.buttonList.includes("Delete_inbound_and_outbound_documents")) {
       this.hasDeletePermission = true;
     }
+
+    if (roles.buttonList.includes("Async_stock_permission")) {
+      this.hasAsyncStockPermission = true;
+    }
+    
   },
 };
 </script>

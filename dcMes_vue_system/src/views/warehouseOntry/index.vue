@@ -418,11 +418,19 @@ export default {
                 inputValue: row.outboundQuantity
             }).then(({ value }) => {
                 if (value >= row.outNumber) {  // 检查是否大于等于已出库数量
+                    const update = {
+                        outboundQuantity: value
+                    };
+                    
+                    // 当修改的应出库数量等于已出库数量时，自动更新为完成状态
+                    if (Number(value) === row.outNumber) {
+                        update.status = 'COMPLETED';
+                        update.endTime = new Date();
+                    }
+                    
                     updateData('warehouse_ontry', {
                         query: { _id: row._id },
-                        update: {
-                            outboundQuantity: value
-                        }
+                        update: update
                     }).then(() => {
                         this.$message({
                             type: 'success',
