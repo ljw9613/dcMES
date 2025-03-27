@@ -558,7 +558,9 @@ class MaterialProcessFlowService {
 
           // 添加空值检查
           if (!subFlowRecord) {
-            throw new Error(`未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`);
+            throw new Error(
+              `未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`
+            );
           }
 
           if (subFlowRecord.status !== "COMPLETED") {
@@ -3087,6 +3089,369 @@ class MaterialProcessFlowService {
       };
     } catch (error) {
       console.error("检查条码完成情况失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 替换物料组件
+   * @param {string} mainBarcode - 主条码
+   * @param {string} processNodeId - 工序节点ID
+   * @param {string} materialNodeId - 物料节点ID
+   * @param {string} originalBarcode - 原物料条码
+   * @param {string} newBarcode - 新物料条码
+   * @param {string} userId - 用户ID
+   * @returns {Promise<Object>} 替换结果
+   */
+  static async replaceComponent(
+    mainBarcode,
+    processNodeId,
+    materialNodeId,
+    originalBarcode,
+    newBarcode,
+    userId
+  ) {
+    try {
+      console.log("=== 开始物料替换 ===");
+      console.log(`主条码: ${mainBarcode}`);
+      console.log(`工序节点ID: ${processNodeId}`);
+      console.log(`物料节点ID: ${materialNodeId}`);
+      console.log(`原条码: ${originalBarcode}`);
+      console.log(`新条码: ${newBarcode}`);
+      console.log(`操作用户: ${userId}`);
+
+      // 1. 参数验证
+      if (
+        !mainBarcode ||
+        !processNodeId ||
+        !materialNodeId ||
+        !originalBarcode ||
+        !newBarcode ||
+        !userId
+      ) {
+        throw new Error("缺少必要参数");
+      }
+
+      // 2. 查找主条码的流程记录
+      const mainFlowRecord = await MaterialProcessFlow.findOne({
+        barcode: mainBarcode,
+      });
+      if (!mainFlowRecord) {
+        throw new Error(`未找到条码 ${mainBarcode} 的流程记录`);
+      }
+      console.log(`找到主条码流程记录: ${mainFlowRecord._id}`);
+
+      // 3. 查找工序节点和物料节点
+      const processNode = mainFlowRecord.processNodes.find(
+        (node) => node.nodeId === processNodeId
+      );
+      if (!processNode || processNode.nodeType !== "PROCESS_STEP") {
+        throw new Error("未找到指定的工序节点");
+      }
+      console.log(
+        `工序节点信息: ID=${processNode.nodeId}, 名称=${processNode.processName}, ProcessStepId=${processNode.processStepId}`
+      );
+
+      const materialNode = mainFlowRecord.processNodes.find(
+        (node) => node.nodeId === materialNodeId
+      );
+      if (
+        !materialNode ||
+        materialNode.nodeType !== "MATERIAL" ||
+        materialNode.parentNodeId !== processNodeId
+      ) {
+        throw new Error("未找到指定的物料节点或物料节点不属于指定工序");
+      }
+      console.log(
+        `物料节点信息: ID=${materialNode.nodeId}, 物料=${materialNode.materialName}, 条码=${materialNode.barcode}`
+      );
+
+      // 验证原条码是否匹配
+      if (materialNode.barcode !== originalBarcode) {
+        throw new Error("原物料条码不匹配");
+      }
+
+      // 4. 检查替换条件
+      // 查询是否存在对应的维修记录
+      const productRepair = require("../model/project/productRepair");
+      const repairRecord = await productRepair.findOne({
+        barcode: mainBarcode,
+        status: "PENDING_REVIEW",
+      });
+
+      if (!repairRecord) {
+        throw new Error("未找到对应的部件替换维修记录，请先创建维修记录");
+      }
+      console.log(`找到维修记录: ${repairRecord._id}`);
+
+      // 5. 检查新条码是否合法
+      // 查找新条码是否已存在流程记录
+      const newBarcodeRecord = await MaterialProcessFlow.findOne({
+        barcode: newBarcode,
+      });
+
+      console.log(`新条码流程记录: ${newBarcodeRecord}`);
+
+      // 如果存在，验证物料类型是否匹配
+      if (newBarcodeRecord) {
+        console.log(`新条码 ${newBarcode} 有流程记录: ${newBarcodeRecord._id}`);
+        console.log(
+          `新条码物料类型: ${newBarcodeRecord.materialCode}, 需匹配类型: ${materialNode.materialCode}`
+        );
+
+        // 物料编码必须匹配
+        if (newBarcodeRecord.materialCode !== materialNode.materialCode) {
+          throw new Error(
+            `新条码物料类型(${newBarcodeRecord.materialCode})与要替换的物料类型(${materialNode.materialCode})不匹配`
+          );
+        }
+
+        // 新条码的流程必须已完成，才能作为替换部件
+        if (newBarcodeRecord.status !== "COMPLETED") {
+          throw new Error("新条码的流程未完成，不能用于替换");
+        }
+        console.log(`新条码流程状态: ${newBarcodeRecord.status}`);
+      } else {
+        console.log(`新条码 ${newBarcode} 无流程记录，将验证格式`);
+        // 如果新条码不存在流程记录，需要验证条码格式
+        const Material = require("../model/k3_BD_MATERIAL");
+        const material = await Material.findOne({
+          FNumber: materialNode.materialCode,
+        });
+
+        if (!material) {
+          throw new Error(
+            `未找到物料编码为 ${materialNode.materialCode} 的物料信息`
+          );
+        }
+        console.log(`找到物料信息: ${material.FName}`);
+
+        // 验证条码规则（如果有条码规则系统）
+        const barcodeRule = require("../model/project/barcodeRule");
+        const rule = await barcodeRule.findOne({ materialId: material._id });
+
+        if (rule) {
+          console.log(`找到条码规则: 长度=${rule.minLength}-${rule.maxLength}`);
+          // 验证条码格式
+          if (
+            newBarcode.length < rule.minLength ||
+            newBarcode.length > rule.maxLength
+          ) {
+            throw new Error(
+              `新条码长度不符合规则要求: ${rule.minLength}-${rule.maxLength}`
+            );
+          }
+        } else {
+          console.log(`未找到条码规则，跳过验证`);
+        }
+      }
+
+      // 6. 获取所有与原物料节点相关的子节点
+      // 查找当前物料节点的所有子节点（包括子工序和子物料）
+      const allChildNodes = [];
+      const findChildNodes = (nodeId) => {
+        const directChildren = mainFlowRecord.processNodes.filter(
+          (node) => node.parentNodeId === nodeId
+        );
+        allChildNodes.push(...directChildren);
+        // 递归查找孙子节点
+        directChildren.forEach((child) => findChildNodes(child.nodeId));
+      };
+
+      findChildNodes(materialNode.nodeId);
+
+      console.log(`找到 ${allChildNodes.length} 个与原物料节点相关的子节点`);
+      console.log("子节点列表:");
+      allChildNodes.forEach((node, index) => {
+        console.log(
+          `  ${index + 1}. 类型=${node.nodeType}, ID=${node.nodeId}, ${
+            node.nodeType === "PROCESS_STEP"
+              ? `工序=${node.processName}, ProcessStepId=${node.processStepId}`
+              : `物料=${node.materialName}, 条码=${node.barcode || "无"}`
+          }`
+        );
+      });
+
+      // 7. 进行替换操作
+      // 保存替换前的状态（用于记录）
+      const oldBarcode = materialNode.barcode;
+
+      // 7.1 更新物料节点的条码
+      console.log(
+        `更新物料节点条码: 从 ${materialNode.barcode} 到 ${newBarcode}`
+      );
+      materialNode.barcode = newBarcode;
+      materialNode.scanTime = new Date();
+      materialNode.scanOperator = userId;
+
+      // 如果子工序已经完成，保持完成状态
+      if (materialNode.status === "COMPLETED") {
+        materialNode.status = "COMPLETED";
+      } else {
+        // 否则更新为进行中
+        materialNode.status = "IN_PROCESS";
+      }
+      console.log(`物料节点状态: ${materialNode.status}`);
+
+      // 7.2 如果新条码已有流程记录，使用其子结构信息
+      if (newBarcodeRecord && newBarcodeRecord.processNodes.length > 0) {
+        console.log(`新条码 ${newBarcode} 有流程记录，将使用其工序状态信息`);
+        console.log(
+          `新条码流程记录共有 ${newBarcodeRecord.processNodes.length} 个节点`
+        );
+
+        // 找到新条码流程中的根物料节点
+        const newRootMaterial = newBarcodeRecord.processNodes.find(
+          (node) => node.level === 0 && node.nodeType === "MATERIAL"
+        );
+
+        if (newRootMaterial) {
+          console.log(
+            `找到新条码的根物料节点: ${newRootMaterial.materialName}`
+          );
+
+          // 为每个子节点查找对应的新条码流程节点
+          for (const childNode of allChildNodes) {
+            console.log(
+              `处理子节点: ${childNode.nodeType} - ${childNode.nodeId}`
+            );
+
+            if (childNode.nodeType === "PROCESS_STEP") {
+              // 查找对应的工序节点
+              const matchingProcess = newBarcodeRecord.processNodes.find(
+                (node) =>
+                  node.nodeType === "PROCESS_STEP" &&
+                  node.processCode === childNode.processCode
+              );
+
+              if (matchingProcess) {
+                console.log(`找到匹配工序: ${matchingProcess.processName}`);
+                // 更新工序状态
+                childNode.status = matchingProcess.status || "COMPLETED";
+                childNode.endTime = matchingProcess.endTime || new Date();
+                childNode.scanTime = matchingProcess.scanTime;
+                childNode.updateBy = userId;
+              } else {
+                console.log(
+                  `未找到匹配工序，保持原工序状态: ${childNode.processName}`
+                );
+              }
+            } else if (childNode.nodeType === "MATERIAL") {
+              // 查找对应的物料节点 - 通过物料编码匹配
+              const matchingMaterial = newBarcodeRecord.processNodes.find(
+                (node) =>
+                  node.nodeType === "MATERIAL" &&
+                  node.materialCode === childNode.materialCode
+              );
+
+              if (matchingMaterial && matchingMaterial.barcode) {
+                console.log(
+                  `找到匹配物料节点: ${matchingMaterial.materialName}, 条码: ${matchingMaterial.barcode}`
+                );
+                // 更新物料状态和条码
+                childNode.barcode = matchingMaterial.barcode;
+                childNode.status = matchingMaterial.status || "COMPLETED";
+                childNode.scanTime = matchingMaterial.scanTime || new Date();
+                childNode.endTime = matchingMaterial.endTime || new Date();
+                childNode.updateBy = userId;
+              } else {
+                console.log(
+                  `未找到匹配物料节点，保持原状态: ${childNode.materialName}`
+                );
+                // 清空条码但保留其他信息
+                // if (childNode.requireScan) {
+                //   childNode.barcode = "";
+                //   childNode.status = "PENDING";
+                // }
+              }
+            }
+          }
+        } else {
+          console.log(`未在新条码流程中找到根物料节点，将重置所有子节点状态`);
+
+          // 如果没有找到根物料节点，重置所有子节点
+          // for (const childNode of allChildNodes) {
+          //   if (childNode.nodeType === "PROCESS_STEP") {
+          //     childNode.status = "PENDING";
+          //     childNode.endTime = null;
+          //   } else if (
+          //     childNode.nodeType === "MATERIAL" &&
+          //     childNode.requireScan
+          //   ) {
+          //     childNode.barcode = "";
+          //     childNode.status = "PENDING";
+          //   }
+          // }
+        }
+      } else {
+        console.log(`新条码 ${newBarcode} 没有流程记录，将重置所有子节点状态`);
+
+        // 如果新条码没有流程记录，重置所有子节点状态
+        // for (const childNode of allChildNodes) {
+        //   if (childNode.nodeType === "PROCESS_STEP") {
+        //     childNode.status = "PENDING";
+        //     childNode.endTime = null;
+        //   } else if (
+        //     childNode.nodeType === "MATERIAL" &&
+        //     childNode.requireScan
+        //   ) {
+        //     childNode.barcode = "";
+        //     childNode.status = "PENDING";
+        //   }
+        // }
+      }
+
+      // 8. 创建替换记录
+      // 使用UnbindRecord模型来记录替换操作
+      const UnbindRecord = require("../model/project/unbindRecord");
+
+      console.log("创建替换记录");
+      const unbindRecord = await UnbindRecord.create({
+        mainBarcode: mainBarcode,
+        processNodeId: processNodeId,
+        processName: processNode.processName,
+        processCode: processNode.processCode,
+        processStepId: processNode.processStepId,
+        flowRecordId: mainFlowRecord._id,
+        operateTime: new Date(),
+        operatorId: userId,
+        reason: "物料替换",
+        operationType: "REPLACE",
+        unbindMaterials: [
+          {
+            materialId: materialNode.materialId,
+            materialCode: materialNode.materialCode,
+            materialName: materialNode.materialName,
+            originalBarcode: oldBarcode,
+            newBarcode: newBarcode,
+            childNodesCount: allChildNodes.length, // 记录相关子节点数量
+          },
+        ],
+      });
+      console.log(`替换记录创建成功: ${unbindRecord._id}`);
+
+      // 9. 保存主流程记录
+      console.log("保存主流程记录");
+      await mainFlowRecord.save();
+      console.log("主流程记录保存成功");
+
+      // 10. 返回替换结果
+      console.log("=== 物料替换完成 ===");
+      return {
+        success: true,
+        message: "物料替换成功",
+        data: {
+          mainBarcode,
+          processName: processNode.processName,
+          materialCode: materialNode.materialCode,
+          materialName: materialNode.materialName,
+          oldBarcode,
+          newBarcode,
+          childNodesCount: allChildNodes.length,
+        },
+      };
+    } catch (error) {
+      console.error("物料替换失败:", error);
       throw error;
     }
   }

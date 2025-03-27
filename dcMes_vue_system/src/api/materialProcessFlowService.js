@@ -78,3 +78,12 @@ export function checkBarcodeCompletion(barcode) {
     })
 }
 
+// 替换物料组件
+export function replaceComponent(data) {
+    return request({
+        url: '/replace-component',
+        method: 'post',
+        data
+    })
+}
+

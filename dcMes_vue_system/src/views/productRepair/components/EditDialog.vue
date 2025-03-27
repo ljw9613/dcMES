@@ -253,50 +253,18 @@
               </template>
             </el-table-column>
             <el-table-column
-              prop="oldBarcode"
-              label="旧的部件条码"
-              align="center"
-              min-width="180"
-              v-if="form.solution == '部件更换'"
-            >
-              <template slot-scope="scope">
-                {{ scope.row.oldBarcode }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              prop="newBarcode"
-              label="新的部件条码"
-              align="center"
-              min-width="180"
-              v-if="form.solution == '部件更换'"
-            >
-              <template slot-scope="scope">
-                {{ scope.row.newBarcode }}
-              </template>
-            </el-table-column>
-            <el-table-column
               label="操作"
               width="180"
               align="center"
               fixed="right"
-              v-if="form.solution == '部件更换' || dialogStatus == 'create'"
+              v-if="dialogStatus == 'create'"
             >
               <template slot-scope="scope">
-                <el-button
-                  type="text"
-                  size="mini"
-                  @click="handleReplaceComponent(scope.$index)"
-                  class="replace-btn"
-                  v-if="form.solution == '部件更换'"
-                >
-                  更换新部件
-                </el-button>
                 <el-button
                   type="text"
                   size="mini"
                   @click="handleRemoveBarcode(scope.$index)"
                   class="delete-btn"
-                  v-if="dialogStatus == 'create'"
                 >
                   删除
                 </el-button>
@@ -310,29 +278,6 @@
     <div slot="footer" class="dialog-footer">
       <el-button @click="handleClose">取 消</el-button>
     </div>
-
-    <!-- 在原有的el-dialog下添加新的更换部件弹窗 -->
-    <el-dialog
-      title="更换部件"
-      :visible.sync="replaceDialogVisible"
-      width="30%"
-      append-to-body
-    >
-      <el-form :model="replaceForm" label-width="100px">
-        <el-form-item label="原部件条码">
-          <el-input v-model="oldBarcode" placeholder="请输入原部件条码">
-          </el-input>
-        </el-form-item>
-        <el-form-item label="新部件条码">
-          <el-input v-model="newBarcode" placeholder="请输入新部件条码">
-          </el-input>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="replaceDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="confirmReplace">确 定</el-button>
-      </div>
-    </el-dialog>
   </el-dialog>
 </template>
 
@@ -411,15 +356,6 @@ export default {
         status: [{ required: true, message: "请选择状态", trigger: "change" }],
       },
       submitLoading: false,
-      replacementBarcode: "",
-      currentReplacingIndex: -1,
-      oldBarcode: "",
-      newBarcode: "",
-      replaceDialogVisible: false,
-      replaceForm: {
-        oldBarcode: "",
-        newBarcode: "",
-      },
     };
   },
   computed: {
@@ -466,26 +402,6 @@ export default {
 
       this.searchLoading = true;
       try {
-        //是否为升级条码
-        const preProductionResponse = await getData("preProductionBarcode", {
-          query: {
-            transformedPrintBarcode: this.barcode.trim(),
-          },
-          select: {
-            transformedPrintBarcode: 1,
-            printBarcode: 1,
-          },
-          limit: 1,
-        });
-
-        if (
-          preProductionResponse.data &&
-          preProductionResponse.data.length > 0
-        ) {
-          console.log("升级条码:", preProductionResponse.data[0]);
-          this.barcode = preProductionResponse.data[0].printBarcode;
-        }
-
         if (this.dialogType === "main") {
           // 查询主条码
           const searchQuery = {
@@ -607,16 +523,7 @@ export default {
       if (this.dialogStatus === "edit" || this.dialogStatus === "view") {
         const formData = { ...this.rowData };
         console.log("formData", formData);
-        let arrayData;
-        if (formData.newBarcode) {
-          arrayData = {
-            barcode: formData.barcode,
-            newBarcode: formData.newBarcode,
-            oldBarcode: formData.oldBarcode,
-          };
-        } else {
-          arrayData = { barcode: formData.barcode };
-        }
+        let arrayData = { barcode: formData.barcode };
         formData.barcodes = Array.isArray(arrayData) ? arrayData : [arrayData];
         this.form = formData;
         console.log("formData", formData);
@@ -720,29 +627,6 @@ export default {
         });
       });
     },
-    handleReplaceComponent(index) {
-      this.currentReplacingIndex = index;
-      this.oldBarcode = "";
-      this.newBarcode = "";
-      this.replaceDialogVisible = true;
-    },
-    confirmReplace() {
-      if (!this.oldBarcode || !this.newBarcode) {
-        this.$message.warning("请输入完整的条码信息");
-        return;
-      }
-
-      this.$set(this.form.barcodes, this.currentReplacingIndex, {
-        barcode: this.form.barcodes[this.currentReplacingIndex].barcode,
-        newBarcode: this.newBarcode,
-        oldBarcode: this.oldBarcode,
-      });
-
-      this.replaceDialogVisible = false;
-      this.oldBarcode = "";
-      this.newBarcode = "";
-      this.currentReplacingIndex = -1;
-    },
   },
 };
 </script>
@@ -798,14 +682,5 @@ export default {
 
 ::v-deep .el-table--striped .el-table__body tr.el-table__row--striped td {
   background: #fafafa;
-}
-
-.replace-btn {
-  color: #409eff;
-  margin-right: 10px;
-
-  &:hover {
-    color: #66b1ff;
-  }
 }
 </style>

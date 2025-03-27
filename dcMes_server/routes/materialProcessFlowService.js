@@ -908,4 +908,51 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
   }
 });
 
+// 替换物料组件
+router.post("/api/v1/replace-component", async (req, res) => {
+  try {
+    console.log("[API] 替换物料组件 - 请求参数:", req.body);
+    const {
+      mainBarcode,
+      processNodeId,
+      materialNodeId,
+      originalBarcode,
+      newBarcode,
+      userId
+    } = req.body;
+
+    // 参数验证
+    if (!mainBarcode || !processNodeId || !materialNodeId || !originalBarcode || !newBarcode || !userId) {
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "缺少必要参数"
+      });
+    }
+
+    const result = await MaterialProcessFlowService.replaceComponent(
+      mainBarcode,
+      processNodeId,
+      materialNodeId,
+      originalBarcode,
+      newBarcode,
+      userId
+    );
+
+    res.json({
+      code: 200,
+      success: true,
+      data: result,
+      message: "物料替换成功"
+    });
+  } catch (error) {
+    console.error("物料替换失败:", error);
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
