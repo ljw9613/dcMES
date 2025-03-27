@@ -985,6 +985,33 @@ class MaterialProcessFlowService {
       }
     }
 
+    // 检查是否包含首道工序，以决定是否需要减少工单的投入量
+    let hasFirstProcess = false;
+    
+    // 验证处理的节点中是否包含首道工序
+    for (const processNodeToUnbind of processNodesToUnbind) {
+      const processPosition = this.checkProcessPosition(
+        flowRecord.processNodes,
+        processNodeToUnbind
+      );
+      if (processPosition.isFirst) {
+        hasFirstProcess = true;
+        break;
+      }
+    }
+
+    // 如果包含首道工序且存在工单ID，则减少工单投入量
+    if (hasFirstProcess && flowRecord.productionPlanWorkOrderId && flowRecord.isProduct) {
+      try {
+        // 传入-1表示减少一个单位的投入量
+        await this.updateWorkOrderQuantity(flowRecord.productionPlanWorkOrderId, "input", -1);
+        console.log(`工单${flowRecord.productionPlanWorkOrderId}投入量-1`);
+      } catch (error) {
+        console.error("更新工单投入量失败:", error);
+        // 这里选择继续执行而不抛出错误，以免影响解绑流程
+      }
+    }
+    
     // 获取所有需要解绑的物料节点
     const materialNodesToUnbind = [];
     for (const processNodeToUnbind of processNodesToUnbind) {
