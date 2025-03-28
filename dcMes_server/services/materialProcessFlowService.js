@@ -3253,24 +3253,17 @@ class MaterialProcessFlowService {
         }
         console.log(`找到物料信息: ${material.FName}`);
 
-        // 验证条码规则（如果有条码规则系统）
-        const barcodeRule = require("../model/project/barcodeRule");
-        const rule = await barcodeRule.findOne({ materialId: material._id });
+        // 验证新条码是否符合物料规则
+        const validationResult = await this.validateBarcodeWithMaterial(
+          newBarcode,
+          material
+        );
 
-        if (rule) {
-          console.log(`找到条码规则: 长度=${rule.minLength}-${rule.maxLength}`);
-          // 验证条码格式
-          if (
-            newBarcode.length < rule.minLength ||
-            newBarcode.length > rule.maxLength
-          ) {
-            throw new Error(
-              `新条码长度不符合规则要求: ${rule.minLength}-${rule.maxLength}`
-            );
-          }
-        } else {
-          console.log(`未找到条码规则，跳过验证`);
+        if (!validationResult.isValid) {
+          throw new Error(`新条码验证失败: ${validationResult.error || "不符合条码规则"}`);
         }
+        
+        console.log(`条码验证通过，规则: ${validationResult.ruleName || '未知规则'}`);
       }
 
       // 6. 获取所有与原物料节点相关的子节点
