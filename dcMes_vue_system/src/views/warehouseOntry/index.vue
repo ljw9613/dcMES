@@ -354,7 +354,7 @@ import ScanDialog from './components/ScanDialog.vue';
 import { query } from "quill";
 
 export default {
-    name: 'WarehouseEntry',
+    name: 'warehouseOntry',
     components: {
         ScanDialog
     },
@@ -421,13 +421,13 @@ export default {
                     const update = {
                         outboundQuantity: value
                     };
-                    
+
                     // 当修改的应出库数量等于已出库数量时，自动更新为完成状态
                     if (Number(value) === row.outNumber) {
                         update.status = 'COMPLETED';
                         update.endTime = new Date();
                     }
-                    
+
                     updateData('warehouse_ontry', {
                         query: { _id: row._id },
                         update: update
@@ -714,31 +714,31 @@ export default {
                     const entryDetail = await getData("warehouse_ontry", {
                         query: { _id: row._id }
                     });
-                    
+
                     if (entryDetail.data && entryDetail.data.length > 0) {
                         const entryData = entryDetail.data[0];
-                        
+
                         // 2. 检查并处理托盘项
                         if (entryData.entryItems && entryData.entryItems.length > 0) {
                             // 批量处理所有托盘状态
                             const palletCodes = entryData.entryItems.map(item => item.palletCode);
-                            
+
                             // 3. 更新托盘状态为"已入库"
                             await updateData("material_palletizing", {
                                 query: { palletCode: { $in: palletCodes } },
                                 update: { inWarehouseStatus: "IN_WAREHOUSE" },
                                 multi: true
                             });
-                            
+
                             this.$message.success(`已恢复 ${palletCodes.length} 个托盘的入库状态`);
                         }
                     }
-                    
+
                     // 4. 删除出库单
                     await removeData("warehouse_ontry", {
                         query: { _id: row._id }
                     });
-                    
+
                     this.$message.success('删除成功');
                     this.fetchData();
                 } catch (error) {

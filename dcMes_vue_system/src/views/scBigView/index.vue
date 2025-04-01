@@ -158,7 +158,7 @@
         <span>设备生产状态</span>
         <div class="divider"></div>
       </div>
-      
+
       <!-- 优化小时产能概览区域 -->
       <div class="hourly-overview" v-if="currentWorkOrder">
         <div class="overview-chart-container">
@@ -168,12 +168,12 @@
             </div>
             <div class="header-actions">
               <div class="chart-type-selector">
-                <span 
-                  :class="{'active': chartType === 'bar'}" 
+                <span
+                  :class="{'active': chartType === 'bar'}"
                   @click="switchChartType('bar')"
                 >柱状图</span>
-                <span 
-                  :class="{'active': chartType === 'line'}" 
+                <span
+                  :class="{'active': chartType === 'line'}"
                   @click="switchChartType('line')"
                 >折线图</span>
               </div>
@@ -182,7 +182,7 @@
               </div>
             </div>
           </div>
-          
+
           <div class="hourly-stats">
             <div class="hourly-stat-item">
               <div class="stat-title">当前小时产能</div>
@@ -200,9 +200,9 @@
               <div class="stat-label">件</div>
             </div>
           </div>
-          
+
           <div id="workOrderHourlyChart" class="overview-chart"></div>
-          
+
           <div class="chart-legend">
             <div class="legend-item">
               <div class="legend-color current-hour"></div>
@@ -234,22 +234,22 @@
         </div>
 
         <div class="machines-carousel">
-          <div 
-            class="machines-carousel-wrapper" 
+          <div
+            class="machines-carousel-wrapper"
             :style="{transform: `translateX(-${currentPage * 100}%)`}"
           >
-            <div 
-              v-for="(machinesGroup, groupIndex) in machinesGroups" 
+            <div
+              v-for="(machinesGroup, groupIndex) in machinesGroups"
               :key="groupIndex"
               class="machines-carousel-page"
             >
-              <div 
+              <div
                 v-for="(machine, machineIndex) in machinesGroup"
                 :key="machine._id"
               >
                 <div class="machine-card">
                   <div class="machine-sequence-number">{{ getSequenceNumber(machineIndex, groupIndex) }}</div>
-                  
+
                   <div class="machine-header">
                     <div class="machine-name pulse-effect">
                       {{ machine.machineName }}
@@ -274,7 +274,7 @@
                           {{ getProcessStepName(machine.processStepId) }}
                         </div>
                       </div>
-                      
+
                       <!-- 生产数量信息 -->
                       <div class="production-data">
                         <div class="production-data-row">
@@ -305,9 +305,9 @@
       </div>
 
       <div class="carousel-indicators" v-if="totalPages > 1">
-        <span 
-          v-for="n in totalPages" 
-          :key="n" 
+        <span
+          v-for="n in totalPages"
+          :key="n"
           :class="{'active': currentPage === n-1}"
           @click="goToPage(n-1)"
         ></span>
@@ -325,7 +325,7 @@
         <div class="form-description">
           设置工单的预估小时产能，系统将根据实际产能与预估产能进行对比分析。
         </div>
-        
+
         <div class="target-input-group">
           <span class="input-label">预估小时产能:</span>
           <el-input-number
@@ -337,7 +337,7 @@
           ></el-input-number>
           <span class="input-unit">件/小时</span>
         </div>
-        
+
         <!-- 新增参观模式设置 -->
         <div class="demo-mode-setting">
           <el-switch
@@ -352,7 +352,7 @@
             参观模式下，产能数据将被优化显示，确保达到或超过预估产能。
           </div>
         </div>
-        
+
         <div class="current-setting" v-if="hourlyTarget > 0">
           当前设置: {{ hourlyTarget }} 件/小时
           <span class="demo-tag" v-if="isDemoMode">
@@ -360,7 +360,7 @@
           </span>
         </div>
       </div>
-      
+
       <span slot="footer" class="dialog-footer">
         <el-button @click="targetSettingVisible = false">取消</el-button>
         <el-button type="primary" @click="saveHourlyTarget">确定</el-button>
@@ -368,14 +368,14 @@
     </el-dialog>
   </div>
 </template>
-  
+
 <script>
 import * as echarts from "echarts";
 import CountUp from "countup.js";
 import { getProductionLines, getDashboardData } from "@/api/dashboard";
 
 export default {
-  name: "ProductionDashboard",
+  name: "scBigView",
   data() {
     return {
       isFullscreen: false,
@@ -405,10 +405,10 @@ export default {
   created() {
     this.updateDateTime();
     setInterval(this.updateDateTime, 1000);
-    
+
     // 初始化仪表板，加载缓存的产线
     this.initDashboard();
-    
+
     // 加载保存的预估产能和参观模式设置
     this.loadSettings();
   },
@@ -472,12 +472,12 @@ export default {
     handleLineChange(lineId) {
       console.log(lineId, "lineId");
       this.selectedLineId = lineId._id;
-      
+
       // 将选中的产线ID保存到本地存储
       localStorage.setItem('selected_production_line', this.selectedLineId);
-      
+
       this.fetchDashboardData();
-      
+
       // 加载选中产线的预估产能和参观模式设置
       this.loadSettings();
     },
@@ -742,7 +742,7 @@ export default {
         this.currentPage = this.totalPages - 1;
       }
     },
-    
+
     nextSlide() {
       if (this.currentPage < this.totalPages - 1) {
         this.currentPage++;
@@ -750,7 +750,7 @@ export default {
         this.currentPage = 0;
       }
     },
-    
+
     goToPage(pageIndex) {
       this.currentPage = pageIndex;
     },
@@ -760,7 +760,7 @@ export default {
         this.nextSlide();
       }, 10000);
     },
-    
+
     stopAutoSlide() {
       if (this.autoSlideTimer) {
         clearInterval(this.autoSlideTimer);
@@ -777,75 +777,75 @@ export default {
       // 只渲染工单小时产能图表
       this.renderWorkOrderHourlyChart();
     },
-    
+
     // 获取当前小时产能
     getCurrentHourOutput() {
       const currentHour = new Date().getHours();
-      return this.isDemoMode && this.hasHourlyTarget 
+      return this.isDemoMode && this.hasHourlyTarget
         ? this.optimizedHourlyOutput[currentHour] || 0
         : this.workOrderHourlyOutput[currentHour] || 0;
     },
-    
+
     // 获取最高小时产能
     getMaxHourlyOutput() {
-      const output = this.isDemoMode && this.hasHourlyTarget 
+      const output = this.isDemoMode && this.hasHourlyTarget
         ? this.optimizedHourlyOutput
         : this.workOrderHourlyOutput;
-      
+
       if (!output) return 0;
       return Math.max(...Object.values(output));
     },
-    
+
     // 获取今日总产能
     getTotalDailyOutput() {
-      const output = this.isDemoMode && this.hasHourlyTarget 
+      const output = this.isDemoMode && this.hasHourlyTarget
         ? this.optimizedHourlyOutput
         : this.workOrderHourlyOutput;
-      
+
       if (!output) return 0;
       return Object.values(output).reduce((sum, value) => sum + value, 0);
     },
-    
+
     // 修改工单小时产能图表，支持高亮当前小时和峰值小时
     renderWorkOrderHourlyChart() {
       const chartDom = document.getElementById('workOrderHourlyChart');
       if (!chartDom) return;
-      
+
       let chart = this.charts['workOrderHourlyChart'];
       if (chart) {
         chart.dispose();
       }
-      
+
       chart = echarts.init(chartDom);
       this.charts['workOrderHourlyChart'] = chart;
-      
+
       const hours = [];
       const outputData = [];
-      
+
       // 获取当前时间
       const currentHour = new Date().getHours();
-      
+
       // 找出峰值小时
       let peakHour = 0;
       let peakValue = 0;
-      
+
       // 设置数据
       for (let hour = 0; hour < 24; hour++) {
         hours.push(hour + ':00');
-        const value = this.isDemoMode && this.hasHourlyTarget 
+        const value = this.isDemoMode && this.hasHourlyTarget
           ? this.optimizedHourlyOutput[hour] || 0
           : this.workOrderHourlyOutput[hour] || 0;
         outputData.push(value);
-        
+
         if (value > peakValue) {
           peakValue = value;
           peakHour = hour;
         }
       }
-      
+
       // 自动计算Y轴的最大值，考虑预估产能值
       const maxValue = Math.max(...outputData, this.hourlyTarget || 0, 10);
-      
+
       const option = {
         grid: {
           left: '3%',
@@ -858,7 +858,7 @@ export default {
           trigger: 'axis',
           formatter: function(params) {
             let result = `${params[0].axisValue}<br/>`;
-            
+
             // 添加实际产能提示
             params.forEach(param => {
               // 筛选出非预估产能线的提示
@@ -866,12 +866,12 @@ export default {
                 result += `${param.marker}${param.seriesName}: ${param.value} 件<br/>`;
               }
             });
-            
+
             // 如果有预估产能线，添加相应提示
             if (params.length > 1 && params[1].seriesName === '预估产能') {
               result += `${params[1].marker}预估产能: ${params[1].value} 件<br/>`;
             }
-            
+
             return result;
           },
           axisPointer: {
@@ -1011,9 +1011,9 @@ export default {
           }] : [])
         ]
       };
-      
+
       chart.setOption(option);
-      
+
       window.addEventListener('resize', () => {
         chart.resize();
       });
@@ -1031,35 +1031,35 @@ export default {
         if (savedTarget) {
           this.hourlyTarget = parseInt(savedTarget);
         }
-        
+
         // 加载参观模式设置
         const demoMode = localStorage.getItem(`demo_mode_${this.selectedLineId}`);
         this.isDemoMode = demoMode === 'true';
         this.demoModeEnabled = this.isDemoMode;
       }
     },
-    
+
     // 显示预估产能设置窗口
     showTargetSettingDialog() {
       this.hourlyTargetInput = this.hourlyTarget || 0;
       this.demoModeEnabled = this.isDemoMode;
       this.targetSettingVisible = true;
     },
-    
+
     // 保存预估产能和参观模式设置
     saveHourlyTarget() {
       this.hourlyTarget = this.hourlyTargetInput;
       this.isDemoMode = this.demoModeEnabled;
-      
+
       if (this.selectedLineId) {
         localStorage.setItem(`hourly_target_${this.selectedLineId}`, this.hourlyTarget.toString());
         localStorage.setItem(`demo_mode_${this.selectedLineId}`, this.isDemoMode.toString());
       }
-      
+
       this.targetSettingVisible = false;
       this.renderWorkOrderHourlyChart(); // 重新渲染图表
     },
-    
+
     // 计算效率(当前小时产能/预估产能)
     calculateEfficiency() {
       if (!this.hasHourlyTarget) return 0;
@@ -1067,7 +1067,7 @@ export default {
       const efficiency = (currentHourOutput / this.hourlyTarget) * 100;
       return Math.round(efficiency);
     },
-    
+
     // 获取效率显示样式类
     getEfficiencyClass() {
       const efficiency = this.calculateEfficiency();
@@ -1080,14 +1080,14 @@ export default {
     machinesGroups() {
       const groups = [];
       const machinesCount = this.machines.length;
-      
+
       for (let i = 0; i < machinesCount; i += this.machinesPerPage) {
         groups.push(this.machines.slice(i, i + this.machinesPerPage));
       }
-      
+
       return groups;
     },
-    
+
     totalPages() {
       return this.machinesGroups.length;
     },
@@ -1101,50 +1101,50 @@ export default {
     hasHourlyTarget() {
       return this.hourlyTarget > 0;
     },
-    
+
     // 获取优化后的工单小时产能数据
     optimizedHourlyOutput() {
       if (!this.isDemoMode || !this.hasHourlyTarget) {
         return this.workOrderHourlyOutput;
       }
-      
+
       // 在参观模式下优化显示的产能数据
       const optimized = { ...this.workOrderHourlyOutput };
       const target = this.hourlyTarget;
-      
+
       // 对每小时数据进行优化
       for (let hour in optimized) {
         // 基础数值：实际值的1.1-1.3倍，但不低于目标值
         let enhancedValue = Math.round(optimized[hour] * (1.1 + Math.random() * 0.2));
-        
+
         // 确保值至少达到目标的85%-115%
         const minValue = Math.round(target * 0.85);
         const maxValue = Math.round(target * 1.15);
-        
+
         // 使用伪随机方式确保数据有波动但基本符合目标
         enhancedValue = Math.max(enhancedValue, minValue);
-        
+
         // 为高峰时段(9-11点和14-16点)添加额外提升
         const peakHours = [9, 10, 11, 14, 15, 16];
         if (peakHours.includes(parseInt(hour))) {
           enhancedValue = Math.max(enhancedValue, Math.round(target * 1.05));
         }
-        
+
         // 为低谷时段(12点和晚上)降低数值，保持自然波动
         const valleyHours = [12, 13, 19, 20, 21, 22, 23];
         if (valleyHours.includes(parseInt(hour))) {
           enhancedValue = Math.min(enhancedValue, Math.round(target * 1.05));
         }
-        
+
         optimized[hour] = enhancedValue;
       }
-      
+
       return optimized;
     }
   },
 };
 </script>
-  
+
 <style scoped>
 .production-dashboard {
   display: flex;

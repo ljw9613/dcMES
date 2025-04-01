@@ -463,7 +463,7 @@ import hirInput from "@/components/hirInput";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
 export default {
-  name: "ScanBarCode",
+  name: "scanBarCodeBatch",
   components: {
     ZrSelect,
     hirInput,
@@ -2380,7 +2380,7 @@ export default {
       }
       this.batchForm.batchSize = value;
 
-    
+
     },
 
     // 新增保存批次数量方法

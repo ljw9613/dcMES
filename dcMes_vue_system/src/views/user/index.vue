@@ -130,8 +130,8 @@
           <div class="password-field">
             <span v-if="scope.row.showPassword">{{ scope.row.password }}</span>
             <span v-else>******</span>
-            <i 
-              :class="scope.row.showPassword ? 'el-icon-view' : 'el-icon-hide'" 
+            <i
+              :class="scope.row.showPassword ? 'el-icon-view' : 'el-icon-hide'"
               @click="togglePasswordVisibility(scope.row)"
               class="password-toggle-icon">
             </i>
@@ -235,11 +235,11 @@
         </el-form-item>
         <el-form-item label="用户密码" label-width="120">
           <div class="password-input-container">
-            <el-input 
+            <el-input
               v-model="password"  :show-password="true"
               placeholder="请输入管理人员的密码">
            </el-input>
-            
+
           </div>
         </el-form-item>
         <el-form-item label="联系姓名" label-width="120">
@@ -431,6 +431,7 @@ import XLSX from "xlsx";
 
 let that;
 export default {
+  name : "user",
   filters: {},
   data() {
     return {
@@ -970,7 +971,7 @@ export default {
           <head>
             <title>批量打印二维码</title>
             <style>
-              body { 
+              body {
                 padding: 20px;
                 font-family: Arial, sans-serif;
               }
@@ -1207,7 +1208,7 @@ export default {
           <head>
             <title>批量打印二维码</title>
             <style>
-              body { 
+              body {
                 padding: 20px;
                 font-family: Arial, sans-serif;
               }
@@ -1795,7 +1796,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   .password-toggle-icon {
     margin-left: 8px;
     cursor: pointer;
@@ -1809,7 +1810,7 @@ export default {
 .password-input-container {
   position: relative;
   width: 100%;
-  
+
   .password-toggle-icon {
     position: absolute;
     right: 10px;
@@ -1818,7 +1819,7 @@ export default {
     cursor: pointer;
     color: #909399;
     z-index: 2;
-    
+
     &:hover {
       color: #409EFF;
     }

@@ -367,7 +367,7 @@ import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 import hirInput from "@/components/hirInput"; // 导入hir-input组件
 
 export default {
-  name: "ScanBarCode",
+  name: "scanBarCodePack",
   components: {
     ZrSelect,
     TscPrinter,

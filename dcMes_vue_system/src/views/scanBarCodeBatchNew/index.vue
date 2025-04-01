@@ -422,7 +422,7 @@ import hirInput from "@/components/hirInput";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 
 export default {
-  name: "ScanBarCode",
+  name: "scanBarCodeBatchNew",
   components: {
     ZrSelect,
     hirInput,

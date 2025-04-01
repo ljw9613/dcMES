@@ -102,7 +102,7 @@
                     <el-switch v-model="currentRule.enabled" />
                 </el-form-item>
                 <el-form-item label="全局使用">
-                    <el-switch 
+                    <el-switch
                         v-model="currentRule.isGlobal"
                         active-text="全局"
                         inactive-text="普通"
@@ -429,6 +429,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import Pagination from '@/components/Pagination'
 
 export default {
+  name: "barcodeSegmentRule",
     components: {
         Pagination
     },
