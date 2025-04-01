@@ -74,7 +74,7 @@ const sale_order_barcode_mapping = require("../model/project/saleOrderBarcodeMap
 const productRepair = require("../model/project/productRepair");
 
 // 引入 udi 模型
-const productDiNum = require("../model/project/ProductDiNum");
+const productDiNum = require("../model/project/productDiNum");
 const productEanNum = require("../model/project/productEanNum");
 
 //封装

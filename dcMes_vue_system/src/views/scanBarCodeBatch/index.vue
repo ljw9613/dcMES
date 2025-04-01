@@ -1948,13 +1948,16 @@ export default {
 
             // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
             if (res.data.status == "STACKED") {
-              this.palletForm.palletCode = "";
-              this.palletForm.totalQuantity = 0;
-              this.scannedList = [];
-
               this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints2();
               });
+              
+              // 打印完成后再清空数据
+              setTimeout(() => {
+                this.palletForm.palletCode = "";
+                this.palletForm.totalQuantity = 0;
+                this.scannedList = [];
+              }, 100); // 短暂延迟确保打印先执行
             }
           } else {
             this.$message.error(res.message);

@@ -8,7 +8,7 @@ const K3Material = require("../model/k3/k3_BD_MATERIAL");
 const modelConfig = require("../model/k3/model.json");
 const Craft = require("../model/project/craft");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
-const ProductDiNum = require("../model/project/ProductDiNum");
+const ProductDiNum = require("../model/project/productDiNum");
 const processMaterials = require("../model/project/processMaterials");
 
 // 添加在文件顶部
@@ -245,7 +245,7 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
 // 仓库数据同步的具体实现
 async function syncStockData(modelName, filterString, syncTask) {
   try {
-    const K3Stock = require("../model/k3/k3_BD_STOCK");
+    const K3Stock = require("../model/k3/K3_BD_STOCK");
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;

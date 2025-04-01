@@ -171,15 +171,21 @@
               <span>统一扫描区域</span>
             </div>
             <div class="scan-input-section">
-              <el-input
-                v-model="unifiedScanInput"
-                placeholder="请扫描条码"
-                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
-                ref="scanInput"
-                clearable
-                @clear="focusInput"
-              >
-              </el-input>
+              <div class="custom-input-container">
+                <input
+                  type="text"
+                  v-model="unifiedScanInput"
+                  placeholder="请扫描条码"
+                  @keyup.enter="handleUnifiedScan(unifiedScanInput)"
+                  ref="scanInput"
+                  class="custom-input"
+                />
+                <i 
+                  v-if="unifiedScanInput" 
+                  class="el-icon-close custom-clear-icon" 
+                  @click="clearInput"
+                ></i>
+              </div>
             </div>
             <!-- 主物料部分 -->
             <div class="section-header">
@@ -2291,6 +2297,10 @@ export default {
         return 0;
       }
     },
+    clearInput() {
+      this.unifiedScanInput = '';
+      this.focusInput();
+    },
   },
   async created() {
     // 从本地存储中恢复自动打印开关状态
@@ -2723,6 +2733,48 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   border: 2px solid #409eff;
+}
+
+.custom-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.custom-input {
+  width: 100%;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 15px;
+  padding-right: 30px;
+  border-radius: 4px;
+  border: 1px solid #dcdfe6;
+  font-size: 14px;
+  color: #606266;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.custom-input:focus {
+  border-color: #409eff;
+}
+
+.custom-input:hover {
+  border-color: #c0c4cc;
+}
+
+.custom-clear-icon {
+  position: absolute;
+  right: 10px;
+  color: #c0c4cc;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.custom-clear-icon:hover {
+  color: #909399;
 }
 
 .scan-input-section .el-input {

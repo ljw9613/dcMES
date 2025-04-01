@@ -2543,10 +2543,10 @@ export default {
           productionLineId: this.formData.productLine, // 关联产线
           status: { $ne: "VOIDED" },
           // 添加产线信息
-          createAt: {
-            $gte: new Date(new Date().setHours(0, 0, 0, 0)), // 当天开始时间
-            $lt: new Date(new Date().setHours(23, 59, 59, 999)), // 当天结束时间
-          },
+          // createAt: {
+          //   $gte: new Date(new Date().setHours(0, 0, 0, 0)), // 当天开始时间
+          //   $lt: new Date(new Date().setHours(23, 59, 59, 999)), // 当天结束时间
+          // },
         },
         sort: { serialNumber: -1 },
         limit: 1,
