@@ -5,7 +5,7 @@ const K3ProductionOrder = require("../model/k3/k3_PRD_MO");
 const MaterialPallet = require("../model/project/materialPalletizing");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const { k3cMethod } = require("./k3cMethod");
-const K3Stock = require("../model/k3/k3_BD_STOCK");
+const K3Stock = require("../model/k3/K3_BD_STOCK");
 // 扫码入库（包含自动创建入库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
   try {

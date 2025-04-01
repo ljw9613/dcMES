@@ -8,7 +8,7 @@ const K3Material = require("../model/k3/k3_BD_MATERIAL");
 const modelConfig = require("../model/k3/model.json");
 const Craft = require("../model/project/craft");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
-const ProductDiNum = require("../model/project/ProductDiNum");
+const ProductDiNum = require("../model/project/productDiNum");
 const processMaterials = require("../model/project/processMaterials");
 
 // 添加在文件顶部

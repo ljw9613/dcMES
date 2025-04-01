@@ -47,11 +47,11 @@ const warehouseOntry = require("../model/warehouse/warehouseOntry");
 const k3_BD_MATERIAL = require("../model/k3/k3_BD_MATERIAL");
 const k3_PRD_MO = require("../model/k3/k3_PRD_MO");
 const k3_SAL_SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
-const k3_BD_STOCK = require("../model/k3/k3_BD_STOCK");
-const k3_PUR_PurchaseOrder = require("../model/k3/k3_PUR_PurchaseOrder");
+const k3_BD_STOCK = require("../model/k3/K3_BD_STOCK");
+const k3_PUR_PurchaseOrder = require("../model/k3/K3_PUR_PurchaseOrder");
 const k3_PRD_PickMtrl = require("../model/k3/K3_PRD_PickMtrl");
 const k3_SAL_DeliveryNotice = require("../model/k3/K3_SAL_DeliveryNotice");
-const k3_PRD_InStock = require("../model/k3/K3_PRD_InStock");
+const k3_PRD_InStock = require("../model/k3/K3_PRD_INSTOCK");
 const k3_PUR_RequisitionBill = require("../model/k3/K3_PUR_RequisitionBill");
 const K3_SAL_OutStock = require("../model/k3/K3_SAL_OutStock");
 
@@ -59,7 +59,7 @@ const K3_SAL_OutStock = require("../model/k3/K3_SAL_OutStock");
 //k3 拓展模型
 const k3_SAL_SaleOrderExt = require("../model/k3Ext/k3_SAL_SaleOrderExt");
 const k3_PRD_PickMtrlExt = require("../model/k3Ext/k3_PRD_PickMtrlExt");
-const k3_PUR_RequisitionBillExt = require("../model/k3Ext/K3_PUR_RequisitionBillExt");
+const k3_PUR_RequisitionBillExt = require("../model/k3Ext/k3_PUR_RequisitionBillExt");
 const k3_SAL_OutStockExt = require("../model/k3Ext/k3_SAL_OutStockExt");
 const k3_SAL_DeliveryNoticeExt = require("../model/k3Ext/k3_SAL_DeliveryNoticeExt");
 const k3_SAL_SaleOrder_CustInfo = require("../model/k3Ext/k3_SAL_SaleOrder_CustInfo");
@@ -74,7 +74,7 @@ const sale_order_barcode_mapping = require("../model/project/saleOrderBarcodeMap
 const productRepair = require("../model/project/productRepair");
 
 // 引入 udi 模型
-const productDiNum = require("../model/project/ProductDiNum");
+const productDiNum = require("../model/project/productDiNum");
 const productEanNum = require("../model/project/productEanNum");
 
 //封装
