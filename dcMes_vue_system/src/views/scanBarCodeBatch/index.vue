@@ -200,8 +200,19 @@
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
             <div class="section-header">
               <div class="header-left">
-                <i class="el-icon-camera"></i>
-                <span>统一扫描区域</span>
+                <i class="el-icon-full-screen"></i>
+                <span>统一扫描输入框</span>
+              </div>
+              <div class="mode-switch">
+                <span class="mode-label">入托模式：</span>
+                <el-switch
+                  v-model="palletizingMode"
+                  active-text="包装箱入托"
+                  inactive-text="单产品入托"
+                  active-value="box"
+                  inactive-value="single"
+                  @change="handlePalletizingModeChange"
+                ></el-switch>
               </div>
               <hir-input
                 ref="hirInput"
@@ -458,6 +469,7 @@ import cxwgd from "@/assets/tone/cxwgd.mp3";
 import cfbd from "@/assets/tone/cfbd.mp3";
 import dwx from "@/assets/tone/dwx.mp3";
 import wxsb from "@/assets/tone/wxsb.mp3";
+import slbpp from "@/assets/tone/slbpp.mp3";
 
 import hirInput from "@/components/hirInput";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
@@ -530,7 +542,7 @@ export default {
       scannedList: [], // 已扫描条码列表
       boxList: [], // 包装箱列表
       palletForm: {
-        productionPlanWorkOrderId:"",
+        productionPlanWorkOrderId: "",
         palletCode: "",
         saleOrderId: "",
         saleOrderNo: "",
@@ -553,6 +565,7 @@ export default {
       scanMode: localStorage.getItem("scanMode") || "normal", // 默认为普通模式
 
       craftInfo: {},
+      palletizingMode: localStorage.getItem("palletizingMode") || "single", // 默认单产品入托模式
     };
   },
   computed: {
@@ -1738,10 +1751,50 @@ export default {
             },
           },
         });
-        console.log("boxResponse", boxResponse);
-        if (boxResponse.data && boxResponse.data.length > 0) {
+
+        const isBoxBarcode = boxResponse.data && boxResponse.data.length > 0;
+
+        // 根据当前入托模式进行检验
+        if (this.palletizingMode === "box" && !isBoxBarcode) {
+          this.$message.error("当前为包装箱入托模式，请扫描包装箱条码");
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          this.unifiedScanInput = "";
+          this.$refs.scanInput.focus();
+          return;
+        } else if (this.palletizingMode === "single" && isBoxBarcode) {
+          this.$message.error("当前为单产品入托模式，请扫描单个产品条码");
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          this.unifiedScanInput = "";
+          this.$refs.scanInput.focus();
+          return;
+        }
+
+        if (isBoxBarcode) {
+          //找到包装箱条码对应的节点数据
+          let nodeData = boxResponse.data[0];
+          console.log(nodeData,'nodeData==')
+          let packingBoxNode = nodeData.processNodes.filter(
+            (item) => item.barcode == cleanValue
+          )[0];
+          
+          console.log(packingBoxNode,'nodeData==')
+
+          // 检查批次用量与箱内条码数量是否匹配
+          if (packingBoxNode.batchQuantity && packingBoxNode.batchQuantity !== boxResponse.data.length) {
+            this.$message.error(`包装箱条码数量(${boxResponse.data.length})与设定的批次用量(${packingBoxNode.batchQuantity})不匹配`);
+            this.popupType = "ng";
+            this.showPopup = true;
+            tone(slbpp);
+            return;
+          }
+          
           // 首先取一条主条码数据进行校验是否为当前产品
-          let mainBarcode = boxResponse.data[0].barcode;
+          let mainBarcode = nodeData.barcode;
+          console.log(mainBarcode,'mainBarcode==')
           let isValid = await this.validateBarcode(mainBarcode);
           console.log("isValid", isValid);
           if (!isValid.isValid) {
@@ -1951,7 +2004,7 @@ export default {
               this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints2();
               });
-              
+
               // 打印完成后再清空数据
               setTimeout(() => {
                 this.palletForm.palletCode = "";
@@ -2382,8 +2435,6 @@ export default {
         return;
       }
       this.batchForm.batchSize = value;
-
-    
     },
 
     // 新增保存批次数量方法
@@ -2513,8 +2564,7 @@ export default {
         });
         console.log(response, "response");
         if (response.code === 200 && response.data.length > 0) {
-          this.palletForm.productionPlanWorkOrderId =
-            response.data[0]._id;
+          this.palletForm.productionPlanWorkOrderId = response.data[0]._id;
           this.palletForm.saleOrderId = response.data[0].saleOrderId._id;
           this.palletForm.saleOrderNo = response.data[0].saleOrderNo;
           this.palletForm.productionOrderId =
@@ -2531,7 +2581,8 @@ export default {
         if (this.mainMaterialId && this.palletForm.productionOrderId) {
           const palletResponse = await getData("material_palletizing", {
             query: {
-              productionPlanWorkOrderId: this.palletForm.productionPlanWorkOrderId, // 添加工单ID筛选
+              productionPlanWorkOrderId:
+                this.palletForm.productionPlanWorkOrderId, // 添加工单ID筛选
               productLineId: this.productLineId,
               status: "STACKING",
               materialId: this.mainMaterialId,
@@ -2606,6 +2657,20 @@ export default {
         console.error("保存打印模板失败:", error);
         this.$message.error("保存打印模板失败");
       }
+    },
+
+    // 处理入托模式切换
+    handlePalletizingModeChange(value) {
+      localStorage.setItem("palletizingMode", value);
+      this.$message.success(
+        `已切换至${value === "box" ? "包装箱入托" : "单产品入托"}模式`
+      );
+      // 清空输入框
+      this.unifiedScanInput = "";
+      // 重新获取焦点
+      this.$nextTick(() => {
+        this.$refs.scanInput.focus();
+      });
     },
   },
   async created() {
@@ -2752,12 +2817,11 @@ export default {
 
 .section-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin: 20px 0;
-  padding: 10px 15px;
-  background: #f5f7fa;
-  border-radius: 6px;
+  margin-bottom: 10px;
+  gap: 15px; /* 添加元素之间的间距 */
 }
 
 .progress-container {
@@ -3371,5 +3435,54 @@ export default {
 
 .status-indicator.valid {
   background: #67c23a;
+}
+
+.mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-label {
+  color: #606266;
+  font-size: 14px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  min-width: 140px; /* 设置最小宽度 */
+}
+
+.mode-switch {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  margin: 0 10px;
+}
+
+.mode-label {
+  margin-right: 8px;
+}
+
+/* 为打印组件添加样式 */
+.section-header /deep/ .hir-input-container {
+  flex: 1; /* 占用剩余空间 */
+  min-width: 280px; /* 确保最小宽度 */
+}
+
+/* 在小屏幕上调整为垂直布局 */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mode-switch,
+  .header-left,
+  .section-header /deep/ .hir-input-container {
+    width: 100%;
+    margin: 5px 0;
+  }
 }
 </style>

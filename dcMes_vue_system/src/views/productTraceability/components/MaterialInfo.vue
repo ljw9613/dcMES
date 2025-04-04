@@ -69,6 +69,7 @@
             <el-table-column label="操作" width="120" fixed="right">
                 <template slot-scope="scope">
                     <el-button type="text" size="small" @click="handleUnbind(scope.row)">解绑</el-button>
+                    <el-button type="text" size="small" @click="handleReplace(scope.row)">替换</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -78,6 +79,7 @@
 <script>
 import { unbindComponents } from '@/api/materialProcessFlowService';
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { replaceComponents } from '@/api/materialProcessFlowService';
 
 export default {
     name: 'MaterialInfo',
@@ -93,12 +95,18 @@ export default {
     },
     data() {
         return {
-
             unbindDialogVisible: false,
             unbindForm: {
                 processNodeId: '',
                 reason: '',
                 materialIds: []
+            },
+            replaceDialogVisible: false,
+            replaceForm: {
+                processStepId: '',
+                oldBarcode: '',
+                newBarcode: '',
+                reason: ''
             }
         }
     },
@@ -187,6 +195,118 @@ export default {
                     this.$message.error('解绑失败: ' + (error.message || error));
                 }
             }
+        },
+        async handleReplace(row) {
+            try {
+                // 检查是否有维修记录
+                let barcodeRepair = await getData('product_repair', {
+                    query: {
+                        barcode: this.mainBarcode,
+                        status: 'PENDING_REVIEW'
+                    }
+                });
+
+                if (barcodeRepair.data.length === 0) {
+                    this.$message.warning('请先创建维修记录，再进行替换操作');
+                    return;
+                }
+
+                // 获取要替换的组件信息
+                const components = row.children ? row.children.filter(item => item.nodeType === 'MATERIAL') : [];
+                if (components.length === 0) {
+                    this.$message.warning('该工序下没有可替换的物料');
+                    return;
+                }
+
+                // 让用户选择要替换的组件
+                const { value: selectedComponent } = await this.$confirm(
+                    '请选择要替换的物料',
+                    '替换物料',
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        customClass: 'replace-component-dialog',
+                        showInput: true,
+                        inputType: 'select',
+                        inputPlaceholder: '请选择物料',
+                        inputValue: components[0].materialId,
+                        inputOptions: components.reduce((acc, curr) => {
+                            acc[curr.materialId] = `${curr.materialName} (${curr.materialCode})`;
+                            return acc;
+                        }, {})
+                    }
+                );
+
+                if (!selectedComponent) return;
+
+                // 提示用户输入新的条码和替换原因
+                const { value: formValues } = await this.$prompt(
+                    '<div class="replace-form">' +
+                    '<div class="form-item"><label>新条码:</label><input id="newBarcode" class="el-input__inner" /></div>' +
+                    '<div class="form-item"><label>替换原因:</label><input id="reason" class="el-input__inner" /></div>' +
+                    '</div>',
+                    '替换信息',
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        dangerouslyUseHTMLString: true,
+                        inputValidator: () => {
+                            const newBarcode = document.getElementById('newBarcode').value;
+                            const reason = document.getElementById('reason').value;
+                            if (!newBarcode) return '新条码不能为空';
+                            if (!reason) return '替换原因不能为空';
+                            return true;
+                        },
+                        beforeClose: (action, instance, done) => {
+                            if (action === 'confirm') {
+                                const newBarcode = document.getElementById('newBarcode').value;
+                                const reason = document.getElementById('reason').value;
+                                instance.inputValue = { newBarcode, reason };
+                            }
+                            done();
+                        }
+                    }
+                );
+
+                if (!formValues) return;
+
+                const { newBarcode, reason } = formValues;
+                const selectedMaterial = components.find(item => item.materialId === selectedComponent);
+
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在替换...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                try {
+                    const replaceData = {
+                        mainBarcode: this.mainBarcode,
+                        processStepId: row.processStepId,
+                        oldBarcode: selectedMaterial.barcode,
+                        newBarcode: newBarcode,
+                        userId: this.$store.state.user.id,
+                        reason: reason
+                    };
+
+                    const response = await replaceComponents(replaceData);
+
+                    if (response.code === 200 && response.success) {
+                        this.$message.success('替换成功');
+                        this.$emit('replace-success');
+                    } else {
+                        throw new Error(response.message || '替换失败');
+                    }
+                } finally {
+                    loading.close();
+                }
+            } catch (error) {
+                if (error !== 'cancel') {
+                    console.error('替换失败:', error);
+                    this.$message.error('替换失败: ' + (error.message || error));
+                }
+            }
         }
     }
 }
@@ -256,6 +376,30 @@ export default {
 
     .no-barcode {
         color: #909399;
+    }
+}
+
+.replace-form {
+    .form-item {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        
+        label {
+            width: 80px;
+            text-align: right;
+            margin-right: 10px;
+        }
+        
+        .el-input__inner {
+            width: 100%;
+        }
+    }
+}
+
+.replace-component-dialog {
+    .el-select {
+        width: 100%;
     }
 }
 </style>

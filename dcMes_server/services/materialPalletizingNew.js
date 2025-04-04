@@ -370,10 +370,11 @@ class MaterialPalletizingService {
         for (const boxBarcode of boxItem.boxBarcodes) {
           await materialProcessFlowService.unbindProcessComponents(
             boxBarcode.barcode,
-            pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
+            pallet.processStepId,
             userId,
             "托盘解绑", // 添加解绑原因
-            true // 不解绑后续工序
+            true, // 解绑后续工序
+            true  // 标记为来自托盘解绑调用
           );
         }
 
@@ -401,19 +402,6 @@ class MaterialPalletizingService {
           palletCode,
           boxItem.boxBarcodes.map((bb) => bb.barcode)
         );
-
-        // 找到条码对应的工单记录并减少计数
-        const palletBarcode = pallet.palletBarcodes.find(pb => pb.barcode === barcode);
-        if (palletBarcode && palletBarcode.productionPlanWorkOrderId && pallet.workOrders) {
-          const workOrderIndex = pallet.workOrders.findIndex(
-            wo => wo.productionPlanWorkOrderId && 
-                 wo.productionPlanWorkOrderId.toString() === palletBarcode.productionPlanWorkOrderId.toString()
-          );
-          
-          if (workOrderIndex !== -1 && pallet.workOrders[workOrderIndex].quantity > 0) {
-            pallet.workOrders[workOrderIndex].quantity -= 1;
-          }
-        }
       } else {
         // 检查条码是否在箱内
         const isInBox = pallet.boxItems.some((item) =>
@@ -455,16 +443,16 @@ class MaterialPalletizingService {
               node.nodeType === "PROCESS_STEP"
           );
 
-          // 验证工序节点状态
-          if (processNode && processNode.status == "COMPLETED") {
+          // 不管工序节点状态，都进行解绑
+          if (processNode) {
             // 解绑单个条码
-            // 1. 重置工序状态
             await materialProcessFlowService.unbindProcessComponents(
               barcode,
-              pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
+              pallet.processStepId,
               userId,
               "托盘解绑", // 添加解绑原因
-              true // 不解绑后续工序
+              true, // 解绑后续工序
+              true  // 标记为来自托盘解绑调用
             );
           }
         }
@@ -476,6 +464,19 @@ class MaterialPalletizingService {
             "output",
             -1 // 负数表示减少产出量
           );
+        }
+
+        // 找到条码对应的工单记录并减少计数
+        const palletBarcode = pallet.palletBarcodes.find(pb => pb.barcode === barcode);
+        if (palletBarcode && palletBarcode.productionPlanWorkOrderId && pallet.workOrders) {
+          const workOrderIndex = pallet.workOrders.findIndex(
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === palletBarcode.productionPlanWorkOrderId.toString()
+          );
+          
+          if (workOrderIndex !== -1 && pallet.workOrders[workOrderIndex].quantity > 0) {
+            pallet.workOrders[workOrderIndex].quantity -= 1;
+          }
         }
 
         // 2. 从托盘条码列表中移除
@@ -564,10 +565,11 @@ class MaterialPalletizingService {
       for (const palletBarcode of pallet.palletBarcodes) {
         await materialProcessFlowService.unbindProcessComponents(
           palletBarcode.barcode,
-          pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
+          pallet.processStepId,
           userId,
           "托盘解绑", // 添加解绑原因
-          true // 不解绑后续工序
+          true, // 解绑后续工序
+          true  // 标记为来自托盘解绑调用
         );
       }
 

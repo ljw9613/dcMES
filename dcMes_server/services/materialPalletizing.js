@@ -242,8 +242,15 @@ class MaterialPalletizingService {
    * @param {String} palletCode - 托盘编号
    * @param {String} barcode - 需要解绑的条码
    * @param {String} userId - 操作用户ID
+   * @param {boolean} fromProcessUnbind - 是否来自工序解绑
    */
-  static async unbindBarcode(palletCode, barcode, userId, reason = "托盘解绑") {
+  static async unbindBarcode(
+    palletCode,
+    barcode,
+    userId,
+    reason = "托盘解绑",
+    fromProcessUnbind = false
+  ) {
     try {
       const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
@@ -287,13 +294,16 @@ class MaterialPalletizingService {
         // 解绑整个箱子
         // 1. 解绑箱内所有条码的工序状态
         for (const boxBarcode of boxItem.boxBarcodes) {
-          await materialProcessFlowService.unbindProcessComponents(
-            boxBarcode.barcode,
-            pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
-            userId,
-            "托盘解绑", // 添加解绑原因
-            true // 不解绑后续工序
-          );
+          if (!fromProcessUnbind) {
+            await materialProcessFlowService.unbindProcessComponents(
+              boxBarcode.barcode,
+              pallet.processStepId,
+              userId,
+              "托盘解绑",
+              true,
+              true // 标记为来自托盘解绑调用
+            );
+          }
         }
 
         // 减少工单产出量 - 解绑箱中每个条码减少一个产出量
@@ -364,14 +374,17 @@ class MaterialPalletizingService {
           // 验证工序节点状态
           if (processNode && processNode.status == "COMPLETED") {
             // 解绑单个条码
-            // 1. 重置工序状态
-            await materialProcessFlowService.unbindProcessComponents(
-              barcode,
-              pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
-              userId,
-              "托盘解绑", // 添加解绑原因
-              true // 不解绑后续工序
-            );
+            if (!fromProcessUnbind) {
+              // 1. 重置工序状态
+              await materialProcessFlowService.unbindProcessComponents(
+                barcode,
+                pallet.processStepId,
+                userId,
+                "托盘解绑",
+                true,
+                true // 标记为来自托盘解绑调用
+              );
+            }
           }
         }
 
@@ -470,10 +483,11 @@ class MaterialPalletizingService {
       for (const palletBarcode of pallet.palletBarcodes) {
         await materialProcessFlowService.unbindProcessComponents(
           palletBarcode.barcode,
-          pallet.processStepId, // processStepId 设为 null，因为不需要指定具体工序
+          pallet.processStepId,
           userId,
-          "托盘解绑", // 添加解绑原因
-          true // 不解绑后续工序
+          "托盘解绑",
+          true,
+          true // 标记为来自托盘解绑调用
         );
       }
 
@@ -1034,7 +1048,7 @@ class MaterialPalletizingService {
         }
       }
 
-      console.log(status,'status')
+      console.log(status, "status");
       // 使用arrayFilters更新对应的条码元素
       const updateResult = await MaterialPalletizing.updateOne(
         { "palletBarcodes.barcode": barcode },
@@ -1046,7 +1060,7 @@ class MaterialPalletizingService {
             inspectionBy: userId,
             "palletBarcodes.$[elem].inspectionStatus": "INSPECTING",
             "palletBarcodes.$[elem].inspectionTime": new Date(),
-            "palletBarcodes.$[elem].inspectionResult":status ? "PASS" : "FAIL",
+            "palletBarcodes.$[elem].inspectionResult": status ? "PASS" : "FAIL",
             updateAt: new Date(),
             updateBy: userId,
           },

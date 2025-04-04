@@ -91,10 +91,37 @@
 
         <el-row :gutter="20">
           <el-col :span="6">
-            <el-form-item label="产品规格">
+            <el-form-item label="生产计划工单">
+              <zr-select
+                v-model="searchForm.productionPlanWorkOrderId"
+                collection="production_plan_work_order"
+                :search-fields="['workOrderNo']"
+                label-key="workOrderNo"
+                value-key="_id"
+                sub-key="materialNumber"
+                :multiple="false"
+                placeholder="请选择生产计划工单"
+                clearable
+                style="width: 100%"
+              >
+                <template #option="{ item }">
+                  <div class="select-option">
+                    <div class="option-main">
+                      <span class="option-label">{{ item.workOrderNo }}</span>
+                      <el-tag size="mini" type="info" class="option-tag">
+                        {{ item.materialNumber }} - {{ item.fSpecification }}
+                      </el-tag>
+                    </div>
+                  </div>
+                </template>
+              </zr-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="产品型号">
               <el-input
                 v-model="searchForm.productModel"
-                placeholder="请输入产品规格"
+                placeholder="请输入产品型号"
                 clearable
               ></el-input>
             </el-form-item>
@@ -1091,6 +1118,8 @@ export default {
         status: "",
         dateRange: [],
         progress: "",
+        workOrderNo: "",
+        productionPlanWorkOrderId: "", // 添加生产计划工单ID字段
       },
       tableList: [],
       total: 0,
@@ -1735,6 +1764,11 @@ export default {
           },
         });
       }
+      if (this.searchForm.productionPlanWorkOrderId) {
+        req.query.$and.push({
+          productionPlanWorkOrderId: this.searchForm.productionPlanWorkOrderId,
+        });
+      }
       if (this.searchForm.productModel && this.searchForm.productModel.trim()) {
         req.query.$and.push({
           materialSpec: {
@@ -1823,6 +1857,8 @@ export default {
         status: "",
         dateRange: [],
         progress: "",
+        workOrderNo: "",
+        productionPlanWorkOrderId: "", // 确保重置生产计划工单ID字段
       };
       this.currentPage = 1;
       this.fetchData();
@@ -1830,7 +1866,7 @@ export default {
 
     // 导出数据
     // exportData() {
-    //     // ��取当前的查询条件
+    //     // 取当前的查询条件
     //     const queryParams = this.searchData();
     //     // TODO: 实现导出逻辑
     //     this.$message.info('导出功能开发中...');
