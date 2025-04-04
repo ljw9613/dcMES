@@ -686,7 +686,7 @@ import { query } from "quill";
 import { uploadInspectionImage } from "@/api/upload";
 
 export default {
-  name: "SaleOrder",
+  name: "udiSamplingInspectionFlow",
   components: {
     ProcessStepList,
     InspectionList,

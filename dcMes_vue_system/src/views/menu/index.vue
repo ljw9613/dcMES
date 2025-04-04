@@ -136,6 +136,7 @@ import variables from "@/styles/variables.scss";
 import {formatMenu2Tree} from "@/utils/format2Tree";
 
 export default {
+  name: "menu",
   components: {menuDialog},
   data() {
     return {

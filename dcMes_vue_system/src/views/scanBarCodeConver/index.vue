@@ -358,7 +358,7 @@ import StatusPopup from "@/components/StatusPopup/index.vue";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 import hirInput from "@/components/hirInput";
 export default {
-  name: "ScanBarCode",
+  name: "scanBarCodeConver",
   components: {
     ZrSelect,
     hirInput,

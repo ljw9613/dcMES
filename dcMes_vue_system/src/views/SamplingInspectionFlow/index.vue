@@ -135,7 +135,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        
+
 
         <el-table-column label="物料编码" prop="materialCode">
           <template slot-scope="scope">
@@ -374,7 +374,7 @@ import { query } from "quill";
 import { updatePalletInspectionStatus } from "@/api/materialPalletizing";
 
 export default {
-  name: "SaleOrder",
+  name: "SamplingInspectionFlow",
   components: {
     ProcessStepList,
     InspectionList,

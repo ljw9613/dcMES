@@ -1100,7 +1100,7 @@ import FileSaver from "file-saver";
 import { query } from "quill";
 
 export default {
-  name: "SaleOrder",
+  name: "materialProcessFlow",
   components: {
     ProcessStepList,
     InspectionList,

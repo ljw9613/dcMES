@@ -102,6 +102,7 @@ import roleDialog from "./components/roleDialog"; // secondary package based on 
 import variables from "@/styles/variables.scss";
 // import { formatrole2Tree } from '@/utils/format2Tree'
 export default {
+  name: "role",
   components: {roleDialog},
   data() {
     return {

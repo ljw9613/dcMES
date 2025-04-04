@@ -257,7 +257,7 @@ import EditDialog from './components/EditDialog'
 
 
 export default {
-    name: 'ProductionLine',
+    name: 'productRepair',
     dicts: ['repair_solution', 'businessType'],
     components: {
         EditDialog
@@ -625,31 +625,31 @@ export default {
                 this.$message.warning('请选择要审核的记录');
                 return;
             }
-            
+
             // 检查是否包含已审核或已作废的记录
-            const invalidRecords = this.selection.some(item => 
+            const invalidRecords = this.selection.some(item =>
                 item.status === 'REVIEWED' || item.status === 'VOIDED'
             );
-            
+
             if (invalidRecords) {
                 this.$message.warning('选中记录中包含已审核或已作废的记录，不能进行批量审核');
                 return;
             }
-            
+
             this.batchReviewForm = {
                 repairResult: '',
                 adverseEffect: ''
             };
             this.batchReviewDialogVisible = true;
         },
-        
+
         async submitBatchReview() {
             try {
                 if (!this.batchReviewForm.repairResult) {
                     this.$message.warning('请选择维修结果');
                     return;
                 }
-                
+
                 const ids = this.selection.map(item => item._id);
                 const reqData = {
                     repairResult: this.batchReviewForm.repairResult,
@@ -658,15 +658,15 @@ export default {
                     reviewTime: new Date(),
                     reviewer: this.$store.state.user.id
                 };
-                
+
                 await updateData('product_repair', {
-                    query: { 
+                    query: {
                         _id: { $in: ids },
                         status: 'PENDING_REVIEW'  // 确保只更新待审核的记录
                     },
                     update: reqData
                 });
-                
+
                 this.$message.success('批量审核成功');
                 this.batchReviewDialogVisible = false;
                 this.selection = [];
@@ -705,7 +705,7 @@ export default {
                 const exportData = [];
                 const batchSize = 100;
                 const header = [
-                    '产品条码', '物料编号', '产品型号', '销售订单', '生产订单', 
+                    '产品条码', '物料编号', '产品型号', '销售订单', '生产订单',
                     '生产工单', '维修上报人', '维修时间', '业务类型', '处理方案',
                     '不良现象', '分析原因', '维修描述', '审核人', '审核时间',
                     '维修结果', '状态'

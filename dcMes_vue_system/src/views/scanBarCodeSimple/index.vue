@@ -52,7 +52,7 @@
 <script>
 import hirInput from "@/components/hirInput";
 export default {
-  name: "ScanPrintPage",
+  name: "scanBarCodeSimple",
   components: {
     hirInput,
   },
