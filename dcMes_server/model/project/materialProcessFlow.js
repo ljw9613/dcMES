@@ -131,6 +131,7 @@ materialProcessFlowSchema.index({ barcode: 1 }, { unique: true });
 materialProcessFlowSchema.index({ materialCode: 1 });
 materialProcessFlowSchema.index({ status: 1 });
 materialProcessFlowSchema.index({ productionPlanWorkOrderId: 1 });
+materialProcessFlowSchema.index({ "processNodes.barcode": 1 });
 materialProcessFlowSchema.index({ createAt: -1 });
 
 module.exports = mongoose.model(
