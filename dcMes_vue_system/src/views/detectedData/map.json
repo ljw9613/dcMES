@@ -458,5 +458,8 @@
   "放电通讯电流 DischargingCurrent[mA,U2] ∈ 610mA ~ 1200mA": "放电通讯电流 DischargingCurrent[mA,U2] ∈ 610mA ~ 1200mA",
   "放电电源关闭": "放电电源关闭",
   "充电电压调整": "充电电压调整",
-  "调整延时": "调整延时"
+  "调整延时": "调整延时",
+  "充电测试自检电流 电流量测": "充电测试自检电流 电流量测",
+  "Cell&NTC Voltage[mV,U2] ∈ 7000mV ~ 7400mV": "Cell&NTC Voltage[mV,U2] ∈ 7000mV ~ 7400mV",
+  "Cell&NTC BatteryFaults[U2] >= 0": "Cell&NTC BatteryFaults[U2] >= 0"
 }

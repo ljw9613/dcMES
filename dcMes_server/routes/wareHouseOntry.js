@@ -387,6 +387,39 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     if (entryInfo.HuoGuiCode) {
       entry.HuoGuiCode = entryInfo.HuoGuiCode;
     }
+    
+    // 添加工单白名单校验逻辑
+    if (entry.workOrderWhitelist && entry.workOrderWhitelist.length > 0) {
+      // 获取托盘的工单信息
+      const palletWorkOrderNo = pallet.workOrderNo;
+      const palletWorkOrderId = pallet.productionPlanWorkOrderId;
+      
+      // 从workOrders数组中获取所有工单号
+      const palletWorkOrders = pallet.workOrders.map(wo => wo.workOrderNo);
+      
+      // 判断托盘的工单是否在白名单中
+      const isInWhitelist = entry.workOrderWhitelist.some(whitelistItem => {
+        // 主工单号匹配
+        if (palletWorkOrderNo && whitelistItem.workOrderNo === palletWorkOrderNo) {
+          return true;
+        }
+        
+        // 或者工单数组中有匹配
+        if (palletWorkOrders.length > 0) {
+          return palletWorkOrders.some(workOrderNo => workOrderNo === whitelistItem.workOrderNo);
+        }
+        
+        return false;
+      });
+      
+      if (!isInWhitelist) {
+        return res.status(200).json({
+          code: 404,
+          message: "此托盘不在工单白名单中，不允许出库",
+        });
+      }
+    }
+    
     // 4. 检查托盘是否已经出库
     const existingPallet = entry.entryItems.find(
       (item) => item.palletCode === palletCode

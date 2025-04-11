@@ -895,7 +895,7 @@ export default {
 
         // 计算剩余可生成数量
         this.maxQuantity =
-          workOrder.planProductionQuantity - (countResult.countnum || 0);
+          workOrder.planQuantity - (countResult.countnum || 0);
 
         // 设置起始序号为最大序号+1或1
         this.generateForm.startNumber =

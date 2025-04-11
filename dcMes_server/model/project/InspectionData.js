@@ -727,23 +727,29 @@ const inspectionDataSchema = new mongoose.Schema(
     chargingLightSelection: { type: String, description: "充电灯使用选择" },
 
     // 遥控2 2025年4月2日 新增
-    放电电源输出: { type: String, description: "放电电源输出" },
-    放电延时: { type: String, description: "放电延时" },
-    "放电电压(V) 电压量测": {
-      type: String,
-      description: "放电电压(V) 电压量测",
-    },
-    "放电电流(A) 电流量测": {
-      type: String,
-      description: "放电电流(A) 电流量测",
-    },
+    "放电电源输出": {type: String, description: '放电电源输出'},
+    "放电延时": {type: String, description: '放电延时'},
+    "放电电压(V) 电压量测": {type: String, description: '放电电压(V) 电压量测'},
+    "放电电流(A) 电流量测": {type: String, description: '放电电流(A) 电流量测'},
     "放电通讯电流 DischargingCurrent[mA,U2] ∈ 610mA ~ 1200mA": {
-      type: String,
-      description: "放电通讯电流 DischargingCurrent[mA,U2] ∈ 610mA ~ 1200mA",
+        type: String,
+        description: '放电通讯电流 DischargingCurrent[mA,U2] ∈ 610mA ~ 1200mA'
     },
-    放电电源关闭: { type: String, description: "放电电源关闭" },
-    充电电压调整: { type: String, description: "充电电压调整" },
-    调整延时: { type: String, description: "调整延时" },
+    "放电电源关闭": {type: String, description: '放电电源关闭'},
+    "充电电压调整": {type: String, description: '充电电压调整'},
+    "调整延时": {type: String, description: '调整延时'},
+
+    // 遥控2 2025年4月5日 新增
+    "充电测试自检电流 电流量测": {type: String, description: '充电测试自检电流 电流量测'},
+    "Cell&NTC Voltage[mV,U2] ∈ 7000mV ~ 7400mV": {type: String,},
+    "Cell&NTC BatteryFaults[U2] >= 0": {type: String,},
+
+    inspectionData: [
+      {
+        field: { type: String },
+        value: { type: String },
+      }
+    ],
   },
   {
     timestamps: { createdAt: "createTime", updatedAt: "updateTime" },

@@ -95,8 +95,8 @@
                 <el-table-column type="expand">
                     <template slot-scope="scope">
                         <el-form label-position="left" inline class="table-expand">
-                            <div v-if="inspectionDataHandle(scope.row).length">
-                                <el-tag style="margin: 3px" v-for="tag in inspectionDataHandle(scope.row)" :key="tag">
+                            <div v-if="inspectionDataHandle(scope.row).length" class="tags-container">
+                                <el-tag style="margin: 5px" v-for="tag in inspectionDataHandle(scope.row)" :key="tag" size="medium">
                                     {{ tag }}
                                 </el-tag>
                             </div>
@@ -148,9 +148,9 @@
                     <el-table-column type="expand">
                         <template slot-scope="scope">
                             <el-form label-position="left" inline class="table-expand">
-                                <div v-if="inspectionDataHandle(scope.row).length">
-                                    <el-tag style="margin: 3px" v-for="tag in inspectionDataHandle(scope.row)"
-                                        :key="tag">
+                                <div v-if="inspectionDataHandle(scope.row).length" class="tags-container">
+                                    <el-tag style="margin: 5px" v-for="tag in inspectionDataHandle(scope.row)"
+                                        :key="tag" size="medium">
                                         {{ tag }}
                                     </el-tag>
                                 </div>
@@ -241,9 +241,20 @@ export default {
     methods: {
         inspectionDataHandle(row) {
             let data = []
+            // 处理常规字段
             for (let inspectionFieldEnumKey in inspectionFieldEnum) {
                 inspectionFieldEnumKey !== "error" && !this.isBlank(row[inspectionFieldEnumKey]) && (data.push(`${inspectionFieldEnum[inspectionFieldEnumKey]}：${row[inspectionFieldEnumKey]}`))
             }
+            
+            // 处理 inspectionData 数组
+            if (row.inspectionData && Array.isArray(row.inspectionData) && row.inspectionData.length > 0) {
+                row.inspectionData.forEach(item => {
+                    if (item.field && item.value) {
+                        data.push(`${item.field}：${item.value}`)
+                    }
+                })
+            }
+            
             return data
         },
         isBlank(value) {
@@ -893,5 +904,13 @@ export default {
 
 .table-expand {
     padding: 20px;
+    
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
 }
 </style>

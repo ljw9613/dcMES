@@ -57,6 +57,14 @@ const warehouseOntrySchema = new mongoose.Schema({
   workShop: { type: String }, // 生产车间
   productType: { type: String }, // 产品类型
   
+  // 工单白名单（允许出库的工单列表）
+  workOrderWhitelist: [
+    {
+      workOrderNo: { type: String }, // 工单号
+      workOrderId: { type: mongoose.Schema.ObjectId, ref: "production_plan_work_order" }, // 工单ID
+    }
+  ],
+  
   // 出库状态
   status: {
     type: String,

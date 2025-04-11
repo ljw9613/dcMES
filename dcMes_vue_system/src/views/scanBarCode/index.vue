@@ -166,10 +166,32 @@
           </div>
 
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
+            <!-- 工单信息模块 -->
+            <div
+              class="work-order-info"
+              v-if="firstStep && workOrderInfo.workOrderNo !== ''"
+            >
+              <div class="info-item">
+                <span class="label">工单号：</span>
+                <span class="value">{{
+                  workOrderInfo.workOrderNo || "暂无工单"
+                }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">投入数量：</span>
+                <span class="value2">{{
+                  workOrderInfo.inputQuantity || 0
+                }}</span>
+                <span class="separator">/</span>
+                <span class="value">{{ workOrderInfo.planQuantity || 0 }}</span>
+              </div>
+            </div>
+
             <div class="section-header">
               <i class="el-icon-camera"></i>
               <span>统一扫描区域</span>
             </div>
+
             <div class="scan-input-section">
               <div class="custom-input-container">
                 <input
@@ -180,9 +202,9 @@
                   ref="scanInput"
                   class="custom-input"
                 />
-                <i 
-                  v-if="unifiedScanInput" 
-                  class="el-icon-close custom-clear-icon" 
+                <i
+                  v-if="unifiedScanInput"
+                  class="el-icon-close custom-clear-icon"
                   @click="clearInput"
                 ></i>
               </div>
@@ -328,6 +350,8 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
+      :text="errorMessage"
+      :error-code="errorCode"
       :duration="1500"
     />
     <tsc-printer
@@ -440,6 +464,15 @@ export default {
       craftInfo: {}, // 保存工艺信息
 
       processStepData: {}, // 保存工序信息
+
+      firstStep: false,
+
+      errorMessage: "",
+      errorCode: "",
+      workOrderInfo: {
+        planQuantity: 0,
+        inputQuantity: 0,
+      },
     };
   },
   computed: {
@@ -986,6 +1019,12 @@ export default {
 
         this.processStepData = processStep;
 
+        console.log(this.processStepData, "this.processStepData");
+
+        if (processStep.sort == 1) {
+          this.firstStep = true;
+        }
+
         // 获取该工序所属的工艺信息
         const craftResponse = await getData("craft", {
           query: { _id: processStep.craftId },
@@ -1334,6 +1373,9 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
+            this.errorCode = createResponse.errorCode;
+            this.errorMessage =
+              createResponse.message || "创建成品条码追溯记录失败";
             throw new Error(
               createResponse.message || "创建成品条码追溯记录失败"
             );
@@ -1976,6 +2018,9 @@ export default {
         if (scanResponse.code !== 200) {
           // this.resetScanForm();
 
+          this.errorCode = scanResponse.errorCode;
+          this.errorMessage = scanResponse.message || "扫码失败";
+
           throw new Error(scanResponse.message || "扫码失败");
         }
 
@@ -2008,6 +2053,10 @@ export default {
           }
           this.popupType = "ok";
           this.showPopup = true;
+
+          if (this.firstStep && this.workOrderInfo.workOrderNo !== "") {
+            this.getWorkOrderInfo();
+          }
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
             tone(bdcg);
@@ -2298,8 +2347,38 @@ export default {
       }
     },
     clearInput() {
-      this.unifiedScanInput = '';
+      this.unifiedScanInput = "";
       this.focusInput();
+    },
+    async getWorkOrderInfo() {
+      try {
+        const productLineId = this.productLineId;
+        console.log(productLineId, "productLineId");
+        if (this.productLineId) {
+          const response = await getData("production_plan_work_order", {
+            query: {
+              productionLineId: this.productLineId,
+              status: "IN_PROGRESS",
+            },
+            select: "planQuantity inputQuantity",
+          });
+
+          if (response.data && response.data[0]) {
+            this.workOrderInfo = {
+              workOrderNo: response.data[0].workOrderNo || 0,
+              planQuantity: response.data[0].planQuantity || 0,
+              inputQuantity: response.data[0].inputQuantity || 0,
+            };
+          }
+        }
+      } catch (error) {
+        console.error("获取工单信息失败:", error);
+        this.workOrderInfo = {
+          workOrderNo: "",
+          planQuantity: 0,
+          inputQuantity: 0,
+        };
+      }
     },
   },
   async created() {
@@ -2374,6 +2453,8 @@ export default {
         }
       }
     }
+
+    await this.getWorkOrderInfo();
   },
   mounted() {
     console.log("Complete roles data:", this.$store.getters.roles);
@@ -2834,5 +2915,46 @@ export default {
 .batch-usage-tag {
   min-width: 60px;
   text-align: center;
+}
+
+.work-order-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  color: #606266;
+  font-size: 14px;
+  margin-right: 10px;
+  min-width: 70px;
+}
+
+.value {
+  color: #303133;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.value2 {
+  color: #dbc075;
+  font-weight: 500;
+  font-size: 24px;
+}
+
+.separator {
+  margin: 0 8px;
+  color: #909399;
 }
 </style>

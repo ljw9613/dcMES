@@ -388,21 +388,6 @@
             >
               导出条码数据
             </el-button>
-            <el-button type="text" size="small" @click="handleUnbind(scope.row)"
-              >解绑</el-button
-            >
-            <el-button
-              v-if="
-                scope.row.children &&
-                scope.row.children.some(
-                  (item) => item.nodeType === 'MATERIAL' && item.barcode
-                )
-              "
-              type="text"
-              size="small"
-              @click="handleReplaceComponent(scope.row)"
-              >替换</el-button
-            >
           </template>
         </el-table-column>
       </template>
@@ -668,8 +653,7 @@
                             v-if="
                               scope.row.children &&
                               scope.row.children.some(
-                                (item) =>
-                                  item.nodeType === 'MATERIAL' && item.barcode
+                                (item) => item.nodeType === 'MATERIAL'
                               )
                             "
                             type="text"
@@ -2827,7 +2811,7 @@ export default {
     handleReplaceComponent(row) {
       this.replaceSelectedNode = row;
       this.replaceMaterials = row.children.filter(
-        (item) => item.nodeType === "MATERIAL" && item.barcode
+        (item) => item.nodeType === "MATERIAL"
       );
 
       if (this.replaceMaterials.length > 0) {

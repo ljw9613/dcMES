@@ -3206,7 +3206,6 @@ class MaterialProcessFlowService {
         !mainBarcode ||
         !processNodeId ||
         !materialNodeId ||
-        !originalBarcode ||
         !newBarcode ||
         !userId
       ) {
@@ -3295,7 +3294,6 @@ class MaterialProcessFlowService {
       } else {
         console.log(`新条码 ${newBarcode} 无流程记录，将验证格式`);
         // 如果新条码不存在流程记录，需要验证条码格式
-        const Material = require("../model/k3_BD_MATERIAL");
         const material = await Material.findOne({
           FNumber: materialNode.materialCode,
         });
@@ -3367,7 +3365,7 @@ class MaterialProcessFlowService {
         materialNode.status = "COMPLETED";
       } else {
         // 否则更新为进行中
-        materialNode.status = "IN_PROCESS";
+        materialNode.status = "COMPLETED";
       }
       console.log(`物料节点状态: ${materialNode.status}`);
 

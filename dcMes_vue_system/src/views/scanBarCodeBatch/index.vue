@@ -566,6 +566,7 @@ export default {
 
       craftInfo: {},
       palletizingMode: localStorage.getItem("palletizingMode") || "single", // 默认单产品入托模式
+
     };
   },
   computed: {

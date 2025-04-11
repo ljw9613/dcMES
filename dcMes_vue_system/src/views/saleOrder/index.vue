@@ -929,7 +929,7 @@ export default {
                             req.FilterString = [
                                 {
                                     "FieldName": "FBillNo",
-                                    "Compare": "=",
+                                    "Compare": "IN",
                                     "Value": this.syncForm.billNo,
                                     "Left": "",
                                     "Right": "",
