@@ -48,7 +48,7 @@ async function generateEntryNoByProductionOrder(productionOrderNo) {
 // 扫码出库（包含自动创建出库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
   try {
-    const { palletCode, userId, entryInfo } = req.body;
+    const { palletCode, userId, entryInfo, palletFinished = false } = req.body;
 
     if (!entryInfo.outboundQuantity) {
       return res.status(200).json({
@@ -72,6 +72,26 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       return res.status(200).json({
         code: 404,
         message: "托盘单据不存在",
+      });
+    }
+
+    //检查白名单
+    let checkwhite = false;
+    for await (const element of entryInfo.workOrderWhitelist) {
+      if (element.workOrderNo === pallet.workOrderNo) {
+        checkwhite = true;
+        break;
+      }
+    }
+
+    if (entryInfo.workOrderWhitelist.length === 0) {
+      checkwhite = true;
+    }
+
+    if (!checkwhite) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘单据所在工单不在白名单中",
       });
     }
 
@@ -235,6 +255,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             productType: order.FProductType,
             correspondOrgId: order.FCorrespondOrgId,
             status: "IN_PROGRESS",
+            outboundMode: entryInfo.outboundMode,
             progress: 0,
             startTime: new Date(),
             createBy: userId,
@@ -268,6 +289,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             workShop: order.FWorkShopID_FName,
             productType: order.FProductType,
             correspondOrgId: order.FCorrespondOrgId,
+            outboundMode: entryInfo.outboundMode,
             status: "IN_PROGRESS",
             progress: 0,
             startTime: new Date(),
@@ -317,6 +339,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             workShop: order.FWorkShopID_FName,
             productType: order.FProductType,
             correspondOrgId: order.FCorrespondOrgId,
+            outboundMode: entryInfo.outboundMode,
             status: "IN_PROGRESS",
             progress: 0,
             startTime: new Date(),
@@ -351,6 +374,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             workShop: order.FWorkShopID_FName,
             productType: order.FProductType,
             correspondOrgId: order.FCorrespondOrgId,
+            outboundMode: entryInfo.outboundMode,
             status: "IN_PROGRESS",
             progress: 0,
             startTime: new Date(),
@@ -387,39 +411,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     if (entryInfo.HuoGuiCode) {
       entry.HuoGuiCode = entryInfo.HuoGuiCode;
     }
-    
-    // 添加工单白名单校验逻辑
-    if (entry.workOrderWhitelist && entry.workOrderWhitelist.length > 0) {
-      // 获取托盘的工单信息
-      const palletWorkOrderNo = pallet.workOrderNo;
-      const palletWorkOrderId = pallet.productionPlanWorkOrderId;
-      
-      // 从workOrders数组中获取所有工单号
-      const palletWorkOrders = pallet.workOrders.map(wo => wo.workOrderNo);
-      
-      // 判断托盘的工单是否在白名单中
-      const isInWhitelist = entry.workOrderWhitelist.some(whitelistItem => {
-        // 主工单号匹配
-        if (palletWorkOrderNo && whitelistItem.workOrderNo === palletWorkOrderNo) {
-          return true;
-        }
-        
-        // 或者工单数组中有匹配
-        if (palletWorkOrders.length > 0) {
-          return palletWorkOrders.some(workOrderNo => workOrderNo === whitelistItem.workOrderNo);
-        }
-        
-        return false;
-      });
-      
-      if (!isInWhitelist) {
-        return res.status(200).json({
-          code: 404,
-          message: "此托盘不在工单白名单中，不允许出库",
-        });
-      }
-    }
-    
+
     // 4. 检查托盘是否已经出库
     const existingPallet = entry.entryItems.find(
       (item) => item.palletCode === palletCode
@@ -429,6 +421,21 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         message: "该托盘已出库",
       });
     }
+
+    //判断是托盘出库还是单一产品出库
+    if (entryInfo.outboundMode === "SINGLE") {
+      if (!palletFinished) {
+        await entry.save();
+        // 重新查询以获取最新数据
+        // const latestEntry = await wareHouseOntry.findById(entry._id);
+        return res.status(200).json({
+          code: 200,
+          message: "出库单初始化成功",
+          data: entry,
+        });
+      }
+    }
+    //托盘出库
 
     // 5. 添加托盘到出库单
     entry.entryItems.push({
@@ -478,13 +485,13 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     // 重新查询以获取最新数据
     // const latestEntry = await wareHouseOntry.findById(entry._id);
 
-    res.json({
+    return res.status(200).json({
       code: 200,
       message: "扫码出库成功",
       data: entry,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(200).json({
       code: 500,
       message: error.message,
     });
@@ -539,8 +546,6 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       Limit: 2000,
       SubSystemId: "",
     });
-
-    
 
     // 2. 转换为金蝶云格式
     const k3Data = {
@@ -657,7 +662,7 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
 
     // 4. 处理响应
     if (k3Response.Result.ResponseStatus.IsSuccess === true) {
-      res.json({
+      return res.status(200).json({
         code: 200,
         message: "同步成功",
         data: k3Response.data,
@@ -668,7 +673,7 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
       );
     }
   } catch (error) {
-    res.status(200).json({
+    return res.status(200).json({
       code: 500,
       message: error.message,
     });

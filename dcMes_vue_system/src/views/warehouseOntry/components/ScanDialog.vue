@@ -1,20 +1,33 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" width="800px" @close="handleClose" :close-on-click-modal="false">
+  <el-dialog
+    :title="title"
+    :visible.sync="dialogVisible"
+    width="800px"
+    @close="handleClose"
+    :close-on-click-modal="false"
+  >
     <div class="scan-container">
       <el-form v-if="entryInfo">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="销售单号">
-              <el-input v-model="entryInfo.saleOrderNo" @blur="saleOrderNoInput"  @keyup.enter.native="saleOrderNoInput"></el-input>
+              <el-input
+                v-model="entryInfo.saleOrderNo"
+                @blur="saleOrderNoInput"
+                @keyup.enter.native="saleOrderNoInput"
+              ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="销售数量">
-              <el-input v-model="entryInfo.saleNumber" type="number" readonly></el-input>
+              <el-input
+                v-model="entryInfo.saleNumber"
+                type="number"
+                readonly
+              ></el-input>
             </el-form-item>
           </el-col>
         </el-row>
-
 
         <el-row :gutter="20">
           <el-col :span="12">
@@ -31,24 +44,77 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="货柜号" required>
-              <el-input v-model="entryInfo.HuoGuiCode" :readonly="entryInfo._id&&entryInfo.HuoGuiCode"></el-input>
+              <el-input
+                v-model="entryInfo.HuoGuiCode"
+                :readonly="entryInfo._id && entryInfo.HuoGuiCode"
+              ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="发票号" required>
-              <el-input v-model="entryInfo.FaQIaoNo"  :readonly="entryInfo._id&&entryInfo.FaQIaoNo"></el-input>
+              <el-input
+                v-model="entryInfo.FaQIaoNo"
+                :readonly="entryInfo._id && entryInfo.FaQIaoNo"
+              ></el-input>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12"> 
+          <el-col :span="12">
+            <el-form-item label="工单白名单">
+              <zr-select
+                v-model="entryInfo.workOrderWhitelist"
+                collection="production_plan_work_order"
+                :search-fields="['workOrderNo', 'productionOrderNo', 'saleOrderNo']"
+                label-key="workOrderNo"
+                value-key="workOrderNo"
+                :multiple="true"
+                placeholder="请选择工单白名单"
+                clearable
+                style="width: 100%"
+                @select="handleWorkOrderSelect"
+                @clear="handleWorkOrderSelect([])"
+              >
+                <template #option="{ item }">
+                  <div class="select-option">
+                    <div class="option-main">
+                      <span class="option-label">{{ item.workOrderNo }}</span>
+                      <el-tag size="mini" type="info">{{ item.productionOrderNo }}</el-tag>
+                    </div>
+                    <div class="option-detail">
+                      <small>销售单号: {{ item.saleOrderNo }}</small>
+                      <small>物料: {{ item.materialName }}</small>
+                    </div>
+                  </div>
+                </template>
+              </zr-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="出库模式">
+              <el-radio-group v-model="entryInfo.outboundMode">
+                <el-radio label="SINGLE">单一产品出库</el-radio>
+                <el-radio label="PALLET">整托盘出库</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
             <el-form-item label="应出库数量" required>
-              <el-input v-model="entryInfo.outboundQuantity" type="number"></el-input>
+              <el-input
+                v-model="entryInfo.outboundQuantity"
+                type="number"
+              ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="已出库数量">
-              <el-input v-model="entryInfo.outNumber" readonly type="number"></el-input>
+              <el-input
+                v-model="entryInfo.outNumber"
+                readonly
+                type="number"
+              ></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -56,8 +122,13 @@
       <!-- 扫码输入区域 -->
       <el-form :model="scanForm" ref="scanForm" :rules="rules">
         <el-form-item prop="barcode">
-          <el-input v-model="scanForm.barcode" :placeholder="placeholder" @keyup.enter.native="handleScanInput"
-            ref="scanInput" clearable>
+          <el-input
+            v-model="scanForm.barcode"
+            :placeholder="placeholder"
+            @keyup.enter.native="handleScanInput"
+            ref="scanInput"
+            clearable
+          >
             <template slot="append">
               <el-button @click="handleScanInput">确认</el-button>
             </template>
@@ -71,7 +142,7 @@
           <div slot="header" class="clearfix">
             <span>出库单信息</span>
           </div>
-          
+
           <el-row :gutter="20">
             <el-col :span="8">
               <div class="info-item">
@@ -108,7 +179,10 @@
             <el-col :span="8">
               <div class="info-item">
                 <label>完成进度：</label>
-                <el-progress :percentage="entryInfo.progress" :status="entryInfo.progress >= 100 ? 'success' : ''" />
+                <el-progress
+                  :percentage="entryInfo.progress"
+                  :status="entryInfo.progress >= 100 ? 'success' : ''"
+                />
               </div>
             </el-col>
           </el-row>
@@ -136,11 +210,15 @@
       </div>
 
       <!-- 扫描记录列表 -->
-      <div class="scan-list" v-if="entryInfo.entryItems.length>0">
+      <div class="scan-list" v-if="entryInfo.entryItems.length > 0">
         <el-table :data="entryInfo.entryItems" border style="width: 100%">
           <el-table-column label="托盘编号" prop="palletCode" align="center" />
           <el-table-column label="销售订单" prop="saleOrderNo" align="center" />
-          <el-table-column label="物料编码" prop="materialCode" align="center" />
+          <el-table-column
+            label="物料编码"
+            prop="materialCode"
+            align="center"
+          />
           <el-table-column label="数量" prop="quantity" align="center" />
           <el-table-column label="产线" prop="lineCode" align="center" />
           <el-table-column label="扫描时间" align="center">
@@ -150,11 +228,81 @@
           </el-table-column>
         </el-table>
       </div>
+
+      <!-- 产品条码扫码校验组件 -->
+      <div class="product-scan" v-if="showProductScan && currentPallet">
+        <el-card class="box-card">
+          <div slot="header" class="clearfix">
+            <span>产品条码扫码校验</span>
+            <el-button style="float: right; padding: 3px 0" type="text" @click="handleCompleteProductScan">完成校验</el-button>
+          </div>
+          <div class="product-info">
+            <div class="info-item">
+              <label>托盘编号：</label>
+              <span>{{ currentPallet.palletCode }}</span>
+            </div>
+            <div class="info-item">
+              <label>物料名称：</label>
+              <span>{{ currentPallet.materialName }}</span>
+            </div>
+            <div class="info-item">
+              <label>总数量：</label>
+              <span>{{ currentPallet.totalQuantity }}</span>
+            </div>
+            <div class="info-item">
+              <label>已扫描：</label>
+              <span>{{ scannedProducts.length }}/{{ currentPallet.totalQuantity }}</span>
+            </div>
+          </div>
+          
+          <el-form :model="productScanForm" ref="productScanForm" :rules="productScanRules">
+            <el-form-item prop="barcode">
+              <el-input
+                v-model="productScanForm.barcode"
+                placeholder="请扫描产品条码"
+                @keyup.enter.native="handleProductScan"
+                ref="productScanInput"
+                clearable
+              >
+                <template slot="append">
+                  <el-button @click="handleProductScan">确认</el-button>
+                </template>
+              </el-input>
+            </el-form-item>
+          </el-form>
+
+          <!-- 合并后的条码列表 -->
+          <el-table :data="currentPallet.palletBarcodes" border style="width: 100%; margin-top: 20px">
+            <el-table-column label="产品条码" prop="barcode" align="center" />
+            <el-table-column label="核验状态" align="center">
+              <template slot-scope="scope">
+                <el-tag :type="getInspectionStatusType(scope.row.inspectionStatus)">
+                  {{ getInspectionStatusText(scope.row.inspectionStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="扫描时间" align="center">
+              <template slot-scope="scope">
+                {{ formatDateTime(scope.row.scanTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" align="center">
+              <template slot-scope="scope">
+                <el-button type="text" @click="handleDeleteProductScan(scope.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </div>
     </div>
 
     <div slot="footer" class="dialog-footer">
       <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleComplete" :disabled="!entryInfo.entryItems.length">
+      <el-button
+        type="primary"
+        @click="handleComplete"
+        :disabled="!entryInfo.entryItems.length"
+      >
         完成出库
       </el-button>
     </div>
@@ -163,102 +311,157 @@
 
 <script>
 import { scanPalletOn, deletePallet } from "@/api/warehouse/entry";
+import { getData, addData, updateData, removeData } from "@/api/data";
 import { number } from "echarts/lib/export";
 export default {
-  name: 'ScanDialog',
+  name: "ScanDialog",
   props: {
-    scanData:{
-      type:Object,
-      default: () => ({}) 
+    scanData: {
+      type: Object,
+      default: () => ({}),
     },
     visible: {
       type: Boolean,
-      default: false
+      default: false,
     },
     title: {
       type: String,
-      default: '托盘扫码出库'
+      default: "托盘扫码出库",
     },
     placeholder: {
       type: String,
-      default: '请扫描托盘条码'
-    }
+      default: "请扫描托盘条码",
+    },
   },
   data() {
     return {
       dialogVisible: false,
       scanForm: {
-        barcode: ''
+        barcode: "",
       },
       rules: {
-        
         barcode: [
-          { required: true, message: '请输入或扫描条码', trigger: 'blur' }
-        ]
+          { required: true, message: "请输入或扫描条码", trigger: "blur" },
+        ],
       },
       scanRecords: [],
-      entryInfo: null
-    }
+      entryInfo: null,
+      workOrderOptions: [],
+      workOrderLoading: false,
+      // 新增产品扫码相关数据
+      showProductScan: false,
+      currentPallet: null,
+      scannedProducts: [],
+      productScanForm: {
+        barcode: "",
+      },
+      productScanRules: {
+        barcode: [
+          { required: true, message: "请输入或扫描产品条码", trigger: "blur" },
+        ],
+      },
+    };
   },
   watch: {
     visible(val) {
-      this.dialogVisible = val
+      this.dialogVisible = val;
       if (val) {
-        this.initEntryInfo()
+        this.initEntryInfo();
         this.$nextTick(() => {
-          this.$refs.scanInput.focus()
-        })
+          this.$refs.scanInput.focus();
+        });
       }
     },
     dialogVisible(val) {
-      this.$emit('update:visible', val)
+      this.$emit("update:visible", val);
       if (!val) {
-        this.resetForm()
+        this.resetForm();
       }
     },
     scanData: {
       handler(newVal) {
-        this.initEntryInfo()
+        this.initEntryInfo();
       },
-      immediate: true
-    }
+      immediate: true,
+    },
   },
   methods: {
-    initEntryInfo() {
-      console.log(this.scanData,'this.scanData')
+    async initEntryInfo() {
+      console.log(this.scanData, "this.scanData");
       if (this.scanData) {
-        this.entryInfo = this.scanData
+        this.entryInfo = {
+          ...this.scanData,
+          workOrderWhitelist: [],
+          outboundMode: this.scanData.outboundMode || "PALLET"
+        };
       }
     },
     async handleScanInput() {
       try {
-        await this.$refs.scanForm.validate()
-        const barcode = this.scanForm.barcode.trim()
-        console.log(barcode,'barcode');
-        
+        await this.$refs.scanForm.validate();
+        const barcode = this.scanForm.barcode.trim();
+        console.log(barcode, "barcode");
+
         // 发送扫描事件到父组件
-        const success = await this.$emit('scan', barcode)
-        console.log('success',success)
+        const success = await this.$emit("scan", barcode);
+        console.log("success", success);
         if (success) {
           // 解析条码信息
-          const [palletCode, saleOrderNo, materialCode, quantity, lineCode] = barcode.split('#')
-          console.log(palletCode,'palletCode');
-          
-          // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
-          //   throw new Error('无效的托盘条码格式');
-          // }
+          const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+            barcode.split("#");
+          console.log(palletCode, "palletCode");
 
           // 调用托盘出库API
           const response = await scanPalletOn({
             palletCode,
             userId: this.$store.state.user.id,
-            entryInfo:this.entryInfo,
-
+            entryInfo: {
+              ...this.entryInfo,
+              workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(item => ({
+                workOrderNo: item.workOrderNo,
+                workOrderId: item._id,
+                productionOrderNo: item.productionOrderNo
+              })),
+            },
           });
 
           // 更新出库单信息
           if (response.data) {
             this.entryInfo = response.data;
+
+            console.log(this.entryInfo, "this.entryInfo");
+            
+            // 如果是单一产品出库模式且初始化成功，显示产品扫码组件
+            if (this.entryInfo.outboundMode === "SINGLE" && response.code === 200) {
+              // 获取完整的托盘数据
+              const palletResponse = await getData("material_palletizing", {
+                query: { palletCode },
+                populate: JSON.stringify([
+                  { path: "productLineId", select: "lineCode" },
+                  { path: "productionOrderId", select: "FWorkShopID_FName" }
+                ])
+              });
+              
+              if (palletResponse.data && palletResponse.data.length > 0) {
+                const palletData = palletResponse.data[0];
+                this.showProductScan = true;
+                this.currentPallet = {
+                  palletCode: palletData.palletCode,
+                  materialName: palletData.materialName,
+                  totalQuantity: palletData.totalQuantity,
+                  palletBarcodes: palletData.palletBarcodes.map(item => ({
+                    barcode: item.barcode,
+                    scanTime: item.scanTime,
+                    inspectionStatus: item.inspectionStatus
+                  }))
+                };
+                this.$nextTick(() => {
+                  this.$refs.productScanInput.focus();
+                });
+              } else {
+                this.$message.error("获取托盘数据失败");
+              }
+            }
           }
 
           if (response.code !== 200) {
@@ -268,83 +471,257 @@ export default {
 
           this.$message.success("扫码出库成功");
 
-          // 添加到扫描记录
-          this.scanRecords.unshift({
-            palletCode,
-            saleOrderNo,
-            materialCode,
-            quantity,
-            lineCode,
-            scanTime: new Date()
-          })
-
           // 清空输入框
-          this.scanForm.barcode = ''
+          this.scanForm.barcode = "";
         }
       } catch (error) {
-        console.error('扫描失败:', error)
+        console.error("扫描失败:", error);
       }
     },
-   async saleOrderNoInput(){
-        // 调用托盘出库API
-        const response = await scanPalletOn({
-            palletCode:null,
-            userId: this.$store.state.user.id,
-            entryInfo:this.entryInfo,
-          });
+    async saleOrderNoInput() {
+      // 调用托盘出库API
+      const response = await scanPalletOn({
+        palletCode: null,
+        userId: this.$store.state.user.id,
+        entryInfo: this.entryInfo,
+      });
 
-          // 更新出库单信息
-          if (response.data) {
-            this.entryInfo = response.data;
-          }
+      // 更新出库单信息
+      if (response.data) {
+        this.entryInfo = response.data;
+      }
 
-          if (response.code !== 200) {
-            this.$message.error(response.message);
-            return;
-          }
+      if (response.code !== 200) {
+        this.$message.error(response.message);
+        return;
+      }
 
-          this.$message.success("扫码出库成功");
+      this.$message.success("扫码出库成功");
 
-          // 添加到扫描记录
-          this.scanRecords.unshift({
-            palletCode,
-            saleOrderNo,
-            materialCode,
-            quantity,
-            lineCode,
-            scanTime: new Date()
-          })
+      // 添加到扫描记录
+      this.scanRecords.unshift({
+        palletCode,
+        saleOrderNo,
+        materialCode,
+        quantity,
+        lineCode,
+        scanTime: new Date(),
+      });
 
-          // 清空输入框
-          this.scanForm.barcode = ''
+      // 清空输入框
+      this.scanForm.barcode = "";
     },
     async handleComplete() {
       try {
-        await this.$emit('complete', this.scanRecords.map(record => record.palletCode))
-        this.dialogVisible = false
+        await this.$emit(
+          "complete",
+          this.scanRecords.map((record) => record.palletCode)
+        );
+        this.dialogVisible = false;
       } catch (error) {
-        console.error('完成出库失败:', error)
+        console.error("完成出库失败:", error);
       }
     },
 
     handleClose() {
-      this.$emit('update:visible', false)
-      this.resetForm()
+      this.$emit("update:visible", false);
+      this.resetForm();
     },
 
     resetForm() {
-      this.scanForm.barcode = ''
-      this.scanRecords = []
+      this.scanForm.barcode = "";
+      this.scanRecords = [];
       if (this.$refs.scanForm) {
-        this.$refs.scanForm.resetFields()
+        this.$refs.scanForm.resetFields();
       }
     },
 
     formatDateTime(date) {
-      return new Date(date).toLocaleString()
-    }
-  }
-}
+      return new Date(date).toLocaleString();
+    },
+
+    async searchWorkOrders(query) {
+      if (query !== "") {
+        this.workOrderLoading = true;
+        try {
+          // 调用后端接口搜索工单
+          const response = await searchWorkOrders({ keyword: query });
+          this.workOrderOptions = response.data;
+        } catch (error) {
+          console.error("搜索工单失败:", error);
+        } finally {
+          this.workOrderLoading = false;
+        }
+      } else {
+        this.workOrderOptions = [];
+      }
+    },
+
+    handleWorkOrderSelect(selected) {
+      console.log(selected, "selected");
+      this.entryInfo.workOrderWhitelist = selected.map(item => ({
+        workOrderNo: item.workOrderNo,
+        workOrderId: item._id,
+      }));
+    },
+
+    // 处理产品条码扫描
+    async handleProductScan() {
+      try {
+        await this.$refs.productScanForm.validate();
+        const barcode = this.productScanForm.barcode.trim();
+        
+        // 检查条码是否已扫描
+        if (this.scannedProducts.some(item => item.barcode === barcode)) {
+          this.$message.warning("该产品条码已扫描");
+          return;
+        }
+
+        // 检查条码是否属于当前托盘
+        const palletBarcode = this.currentPallet.palletBarcodes.find(
+          item => item.barcode === barcode
+        );
+        
+        if (!palletBarcode) {
+          this.$message.warning("该产品条码不属于当前托盘");
+          return;
+        }
+        
+        // 更新条码状态为已扫描
+        palletBarcode.inspectionStatus = 'PASS';
+        palletBarcode.scanTime = new Date();
+        
+        // 添加到已扫描列表
+        this.scannedProducts.push({
+          barcode,
+          scanTime: new Date(),
+          inspectionStatus: 'PASS'
+        });
+
+        // 清空输入框
+        this.productScanForm.barcode = "";
+        this.$nextTick(() => {
+          this.$refs.productScanInput.focus();
+        });
+
+        // 如果已扫描数量达到总数量，自动完成校验
+        if (this.scannedProducts.length >= this.currentPallet.totalQuantity) {
+          this.handleCompleteProductScan();
+        }
+      } catch (error) {
+        console.error("产品条码扫描失败:", error);
+      }
+    },
+
+    // 删除已扫描的产品条码
+    handleDeleteProductScan(row) {
+      const index = this.scannedProducts.findIndex(item => item.barcode === row.barcode);
+      if (index !== -1) {
+        this.scannedProducts.splice(index, 1);
+        // 将条码状态重置为待核验
+        const palletBarcode = this.currentPallet.palletBarcodes.find(
+          item => item.barcode === row.barcode
+        );
+        if (palletBarcode) {
+          palletBarcode.inspectionStatus = 'PENDING';
+        }
+      }
+    },
+
+    // 完成产品条码校验
+    async handleCompleteProductScan() {
+      try {
+        // 调用托盘出库API，设置palletFinished为true
+        const response = await scanPalletOn({
+          palletCode: this.currentPallet.palletCode,
+          userId: this.$store.state.user.id,
+          entryInfo: {
+            ...this.entryInfo,
+            workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(item => ({
+              workOrderNo: item.workOrderNo,
+              workOrderId: item._id,
+              productionOrderNo: item.productionOrderNo
+            })),
+            outboundMode: this.entryInfo.outboundMode // 保持原有的出库模式
+          },
+          palletFinished: true
+        });
+
+        if (response.code !== 200) {
+          this.$message.error(response.message);
+          return;
+        }
+
+        // 更新出库单信息
+        if (response.data) {
+          this.entryInfo = {
+            ...response.data,
+            outboundMode: this.entryInfo.outboundMode // 保持原有的出库模式
+          };
+          
+          // 重新获取托盘数据
+          const palletResponse = await getData("material_palletizing", {
+            query: { palletCode: this.currentPallet.palletCode },
+            populate: JSON.stringify([
+              { path: "productLineId", select: "lineCode" },
+              { path: "productionOrderId", select: "FWorkShopID_FName" }
+            ])
+          });
+          
+          if (palletResponse.data && palletResponse.data.length > 0) {
+            const palletData = palletResponse.data[0];
+            this.currentPallet = {
+              palletCode: palletData.palletCode,
+              materialName: palletData.materialName,
+              totalQuantity: palletData.totalQuantity,
+              palletBarcodes: palletData.palletBarcodes.map(item => ({
+                barcode: item.barcode,
+                scanTime: item.scanTime,
+                inspectionStatus: item.inspectionStatus
+              }))
+            };
+          }
+        }
+
+        this.$message.success("产品条码校验完成");
+        this.showProductScan = false;
+        this.currentPallet = null;
+        this.scannedProducts = [];
+        this.$nextTick(() => {
+          this.$refs.scanInput.focus();
+        });
+      } catch (error) {
+        console.error("完成产品条码校验失败:", error);
+      }
+    },
+
+    getInspectionStatusType(status) {
+      switch(status) {
+        case 'PASS':
+          return 'success';
+        case 'FAIL':
+          return 'danger';
+        case 'PENDING':
+          return 'warning';
+        default:
+          return 'info';
+      }
+    },
+
+    getInspectionStatusText(status) {
+      switch(status) {
+        case 'PASS':
+          return '已核验';
+        case 'FAIL':
+          return '不通过';
+        case 'PENDING':
+          return '待核验';
+        default:
+          return '未知';
+      }
+    },
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -371,6 +748,64 @@ export default {
     margin-top: 20px;
     max-height: 400px;
     overflow-y: auto;
+  }
+}
+
+.select-option {
+  padding: 8px 0;
+  
+  .option-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    
+    .option-label {
+      font-weight: bold;
+      color: #303133;
+    }
+  }
+  
+  .option-detail {
+    display: flex;
+    flex-direction: column;
+    color: #606266;
+    font-size: 12px;
+    
+    small {
+      margin-top: 2px;
+      color: #909399;
+    }
+  }
+}
+
+.product-scan {
+  margin-top: 20px;
+  
+  .product-info {
+    margin-bottom: 20px;
+    
+    .info-item {
+      margin-bottom: 10px;
+      
+      label {
+        color: #606266;
+        margin-right: 8px;
+      }
+      
+      span {
+        color: #303133;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.pending-barcodes {
+  margin: 20px 0;
+  
+  .box-card {
+    margin-bottom: 20px;
   }
 }
 </style>

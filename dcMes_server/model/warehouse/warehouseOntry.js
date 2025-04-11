@@ -65,6 +65,13 @@ const warehouseOntrySchema = new mongoose.Schema({
     }
   ],
   
+  // 出库模式
+  outboundMode: {
+    type: String,
+    enum: ["SINGLE", "PALLET"], // 单一产品出库/整托盘出库
+    default: "PALLET"
+  },
+  
   // 出库状态
   status: {
     type: String,
