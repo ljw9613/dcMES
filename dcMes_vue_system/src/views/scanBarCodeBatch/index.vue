@@ -449,7 +449,9 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
-      :duration="1500"
+      :text="errorMessage"
+      :error-code="errorCode"
+      :duration="5000"
     />
   </div>
 </template>
@@ -566,7 +568,8 @@ export default {
 
       craftInfo: {},
       palletizingMode: localStorage.getItem("palletizingMode") || "single", // 默认单产品入托模式
-
+      errorMessage: "", // 错误信息
+      errorCode: "", // 错误代码
     };
   },
   computed: {
@@ -1168,6 +1171,7 @@ export default {
         });
 
         if (response.data.length === 0) {
+          this.errorMessage = "该DI编码不存在本系统";
           this.$message.error("该DI编码不存在本系统");
           return { isValid: false };
         }
@@ -1178,6 +1182,7 @@ export default {
           .map((item) => item.productId.FNumber);
 
         if (possibleMaterialCodes.length === 0) {
+          this.errorMessage = "该DI编码未关联有效物料";
           this.$message.error("该DI编码未关联有效物料");
           return { isValid: false };
         }
@@ -1194,6 +1199,7 @@ export default {
         );
 
         if (!matchedMaterialCode) {
+          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
           this.$message.error("该DI编码对应的物料与当前工序不匹配");
           return { isValid: false };
         }
@@ -1205,6 +1211,7 @@ export default {
         };
       } catch (error) {
         console.error("DI码验证失败:", error);
+
         this.$message.error("DI码验证失败");
         return { isValid: false };
       }
@@ -1280,6 +1287,8 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
+          this.errorMessage =
+            "未找到可用的条码规则（包括产品特定规则和全局规则）";
           return { materialCode: null, isValid: false };
         }
 
@@ -1384,7 +1393,7 @@ export default {
                   if (diResult.isValid) {
                     materialCode = diResult.materialCode;
                   } else {
-                    isValid = false;
+                    return { materialCode: null, isValid: false };
                   }
                   break;
                 case "relatedBill":
@@ -1412,6 +1421,7 @@ export default {
         }
 
         // 所有规则都未匹配成功
+        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
         this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
         return { materialCode: null, isValid: false };
       } catch (error) {
@@ -1582,6 +1592,7 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("未找到该RFID标签对应的条码");
+            this.errorMessage = "未找到该RFID标签对应的条码";
             this.popupType = "ng";
             this.showPopup = true;
             tone(tmyw);
@@ -1777,25 +1788,30 @@ export default {
         if (isBoxBarcode) {
           //找到包装箱条码对应的节点数据
           let nodeData = boxResponse.data[0];
-          console.log(nodeData,'nodeData==')
+          console.log(nodeData, "nodeData==");
           let packingBoxNode = nodeData.processNodes.filter(
             (item) => item.barcode == cleanValue
           )[0];
-          
-          console.log(packingBoxNode,'nodeData==')
+
+          console.log(packingBoxNode, "nodeData==");
 
           // 检查批次用量与箱内条码数量是否匹配
-          if (packingBoxNode.batchQuantity && packingBoxNode.batchQuantity !== boxResponse.data.length) {
-            this.$message.error(`包装箱条码数量(${boxResponse.data.length})与设定的批次用量(${packingBoxNode.batchQuantity})不匹配`);
+          if (
+            packingBoxNode.batchQuantity &&
+            packingBoxNode.batchQuantity !== boxResponse.data.length
+          ) {
+            this.$message.error(
+              `包装箱条码数量(${boxResponse.data.length})与设定的批次用量(${packingBoxNode.batchQuantity})不匹配`
+            );
             this.popupType = "ng";
             this.showPopup = true;
             tone(slbpp);
             return;
           }
-          
+
           // 首先取一条主条码数据进行校验是否为当前产品
           let mainBarcode = nodeData.barcode;
-          console.log(mainBarcode,'mainBarcode==')
+          console.log(mainBarcode, "mainBarcode==");
           let isValid = await this.validateBarcode(mainBarcode);
           console.log("isValid", isValid);
           if (!isValid.isValid) {
@@ -2017,6 +2033,7 @@ export default {
             this.$message.error(res.message);
             this.popupType = "ng";
             this.showPopup = true;
+            this.errorMessage = res.message;
             if (res.message == "该工序节点已完成或处于异常状态") {
               tone(cfbd);
             } else if (res.message == "未查询到生产工单") {
@@ -2130,6 +2147,7 @@ export default {
           this.$message.error(res.message);
           this.popupType = "ng";
           this.showPopup = true;
+          this.errorMessage = res.message;
           if (res.message == "该工序节点已完成或处于异常状态") {
             tone(cfbd);
           } else if (res.message == "未查询到生产工单") {

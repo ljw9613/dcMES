@@ -352,7 +352,7 @@
       :type="popupType"
       :text="errorMessage"
       :error-code="errorCode"
-      :duration="1500"
+      :duration="5000"
     />
     <tsc-printer
       ref="tscPrinter"
@@ -1136,7 +1136,8 @@ export default {
         });
 
         if (response.data.length === 0) {
-          this.$message.error("该DI编码不存在或与物料不匹配");
+          this.$message.error("该DI编码对应的物料与当前工序不匹配");
+          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
           return { isValid: false };
         }
 
@@ -1188,6 +1189,7 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
+          this.errorMessage = "未找到可用的条码规则";
           return { materialCode: null, isValid: false };
         }
 
@@ -1312,7 +1314,7 @@ export default {
                   if (diResult.isValid) {
                     materialCode = diResult.materialCode;
                   } else {
-                    isValid = false;
+                    return { materialCode: null, isValid: false };
                   }
                   break;
                 case "relatedBill":
@@ -1341,10 +1343,12 @@ export default {
 
         // 所有规则都未匹配成功
         this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
+        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
         this.$message.error("条码验证过程发生错误");
+        this.errorMessage = "条码验证过程发生错误";
         return { materialCode: null, isValid: false };
       }
     },
@@ -1373,7 +1377,6 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
-            this.errorCode = createResponse.errorCode;
             this.errorMessage =
               createResponse.message || "创建成品条码追溯记录失败";
             throw new Error(
@@ -1383,6 +1386,7 @@ export default {
         }
       } catch (error) {
         console.error("处理主条码失败:", error);
+        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1415,6 +1419,7 @@ export default {
         this.$message.success("扫码成功");
       } catch (error) {
         console.error("处理子物料条码失败:", error);
+        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1531,6 +1536,7 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码存在未完成的维修记录");
+            this.errorMessage = "该条码存在未完成的维修记录";
             this.popupType = "ng";
             this.showPopup = true;
             tone(dwx);
@@ -1543,6 +1549,7 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码已完成维修,但维修结果为不合格");
+            this.errorMessage = "该条码已完成维修,但维修结果为不合格";
             this.popupType = "ng";
             this.showPopup = true;
             tone(wxsb);
@@ -1578,6 +1585,7 @@ export default {
                   this.unifiedScanInput = "";
                   this.$refs.scanInput.focus();
                   this.$message.error("该条码已作废");
+                  this.errorMessage = "该条码已作废";
                   this.popupType = "ng";
                   this.showPopup = true;
                   tone(tmyw);
@@ -1652,6 +1660,7 @@ export default {
           // 如果包含关键物料，则必须先扫描主条码
           if (!this.scanForm.mainBarcode || !this.validateStatus.mainBarcode) {
             this.$message.error("关键物料必须先扫描主条码");
+            this.errorMessage = "关键物料必须先扫描主条码";
             this.popupType = "ng";
             this.showPopup = true;
             tone(smztm);
@@ -1712,6 +1721,7 @@ export default {
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
                     tone(pcwlxz);
+                    this.errorMessage = "批次物料条码已达到使用次数限制";
                     this.popupType = "ng";
                     this.showPopup = true;
                     return;
@@ -1785,6 +1795,7 @@ export default {
 
         if (!matched) {
           this.$message.error("条码不匹配");
+          this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
@@ -2069,6 +2080,8 @@ export default {
         // 6. 重置表单
         this.resetScanForm();
         console.error("确认失败:", error);
+        this.errorMessage = error.message;
+
         if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
           setTimeout(() => {
@@ -2102,6 +2115,7 @@ export default {
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
+          this.errorMessage = "未查询到生产工单";
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
@@ -2440,6 +2454,7 @@ export default {
               material.batchQuantity > 0
             ) {
               this.$message.warning("批次条码使用次数已达到上限");
+              this.errorMessage = "批次条码使用次数已达到上限";
               this.popupType = "ng";
               this.showPopup = true;
               tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音

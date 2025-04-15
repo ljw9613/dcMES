@@ -262,6 +262,11 @@ class MaterialPalletizingService {
         throw new Error("已出库的托盘不可以进行解绑操作");
       }
 
+      // 检查托盘是否已入库
+      if (pallet.inWarehouseStatus === "IN_WAREHOUSE") {
+        throw new Error("已入库的托盘不可以进行解绑操作");
+      }
+
       // 保存解绑前的托盘数据快照
       const originalData = pallet.toObject();
       const affectedBarcodes = [];

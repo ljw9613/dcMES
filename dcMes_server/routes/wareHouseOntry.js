@@ -75,6 +75,19 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    //特殊逻辑 添可的销售订单必须添加白名单
+    let k3_SAL_SaleOrder = await K3SaleOrder.findOne({
+      FBillNo: pallet.saleOrderNo,
+    });
+    if (k3_SAL_SaleOrder && k3_SAL_SaleOrder.FSettleId_FNumber === "CUST0199") {
+      if (entryInfo.workOrderWhitelist.length === 0) {
+        return res.status(200).json({
+          code: 201,
+          message: "添可的销售订单必须添加工单白名单",
+        });
+      }
+    }
+
     //检查白名单
     let checkwhite = false;
     for await (const element of entryInfo.workOrderWhitelist) {
@@ -175,7 +188,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     //先判断是否应出库数量和已出库数量相等;
     //不相等则显示已存在未完成出库单号:xxxxxx
     let entry1 = await wareHouseOntry.findOne({
-      saleOrderId: pallet.saleOrderId,
+      saleOrderNo: pallet.saleOrderNo,
       status: { $ne: "COMPLETED" },
     });
     if (entry1 && entry1.entryNo !== entryInfo.entryNo) {
@@ -261,6 +274,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createBy: userId,
             createAt: new Date(),
             updateAt: new Date(),
+            workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
           });
         } else {
           //小于应出库数量则返回,该销售单号销售数量为x,已完成出库数量为x,剩余出库数量为x;  saleOrder.FQty - sum = 剩余出库数量
@@ -296,6 +310,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createBy: userId,
             createAt: new Date(),
             updateAt: new Date(),
+            workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
           });
         }
       } else {
@@ -346,6 +361,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createBy: userId,
             createAt: new Date(),
             updateAt: new Date(),
+            workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
           });
         } else {
           //等于0则返回,该销售单号销售数量为x,剩余出库数量为x;
@@ -381,6 +397,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createBy: userId,
             createAt: new Date(),
             updateAt: new Date(),
+            workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
           });
         }
       }
@@ -396,7 +413,8 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 
     if (!entry) {
       return res.status(200).json({
-        message: "该出库单号无法再进行出库",
+        code: 404,
+        message: "未找到有效的出库单，请确认：1. 出库单号是否正确 2. 该出库单是否已完成出库 3. 该出库单是否已被删除",
       });
     }
     // 3. 校验物料信息是否一致
@@ -431,6 +449,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         return res.status(200).json({
           code: 200,
           message: "出库单初始化成功",
+          mode: "init",
           data: entry,
         });
       }

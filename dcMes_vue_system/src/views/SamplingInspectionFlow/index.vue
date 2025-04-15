@@ -130,12 +130,25 @@
 
         <el-table-column label="记录结果" prop="isQualified">
           <template slot-scope="scope">
-            <el-tag :type="scope.row.samplingStatus == 'VOIDED' ? 'danger' : scope.row.samplingStatus == 'COMPLETED' ? 'success' : 'warning'">
-                {{ scope.row.samplingStatus == 'VOIDED' ? "作废" : scope.row.samplingStatus == 'COMPLETED' ? "已完成" : "待处理" }}
+            <el-tag
+              :type="
+                scope.row.samplingStatus == 'VOIDED'
+                  ? 'danger'
+                  : scope.row.samplingStatus == 'COMPLETED'
+                  ? 'success'
+                  : 'warning'
+              "
+            >
+              {{
+                scope.row.samplingStatus == "VOIDED"
+                  ? "作废"
+                  : scope.row.samplingStatus == "COMPLETED"
+                  ? "已完成"
+                  : "待处理"
+              }}
             </el-tag>
           </template>
         </el-table-column>
-
 
         <el-table-column label="物料编码" prop="materialCode">
           <template slot-scope="scope">
@@ -1753,6 +1766,17 @@ export default {
     // 处理扫码确认
     async handleScanConfirm() {
       try {
+        // 检查主条码是否已完成
+        const flowresult = await getData("material_process_flow", {
+          query: { barcode: this.scanForm.barcode },
+        });
+        if (flowresult.code === 200 && flowresult.data.length > 0) {
+          if (flowresult.data[0].status != "COMPLETED") {
+            this.$message.error("该条码产品条码未完成工序");
+            return;
+          }
+        }
+
         // 先检查是否已经存在抽检记录
         const existingRecord = await getData("sampling_inspection_flow", {
           query: {

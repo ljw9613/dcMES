@@ -397,7 +397,9 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
-      :duration="1500"
+      :text="errorMessage"
+      :error-code="errorCode"
+      :duration="5000"
     />
   </div>
 </template>
@@ -506,6 +508,8 @@ export default {
 
       showPopup: false,
       popupType: "",
+      errorMessage: "",
+      errorCode: "",
       printDataTemplate: "", // 添加 printDataTemplate 属性
 
       hasPrintPermission: false,
@@ -1113,6 +1117,7 @@ export default {
         });
 
         if (response.data.length === 0) {
+          this.errorMessage = "该DI编码不存在本系统";
           this.$message.error("该DI编码不存在本系统");
           return { isValid: false };
         }
@@ -1123,6 +1128,7 @@ export default {
           .map((item) => item.productId.FNumber);
 
         if (possibleMaterialCodes.length === 0) {
+          this.errorMessage = "该DI编码未关联有效物料";
           this.$message.error("该DI编码未关联有效物料");
           return { isValid: false };
         }
@@ -1139,6 +1145,7 @@ export default {
         );
 
         if (!matchedMaterialCode) {
+          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
           this.$message.error("该DI编码对应的物料与当前工序不匹配");
           return { isValid: false };
         }
@@ -1150,6 +1157,7 @@ export default {
         };
       } catch (error) {
         console.error("DI码验证失败:", error);
+        this.errorMessage = error;
         this.$message.error("DI码验证失败");
         return { isValid: false };
       }
@@ -1225,6 +1233,7 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
+          this.errorMessage = "未找到可用的条码规则";
           return { materialCode: null, isValid: false };
         }
 
@@ -1329,7 +1338,7 @@ export default {
                   if (diResult.isValid) {
                     materialCode = diResult.materialCode;
                   } else {
-                    isValid = false;
+                    return { materialCode: null, isValid: false };
                   }
                   break;
                 case "relatedBill":
@@ -1357,11 +1366,13 @@ export default {
         }
 
         // 所有规则都未匹配成功
+        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
         this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
         this.$message.error("条码验证过程发生错误");
+        this.errorMessage = "条码验证过程发生错误";
         return { materialCode: null, isValid: false };
       }
     },
@@ -1390,6 +1401,8 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
+            this.errorMessage =
+              createResponse.message || "创建成品条码追溯记录失败";
             throw new Error(
               createResponse.message || "创建成品条码追溯记录失败"
             );
@@ -1397,6 +1410,7 @@ export default {
         }
       } catch (error) {
         console.error("处理主条码失败:", error);
+        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1429,6 +1443,7 @@ export default {
         this.$message.success("扫码成功");
       } catch (error) {
         console.error("处理子物料条码失败:", error);
+        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1798,6 +1813,7 @@ export default {
             this.$message.error(res.message);
             this.popupType = "ng";
             this.showPopup = true;
+            this.errorMessage = res.message;
             if (res.message == "该工序节点已完成或处于异常状态") {
               tone(cfbd);
             } else if (res.message == "未查询到生产工单") {
@@ -1812,6 +1828,7 @@ export default {
       } catch (error) {
         console.error("扫描处理失败:", error);
         this.$message.error(error.message || "扫描处理失败");
+        this.errorMessage = error.message;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1926,6 +1943,7 @@ export default {
             }
           } else {
             this.$message.error(res.message);
+            this.errorMessage = res.message;
             this.popupType = "ng";
             this.showPopup = true;
             if (res.message == "该工序节点已完成或处于异常状态") {
@@ -2039,6 +2057,7 @@ export default {
           this.$message.success("条码扫描成功");
         } else {
           this.$message.error(res.message);
+          this.errorMessage = res.message;
           this.popupType = "ng";
           this.showPopup = true;
           if (res.message == "该工序节点已完成或处于异常状态") {
@@ -2475,8 +2494,7 @@ export default {
         });
         console.log(response, "response");
         if (response.code === 200 && response.data.length > 0) {
-          this.palletForm.productionPlanWorkOrderId =
-            response.data[0]._id;
+          this.palletForm.productionPlanWorkOrderId = response.data[0]._id;
           this.palletForm.saleOrderId = response.data[0].saleOrderId._id;
           this.palletForm.saleOrderNo = response.data[0].saleOrderNo;
           this.palletForm.productionOrderId =
@@ -2493,7 +2511,8 @@ export default {
         if (this.mainMaterialId && this.palletForm.productionOrderId) {
           const palletResponse = await getData("material_palletizing", {
             query: {
-              productionPlanWorkOrderId: this.palletForm.productionPlanWorkOrderId, // 添加工单ID筛选
+              productionPlanWorkOrderId:
+                this.palletForm.productionPlanWorkOrderId, // 添加工单ID筛选
               productionOrderId: this.palletForm.productionOrderId, // 添加工单ID筛选
               productLineId: this.productLineId,
               status: "STACKING",
@@ -2567,44 +2586,6 @@ export default {
       } catch (error) {
         console.error("保存打印模板失败:", error);
         this.$message.error("保存打印模板失败");
-      }
-    },
-
-    // 修改 handleConfirm 方法，添加错误处理
-    async handleConfirm() {
-      try {
-        // ... 现有的提交逻辑 ...
-      } catch (error) {
-        console.error("确认失败:", error);
-
-        // 清空主条码和子物料的扫描数据
-        this.resetScanForm(); // 清空扫描表单
-        this.scanForm.mainBarcode = ""; // 清空主条码
-        this.validateStatus.mainBarcode = false; // 重置主条码验证状态
-
-        // 清空所有子物料的扫描数据
-        this.processMaterials.forEach((material) => {
-          this.$set(this.scanForm.barcodes, material._id, ""); // 清空子物料条码
-          this.$set(this.validateStatus, material._id, false); // 重置子物料验证状态
-        });
-
-        // 如果是批次物料相关的错误，清除批次物料缓存
-        if (error.message.includes("批次物料条码")) {
-          const keys = Object.keys(localStorage);
-          keys.forEach((key) => {
-            if (key.startsWith("batch_")) {
-              localStorage.removeItem(key);
-            }
-          });
-        }
-
-        // 显示错误消息
-        this.$message.error("确认失败: " + error.message);
-        this.popupType = "ng";
-        this.showPopup = true;
-
-        // 播放错误提示音
-        tone(tmyw);
       }
     },
 

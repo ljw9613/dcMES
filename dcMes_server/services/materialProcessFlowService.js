@@ -930,7 +930,9 @@ class MaterialProcessFlowService {
     fromPalletUnbind = false
   ) {
     try {
-      console.log(`开始解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}, fromPalletUnbind: ${fromPalletUnbind}`);
+      console.log(
+        `开始解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}, fromPalletUnbind: ${fromPalletUnbind}`
+      );
       // 查找主条码对应的流程记录
       const flowRecord = await MaterialProcessFlow.findOne({
         barcode: mainBarcode,
@@ -992,6 +994,45 @@ class MaterialProcessFlowService {
       // 检查是否包含首道工序，以决定是否需要减少工单的投入量
       let hasFirstProcess = false;
 
+      // 处理托盘相关的解绑逻辑
+      if (!fromPalletUnbind) {
+        console.log("processNodesToUnbind", processNodesToUnbind);
+        for (const processNodeToUnbind of processNodesToUnbind) {
+          // 检查是否是托盘工序
+          console.log("processNodeToUnbind", processNodeToUnbind.processType);
+          if (processNodeToUnbind.processType === "F") {
+            try {
+              // 查找相关的托盘记录
+              const palletRecord = await mongoose
+                .model("material_palletizing")
+                .findOne({
+                  "palletBarcodes.barcode": mainBarcode,
+                  processStepId: processNodeToUnbind.processStepId,
+                });
+
+              if (palletRecord) {
+                // 对托盘进行解绑操作
+                const MaterialPalletizingService = require("./materialPalletizing");
+                await MaterialPalletizingService.unbindBarcode(
+                  palletRecord.palletCode,
+                  mainBarcode,
+                  userId,
+                  reason || "工序解绑引起的托盘解绑",
+                  true // 这里明确传递true，表示来自工序解绑
+                );
+                console.log(
+                  `已从托盘 ${palletRecord.palletCode} 解绑条码 ${mainBarcode}`
+                );
+              }
+            } catch (error) {
+              console.warn(`解绑托盘记录失败: ${error.message}`);
+              // 继续处理其他解绑操作，不中断流程
+              throw new Error(`解绑托盘记录失败 ${error.message} `);
+            }
+          }
+        }
+      }
+
       // 验证处理的节点中是否包含首道工序
       for (const processNodeToUnbind of processNodesToUnbind) {
         const processPosition = this.checkProcessPosition(
@@ -1036,42 +1077,6 @@ class MaterialProcessFlowService {
         materialNodesToUnbind.push(...materialNodes);
       }
 
-      // 处理托盘相关的解绑逻辑
-      if (!fromPalletUnbind) {
-        for (const processNodeToUnbind of processNodesToUnbind) {
-          // 检查是否是托盘工序
-          if (processNodeToUnbind.processType === "F") {
-            try {
-              // 查找相关的托盘记录
-              const palletRecord = await mongoose
-                .model("material_palletizing")
-                .findOne({
-                  "palletBarcodes.barcode": mainBarcode,
-                  processStepId: processNodeToUnbind.processStepId,
-                });
-
-              if (palletRecord) {
-                // 对托盘进行解绑操作
-                const MaterialPalletizingService = require("./materialPalletizing");
-                await MaterialPalletizingService.unbindBarcode(
-                  palletRecord.palletCode,
-                  mainBarcode,
-                  userId,
-                  reason || "工序解绑引起的托盘解绑",
-                  true // 这里明确传递true，表示来自工序解绑
-                );
-                console.log(
-                  `已从托盘 ${palletRecord.palletCode} 解绑条码 ${mainBarcode}`
-                );
-              }
-            } catch (error) {
-              console.warn(`解绑托盘记录失败: ${error.message}`);
-              // 继续处理其他解绑操作，不中断流程
-            }
-          }
-        }
-      }
-
       // 修改解绑记录的创建部分
       for (const processNodeToUnbind of processNodesToUnbind) {
         // 获取当前工序相关的物料节点
@@ -1098,7 +1103,8 @@ class MaterialProcessFlowService {
           operatorId: userId,
           reason,
           unbindSubsequent:
-            unbindSubsequent && processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
+            unbindSubsequent &&
+            processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
           affectedProcesses: [
             {
               processStepId: processNodeToUnbind.processStepId,
