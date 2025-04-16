@@ -28,16 +28,16 @@ module.exports = {
 
   // publicPath: "/dcMes/",
   // outputDir: "../dcMes_server/admin",
-  // publicPath: "/dcMesManage/",
-  // outputDir: "../dcMes_server/adminManage",
+  publicPath: "/dcMesManage/",
+  outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
   // outputDir: "../dcMes_server/adminPzManage",
-  // publicPath: "/dcMesCs/",
+  // publicPath: "/dcMesCs/",A
   // outputDir: "../dcMes_server/adminCs",
   // publicPath: "/dcMesVN/",
   // outputDir: "../dcMes_server/adminVN",
-  publicPath: "/dcMesVNCN/",
-  outputDir: "../dcMes_server/adminVNCN",
+  // publicPath: "/dcMesVNCN/",
+  // outputDir: "../dcMes_server/adminVNCN",
   
   // publicPath: "/dcMesVNCS/",
   // outputDir: "../dcMes_server/adminVNCS",
