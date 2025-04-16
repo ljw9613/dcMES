@@ -93,6 +93,13 @@ const materialProcessFlowSchema = new mongoose.Schema({
     enum: ["PENDING", "IN_PROCESS", "COMPLETED", "ABNORMAL"],
     default: "PENDING",
   },
+  //产品状态 正常 维修中 报废
+  productStatus: {
+    type: String,
+    default: "NORMAL",
+    enum: ["NORMAL", "REPAIRING", "SCRAP"],
+  },
+  
   progress: { type: Number, default: 0 }, // 完成进度(0-100)
 
   // 时间信息
@@ -113,7 +120,6 @@ const materialProcessFlowSchema = new mongoose.Schema({
     ref: "production_plan_work_order",
     description: "工单ID",
   },
-
 
   // 天科数据上传
   dataUpload: { type: Number, required: false },

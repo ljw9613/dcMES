@@ -15,7 +15,7 @@ async function generateEntryNoByProductionOrder(productionOrderNo) {
     String(today.getMonth() + 1).padStart(2, "0") +
     String(today.getDate()).padStart(2, "0");
 
-  const baseEntryNo = "SCCK-" + dateStr;
+  const baseEntryNo = "SCCK-MES-" + dateStr;
 
   // 获取今天的开始时间（00:00:00）
   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
@@ -141,13 +141,13 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     }
 
     //判断托盘单据里面的条码是否有存在巡检不合格的数据
-    const inspectionResult = pallet.palletBarcodes.some(
+    const failedBarcodes = pallet.palletBarcodes.filter(
       (item) => item.inspectionResult === "FAIL"
-    );
-    if (inspectionResult) {
+    ).map(item => item.barcode);
+    if (failedBarcodes.length > 0) {
       return res.status(200).json({
         code: 404,
-        message: "托盘单据存在巡检不合格的数据",
+        message: `托盘单据存在巡检不合格的数据, 不合格条码: ${failedBarcodes.join(', ')}`,
       });
     }
 
@@ -163,13 +163,17 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       .lean();
 
     //判断barcodeRecords是否全部完成状态
-    const isAllCompleted = barcodeRecords.every(
-      (item) => item.status === "COMPLETED"
-    );
-    if (!isAllCompleted) {
+    const uncompletedBarcodes = barcodeRecords
+      .filter((item) => item.status !== "COMPLETED")
+      .map((item) => item.barcode);
+
+    if (uncompletedBarcodes.length > 0) {
       return res.status(200).json({
         code: 404,
-        message: "托盘单据存在未完成状态的条码",
+        message: `托盘单据存在未完成的条码,未完成状态的条码: ${uncompletedBarcodes.join(
+          ", "
+        )}`,
+        uncompletedBarcodes: uncompletedBarcodes,
       });
     }
 
@@ -414,7 +418,8 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     if (!entry) {
       return res.status(200).json({
         code: 404,
-        message: "未找到有效的出库单，请确认：1. 出库单号是否正确 2. 该出库单是否已完成出库 3. 该出库单是否已被删除",
+        message:
+          "未找到有效的出库单，请确认：1. 出库单号是否正确 2. 该出库单是否已完成出库 3. 该出库单是否已被删除",
       });
     }
     // 3. 校验物料信息是否一致
@@ -691,6 +696,388 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
         k3Response.Result.ResponseStatus.Errors[0].Message || "同步失败"
       );
     }
+  } catch (error) {
+    return res.status(200).json({
+      code: 500,
+      message: error.message,
+    });
+  }
+});
+
+// 单一产品出库时的产品条码提交
+router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
+  try {
+    const { entryId, productBarcode, userId, entryInfo } = req.body;
+
+    // 1. 根据产品条码查询工艺流程
+    const processFlow = await MaterialProcessFlow.findOne({
+      barcode: productBarcode
+    });
+    if (!processFlow) {
+      return res.status(200).json({
+        code: 404,
+        message: "未找到产品条码对应的工艺流程",
+      });
+    }
+
+    // 2. 根据工艺流程ID查询托盘信息
+    const pallet = await MaterialPallet.findOne({
+      "palletBarcodes.materialProcessFlowId": processFlow._id
+    });
+    if (!pallet) {
+      return res.status(200).json({
+        code: 404,
+        message: "未找到产品条码对应的托盘",
+      });
+    }
+
+    // 3. 验证托盘状态
+    if (pallet.status !== "STACKED") {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘未组托完成",
+      });
+    }
+
+    if (pallet.inWarehouseStatus === "PENDING") {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘未入库",
+      });
+    }
+
+    if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘已出库",
+      });
+    }
+
+    // 4. 获取或创建出库单
+    let entry;
+    if (entryId) {
+      // 如果提供了出库单ID，直接查询
+      entry = await wareHouseOntry.findById(entryId);
+    } else {
+      // 如果没有提供出库单ID，先查找销售订单对应的未完成出库单
+      entry = await wareHouseOntry.findOne({
+        saleOrderNo: pallet.saleOrderNo,
+        status: { $ne: "COMPLETED" }
+      });
+
+      // 如果没有找到未完成的出库单，且提供了entryInfo，则创建新的出库单
+      if (!entry && entryInfo) {
+        if (!entryInfo.outboundQuantity) {
+          return res.status(200).json({
+            code: 404,
+            message: "请先输入应出库数量",
+          });
+        }
+
+        //特殊逻辑 添可的销售订单必须添加白名单
+        let k3_SAL_SaleOrder = await K3SaleOrder.findOne({
+          FBillNo: pallet.saleOrderNo,
+        });
+        if (k3_SAL_SaleOrder && k3_SAL_SaleOrder.FSettleId_FNumber === "CUST0199") {
+          if (!entryInfo.workOrderWhitelist || entryInfo.workOrderWhitelist.length === 0) {
+            return res.status(200).json({
+              code: 201,
+              message: "添可的销售订单必须添加工单白名单",
+            });
+          }
+        }
+
+        //检查白名单
+        let checkwhite = false;
+        if (entryInfo.workOrderWhitelist && entryInfo.workOrderWhitelist.length > 0) {
+          for (const element of entryInfo.workOrderWhitelist) {
+            if (element.workOrderNo === pallet.workOrderNo) {
+              checkwhite = true;
+              break;
+            }
+          }
+        } else {
+          checkwhite = true;
+        }
+
+        if (!checkwhite) {
+          return res.status(200).json({
+            code: 404,
+            message: "托盘单据所在工单不在白名单中",
+          });
+        }
+
+        // 获取销售订单信息
+        let saleOrder = await K3SaleOrder.findOne({
+          FBillNo: pallet.saleOrderNo,
+        });
+
+        if (!saleOrder) {
+          return res.status(200).json({
+            code: 404,
+            message: "销售订单不存在:" + pallet.saleOrderNo,
+          });
+        }
+
+        // 获取已有的出库单数据
+        let entryData = await wareHouseOntry.find({
+          saleOrderNo: pallet.saleOrderNo,
+        });
+
+        // 获取生产订单信息
+        const order = await K3ProductionOrder.findOne({
+          FBillNo: pallet.productionOrderNo,
+        });
+
+        if (!order) {
+          return res.status(200).json({
+            code: 404,
+            message: "生产订单不存在",
+          });
+        }
+
+        // 生成新的出库单号
+        const newEntryNo = await generateEntryNoByProductionOrder(
+          order.FBillNo
+        );
+
+        // 计算已出库数量
+        let existingOutNumber = 0;
+        if (entryData.length > 0) {
+          existingOutNumber = entryData.reduce((sum, item) => sum + item.outNumber, 0);
+        }
+
+        // 判断应出库数量和销售数量的关系
+        let outboundQuantity = entryInfo.outboundQuantity;
+        if (saleOrder.FQty - existingOutNumber < entryInfo.outboundQuantity) {
+          outboundQuantity = saleOrder.FQty - existingOutNumber;
+          if (outboundQuantity <= 0) {
+            return res.status(200).json({
+              code: 404,
+              message: `该销售单号销售数量为${saleOrder.FQty}，已完成出库数量为${existingOutNumber}，无剩余出库数量`,
+            });
+          }
+        }
+
+        // 如果是第一次提交产品条码，需要创建托盘条目并添加条码
+        let currentPalletItem = {
+          palletId: pallet._id,
+          palletCode: pallet.palletCode,
+          saleOrderNo: pallet.saleOrderNo,
+          materialCode: pallet.materialCode,
+          lineCode: pallet.productLineName,
+          palletType: pallet.palletType,
+          quantity: 1, // 设置初始数量为1
+          scanTime: new Date(),
+          scanBy: userId,
+          palletBarcodes: []
+        };
+
+        // 获取产品条码在托盘中的信息
+        const productBarcodeInfo = pallet.palletBarcodes.find(
+          item => item.barcode === productBarcode
+        );
+        if (productBarcodeInfo) {
+          currentPalletItem.palletBarcodes.push({
+            barcode: productBarcode,
+            barcodeType: productBarcodeInfo.barcodeType,
+            materialProcessFlowId: productBarcodeInfo.materialProcessFlowId,
+            productionPlanWorkOrderId: productBarcodeInfo.productionPlanWorkOrderId,
+            scanTime: new Date(),
+            scanBy: userId
+          });
+        }
+
+        // 创建新的出库单
+        entry = await wareHouseOntry.create({
+          HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
+          FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
+          outboundQuantity: outboundQuantity, //应出库数量
+          outNumber: 1, //已出库数量，初始为1
+          saleNumber: saleOrder.FQty, //销售数量
+          entryNo: newEntryNo,
+          productionOrderNo: order.FBillNo,
+          saleOrderId: saleOrder._id,
+          saleOrderNo: order.FSaleOrderNo,
+          saleOrderEntryId: order.FSaleOrderEntryId,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          materialSpec: pallet.materialSpec,
+          unit: order.FUnitId,
+          workShop: order.FWorkShopID_FName,
+          productType: order.FProductType,
+          correspondOrgId: order.FCorrespondOrgId,
+          outboundMode: entryInfo.outboundMode || "SINGLE", // 默认单一产品出库
+          status: "IN_PROGRESS",
+          progress: Math.round((1 / outboundQuantity) * 100), // 计算初始进度
+          startTime: new Date(),
+          createBy: userId,
+          createAt: new Date(),
+          updateAt: new Date(),
+          workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+          entryItems: [currentPalletItem] // 直接添加托盘条目到出库单
+        });
+
+        // 更新托盘中条码的出入库状态
+        const barcodeIndex = pallet.palletBarcodes.findIndex(
+          item => item.barcode === productBarcode
+        );
+        if (barcodeIndex !== -1) {
+          pallet.palletBarcodes[barcodeIndex].outWarehouseStatus = "OUT_WAREHOUSE";
+          pallet.palletBarcodes[barcodeIndex].outWarehouseTime = new Date();
+          pallet.palletBarcodes[barcodeIndex].outWarehouseBy = userId;
+        }
+
+        // 检查是否完成出库
+        if (entry.outNumber >= entry.outboundQuantity) {
+          entry.status = "COMPLETED";
+          entry.endTime = new Date();
+        }
+
+        // 保存更新
+        await pallet.save();
+
+        return res.status(200).json({
+          code: 200,
+          message: "产品条码提交成功",
+          data: {
+            entry,
+            pallet
+          },
+        });
+      }
+    }
+
+    if (!entry) {
+      return res.status(200).json({
+        code: 404,
+        message: "未找到有效的出库单，请确认：1. 出库单ID是否正确 2. 该出库单是否已完成出库 3. 该出库单是否已被删除",
+      });
+    }
+
+    // 5. 校验物料信息是否一致
+    if (pallet.materialId.toString() !== entry.materialId.toString()) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘物料与出库单物料不一致",
+      });
+    }
+
+    // 6. 检查托盘是否已经在当前出库单中
+    let currentPalletItem = entry.entryItems.find(
+      item => item.palletId && item.palletId.toString() === pallet._id.toString()
+    );
+
+    if (!currentPalletItem) {
+      // 如果托盘不在当前出库单中，创建新的托盘条目
+      currentPalletItem = {
+        palletId: pallet._id,
+        palletCode: pallet.palletCode,
+        saleOrderNo: pallet.saleOrderNo,
+        materialCode: pallet.materialCode,
+        lineCode: pallet.productLineName,
+        palletType: pallet.palletType,
+        quantity: 1, // 设置初始数量为1
+        scanTime: new Date(),
+        scanBy: userId,
+        palletBarcodes: []
+      };
+
+      // 获取产品条码在托盘中的信息
+      const productBarcodeInfo = pallet.palletBarcodes.find(
+        item => item.barcode === productBarcode
+      );
+      if (productBarcodeInfo) {
+        currentPalletItem.palletBarcodes.push({
+          barcode: productBarcode,
+          barcodeType: productBarcodeInfo.barcodeType,
+          materialProcessFlowId: productBarcodeInfo.materialProcessFlowId,
+          productionPlanWorkOrderId: productBarcodeInfo.productionPlanWorkOrderId,
+          scanTime: new Date(),
+          scanBy: userId
+        });
+      }
+
+      entry.entryItems.push(currentPalletItem);
+    } else {
+      // 7. 检查产品条码是否已经提交过
+      const existingBarcode = currentPalletItem.palletBarcodes.find(
+        item => item.barcode === productBarcode
+      );
+      if (existingBarcode) {
+        return res.status(200).json({
+          code: 404,
+          message: "该产品条码已提交",
+        });
+      }
+
+      // 获取产品条码在托盘中的信息
+      const productBarcodeInfo = pallet.palletBarcodes.find(
+        item => item.barcode === productBarcode
+      );
+      if (productBarcodeInfo) {
+        currentPalletItem.palletBarcodes.push({
+          barcode: productBarcode,
+          barcodeType: productBarcodeInfo.barcodeType,
+          materialProcessFlowId: productBarcodeInfo.materialProcessFlowId,
+          productionPlanWorkOrderId: productBarcodeInfo.productionPlanWorkOrderId,
+          scanTime: new Date(),
+          scanBy: userId
+        });
+      }
+    }
+
+    // 更新托盘中条码的出入库状态
+    const barcodeIndex = pallet.palletBarcodes.findIndex(
+      item => item.barcode === productBarcode
+    );
+    if (barcodeIndex !== -1) {
+      pallet.palletBarcodes[barcodeIndex].outWarehouseStatus = "OUT_WAREHOUSE";
+      pallet.palletBarcodes[barcodeIndex].outWarehouseTime = new Date();
+      pallet.palletBarcodes[barcodeIndex].outWarehouseBy = userId;
+    }
+
+    // 更新出库数量
+    currentPalletItem.quantity = currentPalletItem.palletBarcodes.length;
+    entry.outNumber = entry.entryItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
+
+    // 更新出库进度
+    entry.progress = Math.round((entry.outNumber / entry.outboundQuantity) * 100);
+
+    // 检查是否完成出库
+    if (entry.outNumber >= entry.outboundQuantity) {
+      entry.status = "COMPLETED";
+      entry.endTime = new Date();
+    }
+
+    // 检查托盘是否所有条码都已出库
+    const allBarcodesOut = pallet.palletBarcodes.every(
+      item => item.outWarehouseStatus === "OUT_WAREHOUSE"
+    );
+    if (allBarcodesOut) {
+      pallet.inWarehouseStatus = "OUT_WAREHOUSE";
+      pallet.outWarehouseTime = new Date();
+      pallet.outWarehouseBy = userId;
+    }
+
+    // 保存更新
+    await Promise.all([
+      entry.save(),
+      pallet.save()
+    ]);
+
+    return res.status(200).json({
+      code: 200,
+      message: "产品条码提交成功",
+      data: {
+        entry,
+        pallet
+      },
+    });
   } catch (error) {
     return res.status(200).json({
       code: 500,

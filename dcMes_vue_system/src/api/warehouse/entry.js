@@ -32,3 +32,12 @@ export function syncWarehouseOn(data) {
         data
     })
 }
+
+// 产品条码提交
+export function submitProductBarcode(data) {
+    return request({
+        url: '/warehouse_entry/submit_product',
+        method: 'post',
+        data
+    })
+}
