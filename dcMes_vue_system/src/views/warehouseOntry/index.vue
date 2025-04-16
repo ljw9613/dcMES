@@ -723,10 +723,13 @@ export default {
                             // 批量处理所有托盘状态
                             const palletCodes = entryData.entryItems.map(item => item.palletCode);
 
-                            // 3. 更新托盘状态为"已入库"
+                            // 3. 更新托盘状态为"已入库"并重置产品条码明细的出库状态
                             await updateData("material_palletizing", {
                                 query: { palletCode: { $in: palletCodes } },
-                                update: { inWarehouseStatus: "IN_WAREHOUSE" },
+                                update: { 
+                                    inWarehouseStatus: "IN_WAREHOUSE",
+                                    "palletBarcodes.$[].outWarehouseStatus": "PENDING"
+                                },
                                 multi: true
                             });
 

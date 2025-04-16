@@ -110,6 +110,22 @@ const materialPalletizingSchema = new mongoose.Schema({
       barcode: { type: String }, // 托盘条码
       barcodeType: { type: String }, // 托盘条码类型
       scanTime: { type: Date }, // 扫码时间
+      // 出入库状态
+      inWarehouseStatus: {
+        type: String,
+        enum: ["PENDING", "COMPLETED"],
+        default: "PENDING",
+      },
+      outWarehouseStatus: {
+        type: String,
+        enum: ["PENDING", "COMPLETED"],
+        default: "PENDING",
+      },
+      inWarehouseTime: { type: Date }, // 入库时间
+      outWarehouseTime: { type: Date }, // 出库时间
+      inWarehouseBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 入库人
+      outWarehouseBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 出库人
+
       inspectionStatus: {
         type: String,
         enum: ["PENDING", "INSPECTING", "INSPECTED"], // 抽检状态 待抽检 抽检中 抽检完成

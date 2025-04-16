@@ -1051,7 +1051,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       item => item.barcode === productBarcode
     );
     if (barcodeIndex !== -1) {
-      pallet.palletBarcodes[barcodeIndex].outWarehouseStatus = "OUT_WAREHOUSE";
+      pallet.palletBarcodes[barcodeIndex].outWarehouseStatus = "COMPLETED";
       pallet.palletBarcodes[barcodeIndex].outWarehouseTime = new Date();
       pallet.palletBarcodes[barcodeIndex].outWarehouseBy = userId;
     }
@@ -1074,7 +1074,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
 
     // 检查托盘是否所有条码都已出库
     const allBarcodesOut = pallet.palletBarcodes.every(
-      item => item.outWarehouseStatus === "OUT_WAREHOUSE"
+      item => item.outWarehouseStatus === "COMPLETED"
     );
     if (allBarcodesOut) {
       pallet.inWarehouseStatus = "OUT_WAREHOUSE";
