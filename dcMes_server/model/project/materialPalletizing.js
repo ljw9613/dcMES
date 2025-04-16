@@ -143,6 +143,21 @@ const materialPalletizingSchema = new mongoose.Schema({
   // 时间信息
   startStackTime: { type: Date }, // 开始组托时间
   endStackTime: { type: Date }, // 完成组托时间
+
+  // 入库状态
+  inWarehouseState: {
+    type: String,
+    enum: ["PENDING", "IN_PROCESS", "COMPLETED"],
+    default: "PENDING",
+  },
+
+  // 出库状态
+  outWarehouseState: {
+    type: String,
+    enum: ["PENDING", "IN_PROCESS", "COMPLETED"],
+    default: "PENDING",
+  },
+
   inWarehouseTime: { type: Date }, // 入库时间
   outWarehouseTime: { type: Date }, // 出库时间
 

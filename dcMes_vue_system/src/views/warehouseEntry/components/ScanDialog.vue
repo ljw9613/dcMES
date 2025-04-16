@@ -1,28 +1,46 @@
 <template>
-  <el-dialog :title="title" :visible.sync="dialogVisible" width="800px" @close="handleClose">
+  <el-dialog
+    :title="title"
+    :visible.sync="dialogVisible"
+    width="800px"
+    @close="handleClose"
+  >
     <div class="scan-container">
       <!-- 扫码输入区域 -->
       <el-form :model="scanForm" ref="scanForm" :rules="rules">
         <el-form-item prop="barcode">
-          <zr-select v-model="stock_id" collection="k3_BD_STOCK" :search-fields="['FName','FNumber']"
-            label-key="FName" sub-key="FStockId" :multiple="false" placeholder="请选择仓库"
-            @select="handleTemplateChange">
+          <zr-select
+            v-model="stock_id"
+            collection="k3_BD_STOCK"
+            :search-fields="['FName', 'FNumber']"
+            label-key="FName"
+            sub-key="FStockId"
+            :multiple="false"
+            placeholder="请选择仓库"
+            @select="handleTemplateChange"
+          >
             <template #option="{ item }">
-                <div class="item-option">
-                    <div class="item-info">
-                        <span class="name">{{ item.FName }}</span>
-                        <el-tag size="mini" type="info">{{ item.FNumber }}</el-tag>
-                    </div>
-                    <div class="sub-info">FName
-                        <small>{{ item.FName }}</small>
-                    </div>
+              <div class="item-option">
+                <div class="item-info">
+                  <span class="name">{{ item.FName }}</span>
+                  <el-tag size="mini" type="info">{{ item.FNumber }}</el-tag>
                 </div>
+                <div class="sub-info">
+                  FName
+                  <small>{{ item.FName }}</small>
+                </div>
+              </div>
             </template>
-        </zr-select>
+          </zr-select>
         </el-form-item>
         <el-form-item prop="barcode">
-          <el-input v-model="scanForm.barcode" :placeholder="placeholder" @keyup.enter.native="handleScanInput"
-            ref="scanInput" clearable>
+          <el-input
+            v-model="scanForm.barcode"
+            :placeholder="placeholder"
+            @keyup.enter.native="handleScanInput"
+            ref="scanInput"
+            clearable
+          >
             <!-- <template slot="append">
               <el-button @click="handleScanInput">确认</el-button>
             </template> -->
@@ -72,7 +90,10 @@
             <el-col :span="8">
               <div class="info-item">
                 <label>完成进度：</label>
-                <el-progress :percentage="entryInfo.progress" :status="entryInfo.progress >= 100 ? 'success' : ''" />
+                <el-progress
+                  :percentage="entryInfo.progress"
+                  :status="entryInfo.progress >= 100 ? 'success' : ''"
+                />
               </div>
             </el-col>
           </el-row>
@@ -104,7 +125,11 @@
         <el-table :data="scanRecords" border style="width: 100%">
           <el-table-column label="托盘编号" prop="palletCode" align="center" />
           <el-table-column label="销售订单" prop="saleOrderNo" align="center" />
-          <el-table-column label="物料编码" prop="materialCode" align="center" />
+          <el-table-column
+            label="物料编码"
+            prop="materialCode"
+            align="center"
+          />
           <el-table-column label="数量" prop="quantity" align="center" />
           <el-table-column label="产线" prop="lineCode" align="center" />
           <el-table-column label="扫描时间" align="center">
@@ -118,7 +143,11 @@
 
     <div slot="footer" class="dialog-footer">
       <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleComplete" :disabled="!scanRecords.length">
+      <el-button
+        type="primary"
+        @click="handleComplete"
+        :disabled="!scanRecords.length"
+      >
         完成入库
       </el-button>
     </div>
@@ -128,76 +157,77 @@
 <script>
 import { scanPallet, deletePallet } from "@/api/warehouse/entry";
 export default {
-  name: 'ScanDialog',
+  name: "ScanDialog",
   props: {
     visible: {
       type: Boolean,
-      default: false
+      default: false,
     },
     title: {
       type: String,
-      default: '托盘扫码入库'
+      default: "托盘扫码入库",
     },
     placeholder: {
       type: String,
-      default: '请扫描托盘条码'
-    }
+      default: "请扫描托盘条码",
+    },
   },
   data() {
     return {
-      stock_id:localStorage.getItem('lastSelectedstock_id') || null,
-      stockId: localStorage.getItem('lastSelectedStockId') || null,
+      stock_id: localStorage.getItem("lastSelectedstock_id") || null,
+      stockId: localStorage.getItem("lastSelectedStockId") || null,
       dialogVisible: false,
       scanForm: {
-        barcode: '',
-        stockId: localStorage.getItem('lastSelectedStockId') || null
+        barcode: "",
+        stockId: localStorage.getItem("lastSelectedStockId") || null,
       },
       rules: {
         barcode: [
-          { required: true, message: '请输入或扫描条码', trigger: 'blur' }
-        ]
+          { required: true, message: "请输入或扫描条码", trigger: "blur" },
+        ],
       },
       scanRecords: [],
-      entryInfo: null
-    }
+      entryInfo: null,
+    };
   },
   watch: {
     visible(val) {
-      this.dialogVisible = val
+      this.dialogVisible = val;
       if (val) {
         this.$nextTick(() => {
-          this.$refs.scanInput.focus()
-        })
+          this.$refs.scanInput.focus();
+        });
       }
     },
     dialogVisible(val) {
-      this.$emit('update:visible', val)
+      this.$emit("update:visible", val);
       if (!val) {
-        this.resetForm()
+        this.resetForm();
       }
-    }
+    },
   },
   methods: {
-     // 处理模板选择变化
-     handleTemplateChange(val) {
+    // 处理模板选择变化
+    handleTemplateChange(val) {
       if (val) {
         this.stock_id = val._id;
         this.scanForm.stockId = val.FStockId;
-        localStorage.setItem('lastSelectedstock_id', val._id);
-        localStorage.setItem('lastSelectedStockId', val.FStockId);
+        localStorage.setItem("lastSelectedstock_id", val._id);
+        localStorage.setItem("lastSelectedStockId", val.FStockId);
       }
     },
     async handleScanInput() {
       try {
-        await this.$refs.scanForm.validate()
-        const barcode = this.scanForm.barcode.trim()
+        await this.$refs.scanForm.validate();
+        const barcode = this.scanForm.barcode.trim();
 
         // 发送扫描事件到父组件
-        const success = await this.$emit('scan', barcode)
+        const success = await this.$emit("scan", barcode);
 
         if (success) {
           // 解析条码信息
-          const [palletCode, saleOrderNo, materialCode, quantity, lineCode] = barcode.split('#')
+          const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+            barcode.split("#");
 
           // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
           //   throw new Error('无效的托盘条码格式');
@@ -208,8 +238,8 @@ export default {
           // 调用托盘入库API
           const response = await scanPallet({
             palletCode,
-            stockId:this.scanForm.stockId,
-            userId: this.$store.state.user.id
+            stockId: this.scanForm.stockId,
+            userId: this.$store.state.user.id,
           });
 
           // 更新入库单信息
@@ -218,6 +248,7 @@ export default {
           }
 
           if (response.code !== 200) {
+            this.scanForm.barcode = "";
             this.$message.error(response.message);
             return;
           }
@@ -231,45 +262,48 @@ export default {
             materialCode,
             quantity: Number(quantity),
             lineCode,
-            scanTime: new Date()
-          })
+            scanTime: new Date(),
+          });
 
           // 清空输入框
-          this.scanForm.barcode = ''
-          this.scanForm.stockId = ''
+          this.scanForm.barcode = "";
+          this.scanForm.stockId = "";
         }
       } catch (error) {
-        console.error('扫描失败:', error)
+        console.error("扫描失败:", error);
       }
     },
 
     async handleComplete() {
       try {
-        await this.$emit('complete', this.scanRecords.map(record => record.palletCode))
-        this.dialogVisible = false
+        await this.$emit(
+          "complete",
+          this.scanRecords.map((record) => record.palletCode)
+        );
+        this.dialogVisible = false;
       } catch (error) {
-        console.error('完成入库失败:', error)
+        console.error("完成入库失败:", error);
       }
     },
 
     handleClose() {
-      this.resetForm()
+      this.resetForm();
     },
 
     resetForm() {
-      this.scanForm.barcode = ''
-      this.scanRecords = []
-      this.entryInfo = null
+      this.scanForm.barcode = "";
+      this.scanRecords = [];
+      this.entryInfo = null;
       if (this.$refs.scanForm) {
-        this.$refs.scanForm.resetFields()
+        this.$refs.scanForm.resetFields();
       }
     },
 
     formatDateTime(date) {
-      return new Date(date).toLocaleString()
-    }
-  }
-}
+      return new Date(date).toLocaleString();
+    },
+  },
+};
 </script>
 
 <style lang="scss" scoped>

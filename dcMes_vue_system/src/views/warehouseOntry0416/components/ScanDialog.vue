@@ -96,14 +96,14 @@
               </zr-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="出库模式">
               <el-radio-group v-model="entryInfo.outboundMode">
                 <el-radio label="SINGLE">单一产品出库</el-radio>
                 <el-radio label="PALLET">整托盘出库</el-radio>
               </el-radio-group>
             </el-form-item>
-          </el-col>
+          </el-col> -->
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -130,40 +130,18 @@
         :model="scanForm"
         ref="scanForm"
         :rules="rules"
-        v-if="!showProductScan && entryInfo.outboundMode !== 'SINGLE'"
+        v-if="!showProductScan || entryInfo.outboundMode !== 'SINGLE'"
       >
         <el-form-item prop="barcode">
           <el-input
             v-model="scanForm.barcode"
-            placeholder="请扫描托盘条码"
+            :placeholder="placeholder"
             @keyup.enter.native="handleScanInput"
             ref="scanInput"
             clearable
           >
             <template slot="append">
               <el-button @click="handleScanInput">确认</el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-      </el-form>
-
-      <!-- 单一产品出库模式下的产品条码输入框 -->
-      <el-form
-        :model="productScanForm"
-        ref="productScanForm"
-        :rules="productScanRules"
-        v-if="!showProductScan && entryInfo.outboundMode === 'SINGLE'"
-      >
-        <el-form-item prop="barcode">
-          <el-input
-            v-model="productScanForm.barcode"
-            placeholder="请扫描产品条码"
-            @keyup.enter.native="handleProductScan"
-            ref="productScanInput"
-            clearable
-          >
-            <template slot="append">
-              <el-button @click="handleProductScan">确认</el-button>
             </template>
           </el-input>
         </el-form-item>
@@ -401,7 +379,7 @@
 </template>
 
 <script>
-import { scanPalletOn, deletePallet, submitProductBarcode } from "@/api/warehouse/entry";
+import { scanPalletOn, deletePallet } from "@/api/warehouse/entry";
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { number } from "echarts/lib/export";
 export default {
@@ -714,48 +692,32 @@ export default {
         await this.$refs.productScanForm.validate();
         const barcode = this.productScanForm.barcode.trim();
 
-        // 调用新的产品条码提交接口
-        const response = await submitProductBarcode({
-          productBarcode: barcode,
-          userId: this.$store.state.user.id,
-          entryInfo: {
-            ...this.entryInfo,
-            workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-              (item) => ({
-                workOrderNo: item.workOrderNo,
-                workOrderId: item._id,
-                productionOrderNo: item.productionOrderNo,
-              })
-            ),
-            outboundMode: this.entryInfo.outboundMode,
-          },
-        });
-
-        if (response.code !== 200) {
-          this.$message.error(response.message);
+        // 检查条码是否已扫描
+        if (this.scannedProducts.some((item) => item.barcode === barcode)) {
+          this.$message.warning("该产品条码已扫描");
           return;
         }
 
-        // 更新出库单信息
-        if (response.data) {
-          this.entryInfo = {
-            ...response.data.entry,
-            outboundMode: this.entryInfo.outboundMode,
-          };
+        // 检查条码是否属于当前托盘
+        const palletBarcode = this.currentPallet.palletBarcodes.find(
+          (item) => item.barcode === barcode
+        );
 
-          // 更新当前托盘信息
-          if (response.data.pallet) {
-            this.currentPallet = {
-              ...this.currentPallet,
-              palletBarcodes: response.data.pallet.palletBarcodes.map((item) => ({
-                barcode: item.barcode,
-                scanTime: item.scanTime,
-                inspectionStatus: item.inspectionStatus,
-                outWarehouseStatus: item.outWarehouseStatus,
-              })),
-            };
-          }
+        if (!palletBarcode) {
+          this.$message.warning("该产品条码不属于当前托盘");
+          return;
         }
+
+        // 更新条码状态为已扫描
+        palletBarcode.inspectionStatus = "PASS";
+        palletBarcode.scanTime = new Date();
+
+        // 添加到已扫描列表
+        this.scannedProducts.push({
+          barcode,
+          scanTime: new Date(),
+          inspectionStatus: "PASS",
+        });
 
         // 清空输入框
         this.productScanForm.barcode = "";
@@ -763,7 +725,10 @@ export default {
           this.$refs.productScanInput.focus();
         });
 
-        this.$message.success("产品条码提交成功");
+        // 如果已扫描数量达到总数量，自动完成校验
+        if (this.scannedProducts.length >= this.currentPallet.totalQuantity) {
+          this.handleCompleteProductScan();
+        }
       } catch (error) {
         console.error("产品条码扫描失败:", error);
       }
@@ -789,9 +754,9 @@ export default {
     // 完成产品条码校验
     async handleCompleteProductScan() {
       try {
-        // 调用新的产品条码提交接口，设置palletFinished为true
-        const response = await submitProductBarcode({
-          productBarcode: null, // 不提交具体条码，表示完成当前托盘
+        // 调用托盘出库API，设置palletFinished为true
+        const response = await scanPalletOn({
+          palletCode: this.currentPallet.palletCode,
           userId: this.$store.state.user.id,
           entryInfo: {
             ...this.entryInfo,
@@ -802,8 +767,9 @@ export default {
                 productionOrderNo: item.productionOrderNo,
               })
             ),
-            outboundMode: this.entryInfo.outboundMode,
+            outboundMode: this.entryInfo.outboundMode, // 保持原有的出库模式
           },
+          palletFinished: true,
         });
 
         if (response.code !== 200) {
@@ -814,9 +780,32 @@ export default {
         // 更新出库单信息
         if (response.data) {
           this.entryInfo = {
-            ...response.data.entry,
-            outboundMode: this.entryInfo.outboundMode,
+            ...response.data,
+            outboundMode: this.entryInfo.outboundMode, // 保持原有的出库模式
           };
+
+          // 重新获取托盘数据
+          const palletResponse = await getData("material_palletizing", {
+            query: { palletCode: this.currentPallet.palletCode },
+            populate: JSON.stringify([
+              { path: "productLineId", select: "lineCode" },
+              { path: "productionOrderId", select: "FWorkShopID_FName" },
+            ]),
+          });
+
+          if (palletResponse.data && palletResponse.data.length > 0) {
+            const palletData = palletResponse.data[0];
+            this.currentPallet = {
+              palletCode: palletData.palletCode,
+              materialName: palletData.materialName,
+              totalQuantity: palletData.totalQuantity,
+              palletBarcodes: palletData.palletBarcodes.map((item) => ({
+                barcode: item.barcode,
+                scanTime: item.scanTime,
+                inspectionStatus: item.inspectionStatus,
+              })),
+            };
+          }
         }
 
         this.$message.success("产品条码校验完成");

@@ -37,15 +37,18 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
     }
 
     //判断托盘单据里面的条码是否有存在巡检不合格的数据
-    const inspectionResult = pallet.palletBarcodes.some(
-      (item) => item.inspectionResult === "FAIL"
-    );
-    if (inspectionResult) {
+    const failedBarcodes = pallet.palletBarcodes
+      .filter((item) => item.inspectionResult === "FAIL")
+      .map((item) => item.barcode);
+    if (failedBarcodes.length > 0) {
       return res.status(200).json({
         code: 404,
-        message: "托盘单据存在巡检不合格的数据",
+        message: `托盘单据存在巡检不合格的数据, 不合格条码: ${failedBarcodes.join(
+          ", "
+        )}`,
       });
     }
+    
     //判断托盘单据里面的条码是否全部完成状态
     let barcodeArray = [];
     pallet.palletBarcodes.forEach((item) => {
@@ -58,13 +61,17 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       .lean();
 
     //判断barcodeRecords是否全部完成状态
-    const isAllCompleted = barcodeRecords.every(
-      (item) => item.status === "COMPLETED"
-    );
-    if (!isAllCompleted) {
+    const uncompletedBarcodes = barcodeRecords
+      .filter((item) => item.status !== "COMPLETED")
+      .map((item) => item.barcode);
+
+    if (uncompletedBarcodes.length > 0) {
       return res.status(200).json({
         code: 404,
-        message: "托盘单据存在未完成状态的条码",
+        message: `托盘单据存在未完成的条码,未完成状态的条码: ${uncompletedBarcodes.join(
+          ", "
+        )}`,
+        uncompletedBarcodes: uncompletedBarcodes,
       });
     }
 
@@ -97,7 +104,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       }
 
       entry = await WarehouseEntry.create({
-        entryNo: "SCRK-" + order.FBillNo,
+        entryNo: "SCRK-MES-" + order.FBillNo,
         productionOrderNo: order.FBillNo,
         saleOrderId: order.FSaleOrderId,
         saleOrderNo: order.FSaleOrderNo,

@@ -1,5 +1,33 @@
 const mongoose = require("mongoose");
 
+// 托盘内装箱/产品明细结构
+const palletItemSchema = new mongoose.Schema(
+  {
+    // 箱子条码信息
+    boxBarcode: { type: String }, // 箱子条码
+    boxBarcodes: [
+      {
+        materialProcessFlowId: {
+          type: mongoose.Schema.ObjectId,
+          ref: "material_process_flow",
+        }, // 关联工艺流程
+        barcode: { type: String }, // 托盘条码
+        barcodeType: { type: String }, // 托盘条码类型
+        scanTime: { type: Date }, // 扫码时间
+      },
+    ],
+    productionPlanWorkOrderId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "production_plan_work_order",
+      description: "工单ID",
+    },
+    quantity: { type: Number, default: 1 }, // 数量（箱子时为箱内数量）
+    scanTime: { type: Date, default: Date.now }, // 扫描时间
+    scanBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 扫描人
+  },
+  { _id: false }
+);
+
 // 出库明细行项目
 const entryItemSchema = new mongoose.Schema(
   {
@@ -14,6 +42,25 @@ const entryItemSchema = new mongoose.Schema(
     scanTime: { type: Date }, // 扫描时间
     scanBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 扫描人
     scanByName: { type: String }, // 新增：扫描人姓名
+    // 箱子信息
+    boxItems: [palletItemSchema], // 托盘内物料明细
+
+    // 托盘条码信息
+    palletBarcodes: [
+      {
+        barcode: { type: String }, // 托盘条码
+        barcodeType: { type: String }, // 托盘条码类型
+        materialProcessFlowId: {
+          type: mongoose.Schema.ObjectId,
+          ref: "material_process_flow",
+        }, // 关联工艺流程
+        productionPlanWorkOrderId: {
+          type: mongoose.Schema.ObjectId,
+          ref: "production_plan_work_order",
+          description: "工单ID",
+        },
+      },
+    ], // 托盘条码
   },
   { _id: false }
 );
@@ -22,8 +69,8 @@ const entryItemSchema = new mongoose.Schema(
 const warehouseOntrySchema = new mongoose.Schema({
   entryNo: { type: String, required: true, unique: true }, // 出库单号
   entryType: { type: String, default: "PRODUCTION" }, // 新增：出库类型（生产出库/其他）
-  
-//出库信息
+
+  //出库信息
   HuoGuiCode: { type: String }, // 货柜号
   FaQIaoNo: { type: String }, // 发票号
   outboundQuantity: { type: Number }, // 应出库数量
@@ -33,18 +80,18 @@ const warehouseOntrySchema = new mongoose.Schema({
   // 生产订单相关信息
   productionOrderId: { type: mongoose.Schema.ObjectId, ref: "k3_PRD_MO" }, // 关联生产订单
   productionOrderNo: { type: String }, // 生产订单号
-  
+
   // 销售订单相关信息
   saleOrderId: { type: mongoose.Schema.ObjectId, ref: "k3_SAL_SaleOrder" }, // 销售订单ID
   saleOrderNo: { type: String }, // 销售订单号
   saleOrderEntryId: { type: String }, // 销售订单分录内码
-  
+
   // 物料信息
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 物料ID
   materialCode: { type: String }, // 物料编码
   materialName: { type: String }, // 物料名称
   materialSpec: { type: String }, // 规格型号
-  
+
   // 数量信息
   // plannedQuantity: { type: Number, required: true }, // 应收数量（来自生产订单）
   actualQuantity: { type: Number, default: 0 }, // 实际出库数量
@@ -56,39 +103,42 @@ const warehouseOntrySchema = new mongoose.Schema({
   unit: { type: String }, // 单位
   workShop: { type: String }, // 生产车间
   productType: { type: String }, // 产品类型
-  
+
   // 工单白名单（允许出库的工单列表）
   workOrderWhitelist: [
     {
       workOrderNo: { type: String }, // 工单号
-      workOrderId: { type: mongoose.Schema.ObjectId, ref: "production_plan_work_order" }, // 工单ID
-    }
+      workOrderId: {
+        type: mongoose.Schema.ObjectId,
+        ref: "production_plan_work_order",
+      }, // 工单ID
+    },
   ],
-  
+
   // 出库模式
   outboundMode: {
     type: String,
     enum: ["SINGLE", "PALLET"], // 单一产品出库/整托盘出库
-    default: "PALLET"
+    default: "PALLET",
   },
-  
+
   // 出库状态
   status: {
     type: String,
     enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"], // 新增：CANCELLED状态
-    default: "PENDING"
+    default: "PENDING",
   },
-  
+
   // 出库明细
   entryItems: [entryItemSchema],
-  
+
   // 时间信息
   startTime: { type: Date }, // 开始出库时间
   endTime: { type: Date }, // 完成出库时间
 
   // 关联组织
   correspondOrgId: { type: String }, // 关联组织
-  
+
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 创建人ID
@@ -96,7 +146,7 @@ const warehouseOntrySchema = new mongoose.Schema({
   updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 更新人ID
   updateByName: { type: String }, // 新增：更新人姓名
   createAt: { type: Date, default: Date.now },
-  updateAt: { type: Date, default: Date.now }
+  updateAt: { type: Date, default: Date.now },
 });
 
 // 添加索引
@@ -106,4 +156,4 @@ warehouseOntrySchema.index({ status: 1 });
 warehouseOntrySchema.index({ createAt: -1 });
 warehouseOntrySchema.index({ "entryItems.palletCode": 1 }); // 新增：托盘编号索引
 
-module.exports = mongoose.model("warehouse_ontry", warehouseOntrySchema); 
+module.exports = mongoose.model("warehouse_ontry", warehouseOntrySchema);
