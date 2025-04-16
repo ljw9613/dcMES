@@ -471,7 +471,17 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       saleOrderNo: pallet.saleOrderNo, // 新增：销售订单
       materialCode: pallet.materialCode, //新增： 物料编码
       lineCode: pallet.productLineName, // 新增：产线
+      palletType: pallet.palletType, // 新增：托盘类型
+      palletBarcodes: pallet.palletBarcodes.map(item => ({
+        barcode: item.barcode,
+        barcodeType: item.barcodeType,
+        materialProcessFlowId: item.materialProcessFlowId,
+        productionPlanWorkOrderId: item.productionPlanWorkOrderId,
+        scanTime: new Date(),
+        scanBy: userId
+      }))
     });
+
     // 6. 更新出库单数量信息和完成进度
     entry.outNumber = entry.entryItems.reduce(
       (sum, item) => sum + item.quantity,
@@ -497,11 +507,19 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       entry.status = "IN_PROGRESS";
     }
 
-    // 8. 更新托盘的出库状态
+    // 8. 更新托盘中所有条码的出库状态
+    pallet.palletBarcodes.forEach(barcode => {
+      barcode.outWarehouseStatus = "OUT_WAREHOUSE";
+      barcode.outWarehouseTime = new Date();
+      barcode.outWarehouseBy = userId;
+    });
+
+    // 9. 更新托盘的出库状态
     await MaterialPallet.findByIdAndUpdate(pallet._id, {
       inWarehouseStatus: "OUT_WAREHOUSE",
       outWarehouseTime: new Date(),
       updateAt: new Date(),
+      palletBarcodes: pallet.palletBarcodes
     });
 
     await entry.save();

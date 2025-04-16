@@ -1869,6 +1869,26 @@ export default {
           // 是包装箱条码，获取包装箱内的所有条码
           await this.handleBoxBarcode(cleanValue, boxResponse.data);
         } else {
+          //是否为升级条码
+          const preProductionResponse = await getData("preProductionBarcode", {
+            query: {
+              transformedPrintBarcode: cleanValue,
+            },
+            select: {
+              transformedPrintBarcode: 1,
+              printBarcode: 1,
+            },
+            limit: 1,
+          });
+
+          if (
+            preProductionResponse.data &&
+            preProductionResponse.data.length > 0
+          ) {
+            console.log("升级条码:", preProductionResponse.data[0]);
+            cleanValue = preProductionResponse.data[0].printBarcode;
+          }
+
           // 不是包装箱条码，验证并处理单个条码
           const isValidResult = await this.validateBarcode(cleanValue);
           if (!isValidResult.isValid) {
