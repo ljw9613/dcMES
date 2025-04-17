@@ -136,7 +136,7 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && processStepData.processType !== 'F'
+          mainMaterialId && processStepId && processStepData.processType == 'E'
         "
       >
         <el-card class="scan-card">

@@ -64,7 +64,7 @@ class MaterialPalletizingService {
         saleOrderId: productionPlan.saleOrderId,
         materialId: materialId
       });
-
+      
       const totalExistingBarcodes = existingPallets.reduce((sum, p) => sum + p.barcodeCount, 0);
 
       // 如果不存在托盘，则创建新的托盘
@@ -82,7 +82,7 @@ class MaterialPalletizingService {
           ) {
             totalQuantity =
               productionPlan.saleOrderQuantity - totalExistingBarcodes;
-
+              
             if (totalQuantity <= 0) {
               throw new Error("销售订单数量已达到上限，无法创建新托盘");
             }
@@ -141,10 +141,10 @@ class MaterialPalletizingService {
         } else {
           // 检查当前工单是否已存在于工单列表中
           const existingWorkOrder = pallet.workOrders.find(
-            wo => wo.productionPlanWorkOrderId &&
-              wo.productionPlanWorkOrderId.toString() === productionPlan._id.toString()
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === productionPlan._id.toString()
           );
-
+          
           if (!existingWorkOrder) {
             // 如果不存在，添加新工单信息
             pallet.workOrders.push({
@@ -156,14 +156,14 @@ class MaterialPalletizingService {
             });
           }
         }
-
+        
         // 验证当前托盘中添加新条码是否会超出销售订单数量
         if (pallet.barcodeCount + 1 > pallet.totalQuantity) {
           // 根据销售订单剩余数量调整托盘总数量
           const remainingQuantity = productionPlan.saleOrderQuantity - (totalExistingBarcodes - pallet.barcodeCount);
           if (remainingQuantity > pallet.totalQuantity) {
             pallet.totalQuantity = remainingQuantity;
-
+            
             // 更新是否为尾数托盘的标识
             pallet.isLastPallet = (pallet.barcodeCount + 1 + (totalExistingBarcodes - pallet.barcodeCount)) >= productionPlan.saleOrderQuantity;
           } else {
@@ -202,10 +202,10 @@ class MaterialPalletizingService {
 
       // 更新对应工单的数量
       const workOrderIndex = pallet.workOrders.findIndex(
-        wo => wo.productionPlanWorkOrderId &&
-          wo.productionPlanWorkOrderId.toString() === productionPlan._id.toString()
+        wo => wo.productionPlanWorkOrderId && 
+             wo.productionPlanWorkOrderId.toString() === productionPlan._id.toString()
       );
-
+      
       if (workOrderIndex !== -1) {
         pallet.workOrders[workOrderIndex].quantity += 1;
       }
@@ -291,7 +291,7 @@ class MaterialPalletizingService {
       if (pallet.barcodeCount === pallet.totalQuantity) {
         pallet.status = "STACKED";
       }
-
+      
       // 检查添加条码后是否成为尾数托盘
       if (!pallet.isLastPallet) {
         const totalWithCurrent = totalExistingBarcodes - pallet.barcodeCount + pallet.palletBarcodes.length;
@@ -323,9 +323,8 @@ class MaterialPalletizingService {
    * @param {String} palletCode - 托盘编号
    * @param {String} barcode - 需要解绑的条码
    * @param {String} userId - 操作用户ID
-   * @param {boolean} fromProcessUnbind - 是否来自工序解绑
    */
-  static async unbindBarcode(palletCode, barcode, userId, reason = "托盘解绑", fromProcessUnbind = false) {
+  static async unbindBarcode(palletCode, barcode, userId, reason = "托盘解绑") {
     try {
       const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
@@ -369,16 +368,14 @@ class MaterialPalletizingService {
         // 解绑整个箱子
         // 1. 解绑箱内所有条码的工序状态
         for (const boxBarcode of boxItem.boxBarcodes) {
-          if (!fromProcessUnbind) {
-            await materialProcessFlowService.unbindProcessComponents(
-              boxBarcode.barcode,
-              pallet.processStepId,
-              userId,
-              "托盘解绑",
-              true,
-              true // 标记为来自托盘解绑调用
-            );
-          }
+          await materialProcessFlowService.unbindProcessComponents(
+            boxBarcode.barcode,
+            pallet.processStepId,
+            userId,
+            "托盘解绑", // 添加解绑原因
+            true, // 解绑后续工序
+            true  // 标记为来自托盘解绑调用
+          );
         }
 
         // 减少工单产出量 - 解绑箱中每个条码减少一个产出量
@@ -442,25 +439,9 @@ class MaterialPalletizingService {
             (node) =>
               node.processStepId &&
               node.processStepId.toString() ===
-              pallet.processStepId.toString() &&
+                pallet.processStepId.toString() &&
               node.nodeType === "PROCESS_STEP"
           );
-
-          // 验证工序节点状态
-          if (processNode && processNode.status == "COMPLETED") {
-            // 解绑单个条码
-            if (!fromProcessUnbind) {
-              // 1. 重置工序状态
-              await materialProcessFlowService.unbindProcessComponents(
-                barcode,
-                pallet.processStepId,
-                userId,
-                "托盘解绑",
-                true,
-                true // 标记为来自托盘解绑调用
-              );
-            }
-          }
 
           // 不管工序节点状态，都进行解绑
           if (processNode) {
@@ -489,10 +470,10 @@ class MaterialPalletizingService {
         const palletBarcode = pallet.palletBarcodes.find(pb => pb.barcode === barcode);
         if (palletBarcode && palletBarcode.productionPlanWorkOrderId && pallet.workOrders) {
           const workOrderIndex = pallet.workOrders.findIndex(
-            wo => wo.productionPlanWorkOrderId &&
-              wo.productionPlanWorkOrderId.toString() === palletBarcode.productionPlanWorkOrderId.toString()
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === palletBarcode.productionPlanWorkOrderId.toString()
           );
-
+          
           if (workOrderIndex !== -1 && pallet.workOrders[workOrderIndex].quantity > 0) {
             pallet.workOrders[workOrderIndex].quantity -= 1;
           }
@@ -681,8 +662,8 @@ class MaterialPalletizingService {
         updateBy: userId,
         splitFrom: originalPalletCode,
         // 复制工单数组但重置数量
-        workOrders: originalPallet.workOrders ?
-          originalPallet.workOrders.map(wo => ({ ...wo, quantity: 0 })) :
+        workOrders: originalPallet.workOrders ? 
+          originalPallet.workOrders.map(wo => ({...wo, quantity: 0})) :
           [{
             productionOrderId: originalPallet.productionOrderId,
             productionOrderNo: originalPallet.productionOrderNo,
@@ -784,10 +765,10 @@ class MaterialPalletizingService {
         if (originalBarcode && originalBarcode.productionPlanWorkOrderId) {
           // 找到对应的工单并增加数量
           const workOrderIndex = newPallet.workOrders.findIndex(
-            wo => wo.productionPlanWorkOrderId &&
-              wo.productionPlanWorkOrderId.toString() === originalBarcode.productionPlanWorkOrderId.toString()
+            wo => wo.productionPlanWorkOrderId && 
+                 wo.productionPlanWorkOrderId.toString() === originalBarcode.productionPlanWorkOrderId.toString()
           );
-
+          
           if (workOrderIndex !== -1) {
             newPallet.workOrders[workOrderIndex].quantity += 1;
           }
@@ -827,24 +808,24 @@ class MaterialPalletizingService {
         updatedOriginalPallet.workOrders.forEach(wo => {
           wo.quantity = 0;
         });
-
+        
         // 根据剩余条码重新计算各工单数量
         updatedOriginalPallet.palletBarcodes.forEach(pb => {
           if (pb.productionPlanWorkOrderId) {
             const workOrderIndex = updatedOriginalPallet.workOrders.findIndex(
-              wo => wo.productionPlanWorkOrderId &&
-                wo.productionPlanWorkOrderId.toString() === pb.productionPlanWorkOrderId.toString()
+              wo => wo.productionPlanWorkOrderId && 
+                   wo.productionPlanWorkOrderId.toString() === pb.productionPlanWorkOrderId.toString()
             );
-
+            
             if (workOrderIndex !== -1) {
               updatedOriginalPallet.workOrders[workOrderIndex].quantity += 1;
             }
           }
         });
-
+        
         // 更新原托盘的条码计数
         updatedOriginalPallet.barcodeCount = updatedOriginalPallet.palletBarcodes.length;
-
+        
         // 保存更新后的原托盘
         await updatedOriginalPallet.save();
       }
@@ -1136,7 +1117,7 @@ class MaterialPalletizingService {
         }
       }
 
-      console.log(status, 'status')
+      console.log(status,'status')
       // 使用arrayFilters更新对应的条码元素
       const updateResult = await MaterialPalletizing.updateOne(
         { "palletBarcodes.barcode": barcode },
@@ -1148,7 +1129,7 @@ class MaterialPalletizingService {
             inspectionBy: userId,
             "palletBarcodes.$[elem].inspectionStatus": "INSPECTING",
             "palletBarcodes.$[elem].inspectionTime": new Date(),
-            "palletBarcodes.$[elem].inspectionResult": status ? "PASS" : "FAIL",
+            "palletBarcodes.$[elem].inspectionResult":status ? "PASS" : "FAIL",
             updateAt: new Date(),
             updateBy: userId,
           },

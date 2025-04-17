@@ -73,14 +73,6 @@
           prop="barcode"
           align="center"
         ></el-table-column>
-        <el-table-column label="所属工单" align="center" width="120">
-          <template slot-scope="scope">
-            <el-tag size="mini" v-if="getBarcodeWorkOrderNo(scope.row)">
-              {{ getBarcodeWorkOrderNo(scope.row) }}
-            </el-tag>
-            <span v-else>--</span>
-          </template>
-        </el-table-column>
         <el-table-column label="抽检状态" align="center">
           <template slot-scope="scope">
             <el-tag :type="getInspectionStatusType(scope.row.inspectionStatus)">
@@ -446,24 +438,6 @@ export default {
       this.palletData = null;
       this.scanForm.barcode = "";
       this.barcodesTableData = [];
-    },
-    getBarcodeWorkOrderNo(barcodeItem) {
-      if (!barcodeItem || !barcodeItem.productionPlanWorkOrderId) return null;
-      
-      // 如果有工单数组，从中查找匹配的工单
-      if (this.palletData.workOrders && this.palletData.workOrders.length) {
-        const workOrder = this.palletData.workOrders.find(
-          wo => wo.productionPlanWorkOrderId && 
-               wo.productionPlanWorkOrderId === barcodeItem.productionPlanWorkOrderId
-        );
-        
-        if (workOrder) {
-          return workOrder.workOrderNo;
-        }
-      }
-      
-      // 向后兼容：使用旧字段
-      return this.palletData.workOrderNo;
     },
   },
 };

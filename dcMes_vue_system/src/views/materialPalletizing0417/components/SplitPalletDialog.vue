@@ -40,17 +40,9 @@
           <el-col :span="8">
             <div class="info-item">
               <span class="label">工单号:</span>
-              <div class="value">
-                <template v-if="!originalPallet.workOrders || !originalPallet.workOrders.length">
-                  {{ originalPallet.workOrderNo || "--" }}
-                </template>
-                <div v-else>
-                  <div v-for="(wo, index) in originalPallet.workOrders" :key="index" style="margin-bottom: 5px">
-                    <el-tag size="mini" type="primary">{{ wo.workOrderNo || "--" }}</el-tag>
-                    <span v-if="wo.quantity" class="work-order-quantity">({{ wo.quantity }})</span>
-                  </div>
-                </div>
-              </div>
+              <span class="value">{{
+                originalPallet.workOrderNo || "--"
+              }}</span>
             </div>
           </el-col>
           <el-col :span="8">
@@ -146,14 +138,6 @@
               >
                 {{ scope.row.barcodeType === "MAIN" ? "主条码" : "箱条码" }}
               </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="所属工单" align="center">
-            <template slot-scope="scope">
-              <el-tag size="mini" v-if="getBarcodeWorkOrderNo(scope.row)">
-                {{ getBarcodeWorkOrderNo(scope.row) }}
-              </el-tag>
-              <span v-else>--</span>
             </template>
           </el-table-column>
           <el-table-column label="所属箱码" align="center">
@@ -298,15 +282,10 @@ export default {
             }
           }
 
-          const originalBarcode = this.originalPallet.palletBarcodes.find(
-            item => item.barcode === this.scanCode.trim()
-          );
-          
           this.selectedBarcodes.push({
             barcode: this.scanCode.trim(),
             barcodeType: "MAIN",
             boxBarcode: boxBarcode,
-            productionPlanWorkOrderId: originalBarcode.productionPlanWorkOrderId || null
           });
           this.$message.success("条码添加成功");
         }
@@ -420,31 +399,6 @@ export default {
         this.submitting = false;
       }
     },
-    getBarcodeWorkOrderNo(barcodeItem) {
-      if (!barcodeItem || !barcodeItem.barcode) return null;
-      
-      // 从原托盘中查找此条码所属的工单
-      if (this.originalPallet.palletBarcodes) {
-        const originalBarcode = this.originalPallet.palletBarcodes.find(
-          pb => pb.barcode === barcodeItem.barcode
-        );
-        
-        if (originalBarcode && originalBarcode.productionPlanWorkOrderId && 
-            this.originalPallet.workOrders) {
-          const workOrder = this.originalPallet.workOrders.find(
-            wo => wo.productionPlanWorkOrderId && 
-                 wo.productionPlanWorkOrderId === originalBarcode.productionPlanWorkOrderId
-          );
-          
-          if (workOrder) {
-            return workOrder.workOrderNo;
-          }
-        }
-      }
-      
-      // 向后兼容：使用旧字段
-      return this.originalPallet.workOrderNo;
-    },
   },
 };
 </script>
@@ -479,11 +433,5 @@ export default {
   color: #909399;
   font-size: 12px;
   margin-left: 10px;
-}
-
-.work-order-quantity {
-  margin-left: 5px;
-  color: #666;
-  font-size: 12px;
 }
 </style> 

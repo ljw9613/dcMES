@@ -97,22 +97,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
-          <el-col :span="6">
-            <el-form-item label="出入库状态">
-              <el-select
-                v-model="searchForm.inWarehouseStatus"
-                placeholder="请选择出入库状态"
-                clearable
-                style="width: 100%"
-              >
-                <el-option label="待入库" value="PENDING"></el-option>
-                <el-option label="已入库" value="IN_WAREHOUSE"></el-option>
-                <el-option label="已出库" value="OUT_WAREHOUSE"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
 
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
@@ -249,13 +233,6 @@
                       {{ formatDate(barcodeScope.row.scanTime) }}
                     </template>
                   </el-table-column>
-                  <el-table-column label="出库状态" align="center">
-                    <template slot-scope="barcodeScope">
-                      <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                        {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
                   <!-- 操作 -->
                   <el-table-column label="操作" align="center">
                     <template slot-scope="barcodeScope">
@@ -287,26 +264,6 @@
             <div>销售单号: {{ scope.row.saleOrderNo || "--" }}</div>
             <div>生产单号: {{ scope.row.productionOrderNo || "--" }}</div>
             <div>工单号: {{ scope.row.workOrderNo || "--" }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="工单信息" min-width="200" align="center">
-          <template slot-scope="scope">
-            <div v-if="scope.row.workOrders && scope.row.workOrders.length > 0" class="text-center">
-              <div v-for="(wo, index) in scope.row.workOrders" :key="index" class="work-order-item text-center">
-                <el-tag size="mini" :type="index === 0 ? 'primary' : 'info'">
-                  {{ wo.workOrderNo }}
-                </el-tag>
-                <span class="work-order-quantity">数量: {{ wo.quantity }}</span>
-              </div>
-            </div>
-            <div v-else class="text-center">
-              {{ scope.row.workOrderNo || "未关联工单" }}
-            </div>
-            
-            <!-- 尾数托盘标识 -->
-            <el-tag v-if="scope.row.isLastPallet" type="warning" size="mini" style="margin-top: 5px;">
-              尾数托盘
-            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="产线名称" prop="productLineName" align="center">
@@ -619,17 +576,9 @@
             <el-descriptions-item label="生产订单号">{{
               detailData.productionOrderNo || "--"
             }}</el-descriptions-item>
-            <el-descriptions-item label="工单号">
-              <template v-if="!detailData.workOrders || !detailData.workOrders.length">
-                {{ detailData.workOrderNo || "--" }}
-              </template>
-              <div v-else>
-                <div v-for="(wo, index) in detailData.workOrders" :key="index" style="margin-bottom: 5px">
-                  <el-tag size="mini" type="primary">{{ wo.workOrderNo || "--" }}</el-tag>
-                  <span v-if="wo.quantity" class="work-order-quantity">({{ wo.quantity }})</span>
-                </div>
-              </div>
-            </el-descriptions-item>
+            <el-descriptions-item label="工单号">{{
+              detailData.workOrderNo || "--"
+            }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
 
@@ -700,24 +649,9 @@
               prop="barcode"
               align="center"
             ></el-table-column>
-            <el-table-column label="工单号" align="center">
-              <template slot-scope="barcodeScope">
-                <el-tag size="mini" v-if="getBarcodeWorkOrderNo(barcodeScope.row)">
-                  {{ getBarcodeWorkOrderNo(barcodeScope.row) }}
-                </el-tag>
-                <span v-else>--</span>
-              </template>
-            </el-table-column>
             <el-table-column label="扫描时间" align="center">
               <template slot-scope="barcodeScope">
                 {{ formatDate(barcodeScope.row.scanTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="出库状态" align="center">
-              <template slot-scope="barcodeScope">
-                <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                  {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
-                </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="抽检状态" align="center">
@@ -858,7 +792,6 @@ export default {
         status: "",
         dateRange: [],
         barcode: "",
-        inWarehouseStatus: "",
       },
       tableList: [],
       total: 0,
@@ -889,7 +822,6 @@ export default {
       inspectionResetDialogVisible: false,
       detailCurrentPage: 1,
       detailPageSize: 10,
-      showMainWorkOrderColumn: false,
     };
   },
   computed: {
@@ -1014,12 +946,6 @@ export default {
         });
       }
 
-      if (this.searchForm.inWarehouseStatus) {
-        req.query.$and.push({
-          inWarehouseStatus: this.searchForm.inWarehouseStatus,
-        });
-      }
-
       if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
         const [startDate, endDate] = this.searchForm.dateRange;
         req.query.$and.push({
@@ -1048,7 +974,6 @@ export default {
         status: "",
         dateRange: [],
         barcode: "",
-        inWarehouseStatus: "",
       };
       this.currentPage = 1;
       this.fetchData();
@@ -1570,26 +1495,6 @@ export default {
     handleDetailCurrentChange(page) {
       this.detailCurrentPage = page;
     },
-
-    // 获取条码对应的工单号
-    getBarcodeWorkOrderNo(barcodeItem) {
-      if (!barcodeItem || !barcodeItem.productionPlanWorkOrderId) return null;
-      
-      // 如果有工单数组，从中查找匹配的工单
-      if (this.detailData.workOrders && this.detailData.workOrders.length) {
-        const workOrder = this.detailData.workOrders.find(
-          wo => wo.productionPlanWorkOrderId && 
-               wo.productionPlanWorkOrderId === barcodeItem.productionPlanWorkOrderId
-        );
-        
-        if (workOrder) {
-          return workOrder.workOrderNo;
-        }
-      }
-      
-      // 向后兼容：使用旧字段
-      return this.detailData.workOrderNo;
-    },
   },
   created() {
     this.fetchData();
@@ -1842,22 +1747,5 @@ export default {
   color: #606266;
   margin-top: 3px;
   word-break: break-all;
-}
-
-.work-order-quantity {
-  margin-left: 5px;
-  color: #666;
-  font-size: 12px;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.work-order-item {
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

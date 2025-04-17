@@ -136,7 +136,7 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && (processStepData.processType == 'D' || processStepData.processType == 'C')
+          mainMaterialId && processStepId && processStepData.processType !== 'F'
         "
       >
         <el-card class="scan-card">
@@ -166,48 +166,20 @@
           </div>
 
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
-            <!-- 工单信息模块 -->
-            <div
-              class="work-order-info"
-              v-if="firstStep && workOrderInfo.workOrderNo !== ''"
-            >
-              <div class="info-item">
-                <span class="label">工单号：</span>
-                <span class="value">{{
-                  workOrderInfo.workOrderNo || "暂无工单"
-                }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">投入数量：</span>
-                <span class="value2">{{
-                  workOrderInfo.inputQuantity || 0
-                }}</span>
-                <span class="separator">/</span>
-                <span class="value">{{ workOrderInfo.planQuantity || 0 }}</span>
-              </div>
-            </div>
-
             <div class="section-header">
               <i class="el-icon-camera"></i>
               <span>统一扫描区域</span>
             </div>
-
             <div class="scan-input-section">
-              <div class="custom-input-container">
-                <input
-                  type="text"
-                  v-model="unifiedScanInput"
-                  placeholder="请扫描条码"
-                  @keyup.enter="handleUnifiedScan(unifiedScanInput)"
-                  ref="scanInput"
-                  class="custom-input"
-                />
-                <i
-                  v-if="unifiedScanInput"
-                  class="el-icon-close custom-clear-icon"
-                  @click="clearInput"
-                ></i>
-              </div>
+              <el-input
+                v-model="unifiedScanInput"
+                placeholder="请扫描条码"
+                @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
+                ref="scanInput"
+                clearable
+                @clear="focusInput"
+              >
+              </el-input>
             </div>
             <!-- 主物料部分 -->
             <div class="section-header">
@@ -342,7 +314,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>请先初始化工序设置,请选择绑定工序或检测工序</p>
+            <p>请先初始化工序设置,请选择非托盘工序</p>
           </div>
         </div>
       </template>
@@ -350,14 +322,22 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
-      :text="errorMessage"
-      :error-code="errorCode"
-      :duration="5000"
+      :duration="1500"
     />
     <tsc-printer
       ref="tscPrinter"
       :materialCode="mainMaterialCode"
       :barcode="currentBatchBarcode"
+    />
+    
+    <!-- 添加WebSocket管理组件 -->
+    <web-socket-manager
+      ref="wsManager"
+      @connected="handleWebSocketConnected"
+      @message="handleWebSocketMessage"
+      @reconnecting="handleWebSocketReconnecting"
+      @reconnect-failed="handleWebSocketReconnectFailed"
+      @error="handleWebSocketError"
     />
   </div>
 </template>
@@ -392,6 +372,8 @@ import smztm from "@/assets/tone/smztm.mp3";
 import TscPrinter from "@/components/tscInput";
 import StatusPopup from "@/components/StatusPopup/index.vue";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
+import WebSocketManager from "@/components/WebSocketManager/index.vue";
+import { batchStorageDB, startAutomaticCleanup } from "@/utils/indexedDBStorage";
 
 export default {
   name: "ScanBarCode",
@@ -399,6 +381,7 @@ export default {
     ZrSelect,
     TscPrinter,
     StatusPopup,
+    WebSocketManager, // 注册WebSocket管理组件
   },
   data() {
     return {
@@ -448,11 +431,7 @@ export default {
       currentBatchBarcode: "", // 当前要打印的批次条码
       autoPrint: false, // 添加自动打印开关状态
       isCollapsed: false, // 添加控���折叠状态的变量
-      websocketConnected: false, // 添加WebSocket连接状态
-      ws: null, // WebSocket实例
-      heartbeatTimer: null, // 心跳定时器
-      reconnectAttempts: 0, // 添加重连尝试次数计数
-      maxReconnectAttempts: 5, // 最大重连尝试次数
+      websocketConnected: false, // 保留WebSocket连接状态
       batchUsageCount: {}, // 新增：用于记录批次物料的使用次数
 
       barcodeRules: [], // 存储条码规则
@@ -464,15 +443,6 @@ export default {
       craftInfo: {}, // 保存工艺信息
 
       processStepData: {}, // 保存工序信息
-
-      firstStep: false,
-
-      errorMessage: "",
-      errorCode: "",
-      workOrderInfo: {
-        planQuantity: 0,
-        inputQuantity: 0,
-      },
     };
   },
   computed: {
@@ -1019,12 +989,6 @@ export default {
 
         this.processStepData = processStep;
 
-        console.log(this.processStepData, "this.processStepData");
-
-        if (processStep.sort == 1) {
-          this.firstStep = true;
-        }
-
         // 获取该工序所属的工艺信息
         const craftResponse = await getData("craft", {
           query: { _id: processStep.craftId },
@@ -1136,8 +1100,7 @@ export default {
         });
 
         if (response.data.length === 0) {
-          this.$message.error("该DI编码对应的物料与当前工序不匹配");
-          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
+          this.$message.error("该DI编码不存在或与物料不匹配");
           return { isValid: false };
         }
 
@@ -1189,7 +1152,6 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
-          this.errorMessage = "未找到可用的条码规则";
           return { materialCode: null, isValid: false };
         }
 
@@ -1314,7 +1276,7 @@ export default {
                   if (diResult.isValid) {
                     materialCode = diResult.materialCode;
                   } else {
-                    return { materialCode: null, isValid: false };
+                    isValid = false;
                   }
                   break;
                 case "relatedBill":
@@ -1343,12 +1305,10 @@ export default {
 
         // 所有规则都未匹配成功
         this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
-        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
         this.$message.error("条码验证过程发生错误");
-        this.errorMessage = "条码验证过程发生错误";
         return { materialCode: null, isValid: false };
       }
     },
@@ -1377,8 +1337,6 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
-            this.errorMessage =
-              createResponse.message || "创建成品条码追溯记录失败";
             throw new Error(
               createResponse.message || "创建成品条码追溯记录失败"
             );
@@ -1386,7 +1344,6 @@ export default {
         }
       } catch (error) {
         console.error("处理主条码失败:", error);
-        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1419,7 +1376,6 @@ export default {
         this.$message.success("扫码成功");
       } catch (error) {
         console.error("处理子物料条码失败:", error);
-        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1445,32 +1401,34 @@ export default {
     },
 
     // 修改重置扫码表单方法
-    resetScanForm() {
+    async resetScanForm() {
       this.scanForm.mainBarcode = "";
       const newBarcodes = {};
-
-      this.processMaterials.forEach((material) => {
+      
+      for (const material of this.processMaterials) {
         if (!material.scanOperation) {
           // 无需扫码的物料直接设置为验证通过
           this.$set(this.validateStatus, material._id, true);
           newBarcodes[material._id] = "无需扫码";
         } else if (material.isBatch) {
-          const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-          const usageKey = `${cacheKey}_usage`;
-          const cachedBarcode = localStorage.getItem(cacheKey);
-          const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
-
-          // 只有当设置了 batchQuantity 且超过限制时才清除缓存
+          // 获取批次物料数据
+          const batchData = await batchStorageDB.getBatchData(
+            this.mainMaterialId,
+            this.processStepId,
+            material._id
+          );
+          
+          // 处理批次物料数据
           if (
-            !material.batchQuantity ||
-            (cachedBarcode && currentUsage < material.batchQuantity)
+            batchData &&
+            (!material.batchQuantity ||
+              batchData.usageCount < material.batchQuantity)
           ) {
-            newBarcodes[material._id] = cachedBarcode;
+            newBarcodes[material._id] = batchData.barcode;
             this.$set(this.validateStatus, material._id, true);
+            this.$set(this.batchUsageCount, material._id, batchData.usageCount);
           } else {
-            // 如果使用次数已达到限制，清除缓存
-            localStorage.removeItem(cacheKey);
-            localStorage.removeItem(usageKey);
+            // 没有有效数据或使用次数已达到限制
             newBarcodes[material._id] = "";
             this.$set(this.validateStatus, material._id, false);
           }
@@ -1478,8 +1436,8 @@ export default {
           newBarcodes[material._id] = "";
           this.$set(this.validateStatus, material._id, false);
         }
-      });
-
+      }
+      
       this.scanForm.barcodes = newBarcodes;
       this.$set(this.validateStatus, "mainBarcode", false);
       this.currentFlowId = null;
@@ -1536,7 +1494,6 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码存在未完成的维修记录");
-            this.errorMessage = "该条码存在未完成的维修记录";
             this.popupType = "ng";
             this.showPopup = true;
             tone(dwx);
@@ -1549,7 +1506,6 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码已完成维修,但维修结果为不合格");
-            this.errorMessage = "该条码已完成维修,但维修结果为不合格";
             this.popupType = "ng";
             this.showPopup = true;
             tone(wxsb);
@@ -1585,7 +1541,6 @@ export default {
                   this.unifiedScanInput = "";
                   this.$refs.scanInput.focus();
                   this.$message.error("该条码已作废");
-                  this.errorMessage = "该条码已作废";
                   this.popupType = "ng";
                   this.showPopup = true;
                   tone(tmyw);
@@ -1660,7 +1615,6 @@ export default {
           // 如果包含关键物料，则必须先扫描主条码
           if (!this.scanForm.mainBarcode || !this.validateStatus.mainBarcode) {
             this.$message.error("关键物料必须先扫描主条码");
-            this.errorMessage = "关键物料必须先扫描主条码";
             this.popupType = "ng";
             this.showPopup = true;
             tone(smztm);
@@ -1699,18 +1653,21 @@ export default {
 
               // 如果是批次物料
               if (material.isBatch) {
-                const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                const usageKey = `${cacheKey}_usage`;
-                const cachedBarcode = localStorage.getItem(cacheKey);
-
+                // 获取批次物料数据
+                const batchData = await batchStorageDB.getBatchData(
+                  this.mainMaterialId,
+                  this.processStepId,
+                  material._id
+                );
+                
                 // 如果扫描的是新的批次条码
-                if (cachedBarcode !== cleanValue) {
+                if (!batchData || batchData.barcode !== cleanValue) {
                   // 查询新批次条码的使用次数
                   const count = await this.queryBatchUsageCount(
                     cleanValue,
                     material._id
                   );
-
+                  
                   // 如果设置了使用次数限制且已达到限制
                   if (
                     material.batchQuantity &&
@@ -1721,37 +1678,42 @@ export default {
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
                     tone(pcwlxz);
-                    this.errorMessage = "批次物料条码已达到使用次数限制";
                     this.popupType = "ng";
                     this.showPopup = true;
                     return;
                   }
-
-                  // 更新缓存和使用次数
-                  localStorage.setItem(cacheKey, cleanValue);
-                  localStorage.setItem(usageKey, count.toString());
+                  
+                  // 保存新的批次条码
+                  await batchStorageDB.saveBatchData(
+                    this.mainMaterialId,
+                    this.processStepId,
+                    material._id,
+                    cleanValue,
+                    count,
+                    material.batchQuantity || 0
+                  );
+                  
                   this.$set(this.batchUsageCount, material._id, count);
                 } else {
                   // 使用现有批次条码
-                  const currentUsage = parseInt(
-                    localStorage.getItem(usageKey) || "0"
-                  );
-
-                  // 只有当达到使用限制时才清除
                   if (
                     material.batchQuantity &&
-                    currentUsage >= material.batchQuantity &&
+                    batchData.usageCount >= material.batchQuantity &&
                     material.batchQuantity > 0
                   ) {
-                    localStorage.removeItem(cacheKey);
-                    localStorage.removeItem(usageKey);
+                    // 使用次数已达到限制，删除记录
+                    await batchStorageDB.deleteBatchData(
+                      this.mainMaterialId,
+                      this.processStepId,
+                      material._id
+                    );
+                    
                     this.$set(this.scanForm.barcodes, material._id, "");
                     this.$set(this.validateStatus, material._id, false);
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
                     tone(pcwlxz);
-
                     return;
                   }
                 }
@@ -1795,7 +1757,6 @@ export default {
 
         if (!matched) {
           this.$message.error("条码不匹配");
-          this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
@@ -2029,9 +1990,6 @@ export default {
         if (scanResponse.code !== 200) {
           // this.resetScanForm();
 
-          this.errorCode = scanResponse.errorCode;
-          this.errorMessage = scanResponse.message || "扫码失败";
-
           throw new Error(scanResponse.message || "扫码失败");
         }
 
@@ -2039,35 +1997,34 @@ export default {
           // 提交成功后，更新批次物料的使用次数
           for (const material of this.processMaterials) {
             if (material.isBatch && this.scanForm.barcodes[material._id]) {
-              const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-              const usageKey = `${cacheKey}_usage`;
-              const currentUsage = parseInt(
-                localStorage.getItem(usageKey) || "0"
+              // 更新 IndexedDB 中的使用次数
+              const updatedRecord = await batchStorageDB.updateBatchUsage(
+                this.mainMaterialId,
+                this.processStepId,
+                material._id
               );
-
-              // 更新使用次数
-              const newUsage = currentUsage + 1;
-              localStorage.setItem(usageKey, newUsage.toString());
-              this.$set(this.batchUsageCount, material._id, newUsage);
-
-              // 如果达到使用限制，清除缓存
-              if (
-                material.batchQuantity &&
-                newUsage >= material.batchQuantity
-              ) {
-                localStorage.removeItem(cacheKey);
-                localStorage.removeItem(usageKey);
-                this.$set(this.scanForm.barcodes, material._id, "");
-                this.$set(this.validateStatus, material._id, false);
+              
+              if (updatedRecord) {
+                this.$set(this.batchUsageCount, material._id, updatedRecord.usageCount);
+                
+                // 如果达到使用限制，清除记录
+                if (
+                  material.batchQuantity &&
+                  updatedRecord.usageCount >= material.batchQuantity
+                ) {
+                  await batchStorageDB.deleteBatchData(
+                    this.mainMaterialId,
+                    this.processStepId,
+                    material._id
+                  );
+                  this.$set(this.scanForm.barcodes, material._id, "");
+                  this.$set(this.validateStatus, material._id, false);
+                }
               }
             }
           }
           this.popupType = "ok";
           this.showPopup = true;
-
-          if (this.firstStep && this.workOrderInfo.workOrderNo !== "") {
-            this.getWorkOrderInfo();
-          }
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
             tone(bdcg);
@@ -2080,8 +2037,6 @@ export default {
         // 6. 重置表单
         this.resetScanForm();
         console.error("确认失败:", error);
-        this.errorMessage = error.message;
-
         if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
           setTimeout(() => {
@@ -2115,7 +2070,6 @@ export default {
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
-          this.errorMessage = "未查询到生产工单";
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
@@ -2161,7 +2115,7 @@ export default {
     async handleClearCache() {
       try {
         await this.$confirm(
-          "确认清除所有页面缓存数据？此操作不可恢复。",
+          "确认清除所有批次物料缓存数据？此操作不可恢复。",
           "提示",
           {
             confirmButtonText: "确定",
@@ -2169,30 +2123,31 @@ export default {
             type: "warning",
           }
         );
-
+        
         const loading = this.$loading({
           lock: true,
           text: "清除缓存中...",
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
-
-        // 清除所有相关的localStorage
-        const keys = Object.keys(localStorage);
-        keys.forEach((key) => {
-          // 清除批次物料缓存和使用次数
-          if (key.startsWith("batch_")) {
-            localStorage.removeItem(key);
-            localStorage.removeItem(`${key}_usage`); // 同时清除使用次数记录
+        
+        // 删除所有相关的批次物料记录
+        if (this.mainMaterialId && this.processStepId) {
+          for (const material of this.processMaterials) {
+            if (material.isBatch) {
+              await batchStorageDB.deleteBatchData(
+                this.mainMaterialId,
+                this.processStepId,
+                material._id
+              );
+            }
           }
-        });
-
-        this.$message.success("缓存清除成功");
-
-        // 模拟延迟以显示加载图标
+        }
+        
+        this.$message.success("批次物料缓存清除成功");
+        
         setTimeout(() => {
           loading.close();
-          // 强制刷新页面
           window.location.reload();
         }, 500);
       } catch (error) {
@@ -2205,131 +2160,6 @@ export default {
 
     toggleCollapse() {
       this.isCollapsed = !this.isCollapsed;
-    },
-
-    // 修改初始化WebSocket连接方法
-    initWebSocket() {
-      try {
-        // 关闭之前的连接
-        if (this.ws) {
-          this.ws.close();
-        }
-
-        // 创建WebSocket连接
-        const token = "DcMes_Server_Token"; // 使用配置的token
-        const VUE_APP_WS_ADDRESS = process.env.VUE_APP_WS_ADDRESS;
-        console.log(VUE_APP_WS_ADDRESS, "VUE_APP_WS_ADDRESS");
-        this.ws = new WebSocket(`${VUE_APP_WS_ADDRESS}?token=${token}`);
-
-        console.log(this.ws, "this.ws");
-
-        // 连接成功
-        this.ws.onopen = () => {
-          this.websocketConnected = true;
-          this.$message.success("设备服务器连接成功");
-          this.startHeartbeat();
-          this.reconnectAttempts = 0; // 重置重连计数
-        };
-
-        // 连接关闭
-        this.ws.onclose = (event) => {
-          this.websocketConnected = false;
-          this.stopHeartbeat();
-
-          console.log("WebSocket连接关闭:", event);
-
-          // 检查是否达到最大重连次数
-          if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            const delay = Math.min(
-              1000 * Math.pow(2, this.reconnectAttempts),
-              10000
-            ); // 指数退避，最大10秒
-            this.$message.warning(
-              `设备连接已断开，${delay / 1000}秒后尝试第${
-                this.reconnectAttempts
-              }次重连...`
-            );
-            setTimeout(() => {
-              this.initWebSocket();
-            }, delay);
-          } else {
-            this.$message.error("重连次数已达上限，请检查网络连接或刷新页面");
-          }
-        };
-
-        // 连接错误
-        this.ws.onerror = (error) => {
-          this.websocketConnected = false;
-          console.error("WebSocket连接错误:", error);
-
-          // 记录详细的错误信息
-          console.log("错误详情:", {
-            readyState: this.ws.readyState,
-            url: this.ws.url,
-            protocol: this.ws.protocol,
-            error: error,
-          });
-        };
-
-        // 接收消息
-        this.ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log("收到消息:", data);
-            // 处理接收到的消息
-            this.handleWebSocketMessage(data);
-          } catch (error) {
-            console.error("消息解析错误:", error);
-          }
-        };
-      } catch (error) {
-        console.error("WebSocket初始化失败:", error);
-        this.$message.error(`设备连接初始化失败: ${error.message}`);
-      }
-    },
-
-    // 处理接收到的WebSocket消息
-    handleWebSocketMessage(data) {
-      switch (data.type) {
-        case "connected":
-          console.log("连接成功，用户ID:", data.userId);
-          break;
-        case "command":
-          if (data.action === "refresh") {
-            window.location.reload();
-          }
-          break;
-        // 添加其他消息类型的处理...
-        default:
-          console.log("未知消息类型:", data);
-      }
-    },
-
-    // 开始心跳检测
-    startHeartbeat() {
-      this.heartbeatTimer = setInterval(() => {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-          this.ws.send(JSON.stringify({ type: "heartbeat" }));
-        }
-      }, 10000); // 每10秒发送一次心跳
-    },
-
-    // 停止心跳检测
-    stopHeartbeat() {
-      if (this.heartbeatTimer) {
-        clearInterval(this.heartbeatTimer);
-        this.heartbeatTimer = null;
-      }
-    },
-
-    // 发送消息方法
-    sendWebSocketMessage(message) {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify(message));
-      } else {
-        this.$message.warning("设备未连接");
-      }
     },
 
     // 新增：获取批次使用次数显示文本
@@ -2360,39 +2190,56 @@ export default {
         return 0;
       }
     },
-    clearInput() {
-      this.unifiedScanInput = "";
-      this.focusInput();
-    },
-    async getWorkOrderInfo() {
-      try {
-        const productLineId = this.productLineId;
-        console.log(productLineId, "productLineId");
-        if (this.productLineId) {
-          const response = await getData("production_plan_work_order", {
-            query: {
-              productionLineId: this.productLineId,
-              status: "IN_PROGRESS",
-            },
-            select: "planQuantity inputQuantity",
-          });
 
-          if (response.data && response.data[0]) {
-            this.workOrderInfo = {
-              workOrderNo: response.data[0].workOrderNo || 0,
-              planQuantity: response.data[0].planQuantity || 0,
-              inputQuantity: response.data[0].inputQuantity || 0,
-            };
-          }
-        }
-      } catch (error) {
-        console.error("获取工单信息失败:", error);
-        this.workOrderInfo = {
-          workOrderNo: "",
-          planQuantity: 0,
-          inputQuantity: 0,
-        };
+    // 新增：WebSocket连接状态变化处理
+    handleWebSocketConnected(connected) {
+      this.websocketConnected = connected;
+      if (connected) {
+        this.$message.success("设备服务器连接成功");
       }
+    },
+
+    // 新增：WebSocket重连处理
+    handleWebSocketReconnecting(data) {
+      this.$message.warning(
+        `设备连接已断开，${data.delay / 1000}秒后尝试第${data.attempt}次重连...`
+      );
+    },
+
+    // 新增：WebSocket重连失败处理
+    handleWebSocketReconnectFailed() {
+      this.$message.error("重连次数已达上限，请检查网络连接或刷新页面");
+    },
+
+    // 新增：WebSocket错误处理
+    handleWebSocketError(error) {
+      console.error("WebSocket连接错误:", error);
+    },
+
+    // 新增：处理接收到的WebSocket消息
+    handleWebSocketMessage(data) {
+      console.log("收到消息:", data);
+      switch (data.type) {
+        case "connected":
+          console.log("连接成功，用户ID:", data.userId);
+          break;
+        case "command":
+          if (data.action === "refresh") {
+            window.location.reload();
+          }
+          break;
+        // 添加其他消息类型的处理...
+        default:
+          console.log("未知消息类型:", data);
+      }
+    },
+
+    // 新增：发送WebSocket消息的辅助方法
+    sendWebSocketMessage(message) {
+      if (this.$refs.wsManager) {
+        return this.$refs.wsManager.sendMessage(message);
+      }
+      return false;
     },
   },
   async created() {
@@ -2402,7 +2249,6 @@ export default {
       this.autoPrint = savedAutoPrint === "true";
     }
 
-    this.initWebSocket(); // 初始化WebSocket连接
     // 从本地存储获取自动初始化设置
     const savedAutoInit = localStorage.getItem("autoInit");
     this.autoInit = savedAutoInit === "true";
@@ -2454,7 +2300,6 @@ export default {
               material.batchQuantity > 0
             ) {
               this.$message.warning("批次条码使用次数已达到上限");
-              this.errorMessage = "批次条码使用次数已达到上限";
               this.popupType = "ng";
               this.showPopup = true;
               tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音
@@ -2469,7 +2314,8 @@ export default {
       }
     }
 
-    await this.getWorkOrderInfo();
+    // 启动自动清理过期数据
+    startAutomaticCleanup();
   },
   mounted() {
     console.log("Complete roles data:", this.$store.getters.roles);
@@ -2488,12 +2334,14 @@ export default {
   },
   // 组件销毁时清除定时器
   beforeDestroy() {
-    // 关闭WebSocket连接
-    if (this.ws) {
-      this.ws.close();
-    }
-    // 清除心跳定时器
-    this.stopHeartbeat();
+    // 不需要手动关闭WebSocket，组件会处理
+    // 替换原来的WebSocket关闭逻辑
+    // this.stopHeartbeat();
+    // if (this.ws) {
+    //   this.ws.close();
+    // }
+    
+    // ... 其他beforeDestroy逻辑 ...
   },
 };
 </script>
@@ -2831,48 +2679,6 @@ export default {
   border: 2px solid #409eff;
 }
 
-.custom-input-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.custom-input {
-  width: 100%;
-  height: 40px;
-  line-height: 40px;
-  padding: 0 15px;
-  padding-right: 30px;
-  border-radius: 4px;
-  border: 1px solid #dcdfe6;
-  font-size: 14px;
-  color: #606266;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.custom-input:focus {
-  border-color: #409eff;
-}
-
-.custom-input:hover {
-  border-color: #c0c4cc;
-}
-
-.custom-clear-icon {
-  position: absolute;
-  right: 10px;
-  color: #c0c4cc;
-  font-size: 14px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.custom-clear-icon:hover {
-  color: #909399;
-}
-
 .scan-input-section .el-input {
   margin-top: 10px;
 }
@@ -2930,46 +2736,5 @@ export default {
 .batch-usage-tag {
   min-width: 60px;
   text-align: center;
-}
-
-.work-order-info {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.info-item:last-child {
-  margin-bottom: 0;
-}
-
-.label {
-  color: #606266;
-  font-size: 14px;
-  margin-right: 10px;
-  min-width: 70px;
-}
-
-.value {
-  color: #303133;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.value2 {
-  color: #dbc075;
-  font-weight: 500;
-  font-size: 24px;
-}
-
-.separator {
-  margin: 0 8px;
-  color: #909399;
 }
 </style>

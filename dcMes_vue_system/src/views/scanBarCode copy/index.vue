@@ -136,7 +136,7 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && (processStepData.processType == 'D' || processStepData.processType == 'C')
+          mainMaterialId && processStepId && processStepData.processType !== 'F'
         "
       >
         <el-card class="scan-card">
@@ -342,7 +342,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>请先初始化工序设置,请选择绑定工序或检测工序</p>
+            <p>请先初始化工序设置,请选择非托盘工序</p>
           </div>
         </div>
       </template>

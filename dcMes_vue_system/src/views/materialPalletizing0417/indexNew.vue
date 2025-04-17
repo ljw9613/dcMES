@@ -97,22 +97,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
-          <el-col :span="6">
-            <el-form-item label="出入库状态">
-              <el-select
-                v-model="searchForm.inWarehouseStatus"
-                placeholder="请选择出入库状态"
-                clearable
-                style="width: 100%"
-              >
-                <el-option label="待入库" value="PENDING"></el-option>
-                <el-option label="已入库" value="IN_WAREHOUSE"></el-option>
-                <el-option label="已出库" value="OUT_WAREHOUSE"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
 
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
@@ -249,13 +233,6 @@
                       {{ formatDate(barcodeScope.row.scanTime) }}
                     </template>
                   </el-table-column>
-                  <el-table-column label="出库状态" align="center">
-                    <template slot-scope="barcodeScope">
-                      <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                        {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
                   <!-- 操作 -->
                   <el-table-column label="操作" align="center">
                     <template slot-scope="barcodeScope">
@@ -282,24 +259,17 @@
             <el-link type="primary">{{ scope.row.palletCode }}</el-link>
           </template>
         </el-table-column>
-        <el-table-column label="订单信息" align="center">
+        <el-table-column label="工单信息" min-width="200">
           <template slot-scope="scope">
-            <div>销售单号: {{ scope.row.saleOrderNo || "--" }}</div>
-            <div>生产单号: {{ scope.row.productionOrderNo || "--" }}</div>
-            <div>工单号: {{ scope.row.workOrderNo || "--" }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="工单信息" min-width="200" align="center">
-          <template slot-scope="scope">
-            <div v-if="scope.row.workOrders && scope.row.workOrders.length > 0" class="text-center">
-              <div v-for="(wo, index) in scope.row.workOrders" :key="index" class="work-order-item text-center">
+            <div v-if="scope.row.workOrders && scope.row.workOrders.length > 0">
+              <div v-for="(wo, index) in scope.row.workOrders" :key="index" class="work-order-item">
                 <el-tag size="mini" :type="index === 0 ? 'primary' : 'info'">
                   {{ wo.workOrderNo }}
                 </el-tag>
                 <span class="work-order-quantity">数量: {{ wo.quantity }}</span>
               </div>
             </div>
-            <div v-else class="text-center">
+            <div v-else>
               {{ scope.row.workOrderNo || "未关联工单" }}
             </div>
             
@@ -713,13 +683,6 @@
                 {{ formatDate(barcodeScope.row.scanTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="出库状态" align="center">
-              <template slot-scope="barcodeScope">
-                <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                  {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
-                </el-tag>
-              </template>
-            </el-table-column>
             <el-table-column label="抽检状态" align="center">
               <template slot-scope="barcodeScope">
                 <el-tag
@@ -858,7 +821,6 @@ export default {
         status: "",
         dateRange: [],
         barcode: "",
-        inWarehouseStatus: "",
       },
       tableList: [],
       total: 0,
@@ -1014,12 +976,6 @@ export default {
         });
       }
 
-      if (this.searchForm.inWarehouseStatus) {
-        req.query.$and.push({
-          inWarehouseStatus: this.searchForm.inWarehouseStatus,
-        });
-      }
-
       if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
         const [startDate, endDate] = this.searchForm.dateRange;
         req.query.$and.push({
@@ -1048,7 +1004,6 @@ export default {
         status: "",
         dateRange: [],
         barcode: "",
-        inWarehouseStatus: "",
       };
       this.currentPage = 1;
       this.fetchData();
@@ -1848,16 +1803,5 @@ export default {
   margin-left: 5px;
   color: #666;
   font-size: 12px;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.work-order-item {
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

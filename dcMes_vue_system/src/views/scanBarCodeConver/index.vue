@@ -833,14 +833,72 @@ export default {
       this.formData.processStep = processId;
       this.processStepData = processId;
       // this.processStepId = processId; // 缓存选中的工序ID
-      
+
       // 获取选中工序的打印模板
       this.getProcessPrintTemplate(processId);
     },
-    
-    // 获取工序关联的打印模板
+
+    // 添加获取最新打印模板并强制更新的方法
+    async refreshPrintTemplate() {
+      if (!this.processStepId) return;
+      
+      try {
+        // 先清除本地缓存的打印模板
+        localStorage.removeItem("printTemplate_scanBarCodeBatch");
+        
+        // 获取工序信息
+        const stepResponse = await getData("processStep", {
+          query: { _id: this.processStepId },
+          page: 1,
+          limit: 1,
+        });
+
+        if (!stepResponse.data || stepResponse.data.length === 0) {
+          return;
+        }
+
+        const processStep = stepResponse.data[0];
+        
+        // 检查工序是否关联了打印模板
+        if (processStep.printTemplateId) {
+          // 获取该工序关联的打印模板
+          const printTemplateResponse = await getData("printTemplate", {
+            query: { _id: processStep.printTemplateId },
+            page: 1,
+            limit: 1,
+          });
+
+          if (
+            printTemplateResponse.data &&
+            printTemplateResponse.data.length > 0
+          ) {
+            const printTemplate = printTemplateResponse.data[0];
+            console.log("获取到最新工序关联的打印模板:", printTemplate);
+            
+            // 设置打印模板到本地存储
+            this.localPrintTemplate = printTemplate;
+            
+            // 确保UI组件更新
+            this.$nextTick(() => {
+              if (this.$refs.hirInput) {
+                this.$refs.hirInput.handleTemplateChange(printTemplate);
+              }
+            });
+            
+            console.log("已强制刷新打印模板");
+          }
+        }
+      } catch (error) {
+        console.error("刷新打印模板失败:", error);
+      }
+    },
+
+    // 获取工序关联的打印模板 - 修改此方法，总是获取最新模板
     async getProcessPrintTemplate(processId) {
       try {
+        // 先清除本地缓存的打印模板
+        localStorage.removeItem("printTemplate_scanBarCodeBatch");
+        
         // 获取工序信息
         const stepResponse = await getData("processStep", {
           query: { _id: processId },
@@ -863,13 +921,23 @@ export default {
             limit: 1,
           });
 
-          if (printTemplateResponse.data && printTemplateResponse.data.length > 0) {
+          if (
+            printTemplateResponse.data &&
+            printTemplateResponse.data.length > 0
+          ) {
             const printTemplate = printTemplateResponse.data[0];
             console.log("获取到工序关联的打印模板:", printTemplate);
             
             // 设置打印模板到本地存储
             this.localPrintTemplate = printTemplate;
             this.$message.success("已自动应用工序关联的打印模板");
+            
+            // 确保UI组件更新
+            this.$nextTick(() => {
+              if (this.$refs.hirInput) {
+                this.$refs.hirInput.handleTemplateChange(printTemplate);
+              }
+            });
           }
         }
       } catch (error) {
@@ -970,7 +1038,7 @@ export default {
       }
     },
 
-    // 获取工序相关物料
+    // 获取工序相关物料 - 修改这个方法，加入刷新打印模板的部分
     async getProcessMaterials() {
       try {
         console.log("正在获取工序信息，ID:", this.processStepId);
@@ -990,8 +1058,9 @@ export default {
 
         this.processStepData = processStep;
 
-        // 获取工序关联的打印模板
+        // 获取工序关联的打印模板 - 增加先清除本地缓存
         console.log("获取工序关联的打印模板:", processStep.printTemplateId);
+        localStorage.removeItem("printTemplate_scanBarCodeBatch");
         if (processStep.printTemplateId) {
           try {
             // 获取该工序关联的打印模板
@@ -1001,20 +1070,30 @@ export default {
               limit: 1,
             });
 
-            if (printTemplateResponse.data && printTemplateResponse.data.length > 0) {
+            if (
+              printTemplateResponse.data &&
+              printTemplateResponse.data.length > 0
+            ) {
               const printTemplate = printTemplateResponse.data[0];
               console.log("获取到工序关联的打印模板:", printTemplate);
               
               // 设置打印模板到本地存储
               this.localPrintTemplate = printTemplate;
               this.$message.success("已自动应用工序关联的打印模板");
+              
+              // 确保UI组件更新
+              this.$nextTick(() => {
+                if (this.$refs.hirInput) {
+                  this.$refs.hirInput.handleTemplateChange(printTemplate);
+                }
+              });
             }
           } catch (error) {
             console.error("获取工序关联打印模板失败:", error);
             this.$message.warning("获取工序关联打印模板失败");
           }
         }
-
+        
         // 获取该工序所属的工艺信息
         const craftResponse = await getData("craft", {
           query: { _id: processStep.craftId },
@@ -2250,13 +2329,14 @@ export default {
         return 0;
       }
     },
-    // 修改模板变更处理方法
+    // 修改模板变更处理方法，强调最新版本保存
     handleTemplateChange(template) {
       if (!template) return;
 
       try {
         // 保存完整的模板对象到本地存储
         this.localPrintTemplate = template;
+        console.log("已保存最新模板到本地:", template);
         this.$message.success("打印模板已保存到本地");
       } catch (error) {
         console.error("保存打印模板失败:", error);
@@ -2299,6 +2379,7 @@ export default {
 
     if (this.processStepId) {
       await this.getProcessMaterials();
+
       // 初始化批次物料缓存
       this.processMaterials.forEach((material) => {
         if (material.isBatch) {
@@ -2310,6 +2391,8 @@ export default {
           }
         }
       });
+
+   
     }
 
     // 自动填充表单数据
@@ -2363,6 +2446,9 @@ export default {
     // 从本地存储获取转化模式设置
     const savedConversion = localStorage.getItem("enableConversion");
     this.enableConversion = savedConversion === "true";
+    
+    // 清除之前的打印模板缓存，确保获取最新数据
+    localStorage.removeItem("printTemplate_scanBarCodeBatch");
   },
   mounted() {
     console.log("Complete roles data:", this.$store.getters.roles);
@@ -2373,7 +2459,12 @@ export default {
     if (roles.buttonList.includes("scan_edit_configuration")) {
       this.hasEditPermission = true;
     }
-
+    
+    if (this.processStepId) {
+      // 获取选中工序的打印模板（自动会清除缓存并获取最新）
+      this.refreshPrintTemplate();
+    }
+    
     // 页面加载时自动获取焦点
     if (this.mainMaterialId && this.processStepId) {
       this.$refs.scanInput.focus();

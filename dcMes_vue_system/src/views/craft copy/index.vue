@@ -644,8 +644,8 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-show="processForm.processType === 'G'">
-            <el-form-item label="打印模版"  required>
+          <el-col :span="12" v-if="processForm.processType === 'G'">
+            <el-form-item label="打印模版" prop="printTemplateId" required>
               <zr-select
                 v-model="processForm.printTemplateId"
                 collection="printTemplate"
@@ -1274,20 +1274,20 @@ export default {
             trigger: "blur",
           },
         ],
-        // printTemplateId: [
-        //   {
-        //     required: true,
-        //     message: "打印工序必须选择打印模版",
-        //     trigger: "change",
-        //     validator: (rule, value, callback) => {
-        //       if (this.processForm.processType === "G" && !value) {
-        //         callback(new Error("打印工序必须选择打印模版"));
-        //       } else {
-        //         callback();
-        //       }
-        //     },
-        //   },
-        // ],
+        printTemplateId: [
+          {
+            required: true,
+            message: "打印工序必须选择打印模版",
+            trigger: "change",
+            validator: (rule, value, callback) => {
+              if (this.processForm.processType === "G" && !value) {
+                callback(new Error("打印工序必须选择打印模版"));
+              } else {
+                callback();
+              }
+            },
+          },
+        ],
       },
 
       // 物料表单数据
@@ -1902,22 +1902,17 @@ export default {
         return;
       }
 
-  
+      this.processOperationType = "edit"; // 设置为编辑操作
+      this.processDialogVisible = true;
       this.tempProcessId = row._id;
       this.processForm = JSON.parse(JSON.stringify(row));
       // 确保工序的业务类型与工艺保持一致
       this.processForm.businessType = this.craftForm.businessType;
-    
+      this.processForm.printTemplateId = row.printTemplateId;
 
       // 打印日志，查看printTemplateId的值
       console.log("编辑工序数据:", this.processForm);
       console.log("打印模版ID:", this.processForm.printTemplateId);
-
-      this.$nextTick(() => {
-        this.processOperationType = "edit"; // 设置为编辑操作
-        this.processDialogVisible = true;
-      });
-
 
       // 获取设备详情
       this.fetchDeviceDetails()
@@ -3531,17 +3526,14 @@ export default {
         this.resetCraftForm();
       }
     },
-    // "processForm.processType": function (val) {
-    //   if (val === "G") {
-    //     // 清空打印模版的值
-    //     this.processForm.printTemplateId = "";
-    //   }
-    // },
-    // "processForm.printTemplateId": function (val) {
-    //   if (this.processForm.processType === "G" && !val) {
-    //     this.$message.info("打印工序需要选择打印模版");
-    //   }
-    // },
+    "processForm.processType": function (val) {
+      if (val === "G") {
+        // 清空打印模版的值
+        this.processForm.printTemplateId = "";
+        // 提示用户需要选择打印模版
+        this.$message.info("打印工序需要选择打印模版");
+      }
+    },
   },
 };
 </script>

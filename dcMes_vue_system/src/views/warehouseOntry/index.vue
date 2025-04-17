@@ -221,7 +221,19 @@
                     <template slot-scope="scope">
                         <div>应出: {{ scope.row.outboundQuantity }}</div>
                         <div>已出: {{ scope.row.outNumber }}</div>
-                        <div>托盘数: {{ scope.row.palletCount }}</div>
+                        <!-- <div>托盘数: {{ scope.row.palletCount }}</div> -->
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="货柜号" prop="HuoGuiCode" align="center">
+                    <template slot-scope="scope">
+                        {{ scope.row.HuoGuiCode || '暂无数据' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="发票号" prop="FaQIaoNo" align="center">
+                    <template slot-scope="scope">
+                        {{ scope.row.FaQIaoNo || '暂无数据' }}
                     </template>
                 </el-table-column>
 
