@@ -52,7 +52,7 @@
                     <el-row :gutter="20">
                         <el-col :span="6">
                             <el-form-item label="销售部门">
-                                <el-input v-model="searchForm.FSaleDeptId" placeholder="请输入销售部门编号" clearable></el-input>
+                                <el-input v-model="searchForm.FSaleDeptId_Search" placeholder="请输入销售部门编号或名称" clearable></el-input>
                             </el-form-item>
                         </el-col>
                         <el-col :span="6">
@@ -347,6 +347,7 @@ export default {
                 FDocumentStatus: '',
                 FCloseStatus: '',
                 FSaleDeptId: '',
+                FSaleDeptId_Search: '',
                 FSalerId: '',
                 FSalerId_Search: '',
                 dateRange: [],
@@ -569,6 +570,21 @@ export default {
                         case 'FBillNo':
                         case 'FCustId_FNumber':
                         case 'FCustId_FName':
+                            if (value.trim()) {
+                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                            }
+                            break;
+                        case 'FSaleDeptId_Search':
+                            if (value.trim()) {
+                                const searchValue = value.trim();
+                                req.query.$and.push({
+                                    $or: [
+                                        { FSaleDeptId_FNumber: { $regex: searchValue, $options: 'i' } },
+                                        { FSaleDeptId_FName: { $regex: searchValue, $options: 'i' } }
+                                    ]
+                                });
+                            }
+                            break;
                         case 'FSaleDeptId':
                             if (value.trim()) {
                                 req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
@@ -614,7 +630,9 @@ export default {
                         case 'F_TFQJ_khpo':
                         case 'F_TFQJ_Text1':
                             if (value.trim()) {
-                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                                const sanitizedValue = value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                const regexPattern = sanitizedValue.replace(/\s+/g, '\\s+');
+                                req.query.$and.push({ [key]: { $regex: regexPattern, $options: 'i' } });
                             }
                             break;
                     }
@@ -692,6 +710,7 @@ export default {
                 FDocumentStatus: '',
                 FCloseStatus: '',
                 FSaleDeptId: '',
+                FSaleDeptId_Search: '',
                 FSalerId: '',
                 FSalerId_Search: '',
                 dateRange: [],
