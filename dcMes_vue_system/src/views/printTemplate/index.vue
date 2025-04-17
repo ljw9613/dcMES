@@ -186,13 +186,23 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleEdit(scope.row)">
+            <el-button 
+              v-if="checkPermission('print_template_editing')"
+              type="text" 
+              size="small" 
+              @click="handleEdit(scope.row)"
+            >
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button type="text" size="small" @click="handlePrint(scope.row)">
+            <el-button 
+              type="text" 
+              size="small" 
+              @click="handlePrint(scope.row)"
+            >
               <i class="el-icon-printer"></i> 打印
             </el-button>
             <el-button
+              v-if="checkPermission('delete_print_template')"
               type="text"
               size="small"
               class="delete-btn"
@@ -737,6 +747,7 @@ export default {
 
         // 合并参数值到打印数据
         Object.assign(printData, this.printForm.paramValues);
+        console.log('printData',printData);
 
         this.printData = printData;
 
@@ -762,6 +773,37 @@ export default {
     updatePrintParamValue(key, value) {
       console.log('更新参数值:', key, value); // 添加日志帮助调试
       this.$set(this.printForm.paramValues, key, value);
+    },
+
+    checkPermission(permission) {
+      console.log('检查权限:', permission);
+      
+      try {
+        // 获取用户角色信息
+        const roles = this.$store.getters.roles || {};
+        console.log('用户角色信息:', roles);
+        
+        // 检查buttonList是否存在并包含特定权限
+        if (roles.buttonList && Array.isArray(roles.buttonList)) {
+          return roles.buttonList.includes(permission);
+        }
+        
+        // 如果找不到buttonList，尝试其他可能的路径
+        if (roles.permissions) {
+          return roles.permissions.includes(permission);
+        }
+        
+        // 超级管理员默认拥有所有权限
+        if (roles.roleKey === 'admin' || roles.isAdmin) {
+          return true;
+        }
+        
+        console.warn('未找到权限列表，默认返回true');
+        return true; // 在开发过程中默认返回true方便测试
+      } catch (error) {
+        console.error('权限检查出错:', error);
+        return true; // 出错时默认显示按钮
+      }
     },
   },
   created() {
