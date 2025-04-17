@@ -929,273 +929,296 @@ class MaterialProcessFlowService {
     unbindSubsequent = false,
     fromPalletUnbind = false
   ) {
-    try {
-      console.log(
-        `开始解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}, fromPalletUnbind: ${fromPalletUnbind}`
-      );
-      // 查找主条码对应的流程记录
-      const flowRecord = await MaterialProcessFlow.findOne({
-        barcode: mainBarcode,
-      });
-      if (!flowRecord) {
-        throw new Error("未找到对应的主条码流程记录");
-      }
+    let maxRetries = 3;
+    let retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        console.log(
+          `开始解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}, fromPalletUnbind: ${fromPalletUnbind}, 重试次数: ${retryCount}`
+        );
+        // 查找主条码对应的流程记录
+        const flowRecord = await MaterialProcessFlow.findOne({
+          barcode: mainBarcode,
+        });
+        if (!flowRecord) {
+          throw new Error("未找到对应的主条码流程记录");
+        }
 
-      // 查找工序节点
-      const processNode = flowRecord.processNodes.find(
-        (node) =>
-          node.processStepId &&
-          node.processStepId.toString() === processStepId.toString() &&
-          node.nodeType === "PROCESS_STEP"
-      );
-      if (!processNode) {
-        throw new Error("未找到对应的工序节点");
-      }
+        // 查找工序节点
+        const processNode = flowRecord.processNodes.find(
+          (node) =>
+            node.processStepId &&
+            node.processStepId.toString() === processStepId.toString() &&
+            node.nodeType === "PROCESS_STEP"
+        );
+        if (!processNode) {
+          throw new Error("未找到对应的工序节点");
+        }
 
-      // 验证工序节点状态
-      if (processNode.status !== "COMPLETED") {
-        throw new Error("该工序未完成，无需解绑");
-      }
+        // 验证工序节点状态
+        if (processNode.status !== "COMPLETED") {
+          throw new Error("该工序未完成，无需解绑");
+        }
 
-      // 获取需要解绑的工序节点列表
-      const processNodesToUnbind = [];
-      const parentMaterialNode = flowRecord.processNodes.find(
-        (node) => node.nodeId === processNode.parentNodeId
-      );
-
-      if (parentMaterialNode) {
-        // 获取同级的所有工序节点并按顺序排序
-        const levelProcessSteps = flowRecord.processNodes
-          .filter(
-            (node) =>
-              node.nodeType === "PROCESS_STEP" &&
-              node.parentNodeId === parentMaterialNode.nodeId
-          )
-          .sort((a, b) => a.processSort - b.processSort);
-
-        // 找到当前工序的索引
-        const currentIndex = levelProcessSteps.findIndex(
-          (step) => step.nodeId === processNode.nodeId
+        // 获取需要解绑的工序节点列表
+        const processNodesToUnbind = [];
+        const parentMaterialNode = flowRecord.processNodes.find(
+          (node) => node.nodeId === processNode.parentNodeId
         );
 
-        if (unbindSubsequent) {
-          // 如果需要解绑后续工序，则获取当前工序及其后的所有工序
-          processNodesToUnbind.push(
-            ...levelProcessSteps
-              .slice(currentIndex)
-              .filter((node) => node.status === "COMPLETED")
+        if (parentMaterialNode) {
+          // 获取同级的所有工序节点并按顺序排序
+          const levelProcessSteps = flowRecord.processNodes
+            .filter(
+              (node) =>
+                node.nodeType === "PROCESS_STEP" &&
+                node.parentNodeId === parentMaterialNode.nodeId
+            )
+            .sort((a, b) => a.processSort - b.processSort);
+
+          // 找到当前工序的索引
+          const currentIndex = levelProcessSteps.findIndex(
+            (step) => step.nodeId === processNode.nodeId
           );
-        } else {
-          // 否则只解绑当前工序
-          processNodesToUnbind.push(processNode);
+
+          if (unbindSubsequent) {
+            // 如果需要解绑后续工序，则获取当前工序及其后的所有工序
+            processNodesToUnbind.push(
+              ...levelProcessSteps
+                .slice(currentIndex)
+                .filter((node) => node.status === "COMPLETED")
+            );
+          } else {
+            // 否则只解绑当前工序
+            processNodesToUnbind.push(processNode);
+          }
         }
-      }
 
-      // 检查是否包含首道工序，以决定是否需要减少工单的投入量
-      let hasFirstProcess = false;
+        // 检查是否包含首道工序，以决定是否需要减少工单的投入量
+        let hasFirstProcess = false;
 
-      // 处理托盘相关的解绑逻辑
-      if (!fromPalletUnbind) {
-        console.log("processNodesToUnbind", processNodesToUnbind);
-        for (const processNodeToUnbind of processNodesToUnbind) {
-          // 检查是否是托盘工序
-          console.log("processNodeToUnbind", processNodeToUnbind.processType);
-          if (processNodeToUnbind.processType === "F") {
-            try {
-              // 查找相关的托盘记录
-              const palletRecord = await mongoose
-                .model("material_palletizing")
-                .findOne({
-                  "palletBarcodes.barcode": mainBarcode,
-                  processStepId: processNodeToUnbind.processStepId,
-                });
+        // 强化防止循环调用：处理托盘相关的解绑逻辑
+        if (!fromPalletUnbind) {
+          console.log("processNodesToUnbind", processNodesToUnbind);
+          for (const processNodeToUnbind of processNodesToUnbind) {
+            // 检查是否是托盘工序
+            console.log("processNodeToUnbind", processNodeToUnbind.processType);
+            if (processNodeToUnbind.processType === "F") {
+              try {
+                // 查找相关的托盘记录
+                const palletRecord = await mongoose
+                  .model("material_palletizing")
+                  .findOne({
+                    "palletBarcodes.barcode": mainBarcode,
+                    processStepId: processNodeToUnbind.processStepId,
+                  });
 
-              if (palletRecord) {
-                // 对托盘进行解绑操作
-                const MaterialPalletizingService = require("./materialPalletizing");
-                await MaterialPalletizingService.unbindBarcode(
-                  palletRecord.palletCode,
-                  mainBarcode,
-                  userId,
-                  reason || "工序解绑引起的托盘解绑",
-                  true // 这里明确传递true，表示来自工序解绑
-                );
-                console.log(
-                  `已从托盘 ${palletRecord.palletCode} 解绑条码 ${mainBarcode}`
-                );
+                if (palletRecord) {
+                  // 对托盘进行解绑操作，显式传递fromProcessUnbind=true，防止循环调用
+                  const MaterialPalletizingService = require("./materialPalletizing");
+                  await MaterialPalletizingService.unbindBarcode(
+                    palletRecord.palletCode,
+                    mainBarcode,
+                    userId,
+                    reason || "工序解绑引起的托盘解绑",
+                    true // 这里明确传递true，表示来自工序解绑
+                  );
+                  console.log(
+                    `已从托盘 ${palletRecord.palletCode} 解绑条码 ${mainBarcode}`
+                  );
+                }
+              } catch (error) {
+                console.warn(`解绑托盘记录失败: ${error.message}`);
+                // 发生托盘解绑错误，但继续流程，不抛出异常中断整个解绑过程
+                console.error(`解绑托盘记录失败 ${error.message}，但继续执行工序解绑流程`);
               }
-            } catch (error) {
-              console.warn(`解绑托盘记录失败: ${error.message}`);
-              // 继续处理其他解绑操作，不中断流程
-              throw new Error(`解绑托盘记录失败 ${error.message} `);
             }
           }
         }
-      }
 
-      // 验证处理的节点中是否包含首道工序
-      for (const processNodeToUnbind of processNodesToUnbind) {
-        const processPosition = this.checkProcessPosition(
-          flowRecord.processNodes,
-          processNodeToUnbind
-        );
-        if (processPosition.isFirst) {
-          hasFirstProcess = true;
-          break;
-        }
-      }
-
-      // 如果包含首道工序且存在工单ID，则减少工单投入量
-      if (
-        hasFirstProcess &&
-        flowRecord.productionPlanWorkOrderId &&
-        flowRecord.isProduct
-      ) {
-        try {
-          // 传入-1表示减少一个单位的投入量
-          await this.updateWorkOrderQuantity(
-            flowRecord.productionPlanWorkOrderId,
-            "input",
-            -1
-          );
-          console.log(`工单${flowRecord.productionPlanWorkOrderId}投入量-1`);
-        } catch (error) {
-          console.error("更新工单投入量失败:", error);
-          // 这里选择继续执行而不抛出错误，以免影响解绑流程
-        }
-      }
-
-      // 获取所有需要解绑的物料节点
-      const materialNodesToUnbind = [];
-      for (const processNodeToUnbind of processNodesToUnbind) {
-        const materialNodes = flowRecord.processNodes.filter(
-          (node) =>
-            node.parentNodeId === processNodeToUnbind.nodeId &&
-            node.nodeType === "MATERIAL" &&
-            node.status === "COMPLETED"
-        );
-        materialNodesToUnbind.push(...materialNodes);
-      }
-
-      // 修改解绑记录的创建部分
-      for (const processNodeToUnbind of processNodesToUnbind) {
-        // 获取当前工序相关的物料节点
-        const relatedMaterialNodes = flowRecord.processNodes.filter(
-          (node) =>
-            node.parentNodeId === processNodeToUnbind.nodeId &&
-            node.nodeType === "MATERIAL" &&
-            node.status === "COMPLETED"
-        );
-
-        // 为每个工序创建独立的解绑记录
-        const unbindRecord = new UnbindRecord({
-          flowRecordId: flowRecord._id,
-          mainBarcode,
-          processStepId: processNodeToUnbind.processStepId,
-          processName: processNodeToUnbind.processName,
-          processCode: processNodeToUnbind.processCode,
-          unbindMaterials: relatedMaterialNodes.map((node) => ({
-            materialId: node.materialId,
-            materialCode: node.materialCode,
-            materialName: node.materialName,
-            originalBarcode: node.barcode || "",
-          })),
-          operatorId: userId,
-          reason,
-          unbindSubsequent:
-            unbindSubsequent &&
-            processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
-          affectedProcesses: [
-            {
-              processStepId: processNodeToUnbind.processStepId,
-              processName: processNodeToUnbind.processName,
-              processCode: processNodeToUnbind.processCode,
-            },
-          ],
-          fromPalletUnbind,
-        });
-        await unbindRecord.save();
-      }
-
-      // 更新流程节点状态
-      flowRecord.processNodes = flowRecord.processNodes.map((node) => {
-        // 处理需要解绑的工序节点
-        if (processNodesToUnbind.some((p) => p.nodeId === node.nodeId)) {
-          return {
-            ...node,
-            status: "PENDING",
-            endTime: null,
-            updateBy: userId,
-          };
-        }
-
-        // 处理需要解绑的物料节点及其所有子节点
-        for (const materialNode of materialNodesToUnbind) {
-          // 如果是直接关联的物料节点
-          if (node.nodeId === materialNode.nodeId) {
-            return {
-              ...node,
-              status: "PENDING",
-              barcode: "",
-              relatedBill: "",
-              scanTime: null,
-              endTime: null,
-              updateBy: userId,
-            };
-          }
-
-          // 处理物料节点的子节点
-          const childNodeIds = this.getAllChildNodes(
+        // 验证处理的节点中是否包含首道工序
+        for (const processNodeToUnbind of processNodesToUnbind) {
+          const processPosition = this.checkProcessPosition(
             flowRecord.processNodes,
-            materialNode.nodeId
+            processNodeToUnbind
           );
-          if (childNodeIds.includes(node.nodeId)) {
+          if (processPosition.isFirst) {
+            hasFirstProcess = true;
+            break;
+          }
+        }
+
+        // 如果包含首道工序且存在工单ID，则减少工单投入量
+        if (
+          hasFirstProcess &&
+          flowRecord.productionPlanWorkOrderId &&
+          flowRecord.isProduct
+        ) {
+          try {
+            // 传入-1表示减少一个单位的投入量
+            await this.updateWorkOrderQuantity(
+              flowRecord.productionPlanWorkOrderId,
+              "input",
+              -1
+            );
+            console.log(`工单${flowRecord.productionPlanWorkOrderId}投入量-1`);
+          } catch (error) {
+            console.error("更新工单投入量失败:", error);
+            // 这里选择继续执行而不抛出错误，以免影响解绑流程
+          }
+        }
+
+        // 获取所有需要解绑的物料节点
+        const materialNodesToUnbind = [];
+        for (const processNodeToUnbind of processNodesToUnbind) {
+          const materialNodes = flowRecord.processNodes.filter(
+            (node) =>
+              node.parentNodeId === processNodeToUnbind.nodeId &&
+              node.nodeType === "MATERIAL" &&
+              node.status === "COMPLETED"
+          );
+          materialNodesToUnbind.push(...materialNodes);
+        }
+
+        // 修改解绑记录的创建部分
+        for (const processNodeToUnbind of processNodesToUnbind) {
+          // 获取当前工序相关的物料节点
+          const relatedMaterialNodes = flowRecord.processNodes.filter(
+            (node) =>
+              node.parentNodeId === processNodeToUnbind.nodeId &&
+              node.nodeType === "MATERIAL" &&
+              node.status === "COMPLETED"
+          );
+
+          // 为每个工序创建独立的解绑记录
+          const unbindRecord = new UnbindRecord({
+            flowRecordId: flowRecord._id,
+            mainBarcode,
+            processStepId: processNodeToUnbind.processStepId,
+            processName: processNodeToUnbind.processName,
+            processCode: processNodeToUnbind.processCode,
+            unbindMaterials: relatedMaterialNodes.map((node) => ({
+              materialId: node.materialId,
+              materialCode: node.materialCode,
+              materialName: node.materialName,
+              originalBarcode: node.barcode || "",
+            })),
+            operatorId: userId,
+            reason,
+            unbindSubsequent:
+              unbindSubsequent &&
+              processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
+            affectedProcesses: [
+              {
+                processStepId: processNodeToUnbind.processStepId,
+                processName: processNodeToUnbind.processName,
+                processCode: processNodeToUnbind.processCode,
+              },
+            ],
+            fromPalletUnbind,
+          });
+          await unbindRecord.save();
+        }
+
+        // 更新流程节点状态
+        flowRecord.processNodes = flowRecord.processNodes.map((node) => {
+          // 处理需要解绑的工序节点
+          if (processNodesToUnbind.some((p) => p.nodeId === node.nodeId)) {
             return {
               ...node,
               status: "PENDING",
-              barcode: "",
-              relatedBill: "",
-              scanTime: null,
               endTime: null,
               updateBy: userId,
             };
           }
-        }
 
-        return node;
-      });
+          // 处理需要解绑的物料节点及其所有子节点
+          for (const materialNode of materialNodesToUnbind) {
+            // 如果是直接关联的物料节点
+            if (node.nodeId === materialNode.nodeId) {
+              return {
+                ...node,
+                status: "PENDING",
+                barcode: "",
+                relatedBill: "",
+                scanTime: null,
+                endTime: null,
+                updateBy: userId,
+              };
+            }
 
-      // 更新整体进度
-      const completedNodes = flowRecord.processNodes.filter(
-        (node) => node.status === "COMPLETED" && node.level !== 0
-      ).length;
-      flowRecord.progress = Math.floor(
-        (completedNodes / (flowRecord.processNodes.length - 1)) * 100
-      );
+            // 处理物料节点的子节点
+            const childNodeIds = this.getAllChildNodes(
+              flowRecord.processNodes,
+              materialNode.nodeId
+            );
+            if (childNodeIds.includes(node.nodeId)) {
+              return {
+                ...node,
+                status: "PENDING",
+                barcode: "",
+                relatedBill: "",
+                scanTime: null,
+                endTime: null,
+                updateBy: userId,
+              };
+            }
+          }
 
-      // 更新整体状态
-      if (flowRecord.status === "COMPLETED") {
-        flowRecord.status = "IN_PROCESS";
-        flowRecord.endTime = null;
-        // 重置根节点状态
-        const materialNode = flowRecord.processNodes.find(
-          (node) => node.nodeType === "MATERIAL" && node.level === 0
+          return node;
+        });
+
+        // 更新整体进度
+        const completedNodes = flowRecord.processNodes.filter(
+          (node) => node.status === "COMPLETED" && node.level !== 0
+        ).length;
+        flowRecord.progress = Math.floor(
+          (completedNodes / (flowRecord.processNodes.length - 1)) * 100
         );
-        if (materialNode) {
-          materialNode.status = "PENDING";
-          materialNode.endTime = null;
+
+        // 更新整体状态
+        if (flowRecord.status === "COMPLETED") {
+          flowRecord.status = "IN_PROCESS";
+          flowRecord.endTime = null;
+          // 重置根节点状态
+          const materialNode = flowRecord.processNodes.find(
+            (node) => node.nodeType === "MATERIAL" && node.level === 0
+          );
+          if (materialNode) {
+            materialNode.status = "PENDING";
+            materialNode.endTime = null;
+          }
         }
+
+        // 保存更新
+        try {
+          await flowRecord.save();
+          console.log(`完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`);
+          return flowRecord;
+        } catch (saveError) {
+          // 如果是版本冲突异常且未超过最大重试次数，则重试
+          if (saveError.name === 'VersionError' && retryCount < maxRetries - 1) {
+            console.log(`发生版本冲突，正在进行第${retryCount + 1}次重试...`);
+            retryCount++;
+            continue;
+          }
+          throw saveError;
+        }
+      } catch (error) {
+        // 如果是版本冲突异常且未超过最大重试次数，则重试
+        if (error.name === 'VersionError' && retryCount < maxRetries - 1) {
+          console.log(`发生版本冲突，正在进行第${retryCount + 1}次重试...`);
+          retryCount++;
+          continue;
+        }
+        
+        console.error("物料解绑有误:", error);
+        throw error;
       }
-
-      // 保存更新
-      await flowRecord.save();
-
-      console.log(`完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`);
-      return flowRecord;
-    } catch (error) {
-      console.error("物料替换失败:", error);
-      throw error;
     }
+    
+    throw new Error(`解绑工序组件失败：已达到最大重试次数(${maxRetries}次)`);
   }
 
   /**

@@ -323,10 +323,13 @@ class MaterialPalletizingService {
    * @param {String} palletCode - 托盘编号
    * @param {String} barcode - 需要解绑的条码
    * @param {String} userId - 操作用户ID
+   * @param {String} reason - 解绑原因
    * @param {boolean} fromProcessUnbind - 是否来自工序解绑
    */
   static async unbindBarcode(palletCode, barcode, userId, reason = "托盘解绑", fromProcessUnbind = false) {
     try {
+      console.log(`开始解绑托盘条码: ${palletCode}, 条码: ${barcode}, fromProcessUnbind: ${fromProcessUnbind}`);
+      
       const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
         throw new Error("未找到对应的托盘记录");
@@ -364,21 +367,31 @@ class MaterialPalletizingService {
           affectedBarcodes,
           reason,
           createBy: userId,
+          fromProcessUnbind, // 记录是否来自工序解绑
         });
 
         // 解绑整个箱子
         // 1. 解绑箱内所有条码的工序状态
-        for (const boxBarcode of boxItem.boxBarcodes) {
-          if (!fromProcessUnbind) {
-            await materialProcessFlowService.unbindProcessComponents(
-              boxBarcode.barcode,
-              pallet.processStepId,
-              userId,
-              "托盘解绑",
-              true,
-              true // 标记为来自托盘解绑调用
-            );
+        // 强化循环调用保护：只有在不是从工序解绑调用过来时，才需要调用工序解绑
+        if (!fromProcessUnbind) {
+          console.log(`托盘解绑：箱条码 ${barcode}，需要调用工序解绑`);
+          for (const boxBarcode of boxItem.boxBarcodes) {
+            try {
+              await materialProcessFlowService.unbindProcessComponents(
+                boxBarcode.barcode,
+                pallet.processStepId,
+                userId,
+                "托盘解绑",
+                true, // 解绑后续工序
+                true  // 明确标记为来自托盘解绑调用
+              );
+            } catch (error) {
+              console.error(`解绑箱内条码 ${boxBarcode.barcode} 的工序状态失败:`, error.message);
+              // 继续处理其他条码，不中断整个流程
+            }
           }
+        } else {
+          console.log(`托盘解绑：箱条码 ${barcode}，来自工序解绑调用，跳过工序解绑`);
         }
 
         // 减少工单产出量 - 解绑箱中每个条码减少一个产出量
@@ -430,50 +443,43 @@ class MaterialPalletizingService {
           affectedBarcodes,
           reason,
           createBy: userId,
+          fromProcessUnbind, // 记录是否来自工序解绑
         });
 
         // 查找主条码对应的流程记录
         const flowRecord = await MaterialProcessFlow.findOne({
           barcode: barcode,
         });
-        if (flowRecord) {
+        
+        // 强化循环调用保护：只在不是来自工序解绑的情况下才调用工序解绑
+        if (flowRecord && !fromProcessUnbind) {
+          console.log(`托盘解绑：单个条码 ${barcode}，需要调用工序解绑`);
           // 查找工序节点
           const processNode = flowRecord.processNodes.find(
             (node) =>
               node.processStepId &&
-              node.processStepId.toString() ===
-              pallet.processStepId.toString() &&
+              node.processStepId.toString() === pallet.processStepId.toString() &&
               node.nodeType === "PROCESS_STEP"
           );
 
-          // 验证工序节点状态
-          if (processNode && processNode.status == "COMPLETED") {
-            // 解绑单个条码
-            if (!fromProcessUnbind) {
-              // 1. 重置工序状态
+          if (processNode) {
+            try {
+              // 解绑单个条码
               await materialProcessFlowService.unbindProcessComponents(
                 barcode,
                 pallet.processStepId,
                 userId,
-                "托盘解绑",
-                true,
-                true // 标记为来自托盘解绑调用
+                "托盘解绑", // 添加解绑原因
+                true, // 解绑后续工序
+                true  // 明确标记为来自托盘解绑调用
               );
+            } catch (error) {
+              console.error(`解绑条码 ${barcode} 的工序状态失败:`, error.message);
+              // 不抛出异常，继续处理托盘解绑
             }
           }
-
-          // 不管工序节点状态，都进行解绑
-          if (processNode) {
-            // 解绑单个条码
-            await materialProcessFlowService.unbindProcessComponents(
-              barcode,
-              pallet.processStepId,
-              userId,
-              "托盘解绑", // 添加解绑原因
-              true, // 解绑后续工序
-              true  // 标记为来自托盘解绑调用
-            );
-          }
+        } else if (fromProcessUnbind) {
+          console.log(`托盘解绑：单个条码 ${barcode}，来自工序解绑调用，跳过工序解绑`);
         }
 
         // 减少工单产出量 - 解绑单个条码减少一个产出量
@@ -515,6 +521,7 @@ class MaterialPalletizingService {
       pallet.updateBy = userId;
 
       await pallet.save();
+      console.log(`完成解绑托盘条码: ${palletCode}, 条码: ${barcode}`);
       return pallet;
     } catch (error) {
       console.error("解绑条码失败:", error);
