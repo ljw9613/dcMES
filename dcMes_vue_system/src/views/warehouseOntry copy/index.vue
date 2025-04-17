@@ -141,50 +141,9 @@
                             <el-card class="box-card" style="width: 100%">
                                 <div slot="header" class="clearfix">
                                     <span>托盘出库明细</span>
-                                    <el-tooltip content="点击每行前的箭头可查看托盘中已出库的产品条码明细" placement="top">
-                                        <i class="el-icon-info" style="margin-left: 5px; color: #409EFF; cursor: help;"></i>
-                                    </el-tooltip>
                                 </div>
                                 <el-table :data="scope.row.entryItems" border style="width: 100%">
-                                    <el-table-column type="expand">
-                                        <template slot-scope="itemScope">
-                                            <el-card class="box-card" style="margin: 10px">
-                                                <div slot="header" class="clearfix">
-                                                    <span>产品条码明细</span>
-                                                    <span style="font-size: 12px; color: #909399; margin-left: 5px;">(仅显示已出库条码)</span>
-                                                </div>
-                                                <el-table 
-                                                    :data="getCompletedBarcodes(itemScope.row)" 
-                                                    border 
-                                                    style="width: 100%">
-                                                    <el-table-column label="条码" prop="barcode" align="center"></el-table-column>
-                                                    <el-table-column label="扫描时间" align="center">
-                                                        <template slot-scope="scope">
-                                                            {{ formatDate(scope.row.scanTime) }}
-                                                        </template>
-                                                    </el-table-column>
-                                                    <el-table-column label="出库状态" align="center">
-                                                        <template>
-                                                            <el-tag type="success">已出库</el-tag>
-                                                        </template>
-                                                    </el-table-column>
-                                                </el-table>
-                                                <div v-if="getCompletedBarcodes(itemScope.row).length === 0" class="no-data-tip">
-                                                    暂无已出库条码数据
-                                                </div>
-                                            </el-card>
-                                        </template>
-                                    </el-table-column>
-                                    <el-table-column label="托盘编号" prop="palletCode" align="center">
-                                        <template slot-scope="itemScope">
-                                            <div>
-                                                {{ itemScope.row.palletCode }}
-                                                <el-tag size="mini" type="info" v-if="getCompletedBarcodes(itemScope.row).length > 0">
-                                                    {{ getCompletedBarcodes(itemScope.row).length }}个已出库条码
-                                                </el-tag>
-                                            </div>
-                                        </template>
-                                    </el-table-column>
+                                    <el-table-column label="托盘编号" prop="palletCode" align="center"></el-table-column>
                                     <el-table-column label="出库数量" prop="quantity" align="center"></el-table-column>
                                     <el-table-column label="扫描时间" align="center">
                                         <template slot-scope="itemScope">
@@ -642,15 +601,6 @@ export default {
                 req.limit = this.pageSize;
                 req.sort = { createAt: -1 };
                 req.count = true;
-                
-                // 添加关联查询，获取托盘及其条码明细
-                req.populate = JSON.stringify([
-                    { 
-                        path: 'entryItems.palletId',
-                        select: 'palletCode materialName materialSpec totalQuantity palletBarcodes'
-                    }
-                ]);
-                
                 const result = await getData("warehouse_ontry", req);
                 this.tableList = result.data;
                 this.total = result.countnum;
@@ -908,7 +858,6 @@ export default {
                                         '物料信息': item.materialName || '',
                                         '产品条码': barcodeItem.barcode || ''
                                     });
-
                                 });
                             } else {
                                 // 如果没有条码数据，仍然为托盘创建一行
@@ -1014,7 +963,6 @@ export default {
                                     '物料信息': item.materialName || '',
                                     '产品条码': barcodeItem.barcode || ''
                                 });
-
                             });
                         } else {
                             // 如果没有条码数据，仍然为托盘创建一行
@@ -1065,13 +1013,6 @@ export default {
                 this.exportLoading = false;
             }
         },
-
-        getCompletedBarcodes(entryItem) {
-            if (!entryItem || !entryItem.palletId || !entryItem.palletId.palletBarcodes) {
-                return [];
-            }
-            return entryItem.palletId.palletBarcodes.filter(barcode => barcode.outWarehouseStatus === 'COMPLETED');
-        },
     },
     created() {
         this.fetchData()
@@ -1101,14 +1042,5 @@ export default {
             margin-bottom: 15px;
         }
     }
-    
-    .no-data-tip {
-        text-align: center;
-        color: #909399;
-        padding: 20px 0;
-        font-size: 14px;
-    }
 }
 </style>
-
-

@@ -270,14 +270,8 @@
                       {{ formatDate(barcodeScope.row.scanTime) }}
                     </template>
                   </el-table-column>
-                  <el-table-column label="出库状态" align="center">
-                    <template slot-scope="barcodeScope">
-                      <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                        {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="操作" align="center" width="120">
+                  <!-- 操作 -->
+                  <el-table-column label="操作" align="center">
                     <template slot-scope="barcodeScope">
                       <el-button
                         type="text"
@@ -697,11 +691,50 @@
                 {{ formatDate(barcodeScope.row.scanTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="出库状态" align="center">
+            <el-table-column label="抽检状态" align="center">
               <template slot-scope="barcodeScope">
-                <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                  {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
+                <el-tag
+                  :type="
+                    getInspectionStatusType(barcodeScope.row.inspectionStatus)
+                  "
+                >
+                  {{
+                    getInspectionStatusText(barcodeScope.row.inspectionStatus)
+                  }}
                 </el-tag>
+                <div v-if="barcodeScope.row.inspectionStatus">
+                  <div
+                    class="inspection-time"
+                    v-if="barcodeScope.row.inspectionResult"
+                  >
+                    抽检结果:
+                    <el-tag
+                      :type="
+                        getInspectionResultType(
+                          barcodeScope.row.inspectionResult
+                        )
+                      "
+                    >
+                      {{
+                        getInspectionResultText(
+                          barcodeScope.row.inspectionResult
+                        )
+                      }}
+                    </el-tag>
+                  </div>
+                  <div
+                    class="inspection-time"
+                    v-if="barcodeScope.row.inspectionTime"
+                  >
+                    抽检时间: {{ formatDate(barcodeScope.row.inspectionTime) }}
+                  </div>
+                  <div
+                    class="inspection-remarks"
+                    v-if="barcodeScope.row.inspectionRemarks"
+                  >
+                    备注: {{ barcodeScope.row.inspectionRemarks }}
+                  </div>
+                </div>
               </template>
             </el-table-column>
             <el-table-column label="操作" align="center" width="120">

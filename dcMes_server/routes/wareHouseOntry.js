@@ -509,7 +509,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 
     // 8. 更新托盘中所有条码的出库状态
     pallet.palletBarcodes.forEach(barcode => {
-      barcode.outWarehouseStatus = "OUT_WAREHOUSE";
+      barcode.outWarehouseStatus = "COMPLETED";
       barcode.outWarehouseTime = new Date();
       barcode.outWarehouseBy = userId;
     });
@@ -942,7 +942,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           item => item.barcode === productBarcode
         );
         if (barcodeIndex !== -1) {
-          pallet.palletBarcodes[barcodeIndex].outWarehouseStatus = "OUT_WAREHOUSE";
+          pallet.palletBarcodes[barcodeIndex].outWarehouseStatus = "COMPLETED";
           pallet.palletBarcodes[barcodeIndex].outWarehouseTime = new Date();
           pallet.palletBarcodes[barcodeIndex].outWarehouseBy = userId;
         }
