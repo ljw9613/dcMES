@@ -317,10 +317,20 @@ export default {
             // 处理日期范围查询
             if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
                 req.query.$and.push({
-                    FPlanStartDate: {
-                        $gte: new Date(this.searchForm.dateRange[0]),
-                        $lte: new Date(this.searchForm.dateRange[1])
-                    }
+                    $or: [
+                        {
+                            FPlanStartDate: {
+                                $gte: `${this.searchForm.dateRange[0]} 00:00:00`,
+                                $lte: `${this.searchForm.dateRange[1]} 23:59:59`
+                            }
+                        },
+                        {
+                            FPlanFinishDate: {
+                                $gte: `${this.searchForm.dateRange[0]} 00:00:00`,
+                                $lte: `${this.searchForm.dateRange[1]} 23:59:59`
+                            }
+                        }
+                    ]
                 });
             }
 
