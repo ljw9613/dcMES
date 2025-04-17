@@ -138,7 +138,7 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && processStepData.processType !== 'F'
+          mainMaterialId && processStepId && processStepData.processType == 'G'
         "
       >
         <el-card class="scan-card">
@@ -314,7 +314,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>请先初始化工序设置,请选择非托盘工序</p>
+            <p>请先初始化工序设置,请选择打印工序</p>
           </div>
         </div>
       </template>
@@ -833,6 +833,49 @@ export default {
       this.formData.processStep = processId;
       this.processStepData = processId;
       // this.processStepId = processId; // 缓存选中的工序ID
+      
+      // 获取选中工序的打印模板
+      this.getProcessPrintTemplate(processId);
+    },
+    
+    // 获取工序关联的打印模板
+    async getProcessPrintTemplate(processId) {
+      try {
+        // 获取工序信息
+        const stepResponse = await getData("processStep", {
+          query: { _id: processId },
+          page: 1,
+          limit: 1,
+        });
+
+        if (!stepResponse.data || stepResponse.data.length === 0) {
+          return;
+        }
+
+        const processStep = stepResponse.data[0];
+        
+        // 检查工序是否关联了打印模板
+        if (processStep.printTemplateId) {
+          // 获取该工序关联的打印模板
+          const printTemplateResponse = await getData("printTemplate", {
+            query: { _id: processStep.printTemplateId },
+            page: 1,
+            limit: 1,
+          });
+
+          if (printTemplateResponse.data && printTemplateResponse.data.length > 0) {
+            const printTemplate = printTemplateResponse.data[0];
+            console.log("获取到工序关联的打印模板:", printTemplate);
+            
+            // 设置打印模板到本地存储
+            this.localPrintTemplate = printTemplate;
+            this.$message.success("已自动应用工序关联的打印模板");
+          }
+        }
+      } catch (error) {
+        console.error("获取工序关联打印模板失败:", error);
+        this.$message.warning("获取工序关联打印模板失败");
+      }
     },
 
     // 保存按钮处理
@@ -946,6 +989,31 @@ export default {
         const processStep = stepResponse.data[0];
 
         this.processStepData = processStep;
+
+        // 获取工序关联的打印模板
+        console.log("获取工序关联的打印模板:", processStep.printTemplateId);
+        if (processStep.printTemplateId) {
+          try {
+            // 获取该工序关联的打印模板
+            const printTemplateResponse = await getData("printTemplate", {
+              query: { _id: processStep.printTemplateId },
+              page: 1,
+              limit: 1,
+            });
+
+            if (printTemplateResponse.data && printTemplateResponse.data.length > 0) {
+              const printTemplate = printTemplateResponse.data[0];
+              console.log("获取到工序关联的打印模板:", printTemplate);
+              
+              // 设置打印模板到本地存储
+              this.localPrintTemplate = printTemplate;
+              this.$message.success("已自动应用工序关联的打印模板");
+            }
+          } catch (error) {
+            console.error("获取工序关联打印模板失败:", error);
+            this.$message.warning("获取工序关联打印模板失败");
+          }
+        }
 
         // 获取该工序所属的工艺信息
         const craftResponse = await getData("craft", {
