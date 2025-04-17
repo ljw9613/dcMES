@@ -349,7 +349,7 @@ export default {
                 FSaleDeptId: '',
                 FSalerId: '',
                 dateRange: [],
-                FMaterialId: '',
+                FMaterialId_FNumber: '',
                 F_TFQJ_khpo: '',
                 F_TFQJ_Text1: '',
             },
@@ -588,7 +588,13 @@ export default {
                                 });
                             }
                             break;
-                        case 'FMaterialId':
+                        case 'FMaterialId_FNumber':
+                            if (value.trim()) {
+                                const sanitizedValue = value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                const regexPattern = sanitizedValue.replace(/\s+/g, '\\s+');
+                                req.query.$and.push({ [key]: { $regex: regexPattern, $options: 'i' } });
+                            }
+                            break;
                         case 'F_TFQJ_khpo':
                         case 'F_TFQJ_Text1':
                             if (value.trim()) {
@@ -665,13 +671,14 @@ export default {
             this.$refs.searchForm.resetFields();
             this.searchForm = {
                 FBillNo: '',
-                FCustId: '',
+                FCustId_FNumber: '',
+                FCustId_FName: '',
                 FDocumentStatus: '',
                 FCloseStatus: '',
                 FSaleDeptId: '',
                 FSalerId: '',
                 dateRange: [],
-                FMaterialId: '',
+                FMaterialId_FNumber: '',
                 F_TFQJ_khpo: '',
                 F_TFQJ_Text1: '',
             };
