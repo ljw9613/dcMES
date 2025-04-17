@@ -16,11 +16,7 @@
                             <el-input v-model="searchForm.FBillNo" placeholder="请输入订单编号" clearable></el-input>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="客户编号">
-                            <el-input v-model="searchForm.FCustId_FNumber" placeholder="请输入客户编号" clearable></el-input>
-                        </el-form-item>
-                    </el-col>
+                   
                     <el-col :span="6">
                         <el-form-item label="客户名称">
                             <el-input v-model="searchForm.FCustId_FName" placeholder="请输入客户名称" clearable></el-input>
@@ -568,7 +564,10 @@ export default {
                 if (value) {
                     switch (key) {
                         case 'FBillNo':
-                        case 'FCustId_FNumber':
+                            if (value.trim()) {
+                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                            }
+                            break;
                         case 'FCustId_FName':
                             if (value.trim()) {
                                 req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
