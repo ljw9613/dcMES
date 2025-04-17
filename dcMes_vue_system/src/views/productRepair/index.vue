@@ -180,6 +180,9 @@
                         <el-button type="text" size="small" @click="handleView(scope.row)" style="color: #409EFF;">
                             <i class="el-icon-view"></i> 查看
                         </el-button>
+                        <el-button type="text" size="small" @click="handleViewProductDetails(scope.row)" style="color: blue;">
+                            <i class="el-icon-view"></i> 查看产品详情
+                        </el-button>
                         <el-button type="text" size="small" @click="handleReview(scope.row)" style="color: green;"
                             v-if="scope.row.status == 'PENDING_REVIEW' && hasMaintenanceAudit">
                             <i class="el-icon-edit"></i> 审核
@@ -248,19 +251,135 @@
                 {{ exportProgress === 100 ? '导出完成' : '正在导出数据，请稍候...' }}
             </div>
         </el-dialog>
+
+        <!-- 产品详情弹窗 -->
+        <el-dialog
+          :title="'工艺流程详情 - ' + productDetailsData.barcode"
+          :visible.sync="productDetailsDialogVisible"
+          width="80%"
+          class="process-flow-dialog"
+          :close-on-click-modal="false"
+        >
+          <div class="process-flow-container">
+            <div class="process-section">
+              <el-card class="process-card">
+                <div slot="header">
+                  <span><i class="el-icon-time"></i> 工艺流程</span>
+                </div>
+
+                <div class="process-flow">
+                  <!-- 主产品物料信息 -->
+                  <div class="main-material">
+                    <div class="main-material-header">
+                      <i class="el-icon-box"></i>
+                      <span class="title">主产品信息</span>
+                      <el-tag type="primary" size="mini">{{
+                        productDetailsData.materialCode
+                      }}</el-tag>
+                    </div>
+                    <div class="main-material-content">
+                      <div class="info-row">
+                        <div class="info-item">
+                          <label>产品条码：</label>
+                          <span>{{ productDetailsData.barcode }}</span>
+                        </div>
+                      </div>
+                      <div class="info-row">
+                        <div class="info-item">
+                          <label>物料名称：</label>
+                          <span>{{ productDetailsData.materialName }}</span>
+                        </div>
+                        <div class="info-item">
+                          <label>规格型号：</label>
+                          <span>{{ productDetailsData.materialSpec }}</span>
+                        </div>
+                      </div>
+                      <div class="info-row">
+                        <div class="info-item">
+                          <label>整体进度：</label>
+                          <el-progress
+                            :percentage="productDetailsData.progress || 0"
+                          ></el-progress>
+                        </div>
+                        <div class="info-item">
+                          <label>当前状态：</label>
+                          <el-tag :type="getProcessStatusType(productDetailsData.status)">
+                            {{ getProcessStatusText(productDetailsData.status) }}
+                          </el-tag>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 详情标签页 -->
+                  <el-tabs v-model="activeTab" type="border-card">
+                    <!-- 工序信息 -->
+                    <el-tab-pane label="工序信息" name="process">
+                      <process-step-list
+                        ref="processStepList"
+                        :loading="listLoading"
+                        :flow-data="processedFlowChartData"
+                      >
+                      </process-step-list>
+                    </el-tab-pane>
+
+                    <!-- 物料信息 -->
+                    <el-tab-pane label="物料信息" name="material">
+                      <material-info
+                        :main-barcode="productDetailsData.barcode"
+                        :flow-chart-data="processedFlowChartData"
+                        @unbind-success="handleUnbindSuccess"
+                      >
+                      </material-info>
+                    </el-tab-pane>
+
+                    <!-- 物料条码信息 -->
+                    <el-tab-pane label="物料条码信息" name="materialBarcode">
+                      <material-barcode-info
+                        :main-barcode="productDetailsData.barcode"
+                        :material-barcode-data="processedMaterialBarcodeData"
+                      >
+                      </material-barcode-info>
+                    </el-tab-pane>
+
+                    <!-- 检测信息 -->
+                    <el-tab-pane label="检测信息" name="inspection">
+                      <inspection-list :inspections="productDetailsData"></inspection-list>
+                    </el-tab-pane>
+
+                    <!-- 解绑信息 -->
+                    <el-tab-pane label="解绑信息" name="unbind">
+                      <unbind-record-list :unbind-records="unbindRecord">
+                      </unbind-record-list>
+                    </el-tab-pane>
+                  </el-tabs>
+                </div>
+              </el-card>
+            </div>
+          </div>
+        </el-dialog>
     </div>
 </template>
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from './components/EditDialog'
-
+import ProcessStepList from "@/components/ProcessStepList/index.vue";
+import MaterialInfo from "@/views/productTraceability/components/MaterialInfo.vue";
+import MaterialBarcodeInfo from "@/views/productTraceability/components/MaterialBarcodeInfo.vue";
+import InspectionList from "@/components/InspectionList/index.vue";
+import UnbindRecordList from "@/views/productTraceability/components/UnbindRecordList.vue";
 
 export default {
     name: 'productRepair',
     dicts: ['repair_solution', 'businessType'],
     components: {
-        EditDialog
+        EditDialog,
+        ProcessStepList,
+        MaterialInfo,
+        MaterialBarcodeInfo,
+        InspectionList,
+        UnbindRecordList
     },
     data() {
         return {
@@ -301,7 +420,43 @@ export default {
             exportLoading: false,
             exportProgress: 0,
             exportDialogVisible: false,
+            productDetailsDialogVisible: false,
+            activeTab: "process",
+            productDetailsData: {},
+            processedFlowChartData: [],
+            unbindRecord: [],
         }
+    },
+    computed: {
+        processedMaterialBarcodeData() {
+            if (!this.productDetailsData.processNodes) return [];
+
+            // 创建工序映射
+            const processMap = new Map();
+            this.productDetailsData.processNodes.forEach((node) => {
+                if (node.nodeType === "PROCESS_STEP") {
+                    processMap.set(node.nodeId, {
+                        processName: node.processName,
+                        processCode: node.processCode,
+                    });
+                }
+            });
+
+            // 过滤并处理物料数据
+            return this.productDetailsData.processNodes
+                .filter((node) => node.nodeType === "MATERIAL" && node.barcode)
+                .map((node) => {
+                    const processInfo = node.parentNodeId
+                        ? processMap.get(node.parentNodeId)
+                        : null;
+                    return {
+                        ...node,
+                        processName: processInfo ? processInfo.processName : "-",
+                        processCode: processInfo ? processInfo.processCode : "",
+                    };
+                })
+                .sort((a, b) => new Date(b.scanTime || 0) - new Date(a.scanTime || 0));
+        },
     },
     methods: {
         getLineTypeText(type) {
@@ -785,6 +940,110 @@ export default {
                 this.searchForm.newBarcode = '';
             }
         },
+        // 查看产品详情
+        async handleViewProductDetails(row) {
+            try {
+                this.listLoading = true;
+                const result = await getData("material_process_flow", {
+                    query: { barcode: row.barcode },
+                });
+
+                if (result.code === 200 && result.data.length > 0) {
+                    this.productDetailsData = result.data[0];
+                    this.processedFlowChartData = this.processNodes(
+                        this.productDetailsData.processNodes
+                    );
+                    this.productDetailsDialogVisible = true;
+
+                    // 获取解绑记录
+                    const unbindRecord = await getData("unbindRecord", {
+                        query: { flowRecordId: this.productDetailsData._id },
+                        populate: JSON.stringify([{ path: "operatorId" }]),
+                    });
+                    this.unbindRecord = unbindRecord.data;
+                } else {
+                    this.$message.error("获取产品详情失败");
+                }
+            } catch (error) {
+                console.error("获取产品详情失败:", error);
+                this.$message.error("获取产品详情失败: " + error.message);
+            } finally {
+                this.listLoading = false;
+            }
+        },
+
+        // 处理流程节点数据
+        processNodes(nodes) {
+            if (!nodes || !nodes.length) return [];
+
+            const nodeMap = new Map();
+            nodes.forEach((node) => {
+                nodeMap.set(node.nodeId, {
+                    ...node,
+                    children: [],
+                });
+            });
+
+            const result = [];
+            nodes.forEach((node) => {
+                const processedNode = nodeMap.get(node.nodeId);
+
+                if (node.parentNodeId && nodeMap.has(node.parentNodeId)) {
+                    const parentNode = nodeMap.get(node.parentNodeId);
+                    parentNode.children.push(processedNode);
+                } else {
+                    result.push(processedNode);
+                }
+            });
+
+            const sortChildren = (node) => {
+                if (node.children && node.children.length) {
+                    if (node.nodeType === "PROCESS_STEP") {
+                        node.children.sort((a, b) =>
+                            (a.materialCode || "").localeCompare(b.materialCode || "")
+                        );
+                    } else if (node.nodeType === "MATERIAL") {
+                        node.children.sort(
+                            (a, b) => (a.processSort || 0) - (b.processSort || 0)
+                        );
+                    }
+                    node.children.forEach((child) => sortChildren(child));
+                }
+            };
+
+            result.forEach((node) => sortChildren(node));
+            return result;
+        },
+
+        // 获取流程状态样式
+        getProcessStatusType(status) {
+            const statusMap = {
+                PENDING: "info",
+                IN_PROCESS: "warning",
+                COMPLETED: "success",
+                ABNORMAL: "danger",
+            };
+            return statusMap[status] || "info";
+        },
+
+        // 获取流程状态文本
+        getProcessStatusText(status) {
+            const statusMap = {
+                PENDING: "待处理",
+                IN_PROCESS: "进行中",
+                COMPLETED: "已完成",
+                ABNORMAL: "异常",
+            };
+            return statusMap[status] || status;
+        },
+
+        // 处理解绑成功
+        async handleUnbindSuccess() {
+            // 重新加载数据
+            if (this.productDetailsData._id) {
+                await this.handleViewProductDetails({ barcode: this.productDetailsData.barcode });
+            }
+        },
     },
     created() {
         this.fetchData();
@@ -969,6 +1228,57 @@ export default {
 
     .filter-container {
         margin-bottom: 20px;
+    }
+}
+
+.process-flow-dialog {
+    .main-material {
+        border: 1px solid #ebeef5;
+        border-radius: 4px;
+        margin-bottom: 20px;
+
+        .main-material-header {
+            background-color: #f5f7fa;
+            padding: 12px;
+            border-bottom: 1px solid #ebeef5;
+            display: flex;
+            align-items: center;
+
+            i {
+                margin-right: 8px;
+                color: #409eff;
+            }
+
+            .title {
+                font-weight: bold;
+                margin-right: 12px;
+            }
+        }
+
+        .main-material-content {
+            padding: 16px;
+
+            .info-row {
+                display: flex;
+                margin-bottom: 12px;
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+
+                .info-item {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+
+                    label {
+                        color: #606266;
+                        margin-right: 8px;
+                        min-width: 80px;
+                    }
+                }
+            }
+        }
     }
 }
 </style>
