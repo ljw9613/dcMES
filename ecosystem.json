@@ -15,9 +15,10 @@
         "NODE_ENV": "production",
         "PORT": 2222
       },
-      "error_file": "./logs/pm2/dcMes-server-err.log",
-      "out_file": "./logs/pm2/dcMes-server-out.log",
-      "log_file": "./logs/pm2/dcMes-server-combined.log",
+      "error_file": "./logs/pm2/error/dcMes-server-err-YYYY-MM-DD.log",
+      "out_file": "./logs/pm2/out/dcMes-server-out-YYYY-MM-DD.log",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss",
+      "merge_logs": true,
       "time": true
     },
     {
@@ -33,9 +34,10 @@
       "env_production": {
         "NODE_ENV": "production"
       },
-      "error_file": "./logs/pm2/dcMes-server-ws-err.log",
-      "out_file": "./logs/pm2/dcMes-server-ws-out.log",
-      "log_file": "./logs/pm2/dcMes-server-ws-combined.log",
+      "error_file": "./logs/pm2/error/dcMes-server-ws-err-YYYY-MM-DD.log",
+      "out_file": "./logs/pm2/out/dcMes-server-ws-out-YYYY-MM-DD.log",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss",
+      "merge_logs": true,
       "time": true
     },
     {
@@ -51,9 +53,10 @@
       "env_production": {
         "NODE_ENV": "production"
       },
-      "error_file": "./logs/pm2/dcMes-server-system-err.log",
-      "out_file": "./logs/pm2/dcMes-server-system-out.log",
-      "log_file": "./logs/pm2/dcMes-server-system-combined.log",
+      "error_file": "./logs/pm2/error/dcMes-server-system-err-YYYY-MM-DD.log",
+      "out_file": "./logs/pm2/out/dcMes-server-system-out-YYYY-MM-DD.log",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss",
+      "merge_logs": true,
       "time": true
     }
   ]

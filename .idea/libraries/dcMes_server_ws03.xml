@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="dcMes_server_ws03">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/dcMes_server_ws/dcMes_server_ws03.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -138,7 +138,7 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && processStepData.processType !== 'F'
+          mainMaterialId && processStepId && processStepData.processType == 'G'
         "
       >
         <el-card class="scan-card">
@@ -314,7 +314,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>请先初始化工序设置,请选择非托盘工序</p>
+            <p>请先初始化工序设置,请选择打印工序</p>
           </div>
         </div>
       </template>
@@ -322,7 +322,9 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
-      :duration="1500"
+      :errorMessage="errorMessage"
+      :errorCode="errorCode"
+      :duration="5000"
     />
   </div>
 </template>
@@ -424,6 +426,8 @@ export default {
 
       showPopup: false,
       popupType: "ok",
+      errorMessage: "",
+      errorCode: "",
 
       craftInfo: {},
       processStepData: {}, // 保存工序信息
@@ -829,6 +833,49 @@ export default {
       this.formData.processStep = processId;
       this.processStepData = processId;
       // this.processStepId = processId; // 缓存选中的工序ID
+      
+      // 获取选中工序的打印模板
+      this.getProcessPrintTemplate(processId);
+    },
+    
+    // 获取工序关联的打印模板
+    async getProcessPrintTemplate(processId) {
+      try {
+        // 获取工序信息
+        const stepResponse = await getData("processStep", {
+          query: { _id: processId },
+          page: 1,
+          limit: 1,
+        });
+
+        if (!stepResponse.data || stepResponse.data.length === 0) {
+          return;
+        }
+
+        const processStep = stepResponse.data[0];
+        
+        // 检查工序是否关联了打印模板
+        if (processStep.printTemplateId) {
+          // 获取该工序关联的打印模板
+          const printTemplateResponse = await getData("printTemplate", {
+            query: { _id: processStep.printTemplateId },
+            page: 1,
+            limit: 1,
+          });
+
+          if (printTemplateResponse.data && printTemplateResponse.data.length > 0) {
+            const printTemplate = printTemplateResponse.data[0];
+            console.log("获取到工序关联的打印模板:", printTemplate);
+            
+            // 设置打印模板到本地存储
+            this.localPrintTemplate = printTemplate;
+            this.$message.success("已自动应用工序关联的打印模板");
+          }
+        }
+      } catch (error) {
+        console.error("获取工序关联打印模板失败:", error);
+        this.$message.warning("获取工序关联打印模板失败");
+      }
     },
 
     // 保存按钮处理
@@ -942,6 +989,31 @@ export default {
         const processStep = stepResponse.data[0];
 
         this.processStepData = processStep;
+
+        // 获取工序关联的打印模板
+        console.log("获取工序关联的打印模板:", processStep.printTemplateId);
+        if (processStep.printTemplateId) {
+          try {
+            // 获取该工序关联的打印模板
+            const printTemplateResponse = await getData("printTemplate", {
+              query: { _id: processStep.printTemplateId },
+              page: 1,
+              limit: 1,
+            });
+
+            if (printTemplateResponse.data && printTemplateResponse.data.length > 0) {
+              const printTemplate = printTemplateResponse.data[0];
+              console.log("获取到工序关联的打印模板:", printTemplate);
+              
+              // 设置打印模板到本地存储
+              this.localPrintTemplate = printTemplate;
+              this.$message.success("已自动应用工序关联的打印模板");
+            }
+          } catch (error) {
+            console.error("获取工序关联打印模板失败:", error);
+            this.$message.warning("获取工序关联打印模板失败");
+          }
+        }
 
         // 获取该工序所属的工艺信息
         const craftResponse = await getData("craft", {
@@ -1078,6 +1150,7 @@ export default {
 
         if (!matchedMaterialCode) {
           this.$message.error("该DI编码对应的物料与当前工序不匹配");
+          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
           return { isValid: false };
         }
 
@@ -1103,6 +1176,7 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
+          this.errorMessage = "未找到可用的条码规则";
           return { materialCode: null, isValid: false };
         }
 
@@ -1235,11 +1309,13 @@ export default {
         }
 
         // 所有规则都未匹配成功
+        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
         this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
         this.$message.error("条码验证过程发生错误");
+        this.errorMessage = "条码验证过程发生错误";
         return { materialCode: null, isValid: false };
       }
     },
@@ -1268,6 +1344,8 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
+            this.errorMessage =
+              createResponse.message || "创建成品条码追溯记录失败";
             throw new Error(
               createResponse.message || "创建成品条码追溯记录失败"
             );
@@ -1275,6 +1353,7 @@ export default {
         }
       } catch (error) {
         console.error("处理主条码失败:", error);
+        this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
@@ -1306,6 +1385,7 @@ export default {
         this.validateStatus[materialId] = true;
         this.$message.success("扫码成功");
       } catch (error) {
+        this.errorMessage = error;
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
@@ -1419,6 +1499,7 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码存在未完成的维修记录");
+            this.errorMessage = "该条码存在未完成的维修记录";
             this.popupType = "ng";
             this.showPopup = true;
             tone(dwx);
@@ -1431,6 +1512,7 @@ export default {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码已完成维修,但维修结果为不合格");
+            this.errorMessage = "该条码已完成维修,但维修结果为不合格";
             this.popupType = "ng";
             this.showPopup = true;
             tone(wxsb);
@@ -1465,6 +1547,7 @@ export default {
                   this.unifiedScanInput = "";
                   this.$refs.scanInput.focus();
                   this.$message.error("该条码已作废");
+                  this.errorMessage = "该条码已作废";
                   this.popupType = "ng";
                   this.showPopup = true;
                   tone(tmyw);
@@ -1565,6 +1648,7 @@ export default {
           await this.handleConfirm();
         } else {
           this.$message.error("条码不匹配主物料");
+          this.errorMessage = "条码不匹配主物料";
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
@@ -1740,6 +1824,8 @@ export default {
 
         if (scanResponse.code !== 200) {
           // this.resetScanForm();
+          this.errorCode = scanResponse.errorCode;
+          this.errorMessage = scanResponse.message || "扫码失败";
 
           throw new Error(scanResponse.message || "扫码失败");
         }
@@ -1884,10 +1970,13 @@ export default {
         // 6. 重置表单
         this.resetScanForm();
         console.error("确认失败:", error);
+        this.errorMessage = error.message;
+
         if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
           setTimeout(() => {
             tone(pcwlxz);
+            this.errorMessage = "批次物料条码已达到使用次数限制";
             this.popupType = "ng";
             this.showPopup = true;
             // 播放批次物料条码已达到使用次数限制提示音
@@ -2245,6 +2334,7 @@ export default {
               material.batchQuantity > 0
             ) {
               this.$message.warning("批次条码使用次数已达到上限");
+              this.errorMessage = "批次条码使用次数已达到上限";
               this.popupType = "ng";
               this.showPopup = true;
               tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音

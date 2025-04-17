@@ -16,6 +16,9 @@ var processStepSchema = new mongoose.Schema({
     businessType: { type: String }, // 业务类型
     status: { type: String, default: 'CREATE' }, // 状态(CREATE/ENABLE/VOID)
     sort: { type: Number, default: 0 }, // 排序
+    //工序关联的打印模版
+    printTemplateId: { type: mongoose.Schema.ObjectId, ref: "print_template" }, // 关联打印模版ID
+
     // 关联工序物料
     materials: [{ type: mongoose.Schema.ObjectId, ref: "processMaterials" }], // 关联工序物料ID数组
     machineId: {type: mongoose.Schema.ObjectId, ref: "machine", description: '检验设备'},

@@ -14,6 +14,71 @@ const productRepair = require("../model/project/productRepair");
 // 使用API日志中间件，指定服务名称
 router.use(apiLogger("materialProcessFlowService"));
 
+/**
+ * 根据错误消息匹配错误编码
+ * @param {string} errorMessage - 错误消息
+ * @returns {string} 匹配的错误编码，如果没有匹配则返回null
+ */
+function matchErrorCode(errorMessage) {
+  if (!errorMessage) return null;
+
+  const errorCodeMap = {
+    该DI编码不存在本系统: "LINE-A-001",
+    该DI编码未关联有效物料: "LINE-A-002",
+    该DI编码对应的物料与当前工序不匹配: "LINE-A-003",
+    该条码不符合任何已配置的规则或物料不匹配: "LINE-A-004",
+    未找到对应的主条码流程记录: "LINE-B-001",
+    未找到对应的工序节点: "LINE-B-002",
+    该主物料条码对应工序节点已完成或处于异常状态: "LINE-B-003",
+    存在未完成的前置工序: "LINE-C-001",
+    扫码数量与要求不符: "LINE-C-002",
+    存在重复扫描的条码: "LINE-C-003",
+    物料不属于当前工序要求扫描的物料: "LINE-C-004",
+    批次物料条码已达到使用次数限制: "LINE-D-001",
+    // 未找到条码为的子物料流程记录: "LINE-D-002",
+    的子物料流程记录: "LINE-D-002",
+    该物料条码的子物料工序未完成: "LINE-D-003",
+    关键物料重复使用错误: "LINE-E-001",
+    已被其他流程使用: "LINE-E-002",
+    未查询到生产工单: "LINE-F-001",
+    工单已达到计划数量: "LINE-F-002",
+    缺少必要参数: "LINE-G-001",
+    // 新增错误码映射
+    未找到物料编码为: "LINE-G-002",
+    未找到物料对应的工艺信息: "LINE-G-003",
+    条码参数不能为空: "LINE-G-004",
+    成品工艺未查询到产线计划: "LINE-F-003",
+    未找到有效的产线工单: "LINE-F-004",
+    产品条码未绑定工单: "LINE-F-005",
+    当前产线工单与产品条码工单不一致: "LINE-F-006",
+    更新工单投入量失败: "LINE-F-007",
+    条码与物料不匹配: "LINE-H-001",
+    未找到对应的设备信息: "LINE-H-002",
+    未找到对应的工序信息: "LINE-H-003",
+    未找到对应的工艺信息: "LINE-H-004",
+    未找到对应的物料信息: "LINE-H-005",
+    未找到指定的物料节点或物料节点不属于指定工序: "LINE-I-001",
+    原物料条码不匹配: "LINE-I-002",
+    未找到对应的部件替换维修记录: "LINE-I-003",
+    新条码物料类型: "LINE-I-004",
+    新条码的流程未完成: "LINE-I-005",
+    新条码验证失败: "LINE-I-006",
+    验证流程数据失败: "LINE-J-001",
+    创建工艺流程记录失败: "LINE-J-002",
+    处理扫码请求失败: "LINE-J-003",
+    修复条码物料异常数据失败: "LINE-J-004",
+  };
+
+  // 遍历错误映射对象，查找匹配项
+  for (const [message, code] of Object.entries(errorCodeMap)) {
+    if (errorMessage.includes(message)) {
+      return code;
+    }
+  }
+
+  return null;
+}
+
 // 创建流程记录
 router.post("/api/v1/create-flow", async (req, res) => {
   try {
@@ -40,10 +105,12 @@ router.post("/api/v1/create-flow", async (req, res) => {
       data: flowRecord,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -67,9 +134,11 @@ router.post("/api/v1/scan-components", async (req, res) => {
       !lineId ||
       !Array.isArray(componentScans)
     ) {
+      const errorCode = matchErrorCode("缺少必要参数或参数格式错误");
       return res.status(200).json({
         success: false,
         message: "缺少必要参数或参数格式错误",
+        errorCode: errorCode,
       });
     }
 
@@ -87,10 +156,12 @@ router.post("/api/v1/scan-components", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -109,9 +180,11 @@ router.post("/api/v1/unbind-components", async (req, res) => {
 
     // 参数验证
     if (!mainBarcode || !processStepId || !userId || !reason) {
+      const errorCode = matchErrorCode("缺少必要参数");
       return res.status(200).json({
         success: false,
         message: "缺少必要参数",
+        errorCode: errorCode,
       });
     }
 
@@ -129,10 +202,12 @@ router.post("/api/v1/unbind-components", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -149,10 +224,12 @@ router.post("/api/v1/update-flow-nodes", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -170,10 +247,12 @@ router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -188,9 +267,11 @@ router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {
     const { materialId } = req.params;
 
     if (!materialId) {
+      const errorCode = matchErrorCode("缺少物料ID参数");
       return res.status(200).json({
         success: false,
         message: "缺少物料ID参数",
+        errorCode: errorCode,
       });
     }
 
@@ -204,10 +285,12 @@ router.get("/api/v1/all-process-steps/:materialId", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -220,9 +303,11 @@ router.post("/api/v1/initialize-machine-barcode", async (req, res) => {
 
     // 参数验证
     if (!barcode || !machineIp) {
+      const errorCode = matchErrorCode("缺少必要参数");
       return res.status(200).json({
         success: false,
         message: "缺少必要参数",
+        errorCode: errorCode,
       });
     }
 
@@ -237,10 +322,12 @@ router.post("/api/v1/initialize-machine-barcode", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -253,15 +340,20 @@ router.get("/api/v1/exportBOM", async (req, res) => {
     console.log("[API] 导出BOM结构 - 请求参数:", req.query);
     const { materialId } = req.query;
     if (!materialId) {
-      return res.status(400).json({ error: "缺少必要参数: materialId" });
+      const errorCode = matchErrorCode("缺少必要参数: materialId");
+      return res.status(400).json({
+        error: "缺少必要参数: materialId",
+        errorCode: errorCode,
+      });
     }
 
     const bomData =
       await MaterialProcessFlowService.exportFlattenedBOMStructure(materialId);
     res.json({ data: bomData });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     console.error("导出BOM失败:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, errorCode: errorCode });
   }
 });
 
@@ -272,9 +364,11 @@ router.post("/api/v1/fix-flow-progress", async (req, res) => {
     const { barcode } = req.body;
 
     if (!barcode) {
+      const errorCode = matchErrorCode("缺少必要参数：barcode");
       return res.status(200).json({
         success: false,
         message: "缺少必要参数：barcode",
+        errorCode: errorCode,
       });
     }
 
@@ -287,10 +381,12 @@ router.post("/api/v1/fix-flow-progress", async (req, res) => {
       message: "流程进度修复成功",
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -302,9 +398,11 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
     const { barcodes } = req.body;
 
     if (!Array.isArray(barcodes) || barcodes.length === 0) {
+      const errorCode = matchErrorCode("请提供有效的条码数组");
       return res.status(200).json({
         success: false,
         message: "请提供有效的条码数组",
+        errorCode: errorCode,
       });
     }
 
@@ -320,10 +418,12 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
           ...result,
         });
       } catch (error) {
+        const errorCode = matchErrorCode(error.message);
         results.push({
           barcode,
           success: false,
           error: error.message,
+          errorCode: errorCode,
         });
       }
     }
@@ -335,10 +435,12 @@ router.post("/api/v1/batch-fix-flow-progress", async (req, res) => {
       message: "批量修复完成",
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -351,9 +453,11 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
     console.log("req.body===", req.body);
     // 参数验证
     if (!mainBarcode || !processStepId || !lineId || !Array.isArray(barcodes)) {
+      const errorCode = matchErrorCode("缺少必要参数或参数格式错误");
       return res.status(200).json({
         success: false,
         message: "缺少必要参数或参数格式错误",
+        errorCode: errorCode,
       });
     }
 
@@ -376,9 +480,11 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
     // 检查重复条码
     const uniqueBarcodes = new Set(barcodes);
     if (uniqueBarcodes.size !== barcodes.length) {
+      const errorCode = matchErrorCode("存在重复扫描的条码");
       return res.status(200).json({
         success: false,
         message: "存在重复扫描的条码",
+        errorCode: errorCode,
       });
     }
 
@@ -508,9 +614,11 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
 
     // 如果没有任何条码匹配成功
     // if (componentScans.length === 0) {
+    //   const errorCode = matchErrorCode("没有条码匹配成功");
     //   return res.status(200).json({
     //     success: false,
     //     message: "没有条码匹配成功",
+    //     errorCode: errorCode,
     //     failedBarcodes,
     //   });
     // }
@@ -535,11 +643,13 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
       failedBarcodes,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     console.error("处理扫码请求失败:", error);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -689,10 +799,12 @@ router.post("/api/v1/batch-update-related-bills", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -709,10 +821,12 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
       message: "验证完成",
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -727,10 +841,12 @@ router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
     const { barcode } = req.params;
 
     if (!barcode) {
+      const errorCode = matchErrorCode("条码参数不能为空");
       return res.status(200).json({
         code: 400,
         success: false,
         message: "条码参数不能为空",
+        errorCode: errorCode,
       });
     }
 
@@ -744,10 +860,12 @@ router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
       data: result,
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -760,10 +878,12 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
 
     // 参数验证
     if (!barcode || !machineIp) {
+      const errorCode = matchErrorCode("缺少必要参数");
       return res.status(200).json({
         code: 500,
         success: false,
         message: "缺少必要参数",
+        errorCode: errorCode,
       });
     }
 
@@ -771,10 +891,12 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
     const flowRecord = await MaterialProcessFlow.findOne({ barcode });
 
     if (!flowRecord) {
+      const errorCode = matchErrorCode("未找到该条码对应的流程记录");
       return res.status(200).json({
         code: 203,
         success: false,
         message: "未找到该条码对应的流程记录",
+        errorCode: errorCode,
       });
     }
 
@@ -782,20 +904,24 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
     // 这里假设已有映射关系，实际应根据系统设计调整
     const machine = await Machine.findOne({ machineIp: machineIp });
     if (!machine) {
+      const errorCode = matchErrorCode("未找到该机器IP对应的设备信息");
       return res.status(200).json({
         code: 203,
         success: false,
         message: "未找到该机器IP对应的设备信息",
+        errorCode: errorCode,
       });
     }
 
     // 获取当前机器对应的工序节点
     const processStepId = machine.processStepId;
     if (!processStepId) {
+      const errorCode = matchErrorCode("该设备未关联工序信息");
       return res.status(200).json({
         code: 203,
         success: false,
         message: "该设备未关联工序信息",
+        errorCode: errorCode,
       });
     }
 
@@ -815,10 +941,12 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
     console.log("processNode===", processNode);
 
     if (!processNode) {
+      const errorCode = matchErrorCode("流程中不包含该工序节点");
       return res.status(200).json({
         code: 203,
         success: false,
         message: "流程中不包含该工序节点",
+        errorCode: errorCode,
       });
     }
 
@@ -838,12 +966,15 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
         });
 
         if (!productRepairinfo) {
+          const errorCode =
+            matchErrorCode("该条码在当前工序有不合格的检测记录");
           return res.status(200).json({
             code: 201,
             success: false,
             message: `该条码在当前工序有不合格的检测记录，检测时间: ${new Date(
               inspectionRecord.createTime
             ).toLocaleString()}`,
+            errorCode: errorCode,
           });
         }
       }
@@ -851,10 +982,14 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
 
     // 验证工序节点状态
     if (processNode.status == "COMPLETED") {
+      const errorCode = matchErrorCode(
+        "该主物料条码对应工序节点已完成或处于异常状态"
+      );
       return res.status(200).json({
         code: 204,
         success: false,
         message: "该主物料条码对应工序节点已完成或处于异常状态",
+        errorCode: errorCode,
       });
     }
 
@@ -865,10 +1000,12 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
     );
 
     if (!checkResult.isValid) {
+      const errorCode = matchErrorCode("前置工序未完成");
       return res.status(200).json({
         code: 203,
         success: false,
         message: "前置工序未完成",
+        errorCode: errorCode,
         data: {
           matchProcess: processStepInfo,
           matchBindRecord: flowRecord,
@@ -899,11 +1036,13 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
       // },
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     console.error("设备产品扫码前置校验失败:", error);
     res.status(200).json({
       code: 203,
       success: false,
       message: error.message,
+      errorCode: errorCode,
     });
   }
 });
@@ -918,15 +1057,23 @@ router.post("/api/v1/replace-component", async (req, res) => {
       materialNodeId,
       originalBarcode,
       newBarcode,
-      userId
+      userId,
     } = req.body;
 
     // 参数验证
-    if (!mainBarcode || !processNodeId || !materialNodeId || !originalBarcode || !newBarcode || !userId) {
+    if (
+      !mainBarcode ||
+      !processNodeId ||
+      !materialNodeId ||
+      !newBarcode ||
+      !userId
+    ) {
+      const errorCode = matchErrorCode("缺少必要参数");
       return res.status(200).json({
         code: 500,
         success: false,
-        message: "缺少必要参数"
+        message: "缺少必要参数",
+        errorCode: errorCode,
       });
     }
 
@@ -943,14 +1090,16 @@ router.post("/api/v1/replace-component", async (req, res) => {
       code: 200,
       success: true,
       data: result,
-      message: "物料替换成功"
+      message: "物料替换成功",
     });
   } catch (error) {
+    const errorCode = matchErrorCode(error.message);
     console.error("物料替换失败:", error);
     res.status(200).json({
       code: 500,
       success: false,
-      message: error.message
+      message: error.message,
+      errorCode: errorCode,
     });
   }
 });

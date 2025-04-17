@@ -71,4 +71,8 @@ var materialSchema = new mongoose.Schema({
     FApproveDate: { type: Date } // 审核日期
 });
 
+// 添加索引
+materialSchema.index({ FMATERIALID: 1 }); // 按照物料ID建立索引
+materialSchema.index({ FNumber: 1 }); // 按照物料编码建立索引
+
 module.exports = mongoose.model("k3_BD_MATERIAL", materialSchema);

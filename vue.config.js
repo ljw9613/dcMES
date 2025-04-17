@@ -13,6 +13,23 @@ module.exports = {
           type: 'javascript/auto'
         }
       ]
+    },
+    optimization: {
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            compress: {
+              drop_console: false,
+              warnings: false,
+              drop_debugger: true
+            },
+            output: {
+              comments: false
+            }
+          },
+          parallel: true
+        })
+      ]
     }
   }
 } 

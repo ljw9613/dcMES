@@ -97,6 +97,22 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-form-item label="出入库状态">
+              <el-select
+                v-model="searchForm.inWarehouseStatus"
+                placeholder="请选择出入库状态"
+                clearable
+                style="width: 100%"
+              >
+                <el-option label="待入库" value="PENDING"></el-option>
+                <el-option label="已入库" value="IN_WAREHOUSE"></el-option>
+                <el-option label="已出库" value="OUT_WAREHOUSE"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
@@ -116,6 +132,14 @@
           >
             <i class="el-icon-download"></i>
             {{ exportDetailsLoading ? `正在导出明细(${exportProgress}%)` : "导出条码明细" }}
+          </el-button>
+          <el-button
+            type="primary"
+            @click="handleExportAllBarcodes"
+            :loading="exportAllBarcodesLoading"
+          >
+            <i class="el-icon-download"></i>
+            {{ exportAllBarcodesLoading ? `正在导出(${exportProgress}%)` : "导出所有条码数据" }}
           </el-button>
           <el-button type="primary" @click="openScanDialog">
             <i class="el-icon-refresh"></i> 托盘抽检复位
@@ -246,8 +270,14 @@
                       {{ formatDate(barcodeScope.row.scanTime) }}
                     </template>
                   </el-table-column>
-                  <!-- 操作 -->
-                  <el-table-column label="操作" align="center">
+                  <el-table-column label="出库状态" align="center">
+                    <template slot-scope="barcodeScope">
+                      <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
+                        {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" align="center" width="120">
                     <template slot-scope="barcodeScope">
                       <el-button
                         type="text"
@@ -667,50 +697,11 @@
                 {{ formatDate(barcodeScope.row.scanTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="抽检状态" align="center">
+            <el-table-column label="出库状态" align="center">
               <template slot-scope="barcodeScope">
-                <el-tag
-                  :type="
-                    getInspectionStatusType(barcodeScope.row.inspectionStatus)
-                  "
-                >
-                  {{
-                    getInspectionStatusText(barcodeScope.row.inspectionStatus)
-                  }}
+                <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
+                  {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
                 </el-tag>
-                <div v-if="barcodeScope.row.inspectionStatus">
-                  <div
-                    class="inspection-time"
-                    v-if="barcodeScope.row.inspectionResult"
-                  >
-                    抽检结果:
-                    <el-tag
-                      :type="
-                        getInspectionResultType(
-                          barcodeScope.row.inspectionResult
-                        )
-                      "
-                    >
-                      {{
-                        getInspectionResultText(
-                          barcodeScope.row.inspectionResult
-                        )
-                      }}
-                    </el-tag>
-                  </div>
-                  <div
-                    class="inspection-time"
-                    v-if="barcodeScope.row.inspectionTime"
-                  >
-                    抽检时间: {{ formatDate(barcodeScope.row.inspectionTime) }}
-                  </div>
-                  <div
-                    class="inspection-remarks"
-                    v-if="barcodeScope.row.inspectionRemarks"
-                  >
-                    备注: {{ barcodeScope.row.inspectionRemarks }}
-                  </div>
-                </div>
               </template>
             </el-table-column>
             <el-table-column label="操作" align="center" width="120">
@@ -840,6 +831,7 @@ export default {
         status: "",
         dateRange: [],
         barcode: "",
+        inWarehouseStatus: "",
       },
       tableList: [],
       total: 0,
@@ -858,6 +850,7 @@ export default {
       historyTotal: 0,
       exportLoading: false,
       exportDetailsLoading: false,
+      exportAllBarcodesLoading: false,
       exportProgress: 0,
       exportDialogVisible: false,
       printDialogVisible: false,
@@ -1005,6 +998,12 @@ export default {
         });
       }
 
+      if (this.searchForm.inWarehouseStatus) {
+        req.query.$and.push({
+          inWarehouseStatus: this.searchForm.inWarehouseStatus,
+        });
+      }
+
       if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
         const [startDate, endDate] = this.searchForm.dateRange;
         req.query.$and.push({
@@ -1033,6 +1032,7 @@ export default {
         status: "",
         dateRange: [],
         barcode: "",
+        inWarehouseStatus: "",
       };
       this.currentPage = 1;
       this.fetchData();
@@ -1251,7 +1251,8 @@ export default {
     showHistory(row) {
       this.historyCurrentPage = 1;
       this.dataForm = row;
-      this.fetchHistoryData(row.scanCode);
+      
+      this.fetchHistoryData(row.palletCode);
       this.historyDialogVisible = true;
     },
 
@@ -1650,8 +1651,8 @@ export default {
       }
     },
 
-    async handleExportDetails() {
-      this.exportDetailsLoading = true;
+    async handleExportAllBarcodes() {
+      this.exportAllBarcodesLoading = true;
       this.exportProgress = 0;
       this.exportDialogVisible = true;
 
@@ -1670,86 +1671,43 @@ export default {
         if (totalItems === 0) {
           this.$message.warning("没有数据可导出");
           this.exportDialogVisible = false;
-          this.exportDetailsLoading = false;
+          this.exportAllBarcodesLoading = false;
           return;
         }
 
         // 导入所需库
         const XLSX = (await import('xlsx')).default;
-        const JSZip = (await import("jszip")).default;
         const FileSaver = await import("file-saver");
-        
-        const zip = new JSZip();
-        const folder = zip.folder("托盘条码明细");
+
+        // 准备所有条码数据
+        let allBarcodeData = [];
         
         // 处理每个托盘
         for (let i = 0; i < totalItems; i++) {
           const pallet = result.data[i];
-          const palletCode = pallet.palletCode || `未知托盘_${i}`;
           
-          // 创建工作簿
-          const wb = XLSX.utils.book_new();
-          
-          // 基本信息数据
-          const basicInfoData = [
-            ["托盘编号", "销售订单号", "生产订单号", "工单号", "产线名称", "物料名称", "物料规格", "组托状态", "总数量", "箱数量", "创建时间"],
-            [
-              palletCode,
-              pallet.saleOrderNo || "--",
-              pallet.productionOrderNo || "--",
-              pallet.workOrderNo || "--",
-              pallet.productLineName || "--",
-              pallet.materialName || "--",
-              pallet.materialSpec || "--",
-              pallet.status === "STACKED" ? "组托完成" : "组托中",
-              pallet.totalQuantity || 0,
-              pallet.boxCount || 0,
-              this.formatDate(pallet.createAt)
-            ]
-          ];
-          
-          // 创建基本信息工作表
-          const basicWs = XLSX.utils.aoa_to_sheet(basicInfoData);
-          XLSX.utils.book_append_sheet(wb, basicWs, "基本信息");
-          
-          // 条码明细
+          // 遍历托盘内的所有条码
           if (pallet.palletBarcodes && pallet.palletBarcodes.length > 0) {
-            const barcodesData = [
-              ["条码", "扫描时间", "抽检状态", "抽检结果", "抽检时间", "备注"],
-              ...pallet.palletBarcodes.map(barcode => [
-                barcode.barcode,
-                this.formatDate(barcode.scanTime),
-                this.getInspectionStatusText(barcode.inspectionStatus),
-                this.getInspectionResultText(barcode.inspectionResult) || "--",
-                barcode.inspectionTime ? this.formatDate(barcode.inspectionTime) : "--",
-                barcode.inspectionRemarks || "--"
-              ])
-            ];
-            
-            const barcodesWs = XLSX.utils.aoa_to_sheet(barcodesData);
-            XLSX.utils.book_append_sheet(wb, barcodesWs, "条码明细");
+            pallet.palletBarcodes.forEach(barcode => {
+              allBarcodeData.push({
+                "托盘编号": pallet.palletCode || "--",
+                "条码": barcode.barcode || "--",
+                "销售订单号": pallet.saleOrderNo || "--",
+                "生产订单号": pallet.productionOrderNo || "--",
+                "工单号": pallet.workOrderNo || "--",
+                "产线名称": pallet.productLineName || "--",
+                "物料名称": pallet.materialName || "--",
+                "物料规格": pallet.materialSpec || "--",
+                "组托状态": pallet.status === "STACKED" ? "组托完成" : "组托中",
+                "抽检状态": this.getInspectionStatusText(barcode.inspectionStatus),
+                "抽检结果": this.getInspectionResultText(barcode.inspectionResult) || "--",
+                "抽检时间": barcode.inspectionTime ? this.formatDate(barcode.inspectionTime) : "--",
+                "抽检备注": barcode.inspectionRemarks || "--",
+                "扫描时间": this.formatDate(barcode.scanTime),
+                "创建时间": this.formatDate(pallet.createAt)
+              });
+            });
           }
-          
-          // 箱子明细
-          if (pallet.boxItems && pallet.boxItems.length > 0) {
-            const boxesData = [
-              ["箱子条码", "数量", "扫描时间"],
-              ...pallet.boxItems.map(box => [
-                box.boxBarcode,
-                box.quantity,
-                this.formatDate(box.scanTime)
-              ])
-            ];
-            
-            const boxesWs = XLSX.utils.aoa_to_sheet(boxesData);
-            XLSX.utils.book_append_sheet(wb, boxesWs, "箱子明细");
-          }
-          
-          // 将工作簿写入二进制格式
-          const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-          
-          // 添加到ZIP文件
-          folder.file(`${palletCode}.xlsx`, excelBuffer);
           
           // 更新进度
           this.exportProgress = Math.round(((i + 1) / totalItems) * 100);
@@ -1758,25 +1716,37 @@ export default {
           await new Promise(resolve => setTimeout(resolve, 10));
         }
         
-        // 生成zip文件
-        const zipContent = await zip.generateAsync({ type: 'blob' });
+        // 创建工作簿
+        const wb = XLSX.utils.book_new();
+        
+        // 创建工作表
+        const ws = XLSX.utils.json_to_sheet(allBarcodeData);
+        
+        // 将工作表添加到工作簿
+        XLSX.utils.book_append_sheet(wb, ws, "所有条码数据");
+        
+        // 生成Excel文件
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        
+        // 创建Blob对象
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         
         // 保存文件
-        FileSaver.saveAs(zipContent, `托盘条码明细_${new Date().getTime()}.zip`);
+        FileSaver.saveAs(blob, `所有托盘条码数据_${new Date().getTime()}.xlsx`);
         
         this.exportProgress = 100;
-        this.$message.success("导出明细成功");
+        this.$message.success("导出所有条码数据成功");
         
         setTimeout(() => {
           this.exportDialogVisible = false;
           this.exportProgress = 0;
         }, 1000);
       } catch (error) {
-        console.error("导出明细失败:", error);
-        this.$message.error(`导出明细失败: ${error.message}`);
+        console.error("导出所有条码数据失败:", error);
+        this.$message.error(`导出失败: ${error.message}`);
         this.exportDialogVisible = false;
       } finally {
-        this.exportDetailsLoading = false;
+        this.exportAllBarcodesLoading = false;
       }
     },
   },

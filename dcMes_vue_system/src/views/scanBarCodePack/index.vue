@@ -325,7 +325,9 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
-      :duration="1500"
+      :text="errorMessage"
+      :error-code="errorCode"
+      :duration="5000"
     />
     <tsc-printer
       ref="tscPrinter"
@@ -434,6 +436,8 @@ export default {
 
       showPopup: false,
       popupType: "ok",
+      errorMessage: "",
+      errorCode: "",
 
       craftInfo: {}, // 保存工艺信息
 
@@ -1172,6 +1176,7 @@ export default {
 
         if (!matchedMaterialCode) {
           this.$message.error("该DI编码对应的物料与当前工序不匹配");
+          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
           return { isValid: false };
         }
 
@@ -1197,6 +1202,7 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
+          this.errorMessage = "未找到可用的条码规则";
           return { materialCode: null, isValid: false };
         }
 
@@ -1331,10 +1337,12 @@ export default {
 
         // 所有规则都未匹配成功
         this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
+        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
         this.$message.error("条码验证过程发生错误");
+        this.errorMessage = "条码验证过程发生错误";
         return { materialCode: null, isValid: false };
       }
     },
@@ -1363,6 +1371,8 @@ export default {
           if (createResponse.code === 200) {
             this.$message.success("成品条码追溯记录创建成功");
           } else {
+            this.errorMessage =
+              createResponse.message || "创建成品条码追溯记录失败";
             throw new Error(
               createResponse.message || "创建成品条码追溯记录失败"
             );
@@ -1372,6 +1382,7 @@ export default {
         console.error("处理主条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
+        this.errorMessage = error;
         tone(tmyw);
         throw error;
       }
@@ -1525,6 +1536,7 @@ export default {
               this.unifiedScanInput = "";
               this.$refs.scanInput.focus();
               this.$message.error("该条码存在未完成的维修记录");
+              this.errorMessage = "该条码存在未完成的维修记录";
               this.popupType = "ng";
               this.showPopup = true;
               tone(dwx);
@@ -1537,6 +1549,7 @@ export default {
               this.unifiedScanInput = "";
               this.$refs.scanInput.focus();
               this.$message.error("该条码已完成维修,但维修结果为不合格");
+              this.errorMessage = "该条码已完成维修,但维修结果为不合格";
               this.popupType = "ng";
               this.showPopup = true;
               tone(wxsb);
@@ -1574,6 +1587,7 @@ export default {
                   this.$message.error(
                     `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`
                   );
+                  this.errorMessage = `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`;
                   this.popupType = "ng";
                   this.showPopup = true;
                   tone(tmyw);
@@ -1764,6 +1778,7 @@ export default {
 
         if (!matched) {
           this.$message.error("条码不匹配");
+          this.errorMessage = "条码不匹配";
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
@@ -1996,7 +2011,8 @@ export default {
 
         if (scanResponse.code !== 200) {
           // this.resetScanForm();
-
+          this.errorCode = scanResponse.errorCode;
+          this.errorMessage = scanResponse.message || "扫码失败";
           throw new Error(scanResponse.message || "扫码失败");
         }
 
@@ -2208,9 +2224,12 @@ export default {
       } catch (error) {
         // 6. 重置表单
         this.resetScanForm();
+        this.errorMessage = error.message;
+
         console.error("确认失败:", error);
         if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
+          this.errorMessage = error.message;
           setTimeout(() => {
             tone(pcwlxz);
             this.popupType = "ng";
@@ -2921,6 +2940,7 @@ export default {
               material.batchQuantity > 0
             ) {
               this.$message.warning("批次条码使用次数已达到上限");
+              this.errorMessage = "批次条码使用次数已达到上限";
               this.popupType = "ng";
               this.showPopup = true;
               tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音

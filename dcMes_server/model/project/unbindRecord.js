@@ -60,7 +60,11 @@ const UnbindRecordSchema = new Schema(
       },
       processName: String,
       processCode: String
-    }]
+    }],
+    fromPalletUnbind: {
+      type: Boolean,
+      default: false
+    }
   },
   {
     timestamps: true,

@@ -69,15 +69,84 @@
             <el-table-column label="操作" width="120" fixed="right">
                 <template slot-scope="scope">
                     <el-button type="text" size="small" @click="handleUnbind(scope.row)">解绑</el-button>
+                    <el-button type="text" size="small" @click="handleReplaceComponent(scope.row)">替换</el-button>
                 </template>
             </el-table-column>
         </el-table>
+
+        <!-- 添加物料替换弹窗 -->
+        <el-dialog
+            title="物料替换"
+            :visible.sync="replaceDialogVisible"
+            width="600px"
+            :close-on-click-modal="false"
+        >
+            <div v-if="replaceSelectedNode">
+                <div class="replace-info">
+                    <el-alert
+                        title="请注意：替换物料前必须创建部件替换的维修记录"
+                        type="warning"
+                        :closable="false"
+                        show-icon
+                    >
+                    </el-alert>
+
+                    <div class="material-info-box">
+                        <h4>当前工序：{{ replaceSelectedNode.processName }}</h4>
+                        <div class="material-list">
+                            <el-radio-group v-model="replaceSelectedMaterial">
+                                <div
+                                    v-for="(material, index) in replaceMaterials"
+                                    :key="index"
+                                    class="material-item"
+                                >
+                                    <el-radio :label="material.nodeId">
+                                        <div class="material-detail">
+                                            <span>{{ material.materialCode }} - {{ material.materialName }}</span>
+                                            <span>规格：{{ material.materialSpec }}</span>
+                                            <span>条码：{{ material.barcode || "未绑定" }}</span>
+                                        </div>
+                                    </el-radio>
+                                </div>
+                            </el-radio-group>
+                        </div>
+                    </div>
+
+                    <el-form :model="replaceForm" label-width="100px" class="replace-form">
+                        <el-form-item label="新物料条码">
+                            <el-input
+                                v-model="replaceForm.newBarcode"
+                                placeholder="请扫描或输入新的物料条码"
+                                @keyup.enter.native="validateReplaceBarcode"
+                            ></el-input>
+                        </el-form-item>
+                        <el-form-item v-if="replaceForm.validationMessage">
+                            <el-tag :type="replaceForm.validationStatus ? 'success' : 'danger'">
+                                {{ replaceForm.validationMessage }}
+                            </el-tag>
+                        </el-form-item>
+                    </el-form>
+                </div>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="replaceDialogVisible = false">取 消</el-button>
+                <el-button
+                    type="primary"
+                    @click="confirmReplaceComponent"
+                    :disabled="!replaceForm.validationStatus || replaceLoading"
+                    :loading="replaceLoading"
+                >
+                    确认替换
+                </el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
 <script>
 import { unbindComponents } from '@/api/materialProcessFlowService';
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { replaceComponent } from '@/api/materialProcessFlowService';
 
 export default {
     name: 'MaterialInfo',
@@ -93,13 +162,22 @@ export default {
     },
     data() {
         return {
-
             unbindDialogVisible: false,
             unbindForm: {
                 processNodeId: '',
                 reason: '',
                 materialIds: []
-            }
+            },
+            replaceDialogVisible: false,
+            replaceForm: {
+                newBarcode: "",
+                validationStatus: false,
+                validationMessage: "",
+            },
+            replaceSelectedNode: null,
+            replaceSelectedMaterial: null,
+            replaceMaterials: [],
+            replaceLoading: false
         }
     },
     computed: {
@@ -187,6 +265,118 @@ export default {
                     this.$message.error('解绑失败: ' + (error.message || error));
                 }
             }
+        },
+        handleReplaceComponent(row) {
+            this.replaceSelectedNode = row;
+            this.replaceMaterials = row.children.filter(
+                (item) => item.nodeType === "MATERIAL"
+            );
+
+            if (this.replaceMaterials.length > 0) {
+                this.replaceSelectedMaterial = this.replaceMaterials[0].nodeId;
+            } else {
+                this.$message.warning('该工序下没有可替换的物料');
+                return;
+            }
+
+            this.replaceForm = {
+                newBarcode: "",
+                validationStatus: false,
+                validationMessage: "",
+            };
+
+            this.replaceDialogVisible = true;
+        },
+        async validateReplaceBarcode() {
+            if (!this.replaceForm.newBarcode) {
+                this.replaceForm.validationStatus = false;
+                this.replaceForm.validationMessage = "请输入新物料条码";
+                return;
+            }
+
+            try {
+                // 找到当前选中的物料节点
+                const materialNode = this.replaceMaterials.find(
+                    (item) => item.nodeId === this.replaceSelectedMaterial
+                );
+
+                if (!materialNode) {
+                    this.replaceForm.validationStatus = false;
+                    this.replaceForm.validationMessage = "未选择要替换的物料";
+                    return;
+                }
+
+                // 检查旧条码与新条码是否相同
+                if (materialNode.barcode === this.replaceForm.newBarcode) {
+                    this.replaceForm.validationStatus = false;
+                    this.replaceForm.validationMessage = "新条码与原条码相同";
+                    return;
+                }
+
+                // 查询是否存在对应的维修记录
+                const repairRecords = await getData("product_repair", {
+                    query: {
+                        barcode: this.mainBarcode,
+                        status: "PENDING_REVIEW",
+                    },
+                });
+
+                if (repairRecords.data.length === 0) {
+                    this.replaceForm.validationStatus = false;
+                    this.replaceForm.validationMessage = "请先创建部件替换的维修记录";
+                    return;
+                }
+
+                // 验证通过
+                this.replaceForm.validationStatus = true;
+                this.replaceForm.validationMessage = "条码验证通过";
+            } catch (error) {
+                console.error("条码验证失败:", error);
+                this.replaceForm.validationStatus = false;
+                this.replaceForm.validationMessage = "条码验证失败: " + error.message;
+            }
+        },
+        async confirmReplaceComponent() {
+            if (!this.replaceForm.validationStatus) {
+                return;
+            }
+
+            try {
+                this.replaceLoading = true;
+
+                // 找到当前选中的物料节点
+                const materialNode = this.replaceMaterials.find(
+                    (item) => item.nodeId === this.replaceSelectedMaterial
+                );
+
+                if (!materialNode) {
+                    this.$message.error("未选择要替换的物料");
+                    return;
+                }
+
+                // 调用API执行替换操作
+                const result = await replaceComponent({
+                    mainBarcode: this.mainBarcode,
+                    processNodeId: this.replaceSelectedNode.nodeId,
+                    materialNodeId: materialNode.nodeId,
+                    originalBarcode: materialNode.barcode,
+                    newBarcode: this.replaceForm.newBarcode,
+                    userId: this.$store.state.user.id || "system",
+                });
+
+                if (result.success) {
+                    this.$message.success("物料替换成功");
+                    this.replaceDialogVisible = false;
+                    this.$emit('replace-success');
+                } else {
+                    this.$message.error(result.message || "替换失败");
+                }
+            } catch (error) {
+                console.error("物料替换失败:", error);
+                this.$message.error("物料替换失败: " + error.message);
+            } finally {
+                this.replaceLoading = false;
+            }
         }
     }
 }
@@ -256,6 +446,75 @@ export default {
 
     .no-barcode {
         color: #909399;
+    }
+}
+
+.replace-form {
+    .form-item {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        
+        label {
+            width: 80px;
+            text-align: right;
+            margin-right: 10px;
+        }
+        
+        .el-input__inner {
+            width: 100%;
+        }
+    }
+}
+
+.replace-component-dialog {
+    .el-select {
+        width: 100%;
+    }
+}
+
+/* 添加物料替换对话框的样式 */
+.material-info-box {
+    margin-top: 20px;
+    border: 1px solid #ebeef5;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+
+    h4 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 16px;
+        color: #303133;
+    }
+
+    .material-list {
+        margin-top: 15px;
+    }
+
+    .material-item {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed #ebeef5;
+
+        &:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .material-detail {
+            display: flex;
+            flex-direction: column;
+            padding-left: 5px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+    }
+}
+
+.replace-info {
+    .el-alert {
+        margin-bottom: 20px;
     }
 }
 </style>

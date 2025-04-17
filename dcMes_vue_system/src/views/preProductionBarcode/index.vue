@@ -336,7 +336,11 @@
     </el-dialog>
 
     <!-- 添加暂停对话框 -->
-    <el-dialog title="条码暂停" :visible.sync="suspendDialogVisible" width="40%">
+    <el-dialog
+      title="条码暂停"
+      :visible.sync="suspendDialogVisible"
+      width="40%"
+    >
       <el-form
         :model="suspendForm"
         ref="suspendForm"
@@ -437,7 +441,7 @@
               </el-col>
             </el-row>
             <el-row>
-              <el-col :span="24" style="text-align: right;">
+              <el-col :span="24" style="text-align: right">
                 <el-form-item>
                   <el-button type="primary" @click="searchPrintData"
                     >查询</el-button
@@ -578,7 +582,7 @@ export default {
       batchPrintDialogVisible: false,
       printDataList: [],
       printing: false,
-      batchPrinting: false,  // 添加批量打印按钮的loading状态
+      batchPrinting: false, // 添加批量打印按钮的loading状态
       currentPrintData: {},
       // 添加打印搜索表单
       printSearchForm: {
@@ -710,13 +714,22 @@ export default {
         query.barcode = { $regex: this.searchForm.barcode, $options: "i" };
       }
       if (this.searchForm.printBarcode) {
-        query.printBarcode = { $regex: this.searchForm.printBarcode, $options: "i" };
+        query.printBarcode = {
+          $regex: this.searchForm.printBarcode,
+          $options: "i",
+        };
       }
       if (this.searchForm.transformedBarcode) {
-        query.transformedBarcode = { $regex: this.searchForm.transformedBarcode, $options: "i" };
+        query.transformedBarcode = {
+          $regex: this.searchForm.transformedBarcode,
+          $options: "i",
+        };
       }
       if (this.searchForm.transformedPrintBarcode) {
-        query.transformedPrintBarcode = { $regex: this.searchForm.transformedPrintBarcode, $options: "i" };
+        query.transformedPrintBarcode = {
+          $regex: this.searchForm.transformedPrintBarcode,
+          $options: "i",
+        };
       }
       if (this.searchForm.status) {
         query.status = this.searchForm.status;
@@ -754,6 +767,8 @@ export default {
         const workOrder = this.workOrderOptions.find(
           (item) => item._id === workOrderId
         );
+
+        console.log(workOrder, "工单数据");
 
         // 获取产线编号
         const lineResult = await getData("production_line", {
@@ -839,24 +854,39 @@ export default {
           return;
         }
 
+        //获取相同的销售订单的工单ids
+        const sameSaleOrderResult = await getData(
+          "production_plan_work_order",
+          {
+            query: {
+              saleOrderId: workOrder.saleOrderId,
+              status: { $ne: "VOIDED" },
+            },
+          }
+        );
+        const sameSaleOrderIds = sameSaleOrderResult.data.map(
+          (item) => item._id
+        );
+        console.log(sameSaleOrderIds, "相同的销售订单的工单ids");
+
         // 获取已生成的条码数量和最大序号（排除已作废的）
         const [countResult, maxSerialResult] = await Promise.all([
           getData("preProductionBarcode", {
             query: {
-              workOrderId,
+              workOrderId: { $in: sameSaleOrderIds },
               status: { $ne: "VOIDED" },
             },
             count: true,
           }),
           getData("preProductionBarcode", {
             query: {
-              workOrderId,
+              workOrderId: { $in: sameSaleOrderIds },
               "segmentBreakdown.value": lineNum,
               status: { $ne: "VOIDED" },
               createAt: {
                 $gte: new Date(new Date().setHours(0, 0, 0, 0)), // 当天开始时间
-                $lt: new Date(new Date().setHours(23, 59, 59, 999)) // 当天结束时间
-              }
+                $lt: new Date(new Date().setHours(23, 59, 59, 999)), // 当天结束时间
+              },
             },
             sort: { serialNumber: -1 },
             limit: 1,
@@ -864,7 +894,8 @@ export default {
         ]);
 
         // 计算剩余可生成数量
-        this.maxQuantity = workOrder.planProductionQuantity - (countResult.countnum || 0);
+        this.maxQuantity =
+          workOrder.planQuantity - (countResult.countnum || 0);
 
         // 设置起始序号为最大序号+1或1
         this.generateForm.startNumber =
@@ -1022,15 +1053,20 @@ export default {
             const transformConfig = { ...segment.config };
             // 如果有特定的转换映射，使用它们
             if (segment.config.transformYearMappings) {
-              transformConfig.yearMappings = segment.config.transformYearMappings;
+              transformConfig.yearMappings =
+                segment.config.transformYearMappings;
             }
             if (segment.config.transformMonthMappings) {
-              transformConfig.monthMappings = segment.config.transformMonthMappings;
+              transformConfig.monthMappings =
+                segment.config.transformMonthMappings;
             }
             if (segment.config.transformDayMappings) {
               transformConfig.dayMappings = segment.config.transformDayMappings;
             }
-            transformed = this.formatDateWithMappings(params.date, transformConfig);
+            transformed = this.formatDateWithMappings(
+              params.date,
+              transformConfig
+            );
           }
           break;
 
@@ -1053,9 +1089,10 @@ export default {
             const transformConfig = { ...segment.config };
             // 如果有特定的转换映射，使用它们
             if (segment.config.transformNumberMappings) {
-              transformConfig.numberMappings = segment.config.transformNumberMappings;
+              transformConfig.numberMappings =
+                segment.config.transformNumberMappings;
             }
-            
+
             transformed = this.formatSequenceWithPositionMapping(
               params.sequence,
               {
@@ -1075,35 +1112,48 @@ export default {
 
     formatDateWithMappings(date, format) {
       let value = this.formatDate(date, format.dateFormat);
-      const dateFormat = format.dateFormat || '';
-      
+      const dateFormat = format.dateFormat || "";
+
       // 解析日期格式，找出年月日的位置
-      const yearPos = dateFormat.indexOf('YYYY');
-      const monthPos = dateFormat.indexOf('MM');
-      const dayPos = dateFormat.indexOf('DD');
-      
+      const yearPos = dateFormat.indexOf("YYYY");
+      const monthPos = dateFormat.indexOf("MM");
+      const dayPos = dateFormat.indexOf("DD");
+
       // 只有在格式中存在且有映射时才应用映射
       if (yearPos !== -1 && format.yearMappings && format.yearMappings.length) {
         const yearStr = value.substring(yearPos, yearPos + 4);
-        const mapping = format.yearMappings.find(m => m.value === yearStr);
+        const mapping = format.yearMappings.find((m) => m.value === yearStr);
         if (mapping) {
-          value = value.substring(0, yearPos) + mapping.code + value.substring(yearPos + 4);
+          value =
+            value.substring(0, yearPos) +
+            mapping.code +
+            value.substring(yearPos + 4);
         }
       }
-      
-      if (monthPos !== -1 && format.monthMappings && format.monthMappings.length) {
+
+      if (
+        monthPos !== -1 &&
+        format.monthMappings &&
+        format.monthMappings.length
+      ) {
         const monthStr = value.substring(monthPos, monthPos + 2);
-        const mapping = format.monthMappings.find(m => m.value === monthStr);
+        const mapping = format.monthMappings.find((m) => m.value === monthStr);
         if (mapping) {
-          value = value.substring(0, monthPos) + mapping.code + value.substring(monthPos + 2);
+          value =
+            value.substring(0, monthPos) +
+            mapping.code +
+            value.substring(monthPos + 2);
         }
       }
-      
+
       if (dayPos !== -1 && format.dayMappings && format.dayMappings.length) {
         const dayStr = value.substring(dayPos, dayPos + 2);
-        const mapping = format.dayMappings.find(m => m.value === dayStr);
+        const mapping = format.dayMappings.find((m) => m.value === dayStr);
         if (mapping) {
-          value = value.substring(0, dayPos) + mapping.code + value.substring(dayPos + 2);
+          value =
+            value.substring(0, dayPos) +
+            mapping.code +
+            value.substring(dayPos + 2);
         }
       }
 
@@ -1222,8 +1272,10 @@ export default {
         let allExistingBarcodes = { data: [] };
 
         // 对明码和转换明码分别进行批量查询
-        const regularBarcodes = barcodes.map(item => item.barcode);
-        const transformedBarcodes = barcodes.map(item => item.transformedBarcode).filter(Boolean);
+        const regularBarcodes = barcodes.map((item) => item.barcode);
+        const transformedBarcodes = barcodes
+          .map((item) => item.transformedBarcode)
+          .filter(Boolean);
 
         // 查询普通条码
         for (let i = 0; i < regularBarcodes.length; i += batchSize) {
@@ -1234,25 +1286,34 @@ export default {
               status: { $ne: "VOIDED" },
             },
           });
-          
+
           if (batchResult.data && batchResult.data.length > 0) {
-            allExistingBarcodes.data = [...allExistingBarcodes.data, ...batchResult.data];
+            allExistingBarcodes.data = [
+              ...allExistingBarcodes.data,
+              ...batchResult.data,
+            ];
           }
         }
 
         // 如果有转换明码，也需要查询
         if (transformedBarcodes.length > 0) {
           for (let i = 0; i < transformedBarcodes.length; i += batchSize) {
-            const batchTransformedBarcodes = transformedBarcodes.slice(i, i + batchSize);
+            const batchTransformedBarcodes = transformedBarcodes.slice(
+              i,
+              i + batchSize
+            );
             const batchResult = await getData("preProductionBarcode", {
               query: {
                 transformedBarcode: { $in: batchTransformedBarcodes },
                 status: { $ne: "VOIDED" },
               },
             });
-            
+
             if (batchResult.data && batchResult.data.length > 0) {
-              allExistingBarcodes.data = [...allExistingBarcodes.data, ...batchResult.data];
+              allExistingBarcodes.data = [
+                ...allExistingBarcodes.data,
+                ...batchResult.data,
+              ];
             }
           }
         }
@@ -1280,13 +1341,16 @@ export default {
         for (let i = 0; i < barcodes.length; i += batchSize) {
           const batchBarcodes = barcodes.slice(i, i + batchSize);
           await addData("preProductionBarcode", batchBarcodes);
-          
+
           // 显示进度
-          const progress = Math.min(100, Math.round(((i + batchSize) / barcodes.length) * 100));
+          const progress = Math.min(
+            100,
+            Math.round(((i + batchSize) / barcodes.length) * 100)
+          );
           this.$message({
-            type: 'info',
+            type: "info",
             message: `正在保存条码数据：${progress}%`,
-            duration: 1000
+            duration: 1000,
           });
         }
 
@@ -1502,7 +1566,7 @@ export default {
     // 处理批量打印按钮点击
     async handleBatchPrint() {
       if (this.batchPrinting) return; // 如果正在打印中，则不响应点击
-      
+
       this.batchPrinting = true; // 设置按钮loading状态
       try {
         this.printing = false;
@@ -1571,7 +1635,10 @@ export default {
         query.barcode = { $regex: this.printSearchForm.barcode, $options: "i" };
       }
       if (this.printSearchForm.printBarcode) {
-        query.printBarcode = { $regex: this.printSearchForm.printBarcode, $options: "i" };
+        query.printBarcode = {
+          $regex: this.printSearchForm.printBarcode,
+          $options: "i",
+        };
       }
       if (this.printSearchForm.status) {
         query.status = this.printSearchForm.status;

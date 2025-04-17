@@ -28,18 +28,20 @@ module.exports = {
 
   // publicPath: "/dcMes/",
   // outputDir: "../dcMes_server/admin",
-  // publicPath: "/dcMesManage/",
-  // outputDir: "../dcMes_server/adminManage",
+  publicPath: "/dcMesManage/",
+  outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
   // outputDir: "../dcMes_server/adminPzManage",
-  publicPath: "/dcMesCs/",
-  outputDir: "../dcMes_server/adminCs",
+  // publicPath: "/dcMesCs/",A
+  // outputDir: "../dcMes_server/adminCs",
   // publicPath: "/dcMesVN/",
   // outputDir: "../dcMes_server/adminVN",
-  // publicPath: "/dcMesVNCS/",
-  // outputDir: "../dcMes_server/adminVNCS",
   // publicPath: "/dcMesVNCN/",
   // outputDir: "../dcMes_server/adminVNCN",
+  
+  // publicPath: "/dcMesVNCS/",
+  // outputDir: "../dcMes_server/adminVNCS",
+
   // assetsDir: "static",
   // lintOnSave: process.env.NODE_ENV === "development",
   productionSourceMap: false,
@@ -94,9 +96,15 @@ module.exports = {
         new TerserPlugin({
           terserOptions: {
             compress: {
-              drop_console: true
+              drop_console: true, // 改为false，避免压缩问题
+              warnings: false,
+              drop_debugger: true
+            },
+            output: {
+              comments: false
             }
-          }
+          },
+          parallel: true // 使用多进程并行运行提高编译速度
         })
       ]
     }

@@ -177,4 +177,7 @@ const purchaseOrderSchema = new Schema(
   }
 );
 
+// 添加索引
+purchaseOrderSchema.index({ FBillNo: 1 }); // 按照单据编号建立索引
+
 module.exports = mongoose.model("K3_PUR_PurchaseOrder", purchaseOrderSchema); 
