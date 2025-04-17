@@ -79,6 +79,50 @@
                 </el-input>
             </el-form-item>
 
+            <!-- 打印参数 -->
+            <el-divider content-position="left">打印参数</el-divider>
+            <el-form-item>
+                <el-button type="primary" size="mini" @click="addPrintParam">添加参数</el-button>
+            </el-form-item>
+            <el-table :data="form.printParams" border style="width: 100%" size="mini">
+                <el-table-column label="参数键名" width="180">
+                    <template slot-scope="scope">
+                        <el-input v-model="scope.row.paramKey" placeholder="请输入参数键名"></el-input>
+                    </template>
+                </el-table-column>
+                <el-table-column label="参数显示名称" width="180">
+                    <template slot-scope="scope">
+                        <el-input v-model="scope.row.paramName" placeholder="请输入参数显示名称"></el-input>
+                    </template>
+                </el-table-column>
+                <el-table-column label="参数类型" width="150">
+                    <template slot-scope="scope">
+                        <el-select v-model="scope.row.paramType" placeholder="请选择参数类型" style="width: 100%">
+                            <el-option label="字符串" value="string"></el-option>
+                            <el-option label="数字" value="number"></el-option>
+                            <el-option label="日期" value="date"></el-option>
+                            <el-option label="布尔值" value="boolean"></el-option>
+                        </el-select>
+                    </template>
+                </el-table-column>
+                <el-table-column label="默认值">
+                    <template slot-scope="scope">
+                        <el-input v-model="scope.row.defaultValue" placeholder="请输入默认值"></el-input>
+                    </template>
+                </el-table-column>
+                <el-table-column label="是否必填" width="100">
+                    <template slot-scope="scope">
+                        <el-switch v-model="scope.row.required"></el-switch>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" width="100">
+                    <template slot-scope="scope">
+                        <el-button type="danger" size="mini" icon="el-icon-delete" circle
+                            @click="deletePrintParam(scope.$index)"></el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
             <!-- 其他设置 -->
             <el-divider content-position="left">其他设置</el-divider>
             <el-row :gutter="20">
@@ -147,6 +191,7 @@ export default {
                     height: 297
                 },
                 content: '',
+                printParams: [],
                 version: '1.0.0',
                 isDefault: false,
                 status: true,
@@ -186,6 +231,8 @@ export default {
                     width: 210,
                     height: 297
                 }
+                // 确保printParams数组存在
+                this.form.printParams = this.form.printParams || []
             } else {
                 this.form = {
                     templateName: '',
@@ -199,12 +246,25 @@ export default {
                         height: 297
                     },
                     content: '',
+                    printParams: [],
                     version: '1.0.0',
                     isDefault: false,
                     status: true,
                     remark: ''
                 }
             }
+        },
+        addPrintParam() {
+            this.form.printParams.push({
+                paramKey: '',
+                paramName: '',
+                paramType: 'string',
+                defaultValue: '',
+                required: false
+            })
+        },
+        deletePrintParam(index) {
+            this.form.printParams.splice(index, 1)
         },
         handleClose() {
             this.$emit('update:visible', false)

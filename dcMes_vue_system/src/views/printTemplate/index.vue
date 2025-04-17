@@ -236,34 +236,54 @@
           ></el-input-number>
         </el-form-item>
 
-        <!-- 添加测试数据编辑区域 -->
-        <el-form-item label="测试数据">
-          <el-button type="primary" size="small" @click="addTestDataField"
-            >添加字段</el-button
-          >
-          <div
-            v-for="(item, index) in printForm.testData"
-            :key="index"
-            style="margin-top: 10px"
-          >
-            <el-row :gutter="10">
-              <el-col :span="8">
-                <el-input v-model="item.key" placeholder="字段名"></el-input>
-              </el-col>
-              <el-col :span="12">
-                <el-input v-model="item.value" placeholder="字段值"></el-input>
-              </el-col>
-              <el-col :span="4">
-                <el-button
-                  type="danger"
-                  icon="el-icon-delete"
-                  size="small"
-                  @click="removeTestDataField(index)"
-                ></el-button>
-              </el-col>
-            </el-row>
+        <!-- 使用模板参数替代手动添加测试数据 -->
+        <template v-if="currentPrintRow && currentPrintRow.printParams && currentPrintRow.printParams.length > 0">
+          <el-divider content-position="center">打印参数</el-divider>
+          <div v-for="(param, index) in currentPrintRow.printParams" :key="index">
+            <el-form-item :label="param.paramName || param.paramKey">
+              <!-- 字符串类型或未指定类型 -->
+              <el-input 
+                v-if="param.paramType === 'string' || !param.paramType" 
+                :value="getPrintParamValue(param.paramKey)"
+                @input="updatePrintParamValue(param.paramKey, $event)"
+                :placeholder="`请输入${param.paramName || param.paramKey}`"
+              ></el-input>
+              <!-- 数字类型 -->
+              <el-input-number 
+                v-else-if="param.paramType === 'number'" 
+                :value="getPrintParamValue(param.paramKey)"
+                @change="updatePrintParamValue(param.paramKey, $event)"
+                :controls="true"
+                :placeholder="`请输入${param.paramName || param.paramKey}`"
+              ></el-input-number>
+              <!-- 日期类型 -->
+              <el-date-picker 
+                v-else-if="param.paramType === 'date'" 
+                :value="getPrintParamValue(param.paramKey)"
+                @input="updatePrintParamValue(param.paramKey, $event)"
+                type="date" 
+                value-format="yyyy-MM-dd" 
+                :placeholder="`请选择${param.paramName || param.paramKey}`"
+              ></el-date-picker>
+              <!-- 布尔类型 -->
+              <el-switch 
+                v-else-if="param.paramType === 'boolean'" 
+                :active-value="true"
+                :inactive-value="false"
+                :value="getPrintParamValue(param.paramKey) === true"
+                @change="(val) => updatePrintParamValue(param.paramKey, val)"
+              ></el-switch>
+              <!-- 其他类型默认使用文本框 -->
+              <el-input 
+                v-else 
+                :value="getPrintParamValue(param.paramKey)"
+                @input="updatePrintParamValue(param.paramKey, $event)"
+                :placeholder="`请输入${param.paramName || param.paramKey}`"
+              ></el-input>
+            </el-form-item>
           </div>
-        </el-form-item>
+        </template>
+        <el-empty v-else description="该模板未定义打印参数"></el-empty>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="printDialogVisible = false">取消</el-button>
@@ -316,7 +336,7 @@ export default {
       printDialogVisible: false,
       printForm: {
         copies: 1,
-        testData: [], // 新增测试数据数组
+        paramValues: {}, // 替换testData，使用对象格式便于通过参数键名访问
       },
       currentPrintRow: null,
     };
@@ -666,8 +686,27 @@ export default {
 
     handlePrint(row) {
       this.currentPrintRow = row;
-      // 初始化测试数据
-      this.printForm.testData = [];
+      
+      // 创建一个全新的对象
+      this.printForm.paramValues = {};
+      
+      // 初始化参数值
+      if (row.printParams && row.printParams.length > 0) {
+        row.printParams.forEach(param => {
+          let defaultValue = param.defaultValue || '';
+          
+          // 特殊处理布尔类型值
+          if (param.paramType === 'boolean') {
+            if (defaultValue === 'true') defaultValue = true;
+            else if (defaultValue === 'false') defaultValue = false;
+            else defaultValue = false; // 默认为false
+          }
+          
+          // 使用Vue的$set方法确保响应式更新
+          this.$set(this.printForm.paramValues, param.paramKey, defaultValue);
+        });
+      }
+      
       this.printDialogVisible = true;
     },
 
@@ -696,12 +735,8 @@ export default {
           status: this.currentPrintRow.status ? "启用" : "禁用",
         };
 
-        // 合并测试数据
-        this.printForm.testData.forEach((item) => {
-          if (item.key && item.value) {
-            printData[item.key] = item.value;
-          }
-        });
+        // 合并参数值到打印数据
+        Object.assign(printData, this.printForm.paramValues);
 
         this.printData = printData;
 
@@ -719,17 +754,14 @@ export default {
       }
     },
 
-    // 添加测试数据字段
-    addTestDataField() {
-      this.printForm.testData.push({
-        key: "",
-        value: "",
-      });
+    getPrintParamValue(key) {
+      const value = this.printForm.paramValues[key];
+      return value !== undefined ? value : '';
     },
 
-    // 删除测试数据字段
-    removeTestDataField(index) {
-      this.printForm.testData.splice(index, 1);
+    updatePrintParamValue(key, value) {
+      console.log('更新参数值:', key, value); // 添加日志帮助调试
+      this.$set(this.printForm.paramValues, key, value);
     },
   },
   created() {
