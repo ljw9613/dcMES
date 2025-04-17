@@ -541,10 +541,18 @@ export default {
                         // 使用模糊查询的字段
                         case 'FNumber':
                         case 'FName':
-                        case 'FSpecification':
                         case 'FOldNumber':
                         case 'FNameEn':
                             req.query.$and.push({ [key]: { $regex: value, $options: 'i' } });
+                            break;
+                        
+                        // 特殊处理规格型号，使其可以处理包含空格的查询
+                        case 'FSpecification':
+                            // 移除正则表达式特殊字符，确保查询安全
+                            const sanitizedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            // 将字符串中的空格替换为 \s*，允许任意空白字符匹配
+                            const regexPattern = sanitizedValue.replace(/\s+/g, '\\s+');
+                            req.query.$and.push({ [key]: { $regex: regexPattern, $options: 'i' } });
                             break;
 
                         // 精确匹配的字段
