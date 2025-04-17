@@ -57,7 +57,7 @@
                         </el-col>
                         <el-col :span="6">
                             <el-form-item label="销售员">
-                                <el-input v-model="searchForm.FSalerId" placeholder="请输入销售员编号" clearable></el-input>
+                                <el-input v-model="searchForm.FSalerId_Search" placeholder="请输入销售员编号或姓名" clearable></el-input>
                             </el-form-item>
                         </el-col>
                         <el-col :span="12">
@@ -156,7 +156,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="销售员" prop="FSalerId" width="120">
+                <el-table-column label="销售员" prop="FSalerId_FName" width="120">
                     <template slot-scope="scope">
                         {{ scope.row.FSalerId_FName || '-' }}
                     </template>
@@ -348,6 +348,7 @@ export default {
                 FCloseStatus: '',
                 FSaleDeptId: '',
                 FSalerId: '',
+                FSalerId_Search: '',
                 dateRange: [],
                 FMaterialId_FNumber: '',
                 F_TFQJ_khpo: '',
@@ -569,6 +570,21 @@ export default {
                         case 'FCustId_FNumber':
                         case 'FCustId_FName':
                         case 'FSaleDeptId':
+                            if (value.trim()) {
+                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                            }
+                            break;
+                        case 'FSalerId_Search':
+                            if (value.trim()) {
+                                const searchValue = value.trim();
+                                req.query.$and.push({
+                                    $or: [
+                                        { FSalerId_FNumber: { $regex: searchValue, $options: 'i' } },
+                                        { FSalerId_FName: { $regex: searchValue, $options: 'i' } }
+                                    ]
+                                });
+                            }
+                            break;
                         case 'FSalerId':
                             if (value.trim()) {
                                 req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
@@ -677,6 +693,7 @@ export default {
                 FCloseStatus: '',
                 FSaleDeptId: '',
                 FSalerId: '',
+                FSalerId_Search: '',
                 dateRange: [],
                 FMaterialId_FNumber: '',
                 F_TFQJ_khpo: '',
