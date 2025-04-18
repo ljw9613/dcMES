@@ -725,6 +725,48 @@ export default {
     handleClose() {
       this.$emit("update:visible", false);
       this.$refs.form && this.$refs.form.resetFields();
+      
+      // 重置所有数据，确保完全清除之前的表单内容
+      this.totalPlanProductionQuantity = 0;
+      this.totalOutputQuantity = 0;
+      this.totalRemainingQuantity = 0;
+      
+      // 重置表单数据为默认值
+      this.form = {
+        workOrderNo: "",
+        status: "PENDING",
+        saleOrderId: "",
+        saleOrderNo: "",
+        productionOrderId: "",
+        productionOrderNo: "",
+        materialId: "",
+        materialNumber: "",
+        materialName: "",
+        fSpecification: "",
+        FMATERIALID: "",
+        productionLineId: "",
+        lineName: "",
+        businessType: "NORMAL",
+        planQuantity: 0,
+        planProductionQuantity: 0,
+        inputQuantity: 0,
+        outputQuantity: 0,
+        planStartTime: "",
+        planEndTime: "",
+        remark: "",
+        custPOLineNo: "",
+        custPO: "",
+        sapId: "",
+        custMaterialName: "",
+        custMaterialNameEn: "",
+      };
+      
+      // 清除补单相关数据
+      this.isSupplement = false;
+      this.supplementData = [];
+      
+      // 确保工作表数据也被清除
+      this.workTableData = [];
     },
     handleSubmit() {
       this.$refs.form.validate(async (valid) => {
