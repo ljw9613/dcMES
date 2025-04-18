@@ -486,8 +486,23 @@ export default {
 
     handleAdd() {
       this.dialogStatus = "create";
-      this.dataForm = {}; // 清空表单数据
-      this.dialogFormVisible = true; // 显示对话框
+      // 简化数据模型，只保留必需字段
+      this.dataForm = {
+        templateName: "",
+        templateType: "",
+        businessType: "",
+        config: {
+          paperSize: "A4",
+          orientation: "portrait"
+        },
+        content: "",
+        version: "1.0.0",
+        status: true,
+        isDefault: false,
+        // 确保printParams是一个空数组而不是null或undefined
+        printParams: []
+      };
+      this.dialogFormVisible = true;
     },
 
     async handleEdit(row) {
@@ -571,26 +586,37 @@ export default {
 
     async handleSubmit(formData) {
       try {
+        // 确保printParams始终是数组
+        if (!formData.printParams) {
+          formData.printParams = [];
+        }
+        
+        // 转换formData为纯对象，避免Vue响应式对象可能引起的问题
+        const cleanData = JSON.parse(JSON.stringify(formData));
+        
         if (this.dialogStatus === "create") {
           // 生成模板编号
           const templateCode = await this.getTemplateCode(
-            formData.templateType
+            cleanData.templateType
           );
-          formData.templateCode = templateCode;
+          cleanData.templateCode = templateCode;
 
-          await addData("printTemplate", formData);
+          console.log('准备添加的数据:', cleanData);
+          
+          // 使用简化的数据结构
+          await addData("printTemplate", cleanData);
           this.$message.success("添加成功");
         } else {
           await updateData("printTemplate", {
-            query: { _id: formData._id },
-            update: formData,
+            query: { _id: cleanData._id },
+            update: cleanData,
           });
           this.$message.success("更新成功");
         }
         this.fetchData();
       } catch (error) {
         console.error("操作失败:", error);
-        this.$message.error("操作失败");
+        this.$message.error(`操作失败: ${error.message || '未知错误'}`);
       }
     },
 
