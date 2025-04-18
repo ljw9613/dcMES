@@ -680,8 +680,7 @@ class MaterialPalletizingService {
         boxItems: [],
         barcodeCount: 0,
         boxCount: 0,
-        totalQuantity: barcodes.length,
-        status: "STACKED",
+        status: "STACKED", // 新托盘设置为组托完成状态
         createAt: new Date(),
         updateAt: new Date(),
         createBy: userId,
@@ -785,6 +784,7 @@ class MaterialPalletizingService {
 
       // 7. 将所有移动的条码加入到新托盘，并更新工单数量
       newPallet.palletBarcodes = barcodesToMove; // 将收集的条码添加到新托盘
+      const newPalletBarcodesCount = barcodesToMove.length;
 
       for (const barcode of barcodes) {
         const originalBarcode = originalPallet.palletBarcodes.find(pb => pb.barcode === barcode);
@@ -801,14 +801,16 @@ class MaterialPalletizingService {
         }
       }
 
-      // 更新新托盘的条码计数和箱子计数
-      newPallet.barcodeCount = newPallet.palletBarcodes.length;
+      // 更新新托盘的条码计数和箱子计数，确保barcodeCount和totalQuantity一致
+      newPallet.barcodeCount = newPalletBarcodesCount;
+      newPallet.totalQuantity = newPalletBarcodesCount; // 确保与条码数量一致
       newPallet.boxCount = newPallet.boxItems.length;
 
       // 8. 创建新托盘记录
       const createdPallet = await MaterialPalletizing.create(newPallet);
 
       // 9. 从原托盘中移除条码
+      const remainingBarcodesCount = originalPallet.palletBarcodes.length - barcodes.length;
       await MaterialPalletizing.updateOne(
         { palletCode: originalPalletCode },
         {
@@ -818,7 +820,11 @@ class MaterialPalletizingService {
           $set: {
             updateAt: new Date(),
             updateBy: userId,
-            status: "STACKING", // 更新状态为组托中
+            // 更新原托盘总数量为剩余条码数量，确保与托盘条码数量一致
+            totalQuantity: remainingBarcodesCount,
+            barcodeCount: remainingBarcodesCount, // 直接更新条码计数
+            // 只有在原状态是组托完成时，才保持组托完成状态
+            status: originalPallet.status === "STACKED" ? "STACKED" : "STACKING"
           },
         }
       );
@@ -849,8 +855,10 @@ class MaterialPalletizingService {
           }
         });
 
-        // 更新原托盘的条码计数
-        updatedOriginalPallet.barcodeCount = updatedOriginalPallet.palletBarcodes.length;
+        // 确保barcodeCount和totalQuantity保持一致
+        const palletBarcodesCount = updatedOriginalPallet.palletBarcodes.length;
+        updatedOriginalPallet.barcodeCount = palletBarcodesCount;
+        updatedOriginalPallet.totalQuantity = palletBarcodesCount;
 
         // 保存更新后的原托盘
         await updatedOriginalPallet.save();

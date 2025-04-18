@@ -199,6 +199,7 @@ export default {
             },
             rules: {
                 templateName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
+                templateType: [{ required: true, message: '请选择模板类型', trigger: 'change' }],
                 businessType: [{ required: true, message: '请选择业务类型', trigger: 'change' }],
                 'config.paperSize': [{ required: true, message: '请选择纸张大小', trigger: 'change' }],
                 'config.orientation': [{ required: true, message: '请选择打印方向', trigger: 'change' }],
