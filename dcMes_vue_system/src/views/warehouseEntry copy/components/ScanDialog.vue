@@ -235,9 +235,19 @@ export default {
         const success = await this.$emit("scan", barcode);
 
         if (success) {
+          // 解析条码信息
+          const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+            barcode.split("#");
+
+          // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
+          //   throw new Error('无效的托盘条码格式');
+          // }
+          // if(!this.scanForm.stockId){
+          //   throw new Error('请先选择仓库后再扫描二维码');
+          // }
           // 调用托盘入库API
           const response = await scanPallet({
-            palletCode: barcode,
+            palletCode,
             stockId: this.scanForm.stockId,
             userId: this.$store.state.user.id,
           });
@@ -245,31 +255,6 @@ export default {
           // 更新入库单信息
           if (response.data) {
             this.entryInfo = response.data;
-            
-            // 从返回的数据中获取托盘信息
-            if (response.data.palletInfo) {
-              const palletInfo = response.data.palletInfo;
-              
-              // 添加到扫描记录
-              this.scanRecords.unshift({
-                palletCode: palletInfo.palletCode || barcode,
-                saleOrderNo: palletInfo.saleOrderNo || this.entryInfo.saleOrderNo || '',
-                materialCode: palletInfo.materialCode || '',
-                quantity: palletInfo.quantity || 0,
-                lineCode: palletInfo.lineCode || '',
-                scanTime: new Date(),
-              });
-            } else {
-              // 如果没有直接返回托盘信息，使用入库单信息
-              this.scanRecords.unshift({
-                palletCode: barcode,
-                saleOrderNo: this.entryInfo.saleOrderNo || '',
-                materialCode: this.entryInfo.materialCode || '',
-                quantity: this.entryInfo.actualQuantity || 0,
-                lineCode: this.entryInfo.lineCode || '',
-                scanTime: new Date(),
-              });
-            }
           }
 
           if (response.code !== 200) {
@@ -280,8 +265,26 @@ export default {
 
           this.$message.success("扫码入库成功");
 
+          // 确保数量是有效数字，避免NaN问题
+          let parsedQuantity = parseInt(quantity, 10);
+          if (isNaN(parsedQuantity)) {
+            // 如果条码中的数量解析失败，尝试从响应中获取
+            parsedQuantity = response.data && response.data.actualQuantity ? response.data.actualQuantity : 0;
+          }
+
+          // 添加到扫描记录
+          this.scanRecords.unshift({
+            palletCode,
+            saleOrderNo,
+            materialCode,
+            quantity: parsedQuantity,
+            lineCode,
+            scanTime: new Date(),
+          });
+
           // 清空输入框
           this.scanForm.barcode = "";
+          this.scanForm.stockId = "";
         }
       } catch (error) {
         console.error("扫描失败:", error);
