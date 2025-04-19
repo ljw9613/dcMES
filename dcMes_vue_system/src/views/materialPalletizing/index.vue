@@ -1124,6 +1124,17 @@ export default {
       this.dialogFormVisible = true;
     },
     Delete(row) {
+      // 检查托盘的出入库状态
+      if (row.inWarehouseStatus === "IN_WAREHOUSE") {
+        this.$message.error("已入库的托盘不能删除");
+        return;
+      }
+      
+      if (row.inWarehouseStatus === "OUT_WAREHOUSE") {
+        this.$message.error("已出库的托盘不能删除");
+        return;
+      }
+
       this.$confirm("确认要删除该单据吗?", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
