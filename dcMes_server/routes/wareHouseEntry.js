@@ -184,13 +184,22 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
 
     await entry.save();
 
-    // 重新查询以获取最新数据
-    // const latestEntry = await WarehouseEntry.findById(entry._id);
+    // 准备返回的托盘信息
+    const palletInfo = {
+      palletCode: pallet.palletCode,
+      saleOrderNo: pallet.saleOrderNo,
+      materialCode: pallet.materialCode,
+      quantity: pallet.totalQuantity,
+      lineCode: pallet.productLineName
+    };
 
     res.json({
       code: 200,
       message: "扫码入库成功",
-      data: entry,
+      data: {
+        ...entry.toObject(),
+        palletInfo: palletInfo
+      }
     });
   } catch (error) {
     res.status(500).json({

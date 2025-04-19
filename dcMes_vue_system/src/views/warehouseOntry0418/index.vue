@@ -221,7 +221,7 @@
                     <template slot-scope="scope">
                         <div>应出: {{ scope.row.outboundQuantity }}</div>
                         <div>已出: {{ scope.row.outNumber }}</div>
-                        <div>托盘数: {{ scope.row.palletCount || '0' }}</div>
+                        <!-- <div>托盘数: {{ scope.row.palletCount }}</div> -->
                     </template>
                 </el-table-column>
 
@@ -506,15 +506,8 @@ export default {
         },
         handleChuKu(row) {
             this.scanData = row;
-            
-            // 确保托盘数量正确显示
-            if (row.entryItems && row.entryItems.length > 0) {
-                this.scanData.palletCount = row.entryItems.length;
-            } else {
-                this.scanData.palletCount = 0;
-            }
-            
             this.scanDialogVisible = true;
+
         },
         handlePalletBarcodeOpen() {
             this.scanData = {
@@ -533,6 +526,7 @@ export default {
                 status: null,
                 entryItems: []
             }
+            // this.outboundQuantityDialog = true;
             this.scanDialogVisible = true;
         },
 
@@ -671,18 +665,6 @@ export default {
                 
                 const result = await getData("warehouse_ontry", req);
                 this.tableList = result.data;
-                
-                // 确保计算正确的托盘数量
-                if (this.tableList && this.tableList.length > 0) {
-                    this.tableList.forEach(item => {
-                        if (item.entryItems && item.entryItems.length > 0) {
-                            item.palletCount = item.entryItems.length;
-                        } else {
-                            item.palletCount = 0;
-                        }
-                    });
-                }
-                
                 this.total = result.countnum;
             } catch (error) {
                 console.error('获取数据失败:', error);
@@ -731,16 +713,6 @@ export default {
         async handleScanComplete(palletCodes) {
             try {
                 await this.fetchData(); // 刷新列表
-                
-                // 更新表格中的托盘数量
-                if (this.tableList && this.tableList.length > 0) {
-                    this.tableList.forEach(item => {
-                        if (item.entryItems && item.entryItems.length > 0) {
-                            item.palletCount = item.entryItems.length;
-                        }
-                    });
-                }
-                
                 this.$message.success(`成功出库 ${palletCodes.length} 个托盘`);
             } catch (error) {
                 this.$message.error('完成出库失败');
