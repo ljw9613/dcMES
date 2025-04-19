@@ -1278,7 +1278,7 @@ export default {
     showHistory(row) {
       this.historyCurrentPage = 1;
       this.dataForm = row;
-      this.fetchHistoryData(row.scanCode);
+      this.fetchHistoryData(row.palletCode);
       this.historyDialogVisible = true;
     },
 
