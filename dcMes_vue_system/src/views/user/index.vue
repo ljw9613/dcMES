@@ -420,7 +420,7 @@
 </template>
 
 <script>
-import { getData, addData } from "@/api/data";
+import { getData, addData, removeData } from "@/api/data";
 import { postuserlist, putuserlist } from "@/api/user_list";
 import QRCode from "qrcode";
 import CryptoJS from "crypto-js";
@@ -625,10 +625,22 @@ export default {
         this.phone != "" &&
         this.role != ""
       ) {
-        const index = this.categorylist.findIndex(
-          (v) => v.usernumber === this.number
-        );
-        if (index == -1) {
+        // 先检查数据库中是否已存在此用户名
+        try {
+          const checkExist = await getData("user_login", {
+            query: { userName: this.number }
+          });
+          
+          if (checkExist.data && checkExist.data.length > 0) {
+            this.$notify({
+              title: "添加失败",
+              message: "此账号已存在，请使用其他账号",
+              type: "warning",
+              duration: 2000,
+            });
+            return;
+          }
+          
           // 创建用户数据对象
           const userData = {
             _id: Date.now().toString(), // 临时ID，实际应该由后端生成
@@ -683,11 +695,12 @@ export default {
               });
             }
           });
-        } else {
+        } catch (error) {
+          console.error("检查用户名失败:", error);
           this.$notify({
-            title: "此用户已是管理人员",
-            message: "Again input",
-            type: "warning",
+            title: "添加失败",
+            message: "检查用户名时出错",
+            type: "error",
             duration: 2000,
           });
         }
@@ -702,7 +715,7 @@ export default {
     },
 
     // 修改editData方法
-    editData() {
+    async editData() {
       if (
         this.number != "" &&
         this.name != "" &&
@@ -710,36 +723,64 @@ export default {
         this.password != "" &&
         this.role != ""
       ) {
-        var data = {
-          query: { _id: this._id },
-          update: {
-            nickName: this.name,
-            userName: this.number,
-            password: this.password,
-            phone: this.phone,
-            role: this.role,
-          },
-        };
-
-        putuserlist(data).then((response) => {
-          if (response.code == 200) {
-            this.dialogFormVisible = false;
-            this.fetchData();
-            this.$notify({
-              title: "修改成功",
-              message: "edit Successfully",
-              type: "success",
-              duration: 2000,
-            });
-          } else {
+        // 检查是否存在同名账号（除了当前编辑的用户）
+        try {
+          const checkExist = await getData("user_login", {
+            query: { 
+              userName: this.number,
+              _id: { $ne: this._id } // 排除当前正在编辑的用户
+            }
+          });
+          
+          if (checkExist.data && checkExist.data.length > 0) {
             this.$notify({
               title: "修改失败",
-              message: "edit failly",
+              message: "此账号已被其他用户使用，请使用其他账号",
               type: "warning",
               duration: 2000,
             });
+            return;
           }
-        });
+          
+          var data = {
+            query: { _id: this._id },
+            update: {
+              nickName: this.name,
+              userName: this.number,
+              password: this.password,
+              phone: this.phone,
+              role: this.role,
+            },
+          };
+
+          putuserlist(data).then((response) => {
+            if (response.code == 200) {
+              this.dialogFormVisible = false;
+              this.fetchData();
+              this.$notify({
+                title: "修改成功",
+                message: "edit Successfully",
+                type: "success",
+                duration: 2000,
+              });
+            } else {
+              this.$notify({
+                title: "修改失败",
+                message: "edit failly",
+                type: "warning",
+                duration: 2000,
+              });
+            }
+          });
+        } catch (error) {
+          console.error("检查用户名失败:", error);
+          this.$notify({
+            title: "修改失败",
+            message: "检查用户名时出错",
+            type: "error",
+            duration: 2000,
+          });
+        }
       } else {
         this.$notify({
           title: "请完善信息",

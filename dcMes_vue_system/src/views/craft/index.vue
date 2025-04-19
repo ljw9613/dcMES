@@ -645,7 +645,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12" v-show="processForm.processType === 'G'">
-            <el-form-item label="打印模版"  required>
+            <el-form-item label="打印模版">  <!-- 移除required属性 -->
               <zr-select
                 v-model="processForm.printTemplateId"
                 collection="printTemplate"
@@ -1247,7 +1247,7 @@ export default {
         status: "CREATE", // 状态
         materials: [], // 工序物料清单
         remark: "", // 备注
-        printTemplateId: "", // 关联打印模版ID
+        // printTemplateId: "", // 关联打印模版ID
         sort: 1, // 工序次序
         isMES: true, // 是否录入MES
       },
@@ -1898,7 +1898,7 @@ export default {
           processDesc: "",
           processStage: "",
           processType: "",
-          printTemplateId: "",
+          // printTemplateId: "",
           businessType: this.craftForm.businessType,
           status: "CREATE",
           materials: [],
@@ -2005,11 +2005,25 @@ export default {
       this.$refs.processForm.validate(async (valid) => {
         if (valid) {
           try {
+            // 复制表单数据，避免修改原始表单
+            const formData = JSON.parse(JSON.stringify(this.processForm));
+            
+            // 处理打印模板ID，仅当工序类型为G(打印工序)时保留，否则删除该字段
+            if (formData.processType !== "G") {
+              delete formData.printTemplateId;
+            } else if (!formData.printTemplateId || formData.printTemplateId === '') {
+              // 如果是打印工序但未选择打印模板，给出提示
+              this.$message.warning("打印工序必须选择打印模版");
+              return;
+            }
+            
+            console.log("提交前处理后的表单数据:", formData);
+            
             // 检查同一工艺下是否存在相同工序编码
             const existingProcess = await getData("processStep", {
               query: {
                 craftId: this.tempCraftId,
-                processCode: this.processForm.processCode,
+                processCode: formData.processCode,
                 _id: { $ne: this.tempProcessId }, // 排除当前编辑的工序
               },
             });
@@ -2023,7 +2037,7 @@ export default {
             const existingProcessSort = await getData("processStep", {
               query: {
                 craftId: this.tempCraftId,
-                sort: this.processForm.sort,
+                sort: formData.sort,
                 _id: { $ne: this.tempProcessId },
               },
             });
@@ -2041,7 +2055,7 @@ export default {
                 limit: 1,
               });
 
-              this.processForm.sort =
+              formData.sort =
                 maxSortResult.data.length > 0
                   ? maxSortResult.data[0].sort + 1
                   : 1;
@@ -2052,6 +2066,7 @@ export default {
               (material) => material._id.toString()
             );
 
+<<<<<<< HEAD
             // 检查打印工序是否选择了打印模版
             if (
               this.processForm.processType === "G" &&
@@ -2066,30 +2081,26 @@ export default {
               this.processForm.processType !== "C" &&
               this.processForm.processType !== "F" &&
               this.processForm.processType !== "G" &&
+=======
+            // 修改验证逻辑，检测工序（C）,托盘工序(F)不需要验证物料
+            if (
+              formData.processType !== "C" &&
+              formData.processType !== "F" &&
+>>>>>>> 16c2d896a06ff4e4b5ea7f6140f296e8327a0db9
               materialIds.length === 0
             ) {
               this.$message.warning("请先添加物料");
               return;
             }
 
-            // 如果是托盘工序且有物料，给出警告
-            // if (this.processForm.processType === 'F' && materialIds.length > 0) {
-            //     this.$message.warning('托盘工序不应包含物料，请手动清除物料数据');
-            //     return;
-            // }
-
             // 确保machineIds是数组
-            if (!Array.isArray(this.processForm.machineIds)) {
-              this.processForm.machineIds = [];
+            if (!Array.isArray(formData.machineIds)) {
+              formData.machineIds = [];
             }
-
-            // 打印日志，查看提交前的打印模版ID
-            console.log("提交前表单数据:", this.processForm);
-            console.log("提交前打印模版ID:", this.processForm.printTemplateId);
-
+            
             // 构建工序数据
             const processData = {
-              ...this.processForm,
+              ...formData,
               craftId: this.tempCraftId,
               materials: materialIds,
             };
@@ -2119,6 +2130,7 @@ export default {
 
             // 重新排序所有工序
             await this.reorderProcessSteps();
+            
           } catch (error) {
             console.error("操作失败:", error);
             this.$message.error("操作失败: " + error.message);

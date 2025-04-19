@@ -73,15 +73,15 @@ class MaterialPalletizingService {
 
         if (
           typeof totalQuantity === "number" &&
-          typeof productionPlan.saleOrderQuantity === "number"
+          typeof productionPlan.planQuantity === "number"
         ) {
           // 使用销售订单数量减去已有的所有托盘中的条码总数
           if (
             totalQuantity >
-            productionPlan.saleOrderQuantity - totalExistingBarcodes
+            productionPlan.planQuantity - totalExistingBarcodes
           ) {
             totalQuantity =
-              productionPlan.saleOrderQuantity - totalExistingBarcodes;
+              productionPlan.planQuantity - totalExistingBarcodes;
 
             if (totalQuantity <= 0) {
               throw new Error("销售订单数量已达到上限，无法创建新托盘");
@@ -90,7 +90,7 @@ class MaterialPalletizingService {
         }
 
         // 检查是否是尾数托盘（创建的托盘数量加上已有数量是否达到销售订单数量）
-        const isLastPallet = totalQuantity + totalExistingBarcodes >= productionPlan.saleOrderQuantity;
+        const isLastPallet = totalQuantity + totalExistingBarcodes >= productionPlan.planQuantity;
 
         // 创建托盘时记录工单信息数组，以支持多工单
         pallet = new MaterialPalletizing({
@@ -160,12 +160,12 @@ class MaterialPalletizingService {
         // 验证当前托盘中添加新条码是否会超出销售订单数量
         if (pallet.barcodeCount + 1 > pallet.totalQuantity) {
           // 根据销售订单剩余数量调整托盘总数量
-          const remainingQuantity = productionPlan.saleOrderQuantity - (totalExistingBarcodes - pallet.barcodeCount);
+          const remainingQuantity = productionPlan.planQuantity - (totalExistingBarcodes - pallet.barcodeCount);
           if (remainingQuantity > pallet.totalQuantity) {
             pallet.totalQuantity = remainingQuantity;
 
             // 更新是否为尾数托盘的标识
-            pallet.isLastPallet = (pallet.barcodeCount + 1 + (totalExistingBarcodes - pallet.barcodeCount)) >= productionPlan.saleOrderQuantity;
+            pallet.isLastPallet = (pallet.barcodeCount + 1 + (totalExistingBarcodes - pallet.barcodeCount)) >= productionPlan.planQuantity;
           } else {
             throw new Error("托盘条码数量已达到上限，请创建新托盘");
           }
@@ -295,7 +295,7 @@ class MaterialPalletizingService {
       // 检查添加条码后是否成为尾数托盘
       if (!pallet.isLastPallet) {
         const totalWithCurrent = totalExistingBarcodes - pallet.barcodeCount + pallet.palletBarcodes.length;
-        pallet.isLastPallet = totalWithCurrent >= productionPlan.saleOrderQuantity;
+        pallet.isLastPallet = totalWithCurrent >= productionPlan.planQuantity;
       }
 
       //对应主条码的工序完成触发
