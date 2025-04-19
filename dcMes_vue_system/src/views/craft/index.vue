@@ -1246,7 +1246,7 @@ export default {
         status: "CREATE", // 状态
         materials: [], // 工序物料清单
         remark: "", // 备注
-        printTemplateId: "", // 关联打印模版ID
+        // printTemplateId: "", // 关联打印模版ID
         sort: 1, // 工序次序
         isMES: true, // 是否录入MES
       },
@@ -1878,7 +1878,7 @@ export default {
           processDesc: "",
           processStage: "",
           processType: "",
-          printTemplateId: "",
+          // printTemplateId: "",
           businessType: this.craftForm.businessType,
           status: "CREATE",
           materials: [],
