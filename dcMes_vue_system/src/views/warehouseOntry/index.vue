@@ -255,12 +255,24 @@
 
                 <el-table-column label="操作" align="center" width="200">
                     <template slot-scope="scope">
-
                         <el-button type="text" style="color: orange"
+                            v-if="scope.row.status !== 'COMPLETED'"
                             @click="handleUpdateNumber(scope.row)">修改应出库数量</el-button>
-                        <el-button type="text" style="color: green" @click="handleChuKu(scope.row)"
-                            v-if="scope.row.outboundQuantity > scope.row.outNumber && scope.row.status == 'IN_PROGRESS'">继续出库</el-button>
-                        <el-button type="text" style="color: red" v-if="hasDeletePermission"
+                        <el-button type="text" style="color: green" 
+                            v-if="scope.row.outboundQuantity > scope.row.outNumber && scope.row.status === 'IN_PROGRESS'"
+                            @click="handleChuKu(scope.row)">
+                            继续出库
+                        </el-button>
+                        <el-button 
+                            type="text" 
+                            style="color: #67C23A"
+                            v-if="scope.row.outboundMode === 'SINGLE' && hasPalletPartOut(scope.row) && scope.row.status == 'IN_PROGRESS'"
+                            @click="handleFinishPallet(scope.row)"
+                            title="将部分出库的托盘剩余产品一次性出库">
+                            整托出库
+                            <el-badge value="new" class="item" v-if="hasPalletPartOut(scope.row)"></el-badge>
+                        </el-button>
+                        <el-button type="text" style="color: red" v-if="hasDeletePermission && scope.row.status !== 'COMPLETED'"
                             @click="handleDelete(scope.row)">删除</el-button>
                         <el-button type="text" style="color: blue" @click="handleSingleExport(scope.row)">导出</el-button>
                         <!-- <el-button type="text" @click="handleSync(scope.row)">同步金蝶云</el-button> -->
@@ -402,7 +414,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
-import { syncWarehouseOn } from "@/api/warehouse/entry";
+import { syncWarehouseOn, scanPalletOn } from "@/api/warehouse/entry";
 import ScanDialog from './components/ScanDialog.vue';
 import { query } from "quill";
 
@@ -465,6 +477,12 @@ export default {
     },
     methods: {
         handleUpdateNumber(row) {
+            // 检查出库单状态，如果已完成则不允许修改
+            if (row.status === 'COMPLETED') {
+                this.$message.error('已完成的出库单不允许修改数量');
+                return;
+            }
+            
             this.$prompt('请修改应出库数量', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
@@ -505,6 +523,12 @@ export default {
             });
         },
         handleChuKu(row) {
+            // 检查出库单状态，如果已完成则不允许继续出库
+            if (row.status === 'COMPLETED') {
+                this.$message.error('已完成的出库单不允许继续出库');
+                return;
+            }
+            
             this.scanData = row;
             
             // 确保托盘数量正确显示
@@ -794,6 +818,12 @@ export default {
 
         // 删除出库单
         async handleDelete(row) {
+            // 检查出库单状态，如果已完成则不允许删除
+            if (row.status === 'COMPLETED') {
+                this.$message.error('已完成的出库单不允许删除');
+                return;
+            }
+
             this.$confirm('确认删除该出库单？删除后将恢复相关托盘的入库状态', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
@@ -1111,6 +1141,88 @@ export default {
                 return [];
             }
             return entryItem.palletId.palletBarcodes.filter(barcode => barcode.outWarehouseStatus === 'COMPLETED');
+        },
+        
+        // 处理整托出库
+        async handleFinishPallet(row) {
+            try {
+                // 找出所有部分出库的托盘
+                const partOutPallets = row.entryItems.filter(item => 
+                    item.palletId && item.palletId.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+                );
+                
+                if (partOutPallets.length === 0) {
+                    this.$message.warning('没有找到部分出库的托盘');
+                    return;
+                }
+                
+                this.$confirm(`确认将 ${partOutPallets.length} 个部分出库的托盘全部出库吗？`, '确认', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(async () => {
+                    let successCount = 0;
+                    let errorMessages = [];
+                    
+                    // 对每个部分出库的托盘进行整托出库操作
+                    for (const palletItem of partOutPallets) {
+                        try {
+                            const response = await scanPalletOn({
+                                palletCode: palletItem.palletCode,
+                                userId: this.$store.state.user.id,
+                                entryInfo: {
+                                    entryNo: row.entryNo,
+                                    outboundQuantity: row.outboundQuantity,
+                                    HuoGuiCode: row.HuoGuiCode,
+                                    FaQIaoNo: row.FaQIaoNo,
+                                    outboundMode: row.outboundMode,
+                                    workOrderWhitelist: row.workOrderWhitelist || []
+                                },
+                                palletFinished: true // 指示整托出库
+                            });
+                            
+                            if (response.code === 200) {
+                                successCount++;
+                            } else {
+                                errorMessages.push(`托盘 ${palletItem.palletCode}: ${response.message}`);
+                            }
+                        } catch (error) {
+                            errorMessages.push(`托盘 ${palletItem.palletCode}: ${error.message || '出库失败'}`);
+                        }
+                    }
+                    
+                    // 显示处理结果
+                    if (successCount > 0) {
+                        this.$message.success(`成功出库 ${successCount} 个托盘的剩余产品`);
+                    }
+                    
+                    if (errorMessages.length > 0) {
+                        this.$message.error(`有 ${errorMessages.length} 个托盘出库失败: ${errorMessages.join('; ')}`);
+                    }
+                    
+                    this.fetchData(); // 刷新数据
+                }).catch(() => {
+                    this.$message.info('已取消整托出库');
+                });
+            } catch (error) {
+                console.error('整托出库失败:', error);
+                this.$message.error('整托出库失败: ' + error.message);
+            }
+        },
+        
+        // 检查是否有部分出库的托盘
+        hasPalletPartOut(row) {
+            // 确保托盘列表存在
+            if (!row.entryItems || row.entryItems.length === 0) {
+                return false;
+            }
+            
+            // 检查是否有部分出库的托盘
+            const partOutPallets = row.entryItems.filter(item => 
+                item.palletId && item.palletId.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+            );
+            
+            return partOutPallets.length > 0;
         },
     },
     created() {

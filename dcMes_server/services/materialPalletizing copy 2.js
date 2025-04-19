@@ -681,18 +681,6 @@ class MaterialPalletizingService {
         );
       }
 
-      // 检查要拆分的条码中是否有已出库的条码
-      const outWarehouseBarcodes = barcodes.filter(barcode => {
-        const palletBarcode = originalPallet.palletBarcodes.find(pb => pb.barcode === barcode);
-        return palletBarcode && palletBarcode.outWarehouseStatus === "COMPLETED";
-      });
-
-      if (outWarehouseBarcodes.length > 0) {
-        throw new Error(
-          `已出库的产品不能拆分，以下条码已出库: ${outWarehouseBarcodes.join(", ")}`
-        );
-      }
-
       // 3. 计算新托盘的编号（序列号递增）
       const splitCount = await this.getSplitCount(originalPalletCode);
       const newPalletCode = `${originalPalletCode}-${splitCount + 1}`;

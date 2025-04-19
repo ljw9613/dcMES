@@ -455,8 +455,57 @@ export default {
           }
 
           if (response.code !== 200) {
-            this.$message.error(response.message);
-            return;
+            // 如果托盘已部分出库，提示用户可以整托出库
+            if (response.message === "该托盘已部分出库，请使用整托出库功能完成剩余产品出库") {
+              this.$confirm('该托盘已部分出库，是否要完成所有剩余产品的出库？', '提示', {
+                confirmButtonText: '整托出库',
+                cancelButtonText: '取消',
+                type: 'warning'
+              }).then(async () => {
+                // 用户选择整托出库，调用整托出库API
+                const entirePalletResponse = await scanPalletOn({
+                  palletCode,
+                  userId: this.$store.state.user.id,
+                  entryInfo: {
+                    ...this.entryInfo,
+                    HuoGuiCode: this.entryInfo.HuoGuiCode,
+                    FaQIaoNo: this.entryInfo.FaQIaoNo,
+                    workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
+                      (item) => ({
+                        workOrderNo: item.workOrderNo,
+                        workOrderId: item._id,
+                        productionOrderNo: item.productionOrderNo,
+                      })
+                    ),
+                  },
+                  palletFinished: true // 指示整托出库
+                });
+                
+                if (entirePalletResponse.code === 200) {
+                  this.entryInfo = {
+                    ...entirePalletResponse.data,
+                    HuoGuiCode: this.entryInfo.HuoGuiCode,
+                    FaQIaoNo: this.entryInfo.FaQIaoNo
+                  };
+                  
+                  this.$message.success("整托出库成功");
+                  
+                  // 清空输入框并聚焦
+                  this.scanForm.barcode = "";
+                  this.$nextTick(() => {
+                    this.$refs.scanInput.focus();
+                  });
+                } else {
+                  this.$message.error(entirePalletResponse.message);
+                }
+              }).catch(() => {
+                this.$message.info('已取消整托出库');
+              });
+              return;
+            } else {
+              this.$message.error(response.message);
+              return;
+            }
           }
 
           if (response.mode === "init") {

@@ -272,13 +272,13 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             productType: order.FProductType,
             correspondOrgId: order.FCorrespondOrgId,
             status: "IN_PROGRESS",
-            outboundMode: entryInfo.outboundMode,
             progress: 0,
             startTime: new Date(),
             createBy: userId,
             createAt: new Date(),
             updateAt: new Date(),
             workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+            outboundMode: entryInfo.outboundMode, // 添加出库模式
           });
         } else {
           //小于应出库数量则返回,该销售单号销售数量为x,已完成出库数量为x,剩余出库数量为x;  saleOrder.FQty - sum = 剩余出库数量
@@ -439,10 +439,96 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     const existingPallet = entry.entryItems.find(
       (item) => item.palletCode === palletCode
     );
-    if (existingPallet) {
-      return res.status(200).json({
-        message: "该托盘已出库",
+    
+    // 处理部分出库的情况
+    if (existingPallet && pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE" && palletFinished) {
+      // 如果托盘已经部分出库，且用户选择了整托出库，则更新现有记录，增加剩余的产品
+      // 获取托盘中所有未出库的条码
+      const remainingBarcodes = pallet.palletBarcodes.filter(
+        item => item.outWarehouseStatus !== "COMPLETED"
+      );
+      
+      // 如果没有剩余未出库的条码，直接返回已出库信息
+      if (remainingBarcodes.length === 0) {
+        return res.status(200).json({
+          code: 200,
+          message: "该托盘所有产品已出库",
+          data: entry,
+        });
+      }
+      
+      // 将这些条码添加到出库单中
+      for (const barcode of remainingBarcodes) {
+        if (!existingPallet.palletBarcodes) {
+          existingPallet.palletBarcodes = [];
+        }
+        
+        existingPallet.palletBarcodes.push({
+          barcode: barcode.barcode,
+          barcodeType: barcode.barcodeType,
+          materialProcessFlowId: barcode.materialProcessFlowId,
+          productionPlanWorkOrderId: barcode.productionPlanWorkOrderId,
+          scanTime: new Date(),
+          scanBy: userId
+        });
+        
+        // 更新托盘中条码的出库状态
+        barcode.outWarehouseStatus = "COMPLETED";
+        barcode.outWarehouseTime = new Date();
+        barcode.outWarehouseBy = userId;
+      }
+      
+      // 更新托盘条目的数量
+      existingPallet.quantity = pallet.totalQuantity;
+      
+      // 更新出库单数量和进度
+      entry.outNumber = entry.entryItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
+      entry.progress = Math.round((entry.outNumber / entry.outboundQuantity) * 100);
+      
+      // 更新出库单状态
+      if (entry.outNumber >= entry.outboundQuantity) {
+        entry.status = "COMPLETED";
+        entry.completedTime = new Date();
+      }
+      
+      // 更新托盘状态为完全出库
+      pallet.inWarehouseStatus = "OUT_WAREHOUSE";
+      pallet.outWarehouseTime = new Date();
+      pallet.outWarehouseBy = userId;
+      
+      // 保存更新
+      await MaterialPallet.findByIdAndUpdate(pallet._id, {
+        inWarehouseStatus: pallet.inWarehouseStatus,
+        outWarehouseTime: new Date(),
+        updateAt: new Date(),
+        palletBarcodes: pallet.palletBarcodes
       });
+      
+      await entry.save();
+      
+      return res.status(200).json({
+        code: 200,
+        message: "托盘剩余产品成功出库",
+        data: entry,
+      });
+    } else if (existingPallet) {
+      // 对于已经在出库单中的托盘，需要判断其出入库状态
+      if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+        // 如果托盘状态为"已出库"，才提示不能出库
+        return res.status(200).json({
+          code: 404,
+          message: "该托盘已出库",
+        });
+      } else if (pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE" && !palletFinished) {
+        // 如果托盘状态为"部分出库"且不是整托出库模式，提示用户可以使用整托出库功能
+        return res.status(200).json({
+          code: 404,
+          message: "该托盘已部分出库，请使用整托出库功能完成剩余产品出库",
+        });
+      }
     }
 
     //判断是托盘出库还是单一产品出库
@@ -515,8 +601,12 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     });
 
     // 9. 更新托盘的出库状态
+    const materialPalletizingService = require("../services/materialPalletizing");
+    materialPalletizingService.updatePalletOutWarehouseStatus(pallet);
+    
+    // 更新托盘信息
     await MaterialPallet.findByIdAndUpdate(pallet._id, {
-      inWarehouseStatus: "OUT_WAREHOUSE",
+      inWarehouseStatus: pallet.inWarehouseStatus,
       outWarehouseTime: new Date(),
       updateAt: new Date(),
       palletBarcodes: pallet.palletBarcodes
@@ -947,6 +1037,27 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           pallet.palletBarcodes[barcodeIndex].outWarehouseBy = userId;
         }
 
+        // 检查托盘是否所有条码都已出库
+        const allBarcodesOut = pallet.palletBarcodes.every(
+          item => item.outWarehouseStatus === "COMPLETED"
+        );
+        
+        // 检查是否有条码已出库
+        const someBarcodesOut = pallet.palletBarcodes.some(
+          item => item.outWarehouseStatus === "COMPLETED"
+        );
+        
+        if (allBarcodesOut) {
+          pallet.inWarehouseStatus = "OUT_WAREHOUSE";
+          pallet.outWarehouseTime = new Date();
+          pallet.outWarehouseBy = userId;
+        } else if (someBarcodesOut) {
+          // 部分条码出库时更新托盘状态为部分出库
+          pallet.inWarehouseStatus = "PART_OUT_WAREHOUSE";
+          pallet.outWarehouseTime = new Date();
+          pallet.outWarehouseBy = userId;
+        }
+
         // 检查是否完成出库
         if (entry.outNumber >= entry.outboundQuantity) {
           entry.status = "COMPLETED";
@@ -1072,15 +1183,13 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       entry.endTime = new Date();
     }
 
-    // 检查托盘是否所有条码都已出库
-    const allBarcodesOut = pallet.palletBarcodes.every(
-      item => item.outWarehouseStatus === "COMPLETED"
-    );
-    if (allBarcodesOut) {
-      pallet.inWarehouseStatus = "OUT_WAREHOUSE";
-      pallet.outWarehouseTime = new Date();
-      pallet.outWarehouseBy = userId;
-    }
+    // 调用服务方法更新托盘出入库状态
+    const materialPalletizingService = require("../services/materialPalletizing");
+    materialPalletizingService.updatePalletOutWarehouseStatus(pallet);
+
+    // 记录出库时间和操作人
+    pallet.outWarehouseTime = new Date();
+    pallet.outWarehouseBy = userId;
 
     // 保存更新
     await Promise.all([

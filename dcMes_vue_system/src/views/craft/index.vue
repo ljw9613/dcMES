@@ -781,7 +781,7 @@
       </el-form>
 
       <!-- 工序列表 -->
-      <div class="screen1">
+      <div class="screen1" v-if="processForm.processType !== 'G'">
         <div class="screen_content_first">
           <i class="el-icon-tickets">物料管理列表</i>
           <el-button type="primary" @click="handleAddMaterial"
@@ -791,6 +791,7 @@
       </div>
 
       <base-table
+        v-if="processForm.processType !== 'G'"
         ref="materialTable"
         :tableData="materialTableData.tableList"
         :currentPage="materialTableData.currentPage"
@@ -1804,6 +1805,25 @@ export default {
         sequence,
         businessType
       );
+      
+      // 当工序类型为打印工序(G)时，清空物料数据
+      if (value === 'G') {
+        // 清空界面上的物料表格数据
+        this.materialTableData.tableList = [];
+        this.materialTableData.total = 0;
+        
+        // 如果是编辑状态且工序ID存在，则删除数据库中关联的物料数据
+        if (this.processOperationType === 'edit' && this.tempProcessId) {
+          try {
+            await removeData("processMaterials", {
+              query: { processStepId: this.tempProcessId },
+            });
+            this.$message.success("已自动清空打印工序的物料数据");
+          } catch (error) {
+            console.error("清空物料数据失败:", error);
+          }
+        }
+      }
     },
 
     async handleBusinessTypeChange(value) {
@@ -2041,10 +2061,11 @@ export default {
               return;
             }
 
-            // 修改验证逻辑，检测工序（C）,托盘工序(F)不需要验证物料
+            // 修改验证逻辑，检测工序（C）,托盘工序(F)，打印工序(G)不需要验证物料
             if (
               this.processForm.processType !== "C" &&
               this.processForm.processType !== "F" &&
+              this.processForm.processType !== "G" &&
               materialIds.length === 0
             ) {
               this.$message.warning("请先添加物料");
@@ -2110,6 +2131,13 @@ export default {
     },
     // ================ 物料相关方法 ================
     async fetchMaterialData() {
+      // 如果是打印工序，不加载物料数据
+      if (this.processForm.processType === 'G') {
+        this.materialTableData.tableList = [];
+        this.materialTableData.total = 0;
+        return;
+      }
+      
       this.materialTableData.listLoading = true;
       try {
         const processId = this.processForm._id;
@@ -2144,6 +2172,12 @@ export default {
     },
 
     handleAddMaterial() {
+      // 检查工序类型是否为 G (打印工序)
+      if (this.processForm.processType === 'G') {
+        this.$message.warning('打印工序不需要添加物料');
+        return;
+      }
+      
       // 检查工序类型是否为 F
       // if (this.processForm.processType === 'F') {
       //     this.$message.warning('托盘工序不能添加物料');

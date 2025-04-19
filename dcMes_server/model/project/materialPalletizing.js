@@ -88,7 +88,7 @@ const materialPalletizingSchema = new mongoose.Schema({
   // 出入库状态
   inWarehouseStatus: {
     type: String,
-    enum: ["PENDING", "IN_WAREHOUSE", "OUT_WAREHOUSE"],
+    enum: ["PENDING", "IN_WAREHOUSE", "PART_OUT_WAREHOUSE", "OUT_WAREHOUSE"], //待入库 已入库 部分出库 已出库
     default: "PENDING",
   },
 

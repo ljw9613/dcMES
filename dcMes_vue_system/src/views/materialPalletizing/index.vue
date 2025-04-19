@@ -1544,6 +1544,7 @@ export default {
       const statusMap = {
         PENDING: "待入库",
         IN_WAREHOUSE: "已入库",
+        PART_OUT_WAREHOUSE: "部分出库",
         OUT_WAREHOUSE: "已出库",
         undefined: "待入库",
         null: "待入库",
@@ -1555,6 +1556,7 @@ export default {
       const typeMap = {
         PENDING: "info",
         IN_WAREHOUSE: "success",
+        PART_OUT_WAREHOUSE: "primary",
         OUT_WAREHOUSE: "warning",
         undefined: "info",
         null: "info",
