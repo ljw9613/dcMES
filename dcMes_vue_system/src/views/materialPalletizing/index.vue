@@ -108,6 +108,7 @@
               >
                 <el-option label="待入库" value="PENDING"></el-option>
                 <el-option label="已入库" value="IN_WAREHOUSE"></el-option>
+                <el-option label="部分出库" value="PART_OUT_WAREHOUSE"></el-option>
                 <el-option label="已出库" value="OUT_WAREHOUSE"></el-option>
               </el-select>
             </el-form-item>

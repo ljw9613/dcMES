@@ -123,7 +123,7 @@
                     <el-button type="primary" @click="search">查询搜索</el-button>
                     <el-button @click="resetForm">重置</el-button>
                     <!-- 扫码出库 -->
-                    <el-button type="primary" @click="handlePalletBarcodeOpen">新增</el-button>
+                    <el-button type="primary" @click="handlePalletBarcodeOpen" :loading="scanLoading">新增</el-button>
                     <!-- 导出按钮 -->
                     <el-button type="success" @click="handleExport" :loading="exportLoading">导出数据</el-button>
                 </el-form-item>
@@ -260,7 +260,8 @@
                             @click="handleUpdateNumber(scope.row)">修改应出库数量</el-button>
                         <el-button type="text" style="color: green" 
                             v-if="scope.row.outboundQuantity > scope.row.outNumber && scope.row.status === 'IN_PROGRESS'"
-                            @click="handleChuKu(scope.row)">
+                            @click="handleChuKu(scope.row)"
+                            :loading="scanLoading">
                             继续出库
                         </el-button>
                         <el-button 
@@ -268,6 +269,7 @@
                             style="color: #67C23A"
                             v-if="scope.row.outboundMode === 'SINGLE' && hasPalletPartOut(scope.row) && scope.row.status == 'IN_PROGRESS'"
                             @click="handleFinishPallet(scope.row)"
+                            :loading="scanLoading"
                             title="将部分出库的托盘剩余产品一次性出库">
                             整托出库
                             <el-badge value="new" class="item" v-if="hasPalletPartOut(scope.row)"></el-badge>
@@ -473,6 +475,7 @@ export default {
             scanPalletDialog: false,
             palletBarcode: '',
             hasDeletePermission: false,
+            scanLoading: false,
         }
     },
     methods: {
@@ -529,6 +532,14 @@ export default {
                 return;
             }
             
+            // 检查是否正在加载中，防止重复点击
+            if (this.scanLoading) {
+                return;
+            }
+            
+            // 设置加载状态为true
+            this.scanLoading = true;
+            
             this.scanData = row;
             
             // 确保托盘数量正确显示
@@ -539,8 +550,19 @@ export default {
             }
             
             this.scanDialogVisible = true;
+            
+            // 打开弹窗后重置加载状态
+            this.scanLoading = false;
         },
         handlePalletBarcodeOpen() {
+            // 检查是否正在加载中，防止重复点击
+            if (this.scanLoading) {
+                return;
+            }
+            
+            // 设置加载状态为true
+            this.scanLoading = true;
+            
             this.scanData = {
                 FBillNo: null,
                 HuoGuiCode: null,
@@ -558,6 +580,9 @@ export default {
                 entryItems: []
             }
             this.scanDialogVisible = true;
+            
+            // 打开弹窗后重置加载状态
+            this.scanLoading = false;
         },
 
 
@@ -744,16 +769,20 @@ export default {
         // 处理单个托盘扫描
         async handleScan() {
             try {
-                this.fetchData();
+                this.scanLoading = true; // 添加加载状态
+                await this.fetchData();
             } catch (error) {
                 this.$message.error(error.message || '扫描失败');
                 throw error;
+            } finally {
+                this.scanLoading = false; // 无论成功失败都重置加载状态
             }
         },
 
         // 处理扫描完成
         async handleScanComplete(palletCodes) {
             try {
+                this.scanLoading = true; // 设置加载状态
                 await this.fetchData(); // 刷新列表
                 
                 // 更新表格中的托盘数量
@@ -768,6 +797,8 @@ export default {
                 this.$message.success(`成功出库 ${palletCodes.length} 个托盘`);
             } catch (error) {
                 this.$message.error('完成出库失败');
+            } finally {
+                this.scanLoading = false; // 无论成功失败都重置加载状态
             }
         },
 
@@ -1146,6 +1177,11 @@ export default {
         // 处理整托出库
         async handleFinishPallet(row) {
             try {
+                // 检查是否正在加载中，防止重复点击
+                if (this.scanLoading) {
+                    return;
+                }
+                
                 // 找出所有部分出库的托盘
                 const partOutPallets = row.entryItems.filter(item => 
                     item.palletId && item.palletId.inWarehouseStatus === "PART_OUT_WAREHOUSE"
@@ -1161,6 +1197,8 @@ export default {
                     cancelButtonText: '取消',
                     type: 'warning'
                 }).then(async () => {
+                    this.scanLoading = true; // 设置加载状态
+                    
                     let successCount = 0;
                     let errorMessages = [];
                     
@@ -1201,12 +1239,14 @@ export default {
                     }
                     
                     this.fetchData(); // 刷新数据
+                    this.scanLoading = false; // 重置加载状态
                 }).catch(() => {
                     this.$message.info('已取消整托出库');
                 });
             } catch (error) {
                 console.error('整托出库失败:', error);
                 this.$message.error('整托出库失败: ' + error.message);
+                this.scanLoading = false; // 出错时也重置加载状态
             }
         },
         

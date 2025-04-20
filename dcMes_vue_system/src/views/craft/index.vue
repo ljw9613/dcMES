@@ -2066,7 +2066,6 @@ export default {
               (material) => material._id.toString()
             );
 
-<<<<<<< HEAD
             // 检查打印工序是否选择了打印模版
             if (
               this.processForm.processType === "G" &&
@@ -2081,17 +2080,18 @@ export default {
               this.processForm.processType !== "C" &&
               this.processForm.processType !== "F" &&
               this.processForm.processType !== "G" &&
-=======
-            // 修改验证逻辑，检测工序（C）,托盘工序(F)不需要验证物料
-            if (
-              formData.processType !== "C" &&
-              formData.processType !== "F" &&
->>>>>>> 16c2d896a06ff4e4b5ea7f6140f296e8327a0db9
               materialIds.length === 0
             ) {
               this.$message.warning("请先添加物料");
               return;
             }
+
+            // 确保machineIds是数组
+            if (!Array.isArray(formData.machineIds)) {
+              formData.machineIds = [];
+            }
+            
+            // 构建工序数据
 
             // 确保machineIds是数组
             if (!Array.isArray(formData.machineIds)) {
