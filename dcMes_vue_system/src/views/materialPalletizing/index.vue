@@ -926,8 +926,8 @@
             { required: true, message: '请输入托盘编号', trigger: 'blur' },
           ]"
         >
-          <el-input 
-            v-model="addToPalletForm.palletCode" 
+          <el-input
+            v-model="addToPalletForm.palletCode"
             placeholder="请输入或扫描托盘编号"
             @keyup.enter.native="validatePalletCode"
           ></el-input>
@@ -960,8 +960,8 @@
 
           <el-divider content-position="center">条码扫描</el-divider>
 
-          <el-form-item 
-            label="条码" 
+          <el-form-item
+            label="条码"
             prop="barcode"
             :rules="[
               { required: true, message: '请输入或扫描条码', trigger: 'blur' },
@@ -974,7 +974,7 @@
               @keyup.enter.native="handleAddBarcode"
             ></el-input>
           </el-form-item>
-          
+
           <!-- 已扫描条码展示区域 -->
           <div class="scanned-list" v-if="scannedBarcodes.length > 0">
             <div class="scanned-header">
@@ -1010,18 +1010,20 @@
               </el-table-column>
               <el-table-column label="箱条码" align="center" width="100">
                 <template slot-scope="scope">
-                  <span v-if="scope.row.boxBarcode">{{ scope.row.boxBarcode }}</span>
+                  <span v-if="scope.row.boxBarcode">{{
+                    scope.row.boxBarcode
+                  }}</span>
                   <span v-else>-</span>
                 </template>
               </el-table-column>
               <el-table-column label="时间" align="center" width="140">
                 <template slot-scope="scope">
-                  {{ formatDate(scope.row.scanTime, 'YYYY-MM-DD HH:mm:ss') }}
+                  {{ formatDate(scope.row.scanTime, "YYYY-MM-DD HH:mm:ss") }}
                 </template>
               </el-table-column>
             </el-table>
           </div>
-          
+
           <el-alert
             type="info"
             title="操作提示"
@@ -1844,16 +1846,19 @@ export default {
         this.$message.warning("请输入托盘编号");
         return;
       }
+      
+      const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+        this.addToPalletForm.palletCode.split("#");
 
       try {
         const res = await getData("material_palletizing", {
-          query: { palletCode: this.addToPalletForm.palletCode },
+          query: { palletCode: palletCode },
           populate: JSON.stringify([{ path: "productLineId" }]),
         });
 
         if (res.data && res.data.length > 0) {
           const pallet = res.data[0];
-          
+
           // 检查托盘状态
           if (pallet.status !== "STACKING") {
             this.$message.warning("只能对组托中状态的托盘进行操作");
@@ -1864,30 +1869,41 @@ export default {
           this.materialInfo = `${pallet.materialName || ""}${
             pallet.materialSpec ? " | " + pallet.materialSpec : ""
           }`;
-          
+
           // 清空已扫描条码列表
           this.scannedBarcodes = [];
-          
+
           // 如果托盘已有条码，将其添加到已扫描列表中
           if (pallet.palletBarcodes && pallet.palletBarcodes.length > 0) {
             // 获取托盘中的条码信息
             for (const barcodeItem of pallet.palletBarcodes) {
               // 检查是否是箱条码
-              const isInBox = pallet.boxItems && pallet.boxItems.some(
-                box => box.boxBarcodes && box.boxBarcodes.some(bb => bb.barcode === barcodeItem.barcode)
-              );
-              
+              const isInBox =
+                pallet.boxItems &&
+                pallet.boxItems.some(
+                  (box) =>
+                    box.boxBarcodes &&
+                    box.boxBarcodes.some(
+                      (bb) => bb.barcode === barcodeItem.barcode
+                    )
+                );
+
               // 如果是箱内条码，找出对应的箱条码
               let boxBarcode = null;
               if (isInBox && pallet.boxItems) {
                 for (const box of pallet.boxItems) {
-                  if (box.boxBarcodes && box.boxBarcodes.some(bb => bb.barcode === barcodeItem.barcode)) {
+                  if (
+                    box.boxBarcodes &&
+                    box.boxBarcodes.some(
+                      (bb) => bb.barcode === barcodeItem.barcode
+                    )
+                  ) {
                     boxBarcode = box.boxBarcode;
                     break;
                   }
                 }
               }
-              
+
               // 添加到已扫描列表
               this.scannedBarcodes.push({
                 barcode: barcodeItem.barcode,
@@ -1897,7 +1913,7 @@ export default {
               });
             }
           }
-          
+
           // 获取成功后，自动聚焦到条码输入框
           this.$nextTick(() => {
             this.$refs.barcodeInput && this.$refs.barcodeInput.focus();
@@ -1955,7 +1971,7 @@ export default {
           // 是包装箱条码
           // 整个箱子的条码列表
           const boxBarcodes = boxResponse.data.map((item) => item.barcode);
-          
+
           // 设置加载提示
           const loading = this.$loading({
             lock: true,
@@ -1963,11 +1979,11 @@ export default {
             spinner: "el-icon-loading",
             background: "rgba(0, 0, 0, 0.7)",
           });
-          
+
           try {
             // 成功添加的条码数量
             let successCount = 0;
-            
+
             // 分别处理箱内每个条码
             for (const barcode of boxBarcodes) {
               let res = await addBarcodeToPallet({
@@ -1976,7 +1992,7 @@ export default {
                 boxBarcode: cleanValue,
                 userId: this.$store.state.user.id,
               });
-              if(res.code !== 200){
+              if (res.code !== 200) {
                 this.$message.error(res.message || "添加条码失败");
                 return;
               } else {
@@ -1986,14 +2002,16 @@ export default {
                   barcode: barcode,
                   type: "box",
                   boxBarcode: cleanValue,
-                  scanTime: new Date()
+                  scanTime: new Date(),
                 });
               }
             }
-            
+
             // 添加成功，刷新托盘信息
             await this.validatePalletCode();
-            this.$message.success(`包装箱条码处理成功，添加了${successCount}个条码`);
+            this.$message.success(
+              `包装箱条码处理成功，添加了${successCount}个条码`
+            );
           } catch (error) {
             this.$message.error(error.message || "处理包装箱条码失败");
           } finally {
@@ -2018,19 +2036,19 @@ export default {
               mainBarcode: cleanValue,
               userId: this.$store.state.user.id,
             });
-            
+
             if (res.code === 200) {
               // 条码添加成功，记录到已扫描列表
               this.scannedBarcodes.push({
                 barcode: cleanValue,
                 type: "single",
-                scanTime: new Date()
+                scanTime: new Date(),
               });
-              
+
               // 添加成功，刷新托盘信息
               await this.validatePalletCode();
               this.$message.success("条码添加成功");
-              
+
               // 如果托盘已满，关闭对话框并刷新列表
               if (res.data.status === "STACKED") {
                 setTimeout(() => {
@@ -2063,7 +2081,8 @@ export default {
       this.resetAddToPalletForm();
       // 自动聚焦托盘编号输入框
       this.$nextTick(() => {
-        const palletCodeInput = this.$refs.addToPalletForm.$el.querySelector('input');
+        const palletCodeInput =
+          this.$refs.addToPalletForm.$el.querySelector("input");
         palletCodeInput && palletCodeInput.focus();
       });
     },
@@ -2353,7 +2372,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
-    
+
     h4 {
       margin: 0;
       font-weight: bold;
