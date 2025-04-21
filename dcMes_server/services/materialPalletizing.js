@@ -556,6 +556,22 @@ class MaterialPalletizingService {
       throw error;
     }
   }
+  
+  /**
+   * 清理托盘中数量为0的工单信息
+   * @param {Object} pallet - 托盘对象
+   * @returns {Object} 清理后的托盘对象
+   */
+  static cleanZeroQuantityWorkOrders(pallet) {
+    // 确保工单数组存在
+    if (!pallet.workOrders || !Array.isArray(pallet.workOrders)) {
+      return pallet;
+    }
+    // 过滤掉数量为0的工单
+    pallet.workOrders = pallet.workOrders.filter((wo) => wo.quantity > 0);
+
+    return pallet;
+  }
 
   /**
    * 解绑条码
@@ -808,6 +824,9 @@ class MaterialPalletizingService {
         }
       }
 
+      // 清理数量为0的工单
+      this.cleanZeroQuantityWorkOrders(pallet);
+
       pallet.updateAt = new Date();
       pallet.updateBy = userId;
 
@@ -920,6 +939,10 @@ class MaterialPalletizingService {
 
       // 无论维修状态如何，都将组托状态重置为组托中
       pallet.status = "STACKING"; // 解绑后重置为组托中状态
+
+      // 清理所有工单信息(全部解绑后所有工单数量都为0)
+      pallet.workOrders = [];
+
       pallet.updateAt = new Date();
       pallet.updateBy = userId;
 
@@ -1196,6 +1219,9 @@ class MaterialPalletizingService {
           }
         });
 
+        // 清理数量为0的工单
+        this.cleanZeroQuantityWorkOrders(updatedOriginalPallet);
+
         // 确保barcodeCount和totalQuantity保持一致
         const palletBarcodesCount = updatedOriginalPallet.palletBarcodes.length;
         updatedOriginalPallet.barcodeCount = palletBarcodesCount;
@@ -1269,6 +1295,8 @@ class MaterialPalletizingService {
       }
 
       // 8. 创建新托盘记录
+      // 清理数量为0的工单
+      this.cleanZeroQuantityWorkOrders(newPallet);
       const createdPallet = await MaterialPalletizing.create(newPallet);
 
       // 12. 处理入库单中的关联关系
