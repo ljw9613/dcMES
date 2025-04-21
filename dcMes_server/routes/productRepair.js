@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const materialProcessFlow = require("../model/project/materialProcessFlow");
 const productRepair = require("../model/project/productRepair");
+const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
 // 扫条码获取产品信息
 router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
   try {
@@ -88,8 +89,22 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
           );
 
           if (!updatedRepair) {
-            errors.push(`条码 ${barcodeData.barcode} 更新失败：未找到要更新的维修单`);
+            errors.push(
+              `条码 ${barcodeData.barcode} 更新失败：未找到要更新的维修单`
+            );
             continue;
+          }
+
+          // 更新materialProcessFlow中的productStatus
+          if (form.productStatus) {
+            await materialProcessFlow.findOneAndUpdate(
+              { barcode: barcodeData.barcode },
+              {
+                productStatus: form.productStatus,
+                updateBy: userId,
+                updateAt: new Date(),
+              }
+            );
           }
 
           successRecords.push(updatedRepair);
@@ -100,13 +115,14 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
 
       res.json({
         code: 200,
-        message: successRecords.length > 0 ? "维修单更新成功" : "维修单更新失败",
+        message:
+          successRecords.length > 0 ? "维修单更新成功" : "维修单更新失败",
         data: {
           successCount: successRecords.length,
           totalCount: form.barcodes.length,
           errors: errors,
-          updatedRecords: successRecords
-        }
+          updatedRecords: successRecords,
+        },
       });
     } else {
       //新增
@@ -135,7 +151,9 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
           });
 
           if (!!productRepairData) {
-            errors.push(`条码 ${barcode.barcode} 已创建,且状态为待审核,无法再次创建`);
+            errors.push(
+              `条码 ${barcode.barcode} 已创建,且状态为待审核,无法再次创建`
+            );
             continue;
           }
 
@@ -162,8 +180,20 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
             repairTime: new Date(), // 维修时间
             createBy: userId,
             updateBy: userId,
+            productStatus: form.productStatus || "REPAIRING", // 默认为维修中
             ...formData,
           });
+
+          // 更新materialProcessFlow中的productStatus
+          await materialProcessFlow.findOneAndUpdate(
+            { barcode: barcode.barcode },
+            {
+              productStatus:
+                form.solution == "报废" ? "SCRAP" : "REPAIRING", // 默认为维修中
+              updateBy: userId,
+              updateAt: new Date(),
+            }
+          );
 
           successRecords.push(newRepair);
         } catch (error) {
@@ -202,6 +232,197 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
       });
     }
   } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: error.message,
+    });
+  }
+});
+
+// 审核维修记录API
+router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
+  try {
+    const { repairId, repairResult, adverseEffect, userId } = req.body;
+    
+    // 查找维修记录
+    const repairRecord = await productRepair.findOne({ _id: repairId });
+    
+    if (!repairRecord) {
+      return res.status(200).json({
+        code: 404,
+        message: "未找到维修记录",
+      });
+    }
+    
+    if (repairRecord.status === "REVIEWED") {
+      return res.status(200).json({
+        code: 400,
+        message: "该维修记录已审核",
+      });
+    }
+    
+    if (repairRecord.status === "VOIDED") {
+      return res.status(200).json({
+        code: 400,
+        message: "该维修记录已作废",
+      });
+    }
+    
+    // 更新维修记录
+    const updateData = {
+      repairResult,
+      adverseEffect,
+      status: "REVIEWED",
+      reviewTime: new Date(),
+      reviewer: userId,
+      updateBy: userId,
+      updateAt: new Date(),
+    };
+    
+    await productRepair.findByIdAndUpdate(repairId, updateData);
+    
+    // 检查是否是报废处理方案
+    if (repairRecord.solution === "报废") {
+      // 更新物料流程状态为报废
+      await materialProcessFlow.findOneAndUpdate(
+        { barcode: repairRecord.barcode },
+        {
+          productStatus: "SCRAP",
+          updateBy: userId,
+          updateAt: new Date(),
+        }
+      );
+      
+      // 如果有工单信息，更新工单报废数量
+      if (repairRecord.productionPlanWorkOrderId) {
+        const workOrder = await productionPlanWorkOrder.findById(repairRecord.productionPlanWorkOrderId);
+        
+        if (workOrder) {
+          // 检查条码是否已经在报废列表中
+          const existingScrapItem = workOrder.scrapProductBarcodeList.find(
+            item => item.barcode === repairRecord.barcode
+          );
+          
+          if (!existingScrapItem) {
+            // 更新工单报废数量和报废条码列表
+            await productionPlanWorkOrder.findByIdAndUpdate(
+              repairRecord.productionPlanWorkOrderId,
+              {
+                $inc: { scrapQuantity: 1 },
+                $push: {
+                  scrapProductBarcodeList: {
+                    barcode: repairRecord.barcode,
+                    scrapTime: new Date(),
+                  },
+                },
+              }
+            );
+          }
+        }
+      }
+    }
+    
+    res.json({
+      code: 200,
+      message: "审核成功",
+    });
+  } catch (error) {
+    console.error("审核失败:", error);
+    res.status(500).json({
+      code: 500,
+      message: error.message,
+    });
+  }
+});
+
+// 批量审核维修记录API
+router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
+  try {
+    const { repairIds, repairResult, adverseEffect, userId } = req.body;
+    
+    if (!repairIds || !Array.isArray(repairIds) || repairIds.length === 0) {
+      return res.status(200).json({
+        code: 400,
+        message: "请选择要审核的记录",
+      });
+    }
+    
+    // 更新数据
+    const updateData = {
+      repairResult,
+      adverseEffect,
+      status: "REVIEWED",
+      reviewTime: new Date(),
+      reviewer: userId,
+      updateBy: userId,
+      updateAt: new Date(),
+    };
+    
+    // 查找所有需要审核的记录
+    const repairRecords = await productRepair.find({
+      _id: { $in: repairIds },
+      status: "PENDING_REVIEW",
+    });
+    
+    // 更新所有记录
+    await productRepair.updateMany(
+      { _id: { $in: repairIds }, status: "PENDING_REVIEW" },
+      updateData
+    );
+    
+    // 处理报废的记录
+    const scrapRepairs = repairRecords.filter(record => record.solution === "报废");
+    
+    for (const record of scrapRepairs) {
+      // 更新物料流程状态为报废
+      await materialProcessFlow.findOneAndUpdate(
+        { barcode: record.barcode },
+        {
+          productStatus: "SCRAP",
+          updateBy: userId,
+          updateAt: new Date(),
+        }
+      );
+      
+      // 如果有工单信息，更新工单报废数量
+      if (record.productionPlanWorkOrderId) {
+        const workOrder = await productionPlanWorkOrder.findById(record.productionPlanWorkOrderId);
+        
+        if (workOrder) {
+          // 检查条码是否已经在报废列表中
+          const existingScrapItem = workOrder.scrapProductBarcodeList.find(
+            item => item.barcode === record.barcode
+          );
+          
+          if (!existingScrapItem) {
+            // 更新工单报废数量和报废条码列表
+            await productionPlanWorkOrder.findByIdAndUpdate(
+              record.productionPlanWorkOrderId,
+              {
+                $inc: { scrapQuantity: 1 },
+                $push: {
+                  scrapProductBarcodeList: {
+                    barcode: record.barcode,
+                    scrapTime: new Date(),
+                  },
+                },
+              }
+            );
+          }
+        }
+      }
+    }
+    
+    res.json({
+      code: 200,
+      message: "批量审核成功",
+      data: {
+        updatedCount: repairRecords.length,
+        scrapCount: scrapRepairs.length,
+      },
+    });
+  } catch (error) {
+    console.error("批量审核失败:", error);
     res.status(500).json({
       code: 500,
       message: error.message,

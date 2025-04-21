@@ -46,6 +46,14 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
   planProductionQuantity: { type: Number, default: 0 },
   inputQuantity: { type: Number, default: 0 }, // 投入数量
   outputQuantity: { type: Number, default: 0 }, // 产出数量
+  //报废数量
+  scrapQuantity: { type: Number, default: 0 },
+  scrapProductBarcodeList: [
+    {
+      barcode: { type: String }, // 产品条码
+      scrapTime: { type: Date, default: Date.now }, // 报废时间
+    },
+  ], // 报废产品条码列表
 
   // 时间信息
   planStartTime: { type: Date, required: true }, // 计划开始生产时间

@@ -657,7 +657,8 @@ class MaterialProcessFlowService {
       //检测当前工单是否可以继续投入 - 仅在首道工序时检查
       if (planWorkOrder && processPosition.isFirst) {
         if (
-          planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+          planWorkOrder.inputQuantity >=
+          planWorkOrder.planProductionQuantity - planWorkOrder.scrapQuantity
         ) {
           throw new Error("工单已达到计划数量，无法继续投入");
         }
@@ -1801,7 +1802,7 @@ class MaterialProcessFlowService {
         );
       }
       // 检查工单状态
-      else if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
+      else if (workOrder.outputQuantity >= workOrder.planProductionQuantity - workOrder.scrapQuantity) {
         // 更新工单完成状态和时间
         workOrder.status = "COMPLETED";
         workOrder.endTime = new Date();

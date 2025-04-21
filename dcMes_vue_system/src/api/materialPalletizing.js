@@ -44,3 +44,21 @@ export function updatePalletInspectionStatus(data) {
         data
     })
 }
+
+// 指定托盘添加条码接口
+export function addBarcodeToPallet(data) {
+    return request({
+        url: '/addBarcodeToPallet',
+        method: 'post',
+        data
+    })
+}
+
+// 托盘强制完成接口
+export function handleForceCompletePallet(data) {
+    return request({
+        url: '/forcePalletComplete',
+        method: 'post',
+        data
+    })
+}

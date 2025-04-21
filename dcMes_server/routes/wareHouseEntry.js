@@ -48,7 +48,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
         )}`,
       });
     }
-    
+
     //判断托盘单据里面的条码是否全部完成状态
     let barcodeArray = [];
     pallet.palletBarcodes.forEach((item) => {
@@ -75,7 +75,19 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       });
     }
 
-    // 2. 获取或创建入库单
+    //校验是否有已完成的生产订单对应的入库单
+    const completedEntry = await WarehouseEntry.findOne({
+      productionOrderNo: pallet.productionOrderNo,
+      status: "COMPLETED",
+    });
+    
+    if (completedEntry) {
+      return res.status(200).json({
+        code: 404,
+        message: "该生产订单的入库单已完成",
+      });
+    }
+
     let entry = await WarehouseEntry.findOne({
       productionOrderNo: pallet.productionOrderNo,
       status: { $ne: "COMPLETED" },
@@ -190,7 +202,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       saleOrderNo: pallet.saleOrderNo,
       materialCode: pallet.materialCode,
       quantity: pallet.totalQuantity,
-      lineCode: pallet.productLineName
+      lineCode: pallet.productLineName,
     };
 
     res.json({
@@ -198,8 +210,8 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       message: "扫码入库成功",
       data: {
         ...entry.toObject(),
-        palletInfo: palletInfo
-      }
+        palletInfo: palletInfo,
+      },
     });
   } catch (error) {
     res.status(500).json({

@@ -160,22 +160,39 @@
           </el-col>
         </el-row>
 
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-form-item label="产品状态">
+              <el-select
+                v-model="searchForm.productStatus"
+                placeholder="请选择产品状态"
+                clearable
+                style="width: 100%"
+              >
+                <el-option label="正常" value="NORMAL" />
+                <el-option label="维修中" value="REPAIRING" />
+                <el-option label="报废" value="SCRAP" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="18">
+            <el-form-item label="开始时间">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd"
+                style="width: 100%"
+              >
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <div v-show="showAdvanced">
           <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="开始时间">
-                <el-date-picker
-                  v-model="searchForm.dateRange"
-                  type="daterange"
-                  range-separator="至"
-                  start-placeholder="开始日期"
-                  end-placeholder="结束日期"
-                  value-format="yyyy-MM-dd"
-                  style="width: 100%"
-                >
-                </el-date-picker>
-              </el-form-item>
-            </el-col>
             <el-col :span="6">
               <el-form-item label="完成进度">
                 <el-input-number
@@ -267,6 +284,14 @@
           <template slot-scope="scope">
             <el-tag :type="getProcessStatusType(scope.row.status)">
               {{ getProcessStatusText(scope.row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="产品状态" width="100">
+          <template slot-scope="scope">
+            <el-tag :type="getProductStatusType(scope.row.productStatus || 'NORMAL')">
+              {{ getProductStatusText(scope.row.productStatus || 'NORMAL') }}
             </el-tag>
           </template>
         </el-table-column>
@@ -453,6 +478,12 @@
                       <label>当前状态：</label>
                       <el-tag :type="getProcessStatusType(dataForm.status)">
                         {{ getProcessStatusText(dataForm.status) }}
+                      </el-tag>
+                    </div>
+                    <div class="info-item">
+                      <label>产品状态：</label>
+                      <el-tag :type="getProductStatusType(dataForm.productStatus || 'NORMAL')">
+                        {{ getProductStatusText(dataForm.productStatus || 'NORMAL') }}
                       </el-tag>
                     </div>
                   </div>
@@ -1100,6 +1131,7 @@ export default {
         productModel: "",
         businessType: "",
         status: "",
+        productStatus: "",
         dateRange: [],
         progress: "",
         workOrderNo: "",
@@ -1327,6 +1359,27 @@ export default {
       };
       return statusMap[status] || status;
     },
+    
+    // 获取产品状态样式
+    getProductStatusType(status) {
+      const statusMap = {
+        NORMAL: "success",
+        REPAIRING: "warning",
+        SCRAP: "danger",
+      };
+      return statusMap[status] || "info";
+    },
+
+    // 获取产品状态文本
+    getProductStatusText(status) {
+      const statusMap = {
+        NORMAL: "正常",
+        REPAIRING: "维修中",
+        SCRAP: "报废",
+      };
+      return statusMap[status] || status;
+    },
+    
     // 获取数据
     async fetchData() {
       this.listLoading = true;
@@ -1767,6 +1820,11 @@ export default {
       if (this.searchForm.status) {
         req.query.$and.push({ status: this.searchForm.status });
       }
+      
+      // 添加产品状态查询
+      if (this.searchForm.productStatus) {
+        req.query.$and.push({ productStatus: this.searchForm.productStatus });
+      }
 
       // 处理日期范围查询
       if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
@@ -1839,6 +1897,7 @@ export default {
         productModel: "",
         businessType: "",
         status: "",
+        productStatus: "",
         dateRange: [],
         progress: "",
         workOrderNo: "",

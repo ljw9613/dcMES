@@ -92,6 +92,13 @@ const materialPalletizingSchema = new mongoose.Schema({
     default: "PENDING",
   },
 
+  //维修状态
+  repairStatus: {
+    type: String,
+    enum: ["PENDING", "REPAIRING", "REPAIRED"], //待维修 维修中 维修完成
+    default: "PENDING",
+  },
+
   // 数量信息
   totalQuantity: { type: Number, default: 0 }, // 托盘总数量
   boxCount: { type: Number, default: 0 }, // 箱子数量
