@@ -1928,7 +1928,7 @@ export default {
       // 确保工序的业务类型与工艺保持一致
       this.processForm.businessType = this.craftForm.businessType;
     
-
+      this.processForm.machineId = row.machineId && row.machineId._id;
       // 打印日志，查看printTemplateId的值
       console.log("编辑工序数据:", this.processForm);
       console.log("打印模版ID:", this.processForm.printTemplateId);
