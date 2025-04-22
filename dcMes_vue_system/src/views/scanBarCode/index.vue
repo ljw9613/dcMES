@@ -183,7 +183,7 @@
                   workOrderInfo.inputQuantity || 0
                 }}</span>
                 <span class="separator">/</span>
-                <span class="value">{{ workOrderInfo.planQuantity || 0 }}</span>
+                <span class="value">{{ workOrderInfo.planProductionQuantity || 0 }}</span>
               </div>
             </div>
 
@@ -470,7 +470,7 @@ export default {
       errorMessage: "",
       errorCode: "",
       workOrderInfo: {
-        planQuantity: 0,
+        planProductionQuantity: 0,
         inputQuantity: 0,
       },
     };
@@ -2380,7 +2380,7 @@ export default {
           if (response.data && response.data[0]) {
             this.workOrderInfo = {
               workOrderNo: response.data[0].workOrderNo || 0,
-              planQuantity: response.data[0].planQuantity || 0,
+              planProductionQuantity: response.data[0].planProductionQuantity || 0,
               inputQuantity: response.data[0].inputQuantity || 0,
             };
           }
@@ -2389,7 +2389,7 @@ export default {
         console.error("获取工单信息失败:", error);
         this.workOrderInfo = {
           workOrderNo: "",
-          planQuantity: 0,
+          planProductionQuantity: 0,
           inputQuantity: 0,
         };
       }

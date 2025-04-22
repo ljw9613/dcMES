@@ -155,6 +155,24 @@
           </el-form-item>
         </el-col>
       </el-row>
+
+      <!-- 产品状态选择 -->
+      <!-- <el-row :gutter="20">
+        <el-col :span="24">
+          <el-form-item label="产品状态" prop="productStatus">
+            <el-select
+              v-model="form.productStatus"
+              placeholder="请选择产品状态"
+              style="width: 100%"
+              :disabled="dialogStatus == 'view'"
+            >
+              <el-option label="维修中" value="REPAIRING" />
+              <el-option label="报废" value="SCRAP" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row> -->
+
       <el-row :gutter="20" v-if="form.repairResult">
         <el-col :span="24">
           <el-form-item label="审核结果" prop="repairResult">
@@ -324,6 +342,7 @@ export default {
         repairDescription: "",
         businessType: "",
         solution: "",
+        productStatus: "REPAIRING",
         status: "PENDING_REVIEW",
         remark: "",
         productionPlanWorkOrderId: "",
@@ -540,6 +559,7 @@ export default {
           repairDescription: "",
           businessType: "",
           solution: "",
+          productStatus: "REPAIRING",
           status: "PENDING_REVIEW",
           remark: "",
           productionPlanWorkOrderId: "",

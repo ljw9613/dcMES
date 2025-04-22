@@ -7,7 +7,12 @@
     :close-on-click-modal="false"
   >
     <div class="scan-container">
-      <el-form v-if="entryInfo" :model="entryInfo" ref="entryForm" :rules="entryRules">
+      <el-form
+        v-if="entryInfo"
+        :model="entryInfo"
+        ref="entryForm"
+        :rules="entryRules"
+      >
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="销售单号">
@@ -125,7 +130,7 @@
           </el-col>
         </el-row>
       </el-form>
-      
+
       <!-- 扫码输入区域 - 整托盘模式 -->
       <el-form
         :model="scanForm"
@@ -244,7 +249,12 @@
       </div>
 
       <!-- 扫描记录列表 -->
-      <div class="scan-list" v-if="entryInfo && entryInfo.entryItems && entryInfo.entryItems.length > 0">
+      <div
+        class="scan-list"
+        v-if="
+          entryInfo && entryInfo.entryItems && entryInfo.entryItems.length > 0
+        "
+      >
         <el-table :data="entryInfo.entryItems" border style="width: 100%">
           <el-table-column label="托盘编号" prop="palletCode" align="center" />
           <el-table-column label="销售订单" prop="saleOrderNo" align="center" />
@@ -269,7 +279,9 @@
       <el-button
         type="primary"
         @click="handleComplete"
-        :disabled="!entryInfo || !entryInfo.entryItems || !entryInfo.entryItems.length"
+        :disabled="
+          !entryInfo || !entryInfo.entryItems || !entryInfo.entryItems.length
+        "
       >
         完成出库
       </el-button>
@@ -278,7 +290,11 @@
 </template>
 
 <script>
-import { scanPalletOn, deletePallet, submitProductBarcode } from "@/api/warehouse/entry";
+import {
+  scanPalletOn,
+  deletePallet,
+  submitProductBarcode,
+} from "@/api/warehouse/entry";
 import { getData, addData, updateData, removeData } from "@/api/data";
 import { number } from "echarts/lib/export";
 export default {
@@ -325,11 +341,21 @@ export default {
         ],
       },
       entryRules: {
-        HuoGuiCode: [{ required: true, message: '请填写货柜号', trigger: 'blur' }],
-        FaQIaoNo: [{ required: true, message: '请填写发票号', trigger: 'blur' }],
+        HuoGuiCode: [
+          { required: true, message: "请填写货柜号", trigger: "blur" },
+        ],
+        FaQIaoNo: [
+          { required: true, message: "请填写发票号", trigger: "blur" },
+        ],
         outboundQuantity: [
-          { required: true, message: '请填写应出库数量', trigger: 'blur' },
-          { type: 'number', min: 1, message: '应出库数量必须大于0', trigger: 'blur', transform: (value) => Number(value) }
+          { required: true, message: "请填写应出库数量", trigger: "blur" },
+          {
+            type: "number",
+            min: 1,
+            message: "应出库数量必须大于0",
+            trigger: "blur",
+            transform: (value) => Number(value),
+          },
         ],
       },
     };
@@ -340,7 +366,7 @@ export default {
       if (val) {
         this.initEntryInfo();
         this.$nextTick(() => {
-          if (this.entryInfo && this.entryInfo.outboundMode === 'SINGLE') {
+          if (this.entryInfo && this.entryInfo.outboundMode === "SINGLE") {
             this.$refs.productScanInput && this.$refs.productScanInput.focus();
           } else {
             this.$refs.scanInput && this.$refs.scanInput.focus();
@@ -364,14 +390,14 @@ export default {
     "entryInfo.outboundMode": {
       handler(newVal) {
         this.$nextTick(() => {
-          if (newVal === 'SINGLE') {
+          if (newVal === "SINGLE") {
             this.$refs.productScanInput && this.$refs.productScanInput.focus();
           } else {
             this.$refs.scanInput && this.$refs.scanInput.focus();
           }
         });
-      }
-    }
+      },
+    },
   },
   methods: {
     async initEntryInfo() {
@@ -381,7 +407,7 @@ export default {
           workOrderWhitelist: [],
           outboundMode: this.scanData.outboundMode || "PALLET",
         };
-        
+
         // 确保托盘数量正确初始化
         if (this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
           this.entryInfo.palletCount = this.entryInfo.entryItems.length;
@@ -394,10 +420,10 @@ export default {
       try {
         // 验证扫码输入框
         await this.$refs.scanForm.validate();
-        
+
         // 验证入库信息表单
         await this.$refs.entryForm.validate();
-        
+
         const barcode = this.scanForm.barcode.trim();
 
         // 发送扫描事件到父组件
@@ -430,77 +456,94 @@ export default {
             // 保留原有的货柜号和发票号
             const huoGuiCode = this.entryInfo.HuoGuiCode;
             const faQIaoNo = this.entryInfo.FaQIaoNo;
-            
+
             this.entryInfo = {
               ...response.data,
               HuoGuiCode: response.data.HuoGuiCode || huoGuiCode,
-              FaQIaoNo: response.data.FaQIaoNo || faQIaoNo
+              FaQIaoNo: response.data.FaQIaoNo || faQIaoNo,
             };
-            
+
             // 确保托盘数量正确显示
-            if (this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
+            if (
+              this.entryInfo.entryItems &&
+              this.entryInfo.entryItems.length > 0
+            ) {
               this.entryInfo.palletCount = this.entryInfo.entryItems.length;
             }
-            
+
             // 如果返回的数据没有包含货柜号和发票号，需要再次更新这两个字段
             if (!response.data.HuoGuiCode || !response.data.FaQIaoNo) {
               await updateData("warehouse_ontry", {
                 query: { _id: this.entryInfo._id },
-                update: { 
+                update: {
                   HuoGuiCode: huoGuiCode,
-                  FaQIaoNo: faQIaoNo 
-                }
+                  FaQIaoNo: faQIaoNo,
+                },
               });
             }
           }
 
           if (response.code !== 200) {
             // 如果托盘已部分出库，提示用户可以整托出库
-            if (response.message === "该托盘已部分出库，请使用整托出库功能完成剩余产品出库") {
-              this.$confirm('该托盘已部分出库，是否要完成所有剩余产品的出库？', '提示', {
-                confirmButtonText: '整托出库',
-                cancelButtonText: '取消',
-                type: 'warning'
-              }).then(async () => {
-                // 用户选择整托出库，调用整托出库API
-                const entirePalletResponse = await scanPalletOn({
-                  palletCode,
-                  userId: this.$store.state.user.id,
-                  entryInfo: {
-                    ...this.entryInfo,
-                    HuoGuiCode: this.entryInfo.HuoGuiCode,
-                    FaQIaoNo: this.entryInfo.FaQIaoNo,
-                    workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-                      (item) => ({
-                        workOrderNo: item.workOrderNo,
-                        workOrderId: item._id,
-                        productionOrderNo: item.productionOrderNo,
-                      })
-                    ),
-                  },
-                  palletFinished: true // 指示整托出库
-                });
-                
-                if (entirePalletResponse.code === 200) {
-                  this.entryInfo = {
-                    ...entirePalletResponse.data,
-                    HuoGuiCode: this.entryInfo.HuoGuiCode,
-                    FaQIaoNo: this.entryInfo.FaQIaoNo
-                  };
-                  
-                  this.$message.success("整托出库成功");
-                  
-                  // 清空输入框并聚焦
-                  this.scanForm.barcode = "";
-                  this.$nextTick(() => {
-                    this.$refs.scanInput.focus();
-                  });
-                } else {
-                  this.$message.error(entirePalletResponse.message);
+            if (
+              response.message ===
+              "该托盘已部分出库，请使用整托出库功能完成剩余产品出库"
+            ) {
+              this.$confirm(
+                "该托盘已部分出库，是否要完成所有剩余产品的出库？",
+                "提示",
+                {
+                  confirmButtonText: "整托出库",
+                  cancelButtonText: "取消",
+                  type: "warning",
                 }
-              }).catch(() => {
-                this.$message.info('已取消整托出库');
-              });
+              )
+                .then(async () => {
+                  // 用户选择整托出库，调用整托出库API
+                  const entirePalletResponse = await scanPalletOn({
+                    palletCode,
+                    userId: this.$store.state.user.id,
+                    entryInfo: {
+                      ...this.entryInfo,
+                      HuoGuiCode: this.entryInfo.HuoGuiCode,
+                      FaQIaoNo: this.entryInfo.FaQIaoNo,
+                      workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
+                        (item) => ({
+                          workOrderNo: item.workOrderNo,
+                          workOrderId: item._id,
+                          productionOrderNo: item.productionOrderNo,
+                        })
+                      ),
+                    },
+                    palletFinished: true, // 指示整托出库
+                  });
+
+                  if (entirePalletResponse.code === 200) {
+                    this.entryInfo = {
+                      ...entirePalletResponse.data,
+                      HuoGuiCode: this.entryInfo.HuoGuiCode,
+                      FaQIaoNo: this.entryInfo.FaQIaoNo,
+                    };
+
+                    this.$message.success("整托出库成功");
+
+                    // 清空输入框并聚焦
+                    this.scanForm.barcode = "";
+                    this.$nextTick(() => {
+                      this.$refs.scanInput.focus();
+                    });
+                  } else {
+                    this.$message.error(entirePalletResponse.message);
+                    // 清空输入框并聚焦
+                    this.scanForm.barcode = "";
+                    this.$nextTick(() => {
+                      this.$refs.scanInput.focus();
+                    });
+                  }
+                })
+                .catch(() => {
+                  this.$message.info("已取消整托出库");
+                });
               return;
             } else {
               this.$message.error(response.message);
@@ -513,7 +556,7 @@ export default {
           } else {
             this.$message.success("托盘扫码出库成功");
           }
-          
+
           // 清空输入框并聚焦
           this.scanForm.barcode = "";
           this.$nextTick(() => {
@@ -524,18 +567,18 @@ export default {
         console.error("扫描失败:", error);
       }
     },
-    
+
     // 单一产品出库模式 - 直接扫描产品条码
     async handleDirectProductScan() {
       try {
         // 验证产品扫码输入框
         await this.$refs.productScanForm.validate();
-        
+
         // 验证入库信息表单
         await this.$refs.entryForm.validate();
-        
+
         const barcode = this.productScanForm.barcode.trim();
-        
+
         // 调用产品条码提交接口
         const response = await submitProductBarcode({
           productBarcode: barcode,
@@ -557,6 +600,11 @@ export default {
 
         if (response.code !== 200) {
           this.$message.error(response.message);
+          // 清空输入框并聚焦
+          this.productScanForm.barcode = "";
+          this.$nextTick(() => {
+            this.$refs.productScanInput.focus();
+          });
           return;
         }
 
@@ -565,27 +613,33 @@ export default {
           // 保留原有的货柜号和发票号
           const huoGuiCode = this.entryInfo.HuoGuiCode;
           const faQIaoNo = this.entryInfo.FaQIaoNo;
-            
+
           this.entryInfo = {
             ...response.data.entry,
             outboundMode: this.entryInfo.outboundMode,
             HuoGuiCode: response.data.entry.HuoGuiCode || huoGuiCode,
-            FaQIaoNo: response.data.entry.FaQIaoNo || faQIaoNo
+            FaQIaoNo: response.data.entry.FaQIaoNo || faQIaoNo,
           };
-          
+
           // 确保托盘数量正确显示
-          if (this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
+          if (
+            this.entryInfo.entryItems &&
+            this.entryInfo.entryItems.length > 0
+          ) {
             this.entryInfo.palletCount = this.entryInfo.entryItems.length;
           }
-          
+
           // 如果返回的数据没有包含货柜号和发票号，需要再次更新这两个字段
-          if (!response.data.entry.HuoGuiCode || !response.data.entry.FaQIaoNo) {
+          if (
+            !response.data.entry.HuoGuiCode ||
+            !response.data.entry.FaQIaoNo
+          ) {
             await updateData("warehouse_ontry", {
               query: { _id: this.entryInfo._id },
-              update: { 
+              update: {
                 HuoGuiCode: huoGuiCode,
-                FaQIaoNo: faQIaoNo 
-              }
+                FaQIaoNo: faQIaoNo,
+              },
             });
           }
         }
@@ -601,7 +655,7 @@ export default {
         console.error("产品条码扫描失败:", error);
       }
     },
-    
+
     async saleOrderNoInput() {
       // 调用托盘出库API
       const response = await scanPalletOn({
@@ -622,24 +676,25 @@ export default {
 
       this.$message.success("获取销售单信息成功");
     },
-    
+
     async handleComplete() {
       try {
         // 确保在完成出库前更新出库单的货柜号和发票号
         if (this.entryInfo && this.entryInfo._id) {
           await updateData("warehouse_ontry", {
             query: { _id: this.entryInfo._id },
-            update: { 
+            update: {
               HuoGuiCode: this.entryInfo.HuoGuiCode,
-              FaQIaoNo: this.entryInfo.FaQIaoNo 
-            }
+              FaQIaoNo: this.entryInfo.FaQIaoNo,
+            },
           });
         }
-        
+
         // 调用父组件的complete方法
-        const palletCodes = this.entryInfo.entryItems ? 
-          this.entryInfo.entryItems.map(item => item.palletCode) : [];
-        
+        const palletCodes = this.entryInfo.entryItems
+          ? this.entryInfo.entryItems.map((item) => item.palletCode)
+          : [];
+
         await this.$emit("complete", palletCodes);
         this.dialogVisible = false;
       } catch (error) {
@@ -695,7 +750,7 @@ export default {
         workOrderId: item._id,
       }));
     },
-  }
+  },
 };
 </script>
 

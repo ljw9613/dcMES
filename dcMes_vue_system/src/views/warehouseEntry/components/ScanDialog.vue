@@ -225,7 +225,7 @@ export default {
       if (this.scanLoading) {
         return;
       }
-      
+
       this.scanLoading = true;
       try {
         await this.$refs.scanForm.validate();
@@ -234,10 +234,22 @@ export default {
         // 发送扫描事件到父组件
         const success = await this.$emit("scan", barcode);
 
+        // 解析条码信息
+        const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+          barcode.split("#");
+
+        // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
+        //   throw new Error('无效的托盘条码格式');
+        // }
+        // if(!this.scanForm.stockId){
+        //   throw new Error('请先选择仓库后再扫描二维码');
+        // }
+        // 调用托盘入库API
+
         if (success) {
           // 调用托盘入库API
           const response = await scanPallet({
-            palletCode: barcode,
+            palletCode,
             stockId: this.scanForm.stockId,
             userId: this.$store.state.user.id,
           });
@@ -245,28 +257,29 @@ export default {
           // 更新入库单信息
           if (response.data) {
             this.entryInfo = response.data;
-            
+
             // 从返回的数据中获取托盘信息
             if (response.data.palletInfo) {
               const palletInfo = response.data.palletInfo;
-              
+
               // 添加到扫描记录
               this.scanRecords.unshift({
                 palletCode: palletInfo.palletCode || barcode,
-                saleOrderNo: palletInfo.saleOrderNo || this.entryInfo.saleOrderNo || '',
-                materialCode: palletInfo.materialCode || '',
+                saleOrderNo:
+                  palletInfo.saleOrderNo || this.entryInfo.saleOrderNo || "",
+                materialCode: palletInfo.materialCode || "",
                 quantity: palletInfo.quantity || 0,
-                lineCode: palletInfo.lineCode || '',
+                lineCode: palletInfo.lineCode || "",
                 scanTime: new Date(),
               });
             } else {
               // 如果没有直接返回托盘信息，使用入库单信息
               this.scanRecords.unshift({
                 palletCode: barcode,
-                saleOrderNo: this.entryInfo.saleOrderNo || '',
-                materialCode: this.entryInfo.materialCode || '',
+                saleOrderNo: this.entryInfo.saleOrderNo || "",
+                materialCode: this.entryInfo.materialCode || "",
                 quantity: this.entryInfo.actualQuantity || 0,
-                lineCode: this.entryInfo.lineCode || '',
+                lineCode: this.entryInfo.lineCode || "",
                 scanTime: new Date(),
               });
             }
@@ -300,7 +313,7 @@ export default {
       if (this.completeLoading) {
         return;
       }
-      
+
       this.completeLoading = true;
       try {
         await this.$emit(

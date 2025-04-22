@@ -774,6 +774,9 @@ class MaterialProcessFlowService {
           : 0;
       };
 
+      //如果正常进行，条码产品状态改为正常
+      flowRecord.productStatus = "NORMAL";
+
       // 在更新流程记录时使用
       flowRecord.progress = calculateProgress(flowRecord.processNodes);
 
@@ -931,7 +934,7 @@ class MaterialProcessFlowService {
   ) {
     let maxRetries = 3;
     let retryCount = 0;
-    
+
     while (retryCount < maxRetries) {
       try {
         console.log(
@@ -1031,7 +1034,9 @@ class MaterialProcessFlowService {
               } catch (error) {
                 console.warn(`解绑托盘记录失败: ${error.message}`);
                 // 发生托盘解绑错误，但继续流程，不抛出异常中断整个解绑过程
-                console.error(`解绑托盘记录失败 ${error.message}，但继续执行工序解绑流程`);
+                console.error(
+                  `解绑托盘记录失败 ${error.message}，但继续执行工序解绑流程`
+                );
               }
             }
           }
@@ -1053,7 +1058,8 @@ class MaterialProcessFlowService {
         if (
           hasFirstProcess &&
           flowRecord.productionPlanWorkOrderId &&
-          flowRecord.isProduct
+          flowRecord.isProduct &&
+          flowRecord.productStatus !== "SCRAP"
         ) {
           try {
             // 传入-1表示减少一个单位的投入量
@@ -1066,6 +1072,24 @@ class MaterialProcessFlowService {
           } catch (error) {
             console.error("更新工单投入量失败:", error);
             // 这里选择继续执行而不抛出错误，以免影响解绑流程
+          }
+        }
+        //如果产品是出于完成状态需要减少工单产出量
+        if (
+          flowRecord.isProduct &&
+          flowRecord.productionPlanWorkOrderId &&
+          flowRecord.status === "COMPLETED" &&
+          flowRecord.productStatus !== "SCRAP"
+        ) {
+          try {
+            await this.updateWorkOrderQuantity(
+              flowRecord.productionPlanWorkOrderId,
+              "output",
+              -1
+            );
+            console.log(`工单${flowRecord.productionPlanWorkOrderId}产出量-1`);
+          } catch (error) {
+            console.error("更新工单产出量失败:", error);
           }
         }
 
@@ -1194,11 +1218,16 @@ class MaterialProcessFlowService {
         // 保存更新
         try {
           await flowRecord.save();
-          console.log(`完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`);
+          console.log(
+            `完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`
+          );
           return flowRecord;
         } catch (saveError) {
           // 如果是版本冲突异常且未超过最大重试次数，则重试
-          if (saveError.name === 'VersionError' && retryCount < maxRetries - 1) {
+          if (
+            saveError.name === "VersionError" &&
+            retryCount < maxRetries - 1
+          ) {
             console.log(`发生版本冲突，正在进行第${retryCount + 1}次重试...`);
             retryCount++;
             continue;
@@ -1207,17 +1236,17 @@ class MaterialProcessFlowService {
         }
       } catch (error) {
         // 如果是版本冲突异常且未超过最大重试次数，则重试
-        if (error.name === 'VersionError' && retryCount < maxRetries - 1) {
+        if (error.name === "VersionError" && retryCount < maxRetries - 1) {
           console.log(`发生版本冲突，正在进行第${retryCount + 1}次重试...`);
           retryCount++;
           continue;
         }
-        
+
         console.error("物料解绑有误:", error);
         throw error;
       }
     }
-    
+
     throw new Error(`解绑工序组件失败：已达到最大重试次数(${maxRetries}次)`);
   }
 

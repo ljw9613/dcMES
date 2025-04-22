@@ -101,16 +101,13 @@
                             </zr-select>
                         </el-form-item>
                     </el-col>
-                    <!-- <el-col :span="6">
-                        <el-form-item label="业务类型">
-                            <el-select v-model="searchForm.businessType" placeholder="请选择业务类型" clearable
-                                style="width: 100%">
-                                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
-                                    :value="dict.value" />
-                            </el-select>
+                    <el-col :span="6">
+                        <el-form-item label="报废数量">
+                            <el-input-number v-model="searchForm.scrapQuantity" placeholder="最低报废数量" 
+                                :min="0" controls-position="right" clearable style="width: 100%"></el-input-number>
                         </el-form-item>
-                    </el-col> -->
-                    <el-col :span="12">
+                    </el-col>
+                    <el-col :span="18">
                         <el-form-item label="计划时间">
                             <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
                                 start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
@@ -245,6 +242,25 @@
                     </template>
                 </el-table-column>
 
+                <el-table-column label="报废数量" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.scrapQuantity || 0 }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="报废条码" width="100">
+                    <template slot-scope="scope">
+                        <el-button 
+                            type="text" 
+                            size="small" 
+                            @click="viewScrapBarcode(scope.row)"
+                            v-if="scope.row.scrapProductBarcodeList && scope.row.scrapProductBarcodeList.length > 0">
+                            查看 ({{ scope.row.scrapProductBarcodeList.length }})
+                        </el-button>
+                        <span v-else>暂无数据</span>
+                    </template>
+                </el-table-column>
+
                 <!-- 计划状态 -->
                 <el-table-column label="计划状态" width="100">
                     <template slot-scope="scope">
@@ -293,6 +309,48 @@
         <edit-dialog :visible.sync="dialogFormVisible" :dialog-status="dialogStatus" :row-data="dataForm"
             @submit="handleSubmit" />
 
+        <!-- 报废条码详情弹窗 -->
+        <el-dialog title="报废条码详情" :visible.sync="scrapBarcodeDialogVisible" width="60%">
+            <div class="scrap-barcode-container">
+                <el-card class="scrap-barcode-info">
+                    <div slot="header" class="clearfix">
+                        <span>工单信息</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">工单号:</span>
+                        <span class="value">{{ scrapDetailData.workOrderNo }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">产品名称:</span>
+                        <span class="value">{{ scrapDetailData.materialName }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">产品规格:</span>
+                        <span class="value">{{ scrapDetailData.fSpecification }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">报废总数:</span>
+                        <span class="value">{{ scrapDetailData.scrapQuantity || 0 }}</span>
+                    </div>
+                </el-card>
+
+                <el-table :data="scrapDetailData.scrapProductBarcodeList || []" style="width: 100%; margin-top: 20px"
+                    border v-loading="scrapBarcodeLoading">
+                    <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
+                    <el-table-column prop="barcode" label="报废条码" min-width="240"></el-table-column>
+                    <el-table-column label="报废时间" min-width="180">
+                        <template slot-scope="scope">
+                            {{ formatDate(scope.row.scrapTime, true) }}
+                        </template>
+                    </el-table-column>
+                    <template slot="empty">
+                        <div class="empty-text">
+                            <el-empty description="暂无报废条码数据"></el-empty>
+                        </div>
+                    </template>
+                </el-table>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -331,6 +389,9 @@ export default {
             selection: [], // 存储选中的记录
             dataForm: {},
             quantityMap: new Map(), // 用于存储两种数量的计算结果
+            scrapBarcodeDialogVisible: false,
+            scrapDetailData: {},
+            scrapBarcodeLoading: false,
         }
     },
     computed: {
@@ -622,7 +683,7 @@ export default {
         },
 
         // 格式化日期
-        formatDate(date) {
+        formatDate(date, isDateTime = false) {
             if (!date) return '暂无数据';
             const dateObj = new Date(date);
             if (isNaN(dateObj.getTime())) {
@@ -631,6 +692,14 @@ export default {
             const year = dateObj.getFullYear();
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dateObj.getDate()).padStart(2, '0');
+            
+            if (isDateTime) {
+                const hour = String(dateObj.getHours()).padStart(2, '0');
+                const minute = String(dateObj.getMinutes()).padStart(2, '0');
+                const second = String(dateObj.getSeconds()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+            }
+            
             return `${year}-${month}-${day}`;
         },
 
@@ -715,30 +784,6 @@ export default {
             })
         },
 
-        // 查看按钮点击事件
-        handleView(row) {
-            // 可以根据需要实现查看详情的逻辑
-            // this.$message.info('查看详情功能待实现')
-        },
-
-        // 删除按钮点击事件
-        handleDelete(row) {
-            this.$confirm('确认删除该工单吗？', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(async () => {
-                try {
-                    await removeData('production_plan_work_order', { query: { _id: row._id } });
-                    this.$message.success('删除成功')
-                    this.fetchData()
-                } catch (error) {
-                    console.error('删除失败:', error)
-                    this.$message.error('删除失败')
-                }
-            }).catch(() => { })
-        },
-
         // 批量删除按钮点击事件
         handleBatchDelete() {
             if (!this.selection.length) {
@@ -768,22 +813,44 @@ export default {
             this.selection = selection
         },
 
-        // 提交表单事件
-        // async handleSubmit(formData) {
-        //     try {
-        //         if (this.dialogStatus === 'create') {
-        //             await addData('production_plan_work_order', formData)
-        //             this.$message.success('新增成功')
-        //         } else {
-        //             await updateData('production_plan_work_order', { query: { _id: formData._id }, update: formData })
-        //             this.$message.success('更新成功')
-        //         }
-        //         this.fetchData()
-        //     } catch (error) {
-        //         console.error('操作失败:', error)
-        //         this.$message.error('操作失败')
-        //     }
-        // }
+        // 查看报废条码详情
+        async viewScrapBarcode(row) {
+            this.scrapBarcodeDialogVisible = true;
+            this.scrapDetailData = JSON.parse(JSON.stringify(row));
+            this.scrapBarcodeLoading = true;
+            try {
+                // 确保有ID才发起请求
+                if (!row._id) {
+                    console.error('工单ID不存在');
+                    this.$message.error('工单ID不存在，无法获取报废条码');
+                    this.scrapBarcodeLoading = false;
+                    return;
+                }
+                
+                const result = await getData('production_plan_work_order', {
+                    query: { _id: row._id }
+                });
+                
+                // 检查返回结果是否有效
+                if (result && result.data && result.data.length > 0) {
+                    this.scrapDetailData = result.data[0];
+                    
+                    // 检查报废条码列表是否存在
+                    if (!this.scrapDetailData.scrapProductBarcodeList) {
+                        this.scrapDetailData.scrapProductBarcodeList = [];
+                        console.warn('报废条码列表为空');
+                    }
+                } else {
+                    console.error('未获取到工单数据');
+                    this.$message.warning('未获取到报废条码数据');
+                }
+            } catch (error) {
+                console.error('获取报废条码详情失败:', error);
+                this.$message.error('获取报废条码详情失败');
+            } finally {
+                this.scrapBarcodeLoading = false;
+            }
+        },
     },
     created() {
         this.fetchData();
@@ -953,6 +1020,29 @@ export default {
 
     .filter-container {
         margin-bottom: 20px;
+    }
+}
+
+.scrap-barcode-container {
+    padding: 10px;
+
+    .scrap-barcode-info {
+        margin-bottom: 20px;
+
+        .info-item {
+            display: flex;
+            margin-bottom: 10px;
+
+            .label {
+                font-weight: bold;
+                min-width: 80px;
+                color: #606266;
+            }
+
+            .value {
+                color: #333;
+            }
+        }
     }
 }
 </style>

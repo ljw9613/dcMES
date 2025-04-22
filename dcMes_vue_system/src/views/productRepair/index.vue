@@ -160,6 +160,15 @@
                         {{ formatDate(scope.row.reviewTime) }}
                     </template>
                 </el-table-column>
+                
+                <el-table-column label="产品状态" align="center" width="100">
+                    <template slot-scope="scope">
+                        <el-tag :type="getProductStatusType(scope.row.productStatus)">
+                            {{ getProductStatusText(scope.row.productStatus) }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                
                 <el-table-column label="维修结果" align="center" width="100" fixed="right">
                     <template slot-scope="scope">
                         <el-tag :type="getRepairResultType(scope.row.repairResult)" v-if="scope.row.repairResult">
@@ -205,7 +214,7 @@
 
         <el-dialog title="审核" :visible.sync="reviewDialogVisible" width="30%">
             <el-form :model="reviewForm" ref="reviewForm" label-width="100px">
-                <el-form-item label="维修结果" prop="repairResult">
+                <el-form-item label="维修结果" prop="repairResult" v-if="!isScrapRepair">
                     <el-radio-group v-model="reviewForm.repairResult">
                         <el-radio label="QUALIFIED">合格</el-radio>
                         <el-radio label="UNQUALIFIED">不合格</el-radio>
@@ -224,7 +233,7 @@
 
         <el-dialog title="批量审核" :visible.sync="batchReviewDialogVisible" width="30%">
             <el-form :model="batchReviewForm" ref="batchReviewForm" label-width="100px">
-                <el-form-item label="维修结果" prop="repairResult">
+                <el-form-item label="维修结果" prop="repairResult" v-if="!hasOnlyScrapRepairs">
                     <el-radio-group v-model="batchReviewForm.repairResult">
                         <el-radio label="QUALIFIED">合格</el-radio>
                         <el-radio label="UNQUALIFIED">不合格</el-radio>
@@ -369,6 +378,7 @@ import MaterialInfo from "@/views/productTraceability/components/MaterialInfo.vu
 import MaterialBarcodeInfo from "@/views/productTraceability/components/MaterialBarcodeInfo.vue";
 import InspectionList from "@/components/InspectionList/index.vue";
 import UnbindRecordList from "@/views/productTraceability/components/UnbindRecordList.vue";
+import { reviewRepair, batchReviewRepair } from "@/api/product/productRepair";
 
 export default {
     name: 'productRepair',
@@ -457,6 +467,17 @@ export default {
                 })
                 .sort((a, b) => new Date(b.scanTime || 0) - new Date(a.scanTime || 0));
         },
+        isScrapRepair() {
+            // 检查是否是报废维修工单
+            if (!this.reviewForm._id) return false;
+            const row = this.tableList.find(item => item._id === this.reviewForm._id);
+            return row && row.solution === "报废";
+        },
+        hasOnlyScrapRepairs() {
+            // 检查是否所有选中的都是报废工单
+            if (!this.selection || this.selection.length === 0) return false;
+            return this.selection.every(item => item.solution === "报废");
+        }
     },
     methods: {
         getLineTypeText(type) {
@@ -748,27 +769,47 @@ export default {
 
         async submitReview() {
             try {
+                const row = this.tableList.find(item => item._id === this.reviewForm._id);
+                
+                // 如果是报废处理方案，不需要选择维修结果
+                if (row && row.solution === '报废') {
+                    // 直接审核通过，不需要维修结果
+                    const response = await reviewRepair({
+                        repairId: this.reviewForm._id,
+                        adverseEffect: this.reviewForm.adverseEffect,
+                        userId: this.$store.state.user.id
+                    });
+                    
+                    if (response.code === 200) {
+                        this.$message.success('报废审核成功');
+                        this.reviewDialogVisible = false;
+                        this.fetchData();
+                    } else {
+                        this.$message.error(response.message || '审核失败');
+                    }
+                    return;
+                }
+                
+                // 非报废处理方案，需要选择维修结果
                 if (!this.reviewForm.repairResult) {
                     this.$message.warning('请选择维修结果');
                     return;
                 }
 
-                const reqData = {
+                const response = await reviewRepair({
+                    repairId: this.reviewForm._id,
                     repairResult: this.reviewForm.repairResult,
                     adverseEffect: this.reviewForm.adverseEffect,
-                    status: 'REVIEWED',
-                    reviewTime: new Date(),
-                    reviewer: this.$store.state.user.id // 假设存储了当前用户信息
-                };
-
-                await updateData('product_repair', {
-                    query: { _id: this.reviewForm._id },
-                    update: reqData
+                    userId: this.$store.state.user.id
                 });
 
-                this.$message.success('审核成功');
-                this.reviewDialogVisible = false;
-                this.fetchData();
+                if (response.code === 200) {
+                    this.$message.success('审核成功');
+                    this.reviewDialogVisible = false;
+                    this.fetchData();
+                } else {
+                    this.$message.error(response.message || '审核失败');
+                }
             } catch (error) {
                 console.error('审核失败:', error);
                 this.$message.error('审核失败');
@@ -800,32 +841,66 @@ export default {
 
         async submitBatchReview() {
             try {
+                // 检查是否包含报废处理方案的记录
+                const hasScrapItems = this.selection.some(item => item.solution === '报废');
+                
+                // 如果包含报废记录，可以不要求选择维修结果
+                if (hasScrapItems && !this.batchReviewForm.repairResult) {
+                    const scrapIds = this.selection
+                        .filter(item => item.solution === '报废')
+                        .map(item => item._id);
+                    
+                    const nonScrapIds = this.selection
+                        .filter(item => item.solution !== '报废')
+                        .map(item => item._id);
+                    
+                    // 先处理非报废记录
+                    if (nonScrapIds.length > 0) {
+                        this.$message.warning('非报废维修记录需要选择维修结果');
+                        return;
+                    }
+                    
+                    // 处理报废记录
+                    const response = await batchReviewRepair({
+                        repairIds: scrapIds,
+                        adverseEffect: this.batchReviewForm.adverseEffect,
+                        userId: this.$store.state.user.id
+                    });
+                    
+                    if (response.code === 200) {
+                        this.$message.success(`批量审核成功，共处理 ${response.data.updatedCount} 条记录，其中报废 ${response.data.scrapCount} 条`);
+                        this.batchReviewDialogVisible = false;
+                        this.selection = [];
+                        this.fetchData();
+                    } else {
+                        this.$message.error(response.message || '批量审核失败');
+                    }
+                    return;
+                }
+                
+                // 常规处理逻辑，要求选择维修结果
                 if (!this.batchReviewForm.repairResult) {
                     this.$message.warning('请选择维修结果');
                     return;
                 }
 
                 const ids = this.selection.map(item => item._id);
-                const reqData = {
+                
+                const response = await batchReviewRepair({
+                    repairIds: ids,
                     repairResult: this.batchReviewForm.repairResult,
                     adverseEffect: this.batchReviewForm.adverseEffect,
-                    status: 'REVIEWED',
-                    reviewTime: new Date(),
-                    reviewer: this.$store.state.user.id
-                };
-
-                await updateData('product_repair', {
-                    query: {
-                        _id: { $in: ids },
-                        status: 'PENDING_REVIEW'  // 确保只更新待审核的记录
-                    },
-                    update: reqData
+                    userId: this.$store.state.user.id
                 });
 
-                this.$message.success('批量审核成功');
-                this.batchReviewDialogVisible = false;
-                this.selection = [];
-                this.fetchData();
+                if (response.code === 200) {
+                    this.$message.success(`批量审核成功，共处理 ${response.data.updatedCount} 条记录，其中报废 ${response.data.scrapCount} 条`);
+                    this.batchReviewDialogVisible = false;
+                    this.selection = [];
+                    this.fetchData();
+                } else {
+                    this.$message.error(response.message || '批量审核失败');
+                }
             } catch (error) {
                 console.error('批量审核失败:', error);
                 this.$message.error('批量审核失败');
@@ -1043,6 +1118,24 @@ export default {
             if (this.productDetailsData._id) {
                 await this.handleViewProductDetails({ barcode: this.productDetailsData.barcode });
             }
+        },
+
+        getProductStatusText(status) {
+            const statusMap = {
+                'NORMAL': '正常',
+                'REPAIRING': '维修中',
+                'SCRAP': '报废'
+            };
+            return statusMap[status] || status;
+        },
+        
+        getProductStatusType(status) {
+            const typeMap = {
+                'NORMAL': 'success',
+                'REPAIRING': 'warning',
+                'SCRAP': 'danger'
+            };
+            return typeMap[status] || 'info';
         },
     },
     created() {

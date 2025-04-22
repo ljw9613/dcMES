@@ -108,7 +108,10 @@
               >
                 <el-option label="待入库" value="PENDING"></el-option>
                 <el-option label="已入库" value="IN_WAREHOUSE"></el-option>
-                <el-option label="部分出库" value="PART_OUT_WAREHOUSE"></el-option>
+                <el-option
+                  label="部分出库"
+                  value="PART_OUT_WAREHOUSE"
+                ></el-option>
                 <el-option label="已出库" value="OUT_WAREHOUSE"></el-option>
               </el-select>
             </el-form-item>
@@ -125,6 +128,14 @@
           >
             <i class="el-icon-download"></i>
             {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
+          </el-button>
+
+          <el-button
+            type="warning"
+            style="margin-left: 10px"
+            @click="showAddToPalletDialog"
+          >
+            指定托盘入托
           </el-button>
         </el-form-item>
       </el-form>
@@ -252,8 +263,18 @@
                   </el-table-column>
                   <el-table-column label="出库状态" align="center">
                     <template slot-scope="barcodeScope">
-                      <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                        {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
+                      <el-tag
+                        :type="
+                          barcodeScope.row.outWarehouseStatus === 'COMPLETED'
+                            ? 'success'
+                            : 'warning'
+                        "
+                      >
+                        {{
+                          barcodeScope.row.outWarehouseStatus === "COMPLETED"
+                            ? "已出库"
+                            : "待出库"
+                        }}
                       </el-tag>
                     </template>
                   </el-table-column>
@@ -292,8 +313,15 @@
         </el-table-column>
         <el-table-column label="工单信息" min-width="200" align="center">
           <template slot-scope="scope">
-            <div v-if="scope.row.workOrders && scope.row.workOrders.length > 0" class="text-center">
-              <div v-for="(wo, index) in scope.row.workOrders" :key="index" class="work-order-item text-center">
+            <div
+              v-if="scope.row.workOrders && scope.row.workOrders.length > 0"
+              class="text-center"
+            >
+              <div
+                v-for="(wo, index) in scope.row.workOrders"
+                :key="index"
+                class="work-order-item text-center"
+              >
                 <el-tag size="mini" :type="index === 0 ? 'primary' : 'info'">
                   {{ wo.workOrderNo }}
                 </el-tag>
@@ -303,10 +331,37 @@
             <div v-else class="text-center">
               {{ scope.row.workOrderNo || "未关联工单" }}
             </div>
-            
+
             <!-- 尾数托盘标识 -->
-            <el-tag v-if="scope.row.isLastPallet" type="warning" size="mini" style="margin-top: 5px;">
+            <el-tag
+              v-if="scope.row.isLastPallet"
+              type="warning"
+              size="mini"
+              style="margin-top: 5px"
+            >
               尾数托盘
+            </el-tag>
+          </template>
+        </el-table-column>
+        <!-- 维修状态 -->
+        <el-table-column label="维修状态" align="center">
+          <template slot-scope="scope">
+            <el-tag
+              :type="
+                scope.row.repairStatus === 'REPAIRED'
+                  ? 'success'
+                  : scope.row.repairStatus === 'REPAIRING'
+                  ? 'primary'
+                  : 'warning'
+              "
+            >
+              {{
+                scope.row.repairStatus === "REPAIRED"
+                  ? "维修完成"
+                  : scope.row.repairStatus === "REPAIRING"
+                  ? "维修中"
+                  : "待维修"
+              }}
             </el-tag>
           </template>
         </el-table-column>
@@ -621,13 +676,23 @@
               detailData.productionOrderNo || "--"
             }}</el-descriptions-item>
             <el-descriptions-item label="工单号">
-              <template v-if="!detailData.workOrders || !detailData.workOrders.length">
+              <template
+                v-if="!detailData.workOrders || !detailData.workOrders.length"
+              >
                 {{ detailData.workOrderNo || "--" }}
               </template>
               <div v-else>
-                <div v-for="(wo, index) in detailData.workOrders" :key="index" style="margin-bottom: 5px">
-                  <el-tag size="mini" type="primary">{{ wo.workOrderNo || "--" }}</el-tag>
-                  <span v-if="wo.quantity" class="work-order-quantity">({{ wo.quantity }})</span>
+                <div
+                  v-for="(wo, index) in detailData.workOrders"
+                  :key="index"
+                  style="margin-bottom: 5px"
+                >
+                  <el-tag size="mini" type="primary">{{
+                    wo.workOrderNo || "--"
+                  }}</el-tag>
+                  <span v-if="wo.quantity" class="work-order-quantity"
+                    >({{ wo.quantity }})</span
+                  >
                 </div>
               </div>
             </el-descriptions-item>
@@ -703,7 +768,10 @@
             ></el-table-column>
             <el-table-column label="工单号" align="center">
               <template slot-scope="barcodeScope">
-                <el-tag size="mini" v-if="getBarcodeWorkOrderNo(barcodeScope.row)">
+                <el-tag
+                  size="mini"
+                  v-if="getBarcodeWorkOrderNo(barcodeScope.row)"
+                >
                   {{ getBarcodeWorkOrderNo(barcodeScope.row) }}
                 </el-tag>
                 <span v-else>--</span>
@@ -716,8 +784,18 @@
             </el-table-column>
             <el-table-column label="出库状态" align="center">
               <template slot-scope="barcodeScope">
-                <el-tag :type="barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? 'success' : 'warning'">
-                  {{ barcodeScope.row.outWarehouseStatus === 'COMPLETED' ? '已出库' : '待出库' }}
+                <el-tag
+                  :type="
+                    barcodeScope.row.outWarehouseStatus === 'COMPLETED'
+                      ? 'success'
+                      : 'warning'
+                  "
+                >
+                  {{
+                    barcodeScope.row.outWarehouseStatus === "COMPLETED"
+                      ? "已出库"
+                      : "待出库"
+                  }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -826,6 +904,140 @@
       :pallet="dataForm"
       @success="handleInspectionResetSuccess"
     />
+
+    <!-- 指定托盘入托对话框 -->
+    <el-dialog
+      title="指定托盘入托"
+      :visible.sync="addToPalletDialogVisible"
+      width="650px"
+      :close-on-click-modal="false"
+      @closed="resetAddToPalletForm"
+    >
+      <el-form
+        :model="addToPalletForm"
+        ref="addToPalletForm"
+        label-width="120px"
+        size="small"
+      >
+        <el-form-item
+          label="托盘编号"
+          prop="palletCode"
+          :rules="[
+            { required: true, message: '请输入托盘编号', trigger: 'blur' },
+          ]"
+        >
+          <el-input
+            v-model="addToPalletForm.palletCode"
+            placeholder="请输入或扫描托盘编号"
+            @keyup.enter.native="validatePalletCode"
+          ></el-input>
+        </el-form-item>
+
+        <div v-if="palletInfo">
+          <el-alert
+            type="success"
+            title="托盘信息已获取"
+            :description="
+              '托盘状态：' +
+              (palletInfo.status === 'STACKED' ? '组托完成' : '组托中') +
+              ' | 数量：' +
+              palletInfo.barcodeCount +
+              '/' +
+              palletInfo.totalQuantity
+            "
+            show-icon
+            :closable="false"
+            style="margin-bottom: 15px"
+          ></el-alert>
+
+          <el-form-item label="产线">
+            <el-input v-model="palletInfo.productLineName" readonly></el-input>
+          </el-form-item>
+
+          <el-form-item label="物料信息">
+            <el-input v-model="materialInfo" readonly></el-input>
+          </el-form-item>
+
+          <el-divider content-position="center">条码扫描</el-divider>
+
+          <el-form-item
+            label="条码"
+            prop="barcode"
+            :rules="[
+              { required: true, message: '请输入或扫描条码', trigger: 'blur' },
+            ]"
+          >
+            <el-input
+              ref="barcodeInput"
+              v-model="addToPalletForm.barcode"
+              placeholder="请输入或扫描条码"
+              @keyup.enter.native="handleAddBarcode"
+            ></el-input>
+          </el-form-item>
+
+          <!-- 已扫描条码展示区域 -->
+          <div class="scanned-list" v-if="scannedBarcodes.length > 0">
+            <div class="scanned-header">
+              <h4>已成功入托条码列表 ({{ scannedBarcodes.length }})</h4>
+            </div>
+            <el-table
+              :data="scannedBarcodes"
+              height="200"
+              border
+              size="mini"
+              style="width: 100%"
+            >
+              <el-table-column
+                label="序号"
+                type="index"
+                width="50"
+                align="center"
+              ></el-table-column>
+              <el-table-column
+                label="条码"
+                prop="barcode"
+                align="center"
+              ></el-table-column>
+              <el-table-column label="类型" align="center" width="80">
+                <template slot-scope="scope">
+                  <el-tag
+                    size="mini"
+                    :type="scope.row.type === 'single' ? 'primary' : 'success'"
+                  >
+                    {{ scope.row.type === "single" ? "单产品" : "包装箱" }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="箱条码" align="center" width="100">
+                <template slot-scope="scope">
+                  <span v-if="scope.row.boxBarcode">{{
+                    scope.row.boxBarcode
+                  }}</span>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="时间" align="center" width="140">
+                <template slot-scope="scope">
+                  {{ formatDate(scope.row.scanTime, "YYYY-MM-DD HH:mm:ss") }}
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <el-alert
+            type="info"
+            title="操作提示"
+            description="扫描条码后会自动提交，包装箱条码会自动识别并处理箱内所有条码"
+            show-icon
+            :closable="false"
+            style="margin-top: 15px"
+          ></el-alert>
+        </div>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="addToPalletDialogVisible = false">关 闭</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -834,6 +1046,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import {
   unbindPalletBarcode,
   unbindPalletAllBarcode,
+  addBarcodeToPallet,
   updatePalletInspectionStatus,
 } from "@/api/materialPalletizing";
 import EditDialog from "./components/EditDialog";
@@ -891,6 +1104,11 @@ export default {
       detailCurrentPage: 1,
       detailPageSize: 10,
       showMainWorkOrderColumn: false,
+      addToPalletDialogVisible: false,
+      addToPalletForm: {},
+      palletInfo: null,
+      materialInfo: "",
+      scannedBarcodes: [],
     };
   },
   computed: {
@@ -1130,7 +1348,7 @@ export default {
         this.$message.error("已入库的托盘不能删除");
         return;
       }
-      
+
       if (row.inWarehouseStatus === "OUT_WAREHOUSE") {
         this.$message.error("已出库的托盘不能删除");
         return;
@@ -1588,21 +1806,285 @@ export default {
     // 获取条码对应的工单号
     getBarcodeWorkOrderNo(barcodeItem) {
       if (!barcodeItem || !barcodeItem.productionPlanWorkOrderId) return null;
-      
+
       // 如果有工单数组，从中查找匹配的工单
       if (this.detailData.workOrders && this.detailData.workOrders.length) {
         const workOrder = this.detailData.workOrders.find(
-          wo => wo.productionPlanWorkOrderId && 
-               wo.productionPlanWorkOrderId === barcodeItem.productionPlanWorkOrderId
+          (wo) =>
+            wo.productionPlanWorkOrderId &&
+            wo.productionPlanWorkOrderId ===
+              barcodeItem.productionPlanWorkOrderId
         );
-        
+
         if (workOrder) {
           return workOrder.workOrderNo;
         }
       }
-      
+
       // 向后兼容：使用旧字段
       return this.detailData.workOrderNo;
+    },
+
+    /**
+     * 重置托盘入托表单
+     */
+    resetAddToPalletForm() {
+      this.addToPalletForm = {
+        palletCode: "",
+        barcode: "",
+      };
+      this.palletInfo = null;
+      this.materialInfo = "";
+      this.scannedBarcodes = [];
+    },
+
+    /**
+     * 验证托盘编号
+     */
+    async validatePalletCode() {
+      if (!this.addToPalletForm.palletCode.trim()) {
+        this.$message.warning("请输入托盘编号");
+        return;
+      }
+      
+      const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+        this.addToPalletForm.palletCode.split("#");
+
+      try {
+        const res = await getData("material_palletizing", {
+          query: { palletCode: palletCode },
+          populate: JSON.stringify([{ path: "productLineId" }]),
+        });
+
+        if (res.data && res.data.length > 0) {
+          const pallet = res.data[0];
+
+          // 检查托盘状态
+          if (pallet.status !== "STACKING") {
+            this.$message.warning("只能对组托中状态的托盘进行操作");
+            return;
+          }
+
+          this.palletInfo = pallet;
+          this.materialInfo = `${pallet.materialName || ""}${
+            pallet.materialSpec ? " | " + pallet.materialSpec : ""
+          }`;
+
+          // 清空已扫描条码列表
+          this.scannedBarcodes = [];
+
+          // 如果托盘已有条码，将其添加到已扫描列表中
+          if (pallet.palletBarcodes && pallet.palletBarcodes.length > 0) {
+            // 获取托盘中的条码信息
+            for (const barcodeItem of pallet.palletBarcodes) {
+              // 检查是否是箱条码
+              const isInBox =
+                pallet.boxItems &&
+                pallet.boxItems.some(
+                  (box) =>
+                    box.boxBarcodes &&
+                    box.boxBarcodes.some(
+                      (bb) => bb.barcode === barcodeItem.barcode
+                    )
+                );
+
+              // 如果是箱内条码，找出对应的箱条码
+              let boxBarcode = null;
+              if (isInBox && pallet.boxItems) {
+                for (const box of pallet.boxItems) {
+                  if (
+                    box.boxBarcodes &&
+                    box.boxBarcodes.some(
+                      (bb) => bb.barcode === barcodeItem.barcode
+                    )
+                  ) {
+                    boxBarcode = box.boxBarcode;
+                    break;
+                  }
+                }
+              }
+
+              // 添加到已扫描列表
+              this.scannedBarcodes.push({
+                barcode: barcodeItem.barcode,
+                type: boxBarcode ? "box" : "single",
+                boxBarcode: boxBarcode,
+                scanTime: barcodeItem.scanTime || new Date(),
+              });
+            }
+          }
+
+          // 获取成功后，自动聚焦到条码输入框
+          this.$nextTick(() => {
+            this.$refs.barcodeInput && this.$refs.barcodeInput.focus();
+          });
+        } else {
+          this.$message.error("未找到指定托盘");
+          this.palletInfo = null;
+        }
+      } catch (error) {
+        console.error("验证托盘编号失败:", error);
+        this.$message.error("验证托盘编号失败");
+      }
+    },
+
+    /**
+     * 处理添加条码
+     */
+    async handleAddBarcode() {
+      if (
+        !this.addToPalletForm.barcode ||
+        !this.addToPalletForm.barcode.trim()
+      ) {
+        this.$message.warning("请输入条码");
+        return;
+      }
+
+      if (!this.palletInfo) {
+        this.$message.warning("请先验证托盘编号");
+        return;
+      }
+
+      const cleanValue = this.addToPalletForm.barcode.trim();
+
+      // 检查是否已扫描过（现在我们保留这个检查）
+      if (this.scannedBarcodes.some((item) => item.barcode === cleanValue)) {
+        this.$message.warning("该条码已扫描");
+        this.addToPalletForm.barcode = "";
+        return;
+      }
+
+      try {
+        // 检查是否为包装箱条码
+        const boxResponse = await getData("material_process_flow", {
+          query: {
+            processNodes: {
+              $elemMatch: {
+                barcode: cleanValue,
+                isPackingBox: true,
+              },
+            },
+          },
+        });
+
+        if (boxResponse.data && boxResponse.data.length > 0) {
+          // 是包装箱条码
+          // 整个箱子的条码列表
+          const boxBarcodes = boxResponse.data.map((item) => item.barcode);
+
+          // 设置加载提示
+          const loading = this.$loading({
+            lock: true,
+            text: "处理包装箱条码中...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.7)",
+          });
+
+          try {
+            // 成功添加的条码数量
+            let successCount = 0;
+
+            // 分别处理箱内每个条码
+            for (const barcode of boxBarcodes) {
+              let res = await addBarcodeToPallet({
+                palletCode: this.palletInfo.palletCode,
+                mainBarcode: barcode,
+                boxBarcode: cleanValue,
+                userId: this.$store.state.user.id,
+              });
+              if (res.code !== 200) {
+                this.$message.error(res.message || "添加条码失败");
+                return;
+              } else {
+                // 条码添加成功，记录到已扫描列表
+                successCount++;
+                this.scannedBarcodes.push({
+                  barcode: barcode,
+                  type: "box",
+                  boxBarcode: cleanValue,
+                  scanTime: new Date(),
+                });
+              }
+            }
+
+            // 添加成功，刷新托盘信息
+            await this.validatePalletCode();
+            this.$message.success(
+              `包装箱条码处理成功，添加了${successCount}个条码`
+            );
+          } catch (error) {
+            this.$message.error(error.message || "处理包装箱条码失败");
+          } finally {
+            loading.close();
+          }
+        } else {
+          // 不是包装箱条码
+          // 验证主条码在系统中是否存在
+          const mainBarcodeRes = await getData("material_process_flow", {
+            query: { barcode: cleanValue },
+          });
+
+          if (!mainBarcodeRes.data || mainBarcodeRes.data.length === 0) {
+            this.$message.error("此条码在系统中不存在");
+            return;
+          }
+
+          // 直接提交单个条码
+          try {
+            const res = await addBarcodeToPallet({
+              palletCode: this.palletInfo.palletCode,
+              mainBarcode: cleanValue,
+              userId: this.$store.state.user.id,
+            });
+
+            if (res.code === 200) {
+              // 条码添加成功，记录到已扫描列表
+              this.scannedBarcodes.push({
+                barcode: cleanValue,
+                type: "single",
+                scanTime: new Date(),
+              });
+
+              // 添加成功，刷新托盘信息
+              await this.validatePalletCode();
+              this.$message.success("条码添加成功");
+
+              // 如果托盘已满，关闭对话框并刷新列表
+              if (res.data.status === "STACKED") {
+                setTimeout(() => {
+                  this.$message.success("托盘已组托完成");
+                  this.addToPalletDialogVisible = false;
+                  this.fetchData();
+                }, 1000);
+              }
+            } else {
+              this.$message.error(res.message || "添加条码失败");
+            }
+          } catch (error) {
+            this.$message.error(error.message || "添加条码失败");
+          }
+        }
+
+        // 清空条码输入框并聚焦
+        this.addToPalletForm.barcode = "";
+        this.$nextTick(() => {
+          this.$refs.barcodeInput && this.$refs.barcodeInput.focus();
+        });
+      } catch (error) {
+        console.error("处理条码失败:", error);
+        this.$message.error(error.message || "处理条码失败");
+      }
+    },
+
+    showAddToPalletDialog() {
+      this.addToPalletDialogVisible = true;
+      this.resetAddToPalletForm();
+      // 自动聚焦托盘编号输入框
+      this.$nextTick(() => {
+        const palletCodeInput =
+          this.$refs.addToPalletForm.$el.querySelector("input");
+        palletCodeInput && palletCodeInput.focus();
+      });
     },
   },
   created() {
@@ -1870,8 +2352,33 @@ export default {
 
 .work-order-item {
   margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 2px 0;
+
+  .work-order-quantity {
+    margin-left: 5px;
+    font-size: 12px;
+  }
+}
+
+.scanned-list {
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #ebeef5;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+
+  .scanned-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+
+    h4 {
+      margin: 0;
+      font-weight: bold;
+      font-size: 14px;
+      color: #409eff;
+    }
+  }
 }
 </style>

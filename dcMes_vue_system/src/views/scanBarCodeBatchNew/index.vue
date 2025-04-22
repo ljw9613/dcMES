@@ -2498,6 +2498,7 @@ export default {
               saleOrderId: this.palletForm.saleOrderId,
               productLineId: this.productLineId,
               status: "STACKING",
+              repairStatus: { $ne: "REPAIRING" },
               materialId: this.mainMaterialId,
             },
             populate: JSON.stringify([

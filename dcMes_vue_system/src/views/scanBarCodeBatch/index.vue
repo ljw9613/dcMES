@@ -2522,6 +2522,7 @@ export default {
               // productionPlanWorkOrderId: this.palletForm.productionPlanWorkOrderId, // 添加工单ID筛选
               productLineId: this.productLineId,
               status: "STACKING",
+              repairStatus: { $ne: "REPAIRING" },
               materialId: this.mainMaterialId,
               saleOrderId: this.palletForm.saleOrderId,
               // productionOrderId: this.palletForm.productionOrderId,

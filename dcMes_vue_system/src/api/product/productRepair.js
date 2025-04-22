@@ -13,3 +13,21 @@ export function submitProductRepair(data) {
         data
     })
 }
+
+// 添加审核API
+export function reviewRepair(data) {
+    return request({
+        url: '/product_repair/reviewRepair',
+        method: 'post',
+        data
+    })
+}
+
+// 添加批量审核API
+export function batchReviewRepair(data) {
+    return request({
+        url: '/product_repair/batchReviewRepair',
+        method: 'post',
+        data
+    })
+}
