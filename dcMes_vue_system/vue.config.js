@@ -36,6 +36,8 @@ module.exports = {
   outputDir: "../dcMes_server/adminCs",
   // publicPath: "/dcMesVN/",
   // outputDir: "../dcMes_server/adminVN",
+  // publicPath: "/dcMesManageVN/",
+  // outputDir: "../dcMes_server/adminManageVN",
   // publicPath: "/dcMesVNCN/",
   // outputDir: "../dcMes_server/adminVNCN",
   

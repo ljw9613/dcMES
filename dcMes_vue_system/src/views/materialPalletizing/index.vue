@@ -357,10 +357,10 @@
             >
               {{
                 scope.row.repairStatus === "REPAIRED"
-                  ? "维修完成"
+                  ? "重组完成"
                   : scope.row.repairStatus === "REPAIRING"
-                  ? "维修中"
-                  : "待维修"
+                  ? "重组中"
+                  : "未重组"
               }}
             </el-tag>
           </template>
@@ -1203,11 +1203,24 @@ export default {
       }
 
       if (this.searchForm.workOrderNo) {
+        const workOrderNoRegex = escapeRegex(this.searchForm.workOrderNo);
         req.query.$and.push({
-          workOrderNo: {
-            $regex: escapeRegex(this.searchForm.workOrderNo),
-            $options: "i",
-          },
+          $or: [
+            // 查询单工单字段
+            {
+              workOrderNo: {
+                $regex: workOrderNoRegex,
+                $options: "i",
+              }
+            },
+            // 查询多工单数组中的工单号
+            {
+              "workOrders.workOrderNo": {
+                $regex: workOrderNoRegex,
+                $options: "i",
+              }
+            }
+          ]
         });
       }
 
@@ -2004,6 +2017,22 @@ export default {
           // 是包装箱条码
           // 整个箱子的条码列表
           const boxBarcodes = boxResponse.data.map((item) => item.barcode);
+          
+          // 检查托盘剩余容量
+          const currentCount = this.palletInfo.palletBarcodes ? this.palletInfo.palletBarcodes.length : 0;
+          const totalCapacity = this.palletInfo.totalQuantity || 0;
+          const remainingCapacity = totalCapacity - currentCount;
+          
+          // 如果包装箱条码数量超出托盘剩余容量，则不允许入托
+          if (boxBarcodes.length > remainingCapacity) {
+            this.$message.error(`包装箱内条码数量(${boxBarcodes.length})超出托盘剩余容量(${remainingCapacity})，无法入托`);
+            // 清空条码输入框并聚焦
+            this.addToPalletForm.barcode = "";
+            this.$nextTick(() => {
+              this.$refs.barcodeInput && this.$refs.barcodeInput.focus();
+            });
+            return;
+          }
 
           // 设置加载提示
           const loading = this.$loading({

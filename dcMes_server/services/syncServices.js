@@ -4,6 +4,7 @@ const router = express.Router();
 const k3Models = require("../model/k3/k3Model");
 const { k3cMethod } = require("../routes/k3cMethod");
 const K3Material = require("../model/k3/k3_BD_MATERIAL");
+const mongoose = require("mongoose");
 
 const modelConfig = require("../model/k3/model.json");
 const Craft = require("../model/project/craft");
@@ -245,7 +246,14 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
 // 仓库数据同步的具体实现
 async function syncStockData(modelName, filterString, syncTask) {
   try {
-    const K3Stock = require("../model/k3/K3_BD_STOCK");
+    // 修改模型引入方式，避免重复编译模型
+    let K3Stock;
+    try {
+      K3Stock = mongoose.model("K3_BD_STOCK");
+    } catch (e) {
+      K3Stock = require("../model/k3/K3_BD_STOCK");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;
@@ -394,7 +402,14 @@ async function syncStockData(modelName, filterString, syncTask) {
 // 采购订单数据同步的具体实现
 async function syncPurchaseOrderData(modelName, filterString, syncTask) {
   try {
-    const K3PurchaseOrder = require("../model/k3/k3_PUR_PurchaseOrder");
+    // 修改模型引入方式，避免重复编译模型
+    let K3PurchaseOrder;
+    try {
+      K3PurchaseOrder = mongoose.model("K3_PUR_PurchaseOrder");
+    } catch (e) {
+      K3PurchaseOrder = require("../model/k3/k3_PUR_PurchaseOrder");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;
@@ -581,7 +596,14 @@ async function syncPurchaseOrderData(modelName, filterString, syncTask) {
 // 生产领料单数据同步的具体实现
 async function syncPickMtrlData(modelName, filterString, syncTask) {
   try {
-    const K3PickMtrl = require("../model/k3/K3_PRD_PickMtrl");
+    // 修改模型引入方式，避免重复编译模型
+    let K3PickMtrl;
+    try {
+      K3PickMtrl = mongoose.model("K3_PRD_PickMtrl");
+    } catch (e) {
+      K3PickMtrl = require("../model/k3/K3_PRD_PickMtrl");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;
@@ -789,7 +811,14 @@ async function syncPickMtrlData(modelName, filterString, syncTask) {
 // 发货通知单数据同步的具体实现
 async function syncDeliveryNoticeData(modelName, filterString, syncTask) {
   try {
-    const K3DeliveryNotice = require("../model/k3/K3_SAL_DeliveryNotice");
+    // 修改模型引入方式，避免重复编译模型
+    let K3DeliveryNotice;
+    try {
+      K3DeliveryNotice = mongoose.model("K3_SAL_DeliveryNotice");
+    } catch (e) {
+      K3DeliveryNotice = require("../model/k3/K3_SAL_DeliveryNotice");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;
@@ -1043,7 +1072,14 @@ async function syncDeliveryNoticeData(modelName, filterString, syncTask) {
 // 生产入库单数据同步的具体实现
 async function syncInStockData(modelName, filterString, syncTask) {
   try {
-    const K3InStock = require("../model/k3/K3_PRD_InStock");
+    // 修改模型引入方式，避免重复编译模型
+    let K3InStock;
+    try {
+      K3InStock = mongoose.model("K3_PRD_InStock");
+    } catch (e) {
+      K3InStock = require("../model/k3/K3_PRD_InStock");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;
@@ -1234,7 +1270,14 @@ async function syncInStockData(modelName, filterString, syncTask) {
 // 采购申请单数据同步的具体实现
 async function syncRequisitionBillData(modelName, filterString, syncTask) {
   try {
-    const K3RequisitionBill = require("../model/k3/K3_PUR_RequisitionBill");
+    // 修改模型引入方式，避免重复编译模型
+    let K3RequisitionBill;
+    try {
+      K3RequisitionBill = mongoose.model("K3_PUR_RequisitionBill");
+    } catch (e) {
+      K3RequisitionBill = require("../model/k3/K3_PUR_RequisitionBill");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;
@@ -1474,7 +1517,14 @@ async function syncRequisitionBillData(modelName, filterString, syncTask) {
 // 销售出库单数据同步的具体实现
 async function syncOutStockData(modelName, filterString, syncTask) {
   try {
-    const K3OutStock = require("../model/k3/K3_SAL_OutStock");
+    // 修改模型引入方式，避免重复编译模型
+    let K3OutStock;
+    try {
+      K3OutStock = mongoose.model("K3_SAL_OutStock");
+    } catch (e) {
+      K3OutStock = require("../model/k3/K3_SAL_OutStock");
+    }
+    
     let startRow = 0;
     const pageSize = 100;
     let hasMoreData = true;

@@ -3,6 +3,7 @@ const router = express.Router();
 const materialProcessFlow = require("../model/project/materialProcessFlow");
 const productRepair = require("../model/project/productRepair");
 const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
+const materialPalletizing = require("../model/project/materialPalletizing");
 // 扫条码获取产品信息
 router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
   try {
@@ -40,6 +41,84 @@ router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
         code: 404,
         message: `该条码的产品已创建,且状态为待审核,无法再次创建`,
       });
+    }
+
+    // 查询条码所在托盘信息
+    // 先在托盘条码列表中查找
+    const palletData = await materialPalletizing.findOne({
+      "palletBarcodes.barcode": barcode
+    });
+    
+    // 如果在palletBarcodes中找不到，查找boxItems中的boxBarcodes
+    let boxPalletData = null;
+    if (!palletData) {
+      boxPalletData = await materialPalletizing.findOne({
+        "boxItems.boxBarcodes.barcode": barcode
+      });
+    }
+    
+    // 合并查询结果，优先使用palletData
+    const targetPallet = palletData || boxPalletData;
+    
+    // 如果找到托盘，检查托盘的出入库状态
+    if (targetPallet) {
+      // 如果托盘已入库，禁止维修
+      if (targetPallet.inWarehouseStatus === "IN_WAREHOUSE") {
+        return res.status(200).json({
+          code: 404,
+          message: `该产品条码所在托盘(${targetPallet.palletCode})已入库，禁止维修`,
+        });
+      }
+      
+      // 如果托盘已出库，禁止维修
+      if (targetPallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+        return res.status(200).json({
+          code: 404,
+          message: `该产品条码所在托盘(${targetPallet.palletCode})已出库，禁止维修`,
+        });
+      }
+      
+      // 如果托盘部分出库，需要检查该条码是否已出库
+      if (targetPallet.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+        let isOutWarehouse = false;
+        
+        // 检查palletBarcodes中是否有该条码且已出库
+        const barcodeItem = targetPallet.palletBarcodes.find(item => item.barcode === barcode);
+        if (barcodeItem && barcodeItem.outWarehouseStatus === "COMPLETED") {
+          isOutWarehouse = true;
+        }
+        
+        // 如果在palletBarcodes中未确认出库，检查boxItems中的boxBarcodes
+        if (!isOutWarehouse) {
+          for (const boxItem of targetPallet.boxItems) {
+            const boxBarcodeItem = boxItem.boxBarcodes.find(item => item.barcode === barcode);
+            if (boxBarcodeItem) {
+              // 对于部分出库的托盘，需要更精确地判断该条码是否已出库
+              // 由于我们没有boxBarcodes中单个条码的出库状态，这里需要根据实际业务逻辑判断
+              
+              // 方案：记录该条码在托盘中，告知用户需谨慎处理部分出库托盘中的产品
+              return res.status(200).json({
+                code: 200,
+                message: "查询条码成功（注意：该产品在部分出库托盘中，请确认产品实际状态）",
+                data: {
+                  ...materialProcessFlowData._doc,
+                  inPalletWithCode: targetPallet.palletCode,
+                  palletStatus: "PART_OUT_WAREHOUSE",
+                  warningMessage: "该产品所在托盘为部分出库状态，请确认产品是否已出库"
+                },
+              });
+            }
+          }
+        }
+        
+        // 如果确认已出库，禁止维修
+        if (isOutWarehouse) {
+          return res.status(200).json({
+            code: 404,
+            message: `该产品条码已出库，禁止维修`,
+          });
+        }
+      }
     }
 
     res.json({
