@@ -265,7 +265,7 @@ export default {
           type: "text/csv;charset=utf-8",
         });
 
-        const fileName = `UDI数据_${this.form.saleOrderNo}_${new Date().toLocaleDateString()}.csv`;
+        const fileName = `UDI数据_${this.form.saleOrderNo}_${new Date().toLocaleDateString('zh-CN')}.csv`;
         FileSaver.saveAs(blob, fileName);
 
         this.$message.success("导出成功");

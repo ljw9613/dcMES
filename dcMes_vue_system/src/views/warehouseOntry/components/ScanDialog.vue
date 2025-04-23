@@ -546,6 +546,11 @@ export default {
                 });
               return;
             } else {
+              // 清空输入框并聚焦
+              this.scanForm.barcode = "";
+              this.$nextTick(() => {
+                this.$refs.scanInput.focus();
+              });
               this.$message.error(response.message);
               return;
             }
@@ -562,8 +567,20 @@ export default {
           this.$nextTick(() => {
             this.$refs.scanInput.focus();
           });
+          
+          //如果返回的进度为100%，则关闭弹窗
+          if (response.data.progress === 100) {
+            this.dialogVisible = false;
+            setTimeout(() => {
+              this.$message.success("该出库单已完成出库");
+            }, 1000);
+          }
         }
       } catch (error) {
+        this.scanForm.barcode = "";
+        this.$nextTick(() => {
+          this.$refs.scanInput.focus();
+        });
         console.error("扫描失败:", error);
       }
     },
@@ -651,6 +668,14 @@ export default {
         });
 
         this.$message.success("产品条码出库成功");
+
+        //如果返回的进度为100%，则关闭弹窗
+        if (response.data.progress === 100) {
+          this.dialogVisible = false;
+          setTimeout(() => {
+            this.$message.success("该出库单已完成出库");
+          }, 1000);
+        }
       } catch (error) {
         console.error("产品条码扫描失败:", error);
       }

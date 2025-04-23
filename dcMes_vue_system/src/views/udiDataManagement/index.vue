@@ -943,7 +943,7 @@ export default {
         // 生成文件名
         const fileName = `UDI数据_${
           row.barcode ? row.barcode.substring(row.barcode.length - 12) : "未知"
-        }_${new Date().toLocaleDateString()}.csv`;
+        }_${new Date().toLocaleDateString('zh-CN')}.csv`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);
@@ -1192,7 +1192,7 @@ export default {
         });
 
         // 生成文件名
-        const fileName = `UDI数据导出_${new Date().toLocaleDateString()}.csv`;
+        const fileName = `UDI数据导出_${new Date().toLocaleDateString('zh-CN')}.csv`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);

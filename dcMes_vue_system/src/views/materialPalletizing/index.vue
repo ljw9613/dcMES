@@ -1349,8 +1349,8 @@ export default {
         return;
       }
 
-      if (row.inWarehouseStatus === "OUT_WAREHOUSE") {
-        this.$message.error("已出库的托盘不能删除");
+      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+        this.$message.error("该托盘已出库");
         return;
       }
 
@@ -1365,6 +1365,17 @@ export default {
       });
     },
     handleAllDelete(row) {
+      // 检查托盘的出入库状态
+      if (row.inWarehouseStatus === "IN_WAREHOUSE") {
+        this.$message.error("已入库的托盘不能删除");
+        return;
+      }
+
+      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+        this.$message.error("已出库的托盘不能删除");
+        return;
+      }
+
       this.$confirm("确认要初始化该单据吗?", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
@@ -1708,6 +1719,17 @@ export default {
     },
 
     handleSplitPallet(row) {
+      // 检查托盘的出入库状态
+      if (row.inWarehouseStatus === "IN_WAREHOUSE") {
+        this.$message.error("已入库的托盘不能删除");
+        return;
+      }
+
+      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+        this.$message.error("该托盘已出库");
+        return;
+      }
+
       this.dataForm = JSON.parse(JSON.stringify(row));
       this.splitPalletDialogVisible = true;
     },
@@ -1718,6 +1740,17 @@ export default {
     },
 
     handleInspectionReset(row) {
+      // 检查托盘的出入库状态
+      if (row.inWarehouseStatus === "IN_WAREHOUSE") {
+        this.$message.error("该托盘已入库");
+        return;
+      }
+
+      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+        this.$message.error("该托盘已出库");
+        return;
+      }
+      
       this.dataForm = JSON.parse(JSON.stringify(row));
       this.inspectionResetDialogVisible = true;
     },
@@ -1846,7 +1879,7 @@ export default {
         this.$message.warning("请输入托盘编号");
         return;
       }
-      
+
       const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
         this.addToPalletForm.palletCode.split("#");
 

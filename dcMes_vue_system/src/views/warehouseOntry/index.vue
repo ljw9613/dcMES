@@ -979,6 +979,11 @@ export default {
         async handleExport() {
             try {
                 this.exportLoading = true;
+                this.$message({
+                    message: '正在准备导出数据，请稍候...',
+                    type: 'info'
+                });
+                
                 // 获取所有数据
                 let req = await this.searchData();
                 req.skip = 0;
@@ -1047,16 +1052,16 @@ export default {
                 const url = URL.createObjectURL(blob);
 
                 link.setAttribute('href', url);
-                link.setAttribute('download', `出库条码数据_${new Date().toLocaleDateString()}.csv`);
+                link.setAttribute('download', `出库条码数据_${new Date().toLocaleDateString('zh-CN')}.csv`);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
 
-                this.$message.success('导出成功');
+                this.$message.success(`成功导出${exportData.length}条数据`);
             } catch (error) {
                 console.error('导出失败:', error);
-                this.$message.error('导出失败');
+                this.$message.error('导出失败: ' + (error.message || '未知错误'));
             } finally {
                 this.exportLoading = false;
             }
@@ -1075,13 +1080,19 @@ export default {
                 }).join(',')
             );
 
-            return [headers.join(','), ...rows].join('\n');
+            // 添加UTF-8 BOM头，解决Excel打开CSV文件中文乱码问题
+            return '\uFEFF' + [headers.join(','), ...rows].join('\n');
         },
 
         // 导出单个出库单数据
         async handleSingleExport(row) {
             try {
                 this.exportLoading = true;
+                this.$message({
+                    message: '正在准备导出数据，请稍候...',
+                    type: 'info'
+                });
+                
                 // 获取单个出库单数据
                 let req = {
                     query: { _id: row._id },
@@ -1152,16 +1163,16 @@ export default {
                 const url = URL.createObjectURL(blob);
 
                 link.setAttribute('href', url);
-                link.setAttribute('download', `出库单_${item.entryNo}_${new Date().toLocaleDateString()}.csv`);
+                link.setAttribute('download', `出库单_${item.entryNo}_${new Date().toLocaleDateString('zh-CN')}.csv`);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
 
-                this.$message.success('导出成功');
+                this.$message.success(`成功导出${exportData.length}条数据`);
             } catch (error) {
                 console.error('导出失败:', error);
-                this.$message.error('导出失败');
+                this.$message.error('导出失败: ' + (error.message || '未知错误'));
             } finally {
                 this.exportLoading = false;
             }
