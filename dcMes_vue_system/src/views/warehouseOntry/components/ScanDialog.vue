@@ -481,6 +481,21 @@ export default {
                 },
               });
             }
+            
+            // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
+            const isCompleted = 
+              (response.data.progress && response.data.progress === 100) || 
+              (response.data.outNumber && response.data.outboundQuantity && 
+               Number(response.data.outNumber) >= Number(response.data.outboundQuantity));
+            
+            // 如果已完成，则更新状态为已完成并自动关闭对话框
+            if (isCompleted) {
+              this.dialogVisible = false;
+              setTimeout(() => {
+                this.$message.success("该出库单已完成出库");
+              }, 1000);
+              return;
+            }
           }
 
           if (response.code !== 200) {
@@ -568,8 +583,16 @@ export default {
             this.$refs.scanInput.focus();
           });
           
-          //如果返回的进度为100%，则关闭弹窗
-          if (response.data.progress === 100) {
+          // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
+          const isCompleted = 
+            (response.data.progress && response.data.progress === 100) || 
+            (response.data.outNumber && response.data.outboundQuantity && 
+             Number(response.data.outNumber) >= Number(response.data.outboundQuantity));
+          
+          // 如果已完成，则更新状态为已完成并自动关闭对话框
+          if (isCompleted) {
+            // 确保状态更新为已完成
+            
             this.dialogVisible = false;
             setTimeout(() => {
               this.$message.success("该出库单已完成出库");
@@ -659,6 +682,24 @@ export default {
               },
             });
           }
+          
+          // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
+          const entryData = response.data.entry;
+          const isCompleted = 
+            (response.data.progress && response.data.progress === 100) || 
+            (entryData.progress && entryData.progress === 100) ||
+            (entryData.outNumber && entryData.outboundQuantity && 
+             Number(entryData.outNumber) >= Number(entryData.outboundQuantity));
+          
+          // 如果已完成，则更新状态为已完成并自动关闭对话框
+          if (isCompleted) {
+            
+            this.dialogVisible = false;
+            setTimeout(() => {
+              this.$message.success("该出库单已完成出库");
+            }, 1000);
+            return;
+          }
         }
 
         // 清空输入框
@@ -668,14 +709,6 @@ export default {
         });
 
         this.$message.success("产品条码出库成功");
-
-        //如果返回的进度为100%，则关闭弹窗
-        if (response.data.progress === 100) {
-          this.dialogVisible = false;
-          setTimeout(() => {
-            this.$message.success("该出库单已完成出库");
-          }, 1000);
-        }
       } catch (error) {
         console.error("产品条码扫描失败:", error);
       }
