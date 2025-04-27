@@ -182,7 +182,8 @@ router.post("/api/v1/addBarcodeToPallet", async (req, res) => {
       mainBarcode,
       boxBarcode,
       userId,
-      componentScans
+      componentScans,
+      true // 添加参数，表示来自维修台
     );
 
     return res.status(200).json({

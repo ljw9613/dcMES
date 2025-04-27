@@ -290,8 +290,10 @@
 
         <el-table-column label="产品状态" width="100">
           <template slot-scope="scope">
-            <el-tag :type="getProductStatusType(scope.row.productStatus || 'NORMAL')">
-              {{ getProductStatusText(scope.row.productStatus || 'NORMAL') }}
+            <el-tag
+              :type="getProductStatusType(scope.row.productStatus || 'NORMAL')"
+            >
+              {{ getProductStatusText(scope.row.productStatus || "NORMAL") }}
             </el-tag>
           </template>
         </el-table-column>
@@ -482,8 +484,18 @@
                     </div>
                     <div class="info-item">
                       <label>产品状态：</label>
-                      <el-tag :type="getProductStatusType(dataForm.productStatus || 'NORMAL')">
-                        {{ getProductStatusText(dataForm.productStatus || 'NORMAL') }}
+                      <el-tag
+                        :type="
+                          getProductStatusType(
+                            dataForm.productStatus || 'NORMAL'
+                          )
+                        "
+                      >
+                        {{
+                          getProductStatusText(
+                            dataForm.productStatus || "NORMAL"
+                          )
+                        }}
                       </el-tag>
                     </div>
                   </div>
@@ -1024,6 +1036,7 @@
     <el-dialog
       title="物料替换"
       :visible.sync="replaceDialogVisible"
+      append-to-body
       width="600px"
       :close-on-click-modal="false"
     >
@@ -1221,6 +1234,21 @@ export default {
     // 修改 handleUnbind 方法
     async handleUnbind(row) {
       try {
+        // 检查产品状态是否为已完成状态
+        if (this.dataForm.status === 'COMPLETED') {
+          try {
+            await this.$confirm('该产品已处于完成状态，继续操作可能会影响产品状态，是否继续？', '状态提示', {
+              confirmButtonText: '确认继续',
+              cancelButtonText: '取消',
+              type: 'warning'
+            });
+            // 用户确认，继续执行
+          } catch (error) {
+            // 用户取消，终止操作
+            return;
+          }
+        }
+
         // TODO 国内查询维修记录
         let barcodeRepair = await getData("product_repair", {
           query: {
@@ -1359,7 +1387,7 @@ export default {
       };
       return statusMap[status] || status;
     },
-    
+
     // 获取产品状态样式
     getProductStatusType(status) {
       const statusMap = {
@@ -1379,7 +1407,7 @@ export default {
       };
       return statusMap[status] || status;
     },
-    
+
     // 获取数据
     async fetchData() {
       this.listLoading = true;
@@ -1820,7 +1848,7 @@ export default {
       if (this.searchForm.status) {
         req.query.$and.push({ status: this.searchForm.status });
       }
-      
+
       // 添加产品状态查询
       if (this.searchForm.productStatus) {
         req.query.$and.push({ productStatus: this.searchForm.productStatus });
@@ -2413,51 +2441,152 @@ export default {
       this.exportLoading = true;
 
       try {
+        // 显示进度提示
+        const progressLoading = this.$loading({
+          lock: true,
+          text: `正在获取数据...`,
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
+        });
+
+        // 设置每批次请求的数据量
+        const batchSize = 50;
+        
+        // 存储所有导出数据
         let exportData = [];
+        
+        // 批次处理变量
+        let hasMoreData = true;
+        let currentBatch = 0;
+        let totalCount = 0;
 
         // 根据选择获取要导出的数据
         switch (exportOption) {
           case "all":
-            const allResult = await getData("material_process_flow", {
-              query: {},
-            });
-            if (allResult.code === 200) {
-              exportData = allResult.data;
-            } else {
-              throw new Error(allResult.msg || "获取数据失败");
+            // 分批次获取全部数据
+            while (hasMoreData) {
+              progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
+              
+              const batchReq = {
+                query: {},
+                skip: currentBatch * batchSize,
+                limit: batchSize,
+                sort: { createAt: -1 },
+                count: true
+              };
+              
+              const batchResult = await getData("material_process_flow", batchReq);
+              
+              if (batchResult.code !== 200) {
+                throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
+              }
+              
+              // 第一次请求时获取总数
+              if (currentBatch === 0) {
+                totalCount = batchResult.countnum || 0;
+                
+                if (totalCount === 0) {
+                  this.$message.warning("没有可导出的数据");
+                  progressLoading.close();
+                  return;
+                }
+              }
+              
+              // 处理当前批次数据
+              const batchData = batchResult.data || [];
+              
+              // 如果返回数据少于批次大小，说明没有更多数据了
+              if (batchData.length < batchSize) {
+                hasMoreData = false;
+              }
+              
+              // 添加到导出数据
+              exportData = [...exportData, ...batchData];
+              
+              // 显示加载进度
+              const loadedPercent = Math.min(
+                100,
+                Math.floor((exportData.length / totalCount) * 100)
+              );
+              progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
+              
+              currentBatch++;
+              
+              // 如果已加载数据达到总数，结束加载
+              if (exportData.length >= totalCount) {
+                hasMoreData = false;
+              }
             }
             break;
+            
           case "search":
-            let req = await this.searchData();
-            console.log(req);
-            // req.page = this.currentPage;
-            // req.skip = (this.currentPage - 1) * this.pageSize;
-            // req.limit = this.pageSize;
-            req.sort = { createAt: -1 };
-            req.count = true;
-            const searchResult = await getData("material_process_flow", req);
-            if (searchResult.code === 200) {
-              exportData = searchResult.data;
-            } else {
-              throw new Error(searchResult.msg || "获取数据失败");
+            // 分批次获取搜索结果数据
+            let searchReq = await this.searchData();
+            searchReq.sort = { createAt: -1 };
+            searchReq.count = true;
+            
+            // 先获取总数
+            const countResult = await getData("material_process_flow", {...searchReq, limit: 1});
+            totalCount = countResult.countnum || 0;
+            
+            if (totalCount === 0) {
+              this.$message.warning("没有可导出的数据");
+              progressLoading.close();
+              return;
+            }
+            
+            // 分批次请求数据
+            while (hasMoreData) {
+              progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
+              
+              const batchReq = {
+                ...searchReq,
+                skip: currentBatch * batchSize,
+                limit: batchSize
+              };
+              
+              const batchResult = await getData("material_process_flow", batchReq);
+              
+              if (batchResult.code !== 200) {
+                throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
+              }
+              
+              // 处理当前批次数据
+              const batchData = batchResult.data || [];
+              
+              // 如果返回数据少于批次大小，说明没有更多数据了
+              if (batchData.length < batchSize) {
+                hasMoreData = false;
+              }
+              
+              // 添加到导出数据
+              exportData = [...exportData, ...batchData];
+              
+              // 显示加载进度
+              const loadedPercent = Math.min(
+                100,
+                Math.floor((exportData.length / totalCount) * 100)
+              );
+              progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
+              
+              currentBatch++;
+              
+              // 如果已加载数据达到总数，结束加载
+              if (exportData.length >= totalCount) {
+                hasMoreData = false;
+              }
             }
             break;
         }
-
-        console.log(exportData);
 
         if (exportData.length === 0) {
           this.$message.warning("没有可导出的数据");
+          progressLoading.close();
           return;
         }
 
-        // 显示进度提示
-        const progressLoading = this.$loading({
-          lock: true,
-          text: `正在处理第 0/${exportData.length} 条数据...`,
-          spinner: "el-icon-loading",
-          background: "rgba(0, 0, 0, 0.7)",
-        });
+        // 更新进度提示
+        progressLoading.text = `正在处理第 0/${exportData.length} 条数据...`;
 
         // 创建zip实例
         const zip = new JSZip();
@@ -2470,69 +2599,64 @@ export default {
           const item = exportData[i];
 
           try {
-            const result = await getData("material_process_flow", {
-              query: { _id: item._id },
+            // 已经有详细数据，直接使用
+            const detailData = item;
+            const materialBarcodeData =
+              await this.handleProcessedMaterialBarcodeData(detailData);
+
+            if (materialBarcodeData.length === 0) {
+              continue;
+            }
+
+            // 创建Excel数据
+            const excelData = materialBarcodeData.map((item) => ({
+              条码: item.barcode || "-",
+              物料编码: item.materialCode || "-",
+              物料名称: item.materialName || "-",
+              规格型号: item.materialSpec || "-",
+              状态: this.getProcessStatusText(item.status) || "-",
+              所属工序: `${item.processName || ""} ${
+                item.processCode ? `(${item.processCode})` : ""
+              }`,
+              扫码时间: item.scanTime ? this.formatDate(item.scanTime) : "-",
+            }));
+
+            // 创建工作簿和设置样式
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // 设置列宽
+            ws["!cols"] = [
+              { wch: 20 }, // 条码
+              { wch: 15 }, // 物料编码
+              { wch: 20 }, // 物料名称
+              { wch: 15 }, // 规格型号
+              { wch: 10 }, // 状态
+              { wch: 20 }, // 所属工序
+              { wch: 20 }, // 扫码时间
+            ];
+
+            // 设置表头样式
+            const range = XLSX.utils.decode_range(ws["!ref"]);
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+              const address = XLSX.utils.encode_cell({ r: 0, c: C });
+              if (!ws[address]) continue;
+              ws[address].s = {
+                font: { bold: true },
+                alignment: { horizontal: "center" },
+                fill: { fgColor: { rgb: "f5f7fa" } },
+              };
+            }
+
+            XLSX.utils.book_append_sheet(wb, ws, "物料条码信息");
+            const excelBuffer = XLSX.write(wb, {
+              bookType: "xlsx",
+              type: "array",
             });
 
-            if (result.code === 200 && result.data.length > 0) {
-              const detailData = result.data[0];
-              const materialBarcodeData =
-                await this.handleProcessedMaterialBarcodeData(detailData);
-
-              if (materialBarcodeData.length === 0) {
-                continue;
-              }
-
-              // 创建Excel数据
-              const excelData = materialBarcodeData.map((item) => ({
-                条码: item.barcode || "-",
-                物料编码: item.materialCode || "-",
-                物料名称: item.materialName || "-",
-                规格型号: item.materialSpec || "-",
-                状态: this.getProcessStatusText(item.status) || "-",
-                所属工序: `${item.processName || ""} ${
-                  item.processCode ? `(${item.processCode})` : ""
-                }`,
-                扫码时间: item.scanTime ? this.formatDate(item.scanTime) : "-",
-              }));
-
-              // 创建工作簿和设置样式
-              const wb = XLSX.utils.book_new();
-              const ws = XLSX.utils.json_to_sheet(excelData);
-
-              // 设置列宽
-              ws["!cols"] = [
-                { wch: 20 }, // 条码
-                { wch: 15 }, // 物料编码
-                { wch: 20 }, // 物料名称
-                { wch: 15 }, // 规格型号
-                { wch: 10 }, // 状态
-                { wch: 20 }, // 所属工序
-                { wch: 20 }, // 扫码时间
-              ];
-
-              // 设置表头样式
-              const range = XLSX.utils.decode_range(ws["!ref"]);
-              for (let C = range.s.c; C <= range.e.c; ++C) {
-                const address = XLSX.utils.encode_cell({ r: 0, c: C });
-                if (!ws[address]) continue;
-                ws[address].s = {
-                  font: { bold: true },
-                  alignment: { horizontal: "center" },
-                  fill: { fgColor: { rgb: "f5f7fa" } },
-                };
-              }
-
-              XLSX.utils.book_append_sheet(wb, ws, "物料条码信息");
-              const excelBuffer = XLSX.write(wb, {
-                bookType: "xlsx",
-                type: "array",
-              });
-
-              // 添加到zip
-              const fileName = `${item.materialCode}_${item.materialName}_${item.barcode}.xlsx`;
-              zip.file(fileName, excelBuffer);
-            }
+            // 添加到zip
+            const fileName = `${item.materialCode}_${item.materialName}_${item.barcode}.xlsx`;
+            zip.file(fileName, excelBuffer);
           } catch (error) {
             console.error("处理数据失败:", error);
             continue;
@@ -2868,6 +2992,27 @@ export default {
       );
     },
     handleReplaceComponent(row) {
+      // 检查产品状态是否为已完成状态
+      if (this.dataForm.status === 'COMPLETED') {
+        this.$confirm('该产品已处于完成状态，继续操作可能会影响产品状态，是否继续？', '状态提示', {
+          confirmButtonText: '确认继续',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          // 用户确认，继续执行替换操作
+          this.showReplaceDialog(row);
+        }).catch(() => {
+          // 用户取消，终止操作
+          return;
+        });
+      } else {
+        // 直接显示替换对话框
+        this.showReplaceDialog(row);
+      }
+    },
+    
+    // 提取显示替换对话框的逻辑为单独的方法
+    showReplaceDialog(row) {
       this.replaceSelectedNode = row;
       this.replaceMaterials = row.children.filter(
         (item) => item.nodeType === "MATERIAL"

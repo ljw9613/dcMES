@@ -676,7 +676,8 @@ class MaterialProcessFlowService {
       //检测当前工单是否可以继续投入 - 仅在首道工序时检查
       if (planWorkOrder && processPosition.isFirst) {
         if (
-          planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+          planWorkOrder.inputQuantity >=
+          planWorkOrder.planProductionQuantity - planWorkOrder.scrapQuantity
         ) {
           throw new Error("工单已达到计划数量，无法继续投入");
         }
@@ -1614,7 +1615,8 @@ class MaterialProcessFlowService {
       //检测当前工单是否可以继续投入 - 仅在首道工序时检查
       if (planWorkOrder && processPosition.isFirst) {
         if (
-          planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+          planWorkOrder.inputQuantity >=
+          planWorkOrder.planProductionQuantity - planWorkOrder.scrapQuantity
         ) {
           throw new Error("工单已达到计划数量，无法继续投入");
         }
@@ -1624,7 +1626,10 @@ class MaterialProcessFlowService {
       if (planWorkOrder) {
         if (processPosition.isFirst) {
           //检测当前工单是否可以继续投入
-          if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
+          if (
+            planWorkOrder.inputQuantity >=
+            planWorkOrder.planQuantity - planWorkOrder.scrapQuantity
+          ) {
             throw new Error("工单已达到计划数量，无法继续投入");
           }
 

@@ -14,6 +14,9 @@ const palletItemSchema = new mongoose.Schema(
         barcode: { type: String }, // 托盘条码
         barcodeType: { type: String }, // 托盘条码类型
         scanTime: { type: Date }, // 扫码时间
+        outWarehouseStatus: { type: String, default: "PENDING" }, // 出库状态
+        outWarehouseTime: { type: Date }, // 出库时间
+        outWarehouseBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 出库人
       },
     ],
     productionPlanWorkOrderId: {
@@ -59,6 +62,11 @@ const entryItemSchema = new mongoose.Schema(
           ref: "production_plan_work_order",
           description: "工单ID",
         },
+        scanTime: { type: Date }, // 扫码时间
+        scanBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 扫描人
+        outWarehouseStatus: { type: String, default: "PENDING" }, // 出库状态
+        outWarehouseTime: { type: Date }, // 出库时间
+        outWarehouseBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 出库人
       },
     ], // 托盘条码
   },

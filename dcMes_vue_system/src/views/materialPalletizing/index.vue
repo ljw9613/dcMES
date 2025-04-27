@@ -1211,16 +1211,16 @@ export default {
               workOrderNo: {
                 $regex: workOrderNoRegex,
                 $options: "i",
-              }
+              },
             },
             // 查询多工单数组中的工单号
             {
               "workOrders.workOrderNo": {
                 $regex: workOrderNoRegex,
                 $options: "i",
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
       }
 
@@ -1362,7 +1362,10 @@ export default {
         return;
       }
 
-      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+      if (
+        row.inWarehouseStatus === "OUT_WAREHOUSE" ||
+        row.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+      ) {
         this.$message.error("该托盘已出库");
         return;
       }
@@ -1384,7 +1387,10 @@ export default {
         return;
       }
 
-      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+      if (
+        row.inWarehouseStatus === "OUT_WAREHOUSE" ||
+        row.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+      ) {
         this.$message.error("已出库的托盘不能删除");
         return;
       }
@@ -1499,24 +1505,109 @@ export default {
       }
     },
     handlePrint(row) {
-      let printData = row;
-      printData.createAt = this.formatDate(row.createAt);
-      printData.workshop =
-        (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) ||
-        "未记录生产车间";
-      printData.qrcode = `${row.palletCode}#${row.saleOrderNo}#${
-        row.materialCode
-      }#${row.totalQuantity}#${
-        (row.productLineId && row.productLineId.lineCode) || "未记录生产线"
-      }`;
-      printData.palletBarcodes = row.palletBarcodes.map((item) => {
-        item.scanTime = this.formatDate(item.scanTime);
-        return item;
+      // 添加加载状态
+      const loading = this.$loading({
+        lock: true,
+        text: '正在准备打印数据...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
       });
-      this.printData = printData;
-      this.$nextTick(() => {
-        this.$refs.hirInput.handlePrints();
-      });
+
+      try {
+        // 先检查关键数据是否存在
+        if (!row || !row.palletCode) {
+          this.$message.error('托盘数据不完整，无法打印');
+          loading.close();
+          return;
+        }
+
+        let printData = JSON.parse(JSON.stringify(row)); // 深拷贝避免修改原始数据
+        
+        // 格式化日期
+        printData.createAt = this.formatDate(row.createAt);
+        
+        // 填充车间信息
+        printData.workshop =
+          (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) ||
+          "未记录生产车间";
+        
+        // 生成二维码数据
+        const lineCode = (row.productLineId && row.productLineId.lineCode) || "未记录生产线";
+        const materialCode = row.materialCode || "";
+        const saleOrderNo = row.saleOrderNo || "";
+        const totalQuantity = row.totalQuantity || 0;
+        
+        printData.qrcode = `${row.palletCode}#${saleOrderNo}#${materialCode}#${totalQuantity}#${lineCode}`;
+        
+        // 处理包装箱条码
+        if (row.boxItems && row.boxItems.length > 0) {
+          let palletBarcodes = [];
+          row.boxItems.forEach((item) => {
+            if (item && item.boxBarcode && item.boxBarcodes && Array.isArray(item.boxBarcodes)) {
+              let boxBarcode = item.boxBarcode;
+              item.boxBarcodes.forEach((boxBarcodeItem) => {
+                if (boxBarcodeItem && boxBarcodeItem.barcode) {
+                  palletBarcodes.push({
+                    barcode: boxBarcodeItem.barcode,
+                    boxBarcode: boxBarcode,
+                    scanTime: this.formatDate(boxBarcodeItem.scanTime || new Date())
+                  });
+                }
+              });
+            }
+          });
+          printData.palletBarcodes = palletBarcodes;
+        } else if (row.palletBarcodes && Array.isArray(row.palletBarcodes)) {
+          printData.palletBarcodes = row.palletBarcodes.map((item) => {
+            return {
+              barcode: item.barcode || "",
+              scanTime: this.formatDate(item.scanTime || new Date()),
+              boxBarcode: ""
+            };
+          });
+        } else {
+          printData.palletBarcodes = [];
+        }
+
+        // 设置尾数托盘标识
+        printData.isLastPallet = row.isLastPallet ? "尾数托盘" : "";
+
+        // 检查关键打印数据是否准备好
+        if (!printData.palletCode || !printData.palletBarcodes) {
+          this.$message.error('托盘信息不完整，无法打印');
+          loading.close();
+          return;
+        }
+
+        //处理多工单托盘的情况
+        if (printData.workOrders.length > 1) {
+          let workOrderNo = "";
+          printData.workOrders.forEach((item) => {
+            workOrderNo += item.workOrderNo + ",";
+          });
+          printData.workOrderNo = workOrderNo;
+        }
+
+        console.log(printData, "printData");
+        
+        // 数据准备好后，赋值并调用打印方法
+        this.printData = printData;
+        
+        // 使用nextTick确保DOM更新后再调用打印
+        this.$nextTick(() => {
+          if (this.$refs.hirInput) {
+            this.$refs.hirInput.handlePrints();
+            loading.close();
+          } else {
+            this.$message.error('打印组件未加载，请重试');
+            loading.close();
+          }
+        });
+      } catch (error) {
+        console.error('准备打印数据时出错:', error);
+        this.$message.error('准备打印数据时出错: ' + (error.message || '未知错误'));
+        loading.close();
+      }
     },
     showHistory(row) {
       this.historyCurrentPage = 1;
@@ -1738,7 +1829,10 @@ export default {
         return;
       }
 
-      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+      if (
+        row.inWarehouseStatus === "OUT_WAREHOUSE" ||
+        row.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+      ) {
         this.$message.error("该托盘已出库");
         return;
       }
@@ -1759,11 +1853,14 @@ export default {
         return;
       }
 
-      if (row.inWarehouseStatus === "OUT_WAREHOUSE" || row.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+      if (
+        row.inWarehouseStatus === "OUT_WAREHOUSE" ||
+        row.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+      ) {
         this.$message.error("该托盘已出库");
         return;
       }
-      
+
       this.dataForm = JSON.parse(JSON.stringify(row));
       this.inspectionResetDialogVisible = true;
     },
@@ -2017,15 +2114,19 @@ export default {
           // 是包装箱条码
           // 整个箱子的条码列表
           const boxBarcodes = boxResponse.data.map((item) => item.barcode);
-          
+
           // 检查托盘剩余容量
-          const currentCount = this.palletInfo.palletBarcodes ? this.palletInfo.palletBarcodes.length : 0;
+          const currentCount = this.palletInfo.palletBarcodes
+            ? this.palletInfo.palletBarcodes.length
+            : 0;
           const totalCapacity = this.palletInfo.totalQuantity || 0;
           const remainingCapacity = totalCapacity - currentCount;
-          
+
           // 如果包装箱条码数量超出托盘剩余容量，则不允许入托
           if (boxBarcodes.length > remainingCapacity) {
-            this.$message.error(`包装箱内条码数量(${boxBarcodes.length})超出托盘剩余容量(${remainingCapacity})，无法入托`);
+            this.$message.error(
+              `包装箱内条码数量(${boxBarcodes.length})超出托盘剩余容量(${remainingCapacity})，无法入托`
+            );
             // 清空条码输入框并聚焦
             this.addToPalletForm.barcode = "";
             this.$nextTick(() => {

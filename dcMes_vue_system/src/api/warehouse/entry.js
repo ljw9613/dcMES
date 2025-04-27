@@ -41,3 +41,12 @@ export function submitProductBarcode(data) {
         data
     })
 }
+
+// 删除出库单并恢复相关条码状态
+export function deleteWarehouseEntry(data) {
+    return request({
+        url: '/warehouse_entry/delete_entry',
+        method: 'post',
+        data
+    })
+}

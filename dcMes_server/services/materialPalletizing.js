@@ -20,6 +20,7 @@ class MaterialPalletizingService {
    * @param {String} boxBarcode - 箱条码(可选)
    * @param {Number} totalQuantity - 托盘条码批次数量
    * @param {Array} componentScans - 子物料信息
+   * @param {Boolean} fromRepairStation - 是否来自维修台，默认为false
    */
   static async handlePalletBarcode(
     lineId,
@@ -33,7 +34,8 @@ class MaterialPalletizingService {
     boxBarcode,
     totalQuantity,
     userId,
-    componentScans
+    componentScans,
+    fromRepairStation = false
   ) {
     try {
       // 首先查找进行中的产线计划
@@ -334,7 +336,8 @@ class MaterialPalletizingService {
         pallet.palletCode,
         componentScans,
         userId,
-        lineId
+        lineId,
+        fromRepairStation // 传递是否来自维修台
       );
 
       // 保存更新
@@ -354,6 +357,7 @@ class MaterialPalletizingService {
    * @param {String} boxBarcode - 箱条码(可选)
    * @param {String} userId - 操作用户ID
    * @param {Array} componentScans - 子物料信息
+   * @param {Boolean} fromRepairStation - 是否来自维修台，默认为false
    * @returns {Object} 更新后的托盘信息
    */
   static async addBarcodeToPallet(
@@ -361,7 +365,8 @@ class MaterialPalletizingService {
     mainBarcode,
     boxBarcode = null,
     userId,
-    componentScans = []
+    componentScans = [],
+    fromRepairStation = true
   ) {
     try {
       // 查找指定托盘
@@ -544,7 +549,8 @@ class MaterialPalletizingService {
         pallet.palletCode,
         componentScans,
         userId,
-        pallet.productLineId
+        pallet.productLineId,
+        fromRepairStation // 传递是否来自维修台
       );
 
       // 保存更新

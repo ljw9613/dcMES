@@ -437,6 +437,7 @@ export default {
           const response = await scanPalletOn({
             palletCode,
             userId: this.$store.state.user.id,
+            entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
             entryInfo: {
               ...this.entryInfo,
               HuoGuiCode: this.entryInfo.HuoGuiCode,
@@ -481,18 +482,22 @@ export default {
                 },
               });
             }
-            
+
             // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
-            const isCompleted = 
-              (response.data.progress && response.data.progress === 100) || 
-              (response.data.outNumber && response.data.outboundQuantity && 
-               Number(response.data.outNumber) >= Number(response.data.outboundQuantity));
-            
+            const isCompleted =
+              (response.data.progress && response.data.progress === 100) ||
+              (response.data.outNumber &&
+                response.data.outboundQuantity &&
+                Number(response.data.outNumber) >=
+                  Number(response.data.outboundQuantity));
+
             // 如果已完成，则更新状态为已完成并自动关闭对话框
             if (isCompleted) {
               this.dialogVisible = false;
               setTimeout(() => {
                 this.$message.success("该出库单已完成出库");
+                // 通知父组件刷新数据
+                this.$emit('refresh');
               }, 1000);
               return;
             }
@@ -582,21 +587,24 @@ export default {
           this.$nextTick(() => {
             this.$refs.scanInput.focus();
           });
-          
+
           // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
-          const isCompleted = 
-            (response.data.progress && response.data.progress === 100) || 
-            (response.data.outNumber && response.data.outboundQuantity && 
-             Number(response.data.outNumber) >= Number(response.data.outboundQuantity));
-          
+          const isCompleted =
+            (response.data.progress && response.data.progress === 100) ||
+            (response.data.outNumber &&
+              response.data.outboundQuantity &&
+              Number(response.data.outNumber) >=
+                Number(response.data.outboundQuantity));
+
           // 如果已完成，则更新状态为已完成并自动关闭对话框
           if (isCompleted) {
-            // 确保状态更新为已完成
-            
             this.dialogVisible = false;
             setTimeout(() => {
               this.$message.success("该出库单已完成出库");
+              // 通知父组件刷新数据
+              this.$emit('refresh');
             }, 1000);
+            return;
           }
         }
       } catch (error) {
@@ -634,137 +642,180 @@ export default {
         if (boxResponse.data && boxResponse.data.length > 0) {
           // 是包装箱条码
           // 弹出确认框询问用户是否为整箱出库
-          this.$confirm('检测到包装箱条码，是否进行整箱出库?', '提示', {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }).then(async () => {
-            // 设置加载提示
-            const loading = this.$loading({
-              lock: true,
-              text: "处理包装箱条码中...",
-              spinner: "el-icon-loading",
-              background: "rgba(0, 0, 0, 0.7)",
-            });
-            
-            try {
-              // 获取包装箱内的所有条码
-              const boxContents = boxResponse.data[0].processNodes.filter(node => 
-                node.isPackingBox && node.barcode === barcode
-              );
-              
-              if (!boxContents || boxContents.length === 0) {
-                this.$message.error("未找到包装箱内容信息");
-                loading.close();
-                return;
-              }
-              
-              // 获取包装箱内所有产品条码
-              const productBarcodes = boxContents[0].childBarcodes || [];
-              
-              if (productBarcodes.length === 0) {
-                this.$message.error("包装箱内无产品条码");
-                loading.close();
-                return;
-              }
-              
-              // 成功添加的条码数量
-              let successCount = 0;
-              let failCount = 0;
-              
-              // 分别处理箱内每个条码
-              for (const productBarcode of productBarcodes) {
-                // 调用产品条码提交接口
-                const response = await submitProductBarcode({
-                  productBarcode: productBarcode,
-                  userId: this.$store.state.user.id,
-                  entryInfo: {
-                    ...this.entryInfo,
-                    HuoGuiCode: this.entryInfo.HuoGuiCode,
-                    FaQIaoNo: this.entryInfo.FaQIaoNo,
-                    workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-                      (item) => ({
-                        workOrderNo: item.workOrderNo,
-                        workOrderId: item._id,
-                        productionOrderNo: item.productionOrderNo,
-                      })
-                    ),
-                    outboundMode: this.entryInfo.outboundMode,
-                    isBoxBarcode: true,
-                    boxBarcode: barcode
-                  },
-                });
-                
-                if (response.code === 200) {
-                  successCount++;
-                  
-                  // 更新出库单信息
-                  if (response.data && response.data.entry) {
-                    // 保留原有的货柜号和发票号
-                    const huoGuiCode = this.entryInfo.HuoGuiCode;
-                    const faQIaoNo = this.entryInfo.FaQIaoNo;
-                    
-                    this.entryInfo = {
-                      ...response.data.entry,
-                      outboundMode: this.entryInfo.outboundMode,
-                      HuoGuiCode: response.data.entry.HuoGuiCode || huoGuiCode,
-                      FaQIaoNo: response.data.entry.FaQIaoNo || faQIaoNo,
-                    };
-                  }
-                } else {
-                  failCount++;
-                  console.error("条码出库失败:", productBarcode, response.message);
-                }
-              }
-              
-              // 检查是否已完成出库
-              if (this.entryInfo) {
-                const isCompleted = 
-                  (this.entryInfo.progress && this.entryInfo.progress === 100) || 
-                  (this.entryInfo.outNumber && this.entryInfo.outboundQuantity && 
-                   Number(this.entryInfo.outNumber) >= Number(this.entryInfo.outboundQuantity));
-                
-                if (isCompleted) {
+          this.$confirm("检测到包装箱条码，是否进行整箱出库?", "提示", {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            type: "warning",
+          })
+            .then(async () => {
+              // 设置加载提示
+              const loading = this.$loading({
+                lock: true,
+                text: "处理包装箱条码中...",
+                spinner: "el-icon-loading",
+                background: "rgba(0, 0, 0, 0.7)",
+              });
+
+              try {
+                // 获取包装箱内的所有条码
+                const boxContents = boxResponse.data;
+
+                if (!boxContents || boxContents.length === 0) {
+                  this.$message.error("未找到包装箱内容信息");
                   loading.close();
-                  this.dialogVisible = false;
-                  setTimeout(() => {
-                    this.$message.success(`包装箱条码处理完成, 成功:${successCount}, 失败:${failCount}, 出库单已完成出库`);
-                  }, 1000);
                   return;
                 }
+
+                // 获取包装箱内所有产品条码
+                const productBarcodes = boxContents.map((item) => item.barcode);
+
+                if (productBarcodes.length === 0) {
+                  this.$message.error("包装箱内无产品条码");
+                  loading.close();
+                  return;
+                }
+
+                // 验证包装箱条码数量
+                // 如果出库单已经初始化（有已出库数量），验证包装箱数量不超过剩余出库数量
+                // 如果出库单未初始化，验证包装箱数量不超过应出库数量
+                if (this.entryInfo.outboundQuantity) {
+                  const outboundQuantity = Number(this.entryInfo.outboundQuantity);
+                  const outNumber = Number(this.entryInfo.outNumber || 0);
+                  
+                  if (this.entryInfo._id && outNumber > 0) {
+                    // 出库单已初始化，验证剩余数量
+                    const remainingQuantity = outboundQuantity - outNumber;
+                    if (productBarcodes.length > remainingQuantity) {
+                      this.$message.error(`包装箱内产品数量(${productBarcodes.length})超过剩余应出库数量(${remainingQuantity})`);
+                      loading.close();
+                      return;
+                    }
+                  } else {
+                    // 出库单未初始化或未开始出库，验证总应出库数量
+                    if (productBarcodes.length > outboundQuantity) {
+                      this.$message.error(`包装箱内产品数量(${productBarcodes.length})超过应出库总数量(${outboundQuantity})`);
+                      loading.close();
+                      return;
+                    }
+                  }
+                } else {
+                  // 应出库数量未设置，提示用户
+                  this.$message.error("请先设置应出库数量");
+                  loading.close();
+                  return;
+                }
+
+                // 成功添加的条码数量
+                let successCount = 0;
+                let failCount = 0;
+
+                // 分别处理箱内每个条码
+                for (const productBarcode of productBarcodes) {
+                  // 调用产品条码提交接口
+                  const response = await submitProductBarcode({
+                    productBarcode: productBarcode,
+                    userId: this.$store.state.user.id,
+                    entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
+                    entryInfo: {
+                      ...this.entryInfo,
+                      HuoGuiCode: this.entryInfo.HuoGuiCode,
+                      FaQIaoNo: this.entryInfo.FaQIaoNo,
+                      workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
+                        (item) => ({
+                          workOrderNo: item.workOrderNo,
+                          workOrderId: item._id,
+                          productionOrderNo: item.productionOrderNo,
+                        })
+                      ),
+                      outboundMode: this.entryInfo.outboundMode,
+                      isBoxBarcode: true,
+                      boxBarcode: barcode,
+                    },
+                  });
+
+                  if (response.code === 200) {
+                    successCount++;
+
+                    // 更新出库单信息
+                    if (response.data && response.data.entry) {
+                      // 保留原有的货柜号和发票号
+                      const huoGuiCode = this.entryInfo.HuoGuiCode;
+                      const faQIaoNo = this.entryInfo.FaQIaoNo;
+
+                      this.entryInfo = {
+                        ...response.data.entry,
+                        outboundMode: this.entryInfo.outboundMode,
+                        HuoGuiCode:
+                          response.data.entry.HuoGuiCode || huoGuiCode,
+                        FaQIaoNo: response.data.entry.FaQIaoNo || faQIaoNo,
+                      };
+                    }
+                  } else {
+                    failCount++;
+                    console.error(
+                      "条码出库失败:",
+                      productBarcode,
+                      response.message
+                    );
+                  }
+                }
+
+                // 检查是否已完成出库
+                if (this.entryInfo) {
+                  const isCompleted =
+                    (this.entryInfo.progress &&
+                      this.entryInfo.progress === 100) ||
+                    (this.entryInfo.outNumber &&
+                      this.entryInfo.outboundQuantity &&
+                      Number(this.entryInfo.outNumber) >=
+                        Number(this.entryInfo.outboundQuantity));
+
+                  if (isCompleted) {
+                    loading.close();
+                    this.dialogVisible = false;
+                    setTimeout(() => {
+                      this.$message.success(
+                        `包装箱条码处理完成, 成功:${successCount}, 失败:${failCount}, 出库单已完成出库`
+                      );
+                    }, 1000);
+                    return;
+                  }
+                }
+
+                loading.close();
+                this.$message.success(
+                  `包装箱条码处理完成, 成功:${successCount}, 失败:${failCount}`
+                );
+
+                // 清空输入框并聚焦
+                this.productScanForm.barcode = "";
+                this.$nextTick(() => {
+                  this.$refs.productScanInput.focus();
+                });
+              } catch (error) {
+                loading.close();
+                console.error("处理包装箱条码失败:", error);
+                this.$message.error(error.message || "处理包装箱条码失败");
+
+                // 清空输入框并聚焦
+                this.productScanForm.barcode = "";
+                this.$nextTick(() => {
+                  this.$refs.productScanInput.focus();
+                });
               }
-              
-              loading.close();
-              this.$message.success(`包装箱条码处理完成, 成功:${successCount}, 失败:${failCount}`);
-              
-              // 清空输入框并聚焦
-              this.productScanForm.barcode = "";
-              this.$nextTick(() => {
-                this.$refs.productScanInput.focus();
-              });
-            } catch (error) {
-              loading.close();
-              console.error("处理包装箱条码失败:", error);
-              this.$message.error(error.message || "处理包装箱条码失败");
-              
-              // 清空输入框并聚焦
-              this.productScanForm.barcode = "";
-              this.$nextTick(() => {
-                this.$refs.productScanInput.focus();
-              });
-            }
-          }).catch(() => {
-            // 用户取消整箱出库，直接当作单个产品条码处理
-            // this.processSingleProductBarcode(barcode);
-            this.$message.warning("已取消整箱出库");
-          });
+            })
+            .catch(() => {
+              // 用户取消整箱出库，直接当作单个产品条码处理
+              // this.processSingleProductBarcode(barcode);
+              this.$message.warning("已取消整箱出库");
+            });
         } else {
           // 不是包装箱条码，按普通产品条码处理
           await this.processSingleProductBarcode(barcode);
         }
       } catch (error) {
         console.error("产品条码扫描失败:", error);
-        
+
         // 清空输入框并聚焦
         this.productScanForm.barcode = "";
         this.$nextTick(() => {
@@ -772,7 +823,7 @@ export default {
         });
       }
     },
-    
+
     // 处理单个产品条码的方法
     async processSingleProductBarcode(barcode) {
       try {
@@ -780,6 +831,7 @@ export default {
         const response = await submitProductBarcode({
           productBarcode: barcode,
           userId: this.$store.state.user.id,
+          entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
           entryInfo: {
             ...this.entryInfo,
             HuoGuiCode: this.entryInfo.HuoGuiCode,
@@ -839,20 +891,24 @@ export default {
               },
             });
           }
-          
+
           // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
           const entryData = response.data.entry;
-          const isCompleted = 
-            (response.data.progress && response.data.progress === 100) || 
+          const isCompleted =
+            (response.data.progress && response.data.progress === 100) ||
             (entryData.progress && entryData.progress === 100) ||
-            (entryData.outNumber && entryData.outboundQuantity && 
-             Number(entryData.outNumber) >= Number(entryData.outboundQuantity));
-          
+            (entryData.outNumber &&
+              entryData.outboundQuantity &&
+              Number(entryData.outNumber) >=
+                Number(entryData.outboundQuantity));
+
           // 如果已完成，则更新状态为已完成并自动关闭对话框
           if (isCompleted) {
             this.dialogVisible = false;
             setTimeout(() => {
               this.$message.success("该出库单已完成出库");
+              // 通知父组件刷新数据
+              this.$emit('refresh');
             }, 1000);
             return;
           }

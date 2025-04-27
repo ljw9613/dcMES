@@ -785,7 +785,29 @@ export default {
                         this.reviewDialogVisible = false;
                         this.fetchData();
                     } else {
-                        this.$message.error(response.message || '审核失败');
+                        // 处理关键物料的情况
+                        if (response.code != 200 && response.data && response.data.keyMaterials) {
+                            // 显示关键物料列表
+                            const keyMaterialsInfo = response.data.keyMaterials.map(item => 
+                                `${item.materialName}(${item.materialCode || '无编码'}) - 条码: ${item.barcode}`
+                            ).join('<br/>');
+                            
+                            this.$alert(
+                                `<div style="max-height: 300px; overflow-y: auto;">
+                                    <p>${response.message}</p>
+                                    <p>关键物料列表:</p>
+                                    <p>${keyMaterialsInfo}</p>
+                                </div>`,
+                                '审核失败',
+                                {
+                                    dangerouslyUseHTMLString: true,
+                                    confirmButtonText: '确定',
+                                    type: 'warning'
+                                }
+                            );
+                        } else {
+                            this.$message.error(response.message || '审核失败');
+                        }
                     }
                     return;
                 }
@@ -808,11 +830,33 @@ export default {
                     this.reviewDialogVisible = false;
                     this.fetchData();
                 } else {
-                    this.$message.error(response.message || '审核失败');
+                    // 处理关键物料的情况
+                    if (response.code === 400 && response.data && response.data.keyMaterials) {
+                        // 显示关键物料列表
+                        const keyMaterialsInfo = response.data.keyMaterials.map(item => 
+                            `${item.materialName}(${item.materialCode || '无编码'}) - 条码: ${item.barcode}`
+                        ).join('<br/>');
+                        
+                        this.$alert(
+                            `<div style="max-height: 300px; overflow-y: auto;">
+                                <p>${response.message}</p>
+                                <p>关键物料列表:</p>
+                                <p>${keyMaterialsInfo}</p>
+                            </div>`,
+                            '审核失败',
+                            {
+                                dangerouslyUseHTMLString: true,
+                                confirmButtonText: '确定',
+                                type: 'warning'
+                            }
+                        );
+                    } else {
+                        this.$message.error(response.message || '审核失败');
+                    }
                 }
             } catch (error) {
                 console.error('审核失败:', error);
-                this.$message.error('审核失败');
+                this.$message.error('审核失败: ' + (error.message || '未知错误'));
             }
         },
 
@@ -873,7 +917,38 @@ export default {
                         this.selection = [];
                         this.fetchData();
                     } else {
-                        this.$message.error(response.message || '批量审核失败');
+                        // 处理关键物料的情况
+                        if (response.code === 400 && response.data && response.data.barcodeWithKeyMaterials) {
+                            // 构建批量关键物料信息展示
+                            let barcodeInfo = '';
+                            response.data.barcodeWithKeyMaterials.forEach(item => {
+                                barcodeInfo += `<div style="margin-bottom: 10px;">
+                                    <strong>条码: ${item.barcode}</strong>
+                                    <ul style="margin: 5px 0 0 20px;">`;
+                                    
+                                    item.keyMaterials.forEach(material => {
+                                        barcodeInfo += `<li>${material.materialName}(${material.materialCode || '无编码'}) - 条码: ${material.barcode}</li>`;
+                                    });
+                                    
+                                    barcodeInfo += `</ul></div>`;
+                            });
+                            
+                            this.$alert(
+                                `<div style="max-height: 400px; overflow-y: auto;">
+                                    <p>${response.message}</p>
+                                    <p>具体信息:</p>
+                                    ${barcodeInfo}
+                                </div>`,
+                                '批量审核失败',
+                                {
+                                    dangerouslyUseHTMLString: true,
+                                    confirmButtonText: '确定',
+                                    type: 'warning'
+                                }
+                            );
+                        } else {
+                            this.$message.error(response.message || '批量审核失败');
+                        }
                     }
                     return;
                 }
@@ -899,11 +974,42 @@ export default {
                     this.selection = [];
                     this.fetchData();
                 } else {
-                    this.$message.error(response.message || '批量审核失败');
+                    // 处理关键物料的情况
+                    if (response.code === 400 && response.data && response.data.barcodeWithKeyMaterials) {
+                        // 构建批量关键物料信息展示
+                        let barcodeInfo = '';
+                        response.data.barcodeWithKeyMaterials.forEach(item => {
+                            barcodeInfo += `<div style="margin-bottom: 10px;">
+                                <strong>条码: ${item.barcode}</strong>
+                                <ul style="margin: 5px 0 0 20px;">`;
+                                
+                            item.keyMaterials.forEach(material => {
+                                barcodeInfo += `<li>${material.materialName}(${material.materialCode || '无编码'}) - 条码: ${material.barcode}</li>`;
+                            });
+                            
+                            barcodeInfo += `</ul></div>`;
+                        });
+                        
+                        this.$alert(
+                            `<div style="max-height: 400px; overflow-y: auto;">
+                                <p>${response.message}</p>
+                                <p>具体信息:</p>
+                                ${barcodeInfo}
+                            </div>`,
+                            '批量审核失败',
+                            {
+                                dangerouslyUseHTMLString: true,
+                                confirmButtonText: '确定',
+                                type: 'warning'
+                            }
+                        );
+                    } else {
+                        this.$message.error(response.message || '批量审核失败');
+                    }
                 }
             } catch (error) {
                 console.error('批量审核失败:', error);
-                this.$message.error('批量审核失败');
+                this.$message.error('批量审核失败: ' + (error.message || '未知错误'));
             }
         },
 

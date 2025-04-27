@@ -1520,43 +1520,52 @@ export default {
         let matched = false;
 
         // TODO 国内检查非成品条码检测是否有未完成的维修记录
-        if (
-          this.craftInfo &&
-          (!this.craftInfo.isProduct ||
-            this.craftInfo.materialCode !== materialCode)
-        ) {
-          // "PENDING_REVIEW", "REVIEWED", "VOIDED"
-          console.log("非成品条码检测是否有未完成的维修记录");
-          const repairRecord = await getData("product_repair", {
-            query: { barcode: cleanValue },
-            sort: { _id: -1 },
-          });
-          if (repairRecord.data.length > 0) {
-            if (repairRecord.data[0].status == "PENDING_REVIEW") {
+        // if (
+        //   this.craftInfo &&
+        //   (!this.craftInfo.isProduct ||
+        //     this.craftInfo.materialCode !== materialCode)
+        // ) {
+        // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+        console.log("非成品条码检测是否有未完成的维修记录");
+        const repairRecord = await getData("product_repair", {
+          query: { barcode: cleanValue },
+          sort: { _id: -1 },
+        });
+        if (repairRecord.data.length > 0) {
+          if (repairRecord.data[0].status == "PENDING_REVIEW") {
+            this.unifiedScanInput = "";
+            this.$refs.scanInput.focus();
+            this.$message.error("该条码存在未完成的维修记录");
+            this.errorMessage = "该条码存在未完成的维修记录";
+            this.popupType = "ng";
+            this.showPopup = true;
+            tone(dwx);
+            return;
+          }
+          if (
+            repairRecord.data[0].status == "REVIEWED" &&
+            repairRecord.data[0].repairResult !== "QUALIFIED"
+          ) {
+            if (repairRecord.data[0].solution == "报废") {
               this.unifiedScanInput = "";
               this.$refs.scanInput.focus();
-              this.$message.error("该条码存在未完成的维修记录");
-              this.errorMessage = "该条码存在未完成的维修记录";
+              this.$message.error("该条码已完成报废处理");
               this.popupType = "ng";
               this.showPopup = true;
-              tone(dwx);
+              tone(tmyw);
               return;
             }
-            if (
-              repairRecord.data[0].status == "REVIEWED" &&
-              repairRecord.data[0].repairResult !== "QUALIFIED"
-            ) {
-              this.unifiedScanInput = "";
-              this.$refs.scanInput.focus();
-              this.$message.error("该条码已完成维修,但维修结果为不合格");
-              this.errorMessage = "该条码已完成维修,但维修结果为不合格";
-              this.popupType = "ng";
-              this.showPopup = true;
-              tone(wxsb);
-              return;
-            }
+            this.unifiedScanInput = "";
+            this.$refs.scanInput.focus();
+            this.$message.error("该条码已完成维修,但维修结果为不合格");
+            this.errorMessage = "该条码已完成维修,但维修结果为不合格";
+            this.popupType = "ng";
+            this.showPopup = true;
+            tone(wxsb);
+            return;
           }
         }
+        // }
 
         // 检查主物料
         if (materialCode === this.mainMaterialCode) {

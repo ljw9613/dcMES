@@ -49,11 +49,19 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="产品状态" width="100">
+            <template slot-scope="scope">
+              <el-tag :type="getProductStatusType(scope.row.productStatus)">
+                {{ getProductStatusText(scope.row.productStatus) }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="完成进度" width="200">
             <template slot-scope="scope">
               <el-progress :percentage="scope.row.progress || 0"></el-progress>
             </template>
           </el-table-column>
+          
           <el-table-column label="操作" width="120" fixed="right">
             <template slot-scope="scope">
               <el-button type="text" @click="handleView(scope.row)">
@@ -125,6 +133,14 @@
                       </el-tag>
                     </div>
                   </div>
+                  <div class="info-row">
+                    <div class="info-item">
+                      <label>产品状态：</label>
+                      <el-tag :type="getProductStatusType(dataForm.productStatus)">
+                        {{ getProductStatusText(dataForm.productStatus) }}
+                      </el-tag>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -145,7 +161,9 @@
                   <material-info
                     :main-barcode="dataForm.barcode"
                     :flow-chart-data="processedFlowChartData"
+                    :product-status="dataForm.productStatus"
                     @unbind-success="handleUnbindSuccess"
+                    @replace-success="handleUnbindSuccess"
                   >
                   </material-info>
                 </el-tab-pane>
@@ -282,6 +300,7 @@ export default {
             materialSpec: record.materialSpec,
             status: record.status,
             progress: record.progress,
+            productStatus: record.productStatus,
             ...record,
           }));
         } else {
@@ -306,6 +325,7 @@ export default {
               materialSpec: record.materialSpec,
               status: record.status,
               progress: record.progress,
+              productStatus: record.productStatus,
               ...record,
             }));
           } else {
@@ -417,6 +437,26 @@ export default {
         ABNORMAL: "异常",
       };
       return statusMap[status] || status;
+    },
+
+    // 获取产品状态样式
+    getProductStatusType(status) {
+      const statusMap = {
+        NORMAL: "success",
+        REPAIRING: "warning",
+        SCRAP: "danger",
+      };
+      return statusMap[status] || "info";
+    },
+
+    // 获取产品状态文本
+    getProductStatusText(status) {
+      const statusMap = {
+        NORMAL: "正常",
+        REPAIRING: "维修中",
+        SCRAP: "报废",
+      };
+      return statusMap[status] || status || "正常";
     },
 
     // 格式化日期

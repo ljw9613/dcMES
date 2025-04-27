@@ -189,45 +189,50 @@
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
             </div>
-            <el-form
-              :model="batchForm"
-              label-width="100px"
-              v-if="hasEditPermission"
-            >
-              <el-form-item label="产品数量">
-                <div class="batch-size-control">
-                  <el-input-number
-                    size="mini"
-                    v-model="batchForm.batchSize"
-                    :min="1"
-                    :max="999"
-                    @change="handleBatchSizeChange"
-                    :disabled="batchSizeLocked"
-                  >
-                  </el-input-number>
-                  <template v-if="!batchSizeLocked">
-                    <el-button
-                      type="text"
+            <div class="actions-container">
+              <el-button type="text" @click="handleClearCache" icon="el-icon-delete">
+                清除批次物料缓存
+              </el-button>
+              <el-form
+                :model="batchForm"
+                label-width="100px"
+                v-if="hasEditPermission"
+              >
+                <el-form-item label="产品数量">
+                  <div class="batch-size-control">
+                    <el-input-number
                       size="mini"
-                      @click="handleSaveBatchSize"
-                      icon="el-icon-check"
+                      v-model="batchForm.batchSize"
+                      :min="1"
+                      :max="999"
+                      @change="handleBatchSizeChange"
+                      :disabled="batchSizeLocked"
                     >
-                      保存
-                    </el-button>
-                  </template>
-                  <template v-else>
-                    <el-button
-                      type="text"
-                      style="color: red"
-                      @click="handleCancelBatchSize"
-                      icon="el-icon-close"
-                    >
-                      取消
-                    </el-button>
-                  </template>
-                </div>
-              </el-form-item>
-            </el-form>
+                    </el-input-number>
+                    <template v-if="!batchSizeLocked">
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleSaveBatchSize"
+                        icon="el-icon-check"
+                      >
+                        保存
+                      </el-button>
+                    </template>
+                    <template v-else>
+                      <el-button
+                        type="text"
+                        style="color: red"
+                        @click="handleCancelBatchSize"
+                        icon="el-icon-close"
+                      >
+                        取消
+                      </el-button>
+                    </template>
+                  </div>
+                </el-form-item>
+              </el-form>
+            </div>
           </div>
 
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
@@ -331,7 +336,10 @@
                         <el-tag type="info">无需扫码</el-tag>
                       </template>
                       <template v-else-if="material.isBatch">
-                        <el-tag type="warning">批次物料</el-tag>
+                        <el-tag type="warning" v-if="material.batchQuantity">
+                          {{ getBatchUsageText(material._id) }}
+                        </el-tag>
+                        <el-tag type="warning" v-else>批次物料</el-tag>
                       </template>
                     </template>
                   </el-input>
@@ -473,6 +481,7 @@ export default {
       unifiedScanInput: "", // 新增统一扫描输入框的值
       hasEditPermission: false, // 添加权限控制状态
       batchMaterialCache: {}, // 新增用于存储批次物料缓存
+      batchUsageCount: {}, // 新增：用于记录批次物料的使用次数
       printDialogVisible: false,
       currentBatchBarcode: "", // 当前要打印的批次条码
       autoPrint: false, // 添加自动打印开关状态
@@ -1459,14 +1468,25 @@ export default {
       const newBarcodes = {};
 
       this.processMaterials.forEach((material) => {
-        if (material.isBatch) {
-          // 从缓存中获取批次物料的条码
+        if (!material.scanOperation) {
+          // 无需扫码的物料直接设置为验证通过
+          this.$set(this.validateStatus, material._id, true);
+          newBarcodes[material._id] = "无需扫码";
+        } else if (material.isBatch) {
+          // 批次物料检查缓存
           const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+          const usageKey = `${cacheKey}_usage`;
           const cachedBarcode = localStorage.getItem(cacheKey);
-          if (cachedBarcode) {
+          const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+
+          // 只有当设置了batchQuantity且超过限制时才清除缓存
+          if (!material.batchQuantity || (cachedBarcode && currentUsage < material.batchQuantity)) {
             newBarcodes[material._id] = cachedBarcode;
-            this.$set(this.validateStatus, material._id, true);
+            this.$set(this.validateStatus, material._id, !!cachedBarcode);
           } else {
+            // 如果使用次数已达到限制，清除缓存
+            localStorage.removeItem(cacheKey);
+            localStorage.removeItem(usageKey);
             newBarcodes[material._id] = "";
             this.$set(this.validateStatus, material._id, false);
           }
@@ -1532,15 +1552,6 @@ export default {
 
         // 检查是否匹配主物料
         if (materialCode === this.mainMaterialCode) {
-          // 检查是否已扫描
-          // if (this.validateStatus.mainBarcode) {
-          //     this.$message.warning('主条码已扫描');
-          //     this.popupType = 'ng';
-          //     this.showPopup = true;
-          //     tone(cfbd);
-          //     return;
-          // }
-
           // TODO 检查非成品条码是否有未完成的维修记录
           if (
             this.craftInfo &&
@@ -1565,6 +1576,15 @@ export default {
                 repairRecord.data[0].status == "REVIEWED" &&
                 repairRecord.data[0].repairResult !== "QUALIFIED"
               ) {
+                if (repairRecord.data[0].solution == "报废") {
+                  this.unifiedScanInput = "";
+                  this.$refs.scanInput.focus();
+                  this.$message.error("该条码已完成报废处理");
+                  this.popupType = "ng";
+                  this.showPopup = true;
+                  tone(tmyw);
+                  return;
+                }
                 this.unifiedScanInput = "";
                 this.$refs.scanInput.focus();
                 this.$message.error("该条码已完成维修,但维修结果为不合格");
@@ -1615,39 +1635,47 @@ export default {
               continue;
             }
 
-            // // 检查是否已扫描
-            // if (this.validateStatus[material._id]) {
-            //     this.$message.warning('该子物料已扫描');
-            //     this.popupType = 'ng';
-            //     this.showPopup = true;
-            //     tone(cfbd);
-            //     return;
-            // }
-
-            // 如果是批次物料,进行批次验证
+            // 如果是批次物料，进行缓存处理
             if (material.isBatch) {
-              try {
-                const batchResponse = await getData("materialBarcodeBatch", {
-                  query: {
-                    materialCode: materialCode,
-                    isUsed: false,
-                  },
-                  sort: { createAt: 1 },
-                  limit: 1,
-                });
+              // 获取缓存键
+              const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+              const usageKey = `${cacheKey}_usage`;
+              const cachedBarcode = localStorage.getItem(cacheKey);
 
-                if (batchResponse.data && batchResponse.data.length > 0) {
-                  const expectedBatchId = batchResponse.data[0].batchId;
-                  if (cleanValue !== expectedBatchId) {
-                    this.$message.error(
-                      `请按顺序使用批次条码，应使用条码: ${expectedBatchId}`
-                    );
-                    tone(tmyw);
-                    return;
-                  }
+              // 如果扫描的是新的批次条码
+              if (cachedBarcode !== cleanValue) {
+                // 查询批次条码使用次数
+                const count = await this.queryBatchUsageCount(cleanValue, material._id);
+
+                // 如果设置了使用次数限制且已达到限制
+                if (material.batchQuantity && count >= material.batchQuantity && material.batchQuantity > 0) {
+                  this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
+                  this.popupType = "ng";
+                  this.showPopup = true;
+                  tone(tmyw);
+                  return;
                 }
-              } catch (error) {
-                console.warn("检查批次条码顺序失败:", error);
+
+                // 更新缓存和使用次数
+                localStorage.setItem(cacheKey, cleanValue);
+                localStorage.setItem(usageKey, count.toString());
+                this.$set(this.batchUsageCount, material._id, count);
+              } else {
+                // 使用现有批次条码
+                const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+
+                // 只有当达到使用限制时才清除
+                if (material.batchQuantity && currentUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                  localStorage.removeItem(cacheKey);
+                  localStorage.removeItem(usageKey);
+                  this.$set(this.scanForm.barcodes, material._id, "");
+                  this.$set(this.validateStatus, material._id, false);
+                  this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
+                  this.popupType = "ng";
+                  this.showPopup = true;
+                  tone(tmyw);
+                  return;
+                }
               }
             }
 
@@ -1722,18 +1750,6 @@ export default {
             componentScans,
           });
 
-          // if (res.code === 200) {
-          //     this.$message.success('数据提交成功');
-          //     tone(smcg);
-          //     this.resetScanForm();
-          // } else {
-          //     this.$message.error(res.message || '提交失败');
-          //     this.popupType = 'ng';
-          //     this.showPopup = true;
-          //     tone(tmyw);
-          //     this.resetScanForm();
-
-          // }
           if (res.code === 200) {
             //更新当前托盘编码
             this.palletForm.palletCode = res.data.palletCode;
@@ -1789,6 +1805,27 @@ export default {
               this.scannedList = [];
             }
 
+            // 提交成功后，更新批次物料的使用次数
+            for (const material of this.processMaterials) {
+              if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                const usageKey = `${cacheKey}_usage`;
+                const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+
+                // 更新使用次数
+                const newUsage = currentUsage + 1;
+                localStorage.setItem(usageKey, newUsage.toString());
+                
+                // 如果设置了使用次数限制且达到限制，清除缓存
+                if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                  localStorage.removeItem(cacheKey);
+                  localStorage.removeItem(usageKey);
+                  this.$set(this.scanForm.barcodes, material._id, "");
+                  this.$set(this.validateStatus, material._id, false);
+                }
+              }
+            }
+
             tone(smcg);
             this.popupType = "ok";
             this.showPopup = true;
@@ -1841,6 +1878,18 @@ export default {
     // 处理包装箱条码
     async handleBoxBarcode(boxBarcode, boxData) {
       try {
+        // 检查包装箱条码数量是否超过托盘剩余可用数量
+        const remainingQuantity =
+          this.batchForm.batchSize - this.scannedList.length;
+        if (boxData.length > remainingQuantity) {
+          this.$message.error(
+            `包装箱内条码数量(${boxData.length})超过托盘剩余可用数量(${remainingQuantity})`
+          );
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          return;
+        }
         // 收集所有已扫描的子物料信息
         let componentScans = [];
         this.processMaterials.forEach((material) => {
@@ -2094,7 +2143,7 @@ export default {
         localStorage.removeItem("materialName");
         localStorage.removeItem("processName");
 
-        // 注意:不清��以下产线相关的缓存
+        // 注意:不清以下产线相关的缓存
         // localStorage.removeItem('productLineId');
         // localStorage.removeItem('productLineName');
 
@@ -2148,7 +2197,7 @@ export default {
       this.currentBatchBarcode = ""; // 清空当前批次条码
     },
 
-    // 打印弹��关闭处理
+    // 打印弹关闭处理
     handleDialogClose() {
       this.printDialogVisible = false;
       this.currentBatchBarcode = ""; // 清空当前批次条码
@@ -2247,7 +2296,7 @@ export default {
             const delay = Math.min(
               1000 * Math.pow(2, this.reconnectAttempts),
               10000
-            ); // 指数退避，���大10秒
+            ); // 指数退避，大10秒
             this.$message.warning(
               `设备连接已断开，${delay / 1000}秒后尝试第${
                 this.reconnectAttempts
@@ -2610,33 +2659,33 @@ export default {
       }
     },
 
-    // 添加重置扫描表单的方法
-    resetScanForm() {
-      this.scanForm.mainBarcode = "";
-      const newBarcodes = {};
+    // 新增查询批次使用次数的方法
+    async queryBatchUsageCount(barcode, materialId) {
+      try {
+        const response = await getData("material_process_flow", {
+          query: {
+            processNodes: {
+              $elemMatch: {
+                barcode: barcode,
+              },
+            },
+          },
+        });
 
-      this.processMaterials.forEach((material) => {
-        if (!material.scanOperation) {
-          // 无需扫码的物料直接设置为验证通过
-          this.$set(this.validateStatus, material._id, true);
-          newBarcodes[material._id] = "无需扫码";
-        } else if (material.isBatch) {
-          const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-          const usageKey = `${cacheKey}_usage`;
+        return response.data ? response.data.length : 0;
+      } catch (error) {
+        console.error("查询批次使用记录失败:", error);
+        return 0;
+      }
+    },
 
-          // 清除批次物料缓存
-          localStorage.removeItem(cacheKey);
-          localStorage.removeItem(usageKey);
-          newBarcodes[material._id] = "";
-          this.$set(this.validateStatus, material._id, false);
-        } else {
-          newBarcodes[material._id] = "";
-          this.$set(this.validateStatus, material._id, false);
-        }
-      });
+    // 添加 getBatchUsageText 方法
+    getBatchUsageText(materialId) {
+      const material = this.processMaterials.find((m) => m._id === materialId);
+      if (!material || !material.isBatch) return "";
 
-      this.scanForm.barcodes = newBarcodes;
-      this.$set(this.validateStatus, "mainBarcode", false);
+      const currentCount = this.batchUsageCount[materialId] || 0;
+      return `${currentCount}/${material.batchQuantity || '∞'}`;
     },
   },
   async created() {
@@ -2692,6 +2741,32 @@ export default {
 
     // 初始化批次数量
     this.initBatchSize();
+    
+    // 初始化批次物料使用次数
+    if (this.processMaterials) {
+      for (const material of this.processMaterials) {
+        if (material.isBatch) {
+          const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+          const cachedBarcode = localStorage.getItem(cacheKey);
+
+          if (cachedBarcode) {
+            const count = await this.queryBatchUsageCount(cachedBarcode, material.materialId);
+            // 如果count等于批次用量，则清除缓存
+            if (count === material.batchQuantity && material.batchQuantity > 0) {
+              this.$message.warning("批次条码使用次数已达到上限");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(tmyw); // 播放提示音
+              localStorage.removeItem(cacheKey);
+              this.$set(this.scanForm.barcodes, material._id, "");
+              this.$set(this.validateStatus, material._id, false);
+            } else {
+              this.$set(this.batchUsageCount, material._id, count);
+            }
+          }
+        }
+      }
+    }
   },
   mounted() {
     console.log("Complete roles data:", this.$store.getters.roles);
@@ -2748,6 +2823,12 @@ export default {
   margin-bottom: 30px;
   padding-bottom: 15px;
   border-bottom: 2px solid #ebeef5;
+}
+
+.actions-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .header-left {

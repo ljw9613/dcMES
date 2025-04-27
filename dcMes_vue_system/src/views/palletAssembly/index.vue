@@ -191,7 +191,7 @@
             <el-button type="primary" size="large" @click="resetForm">
               <i class="el-icon-refresh-right"></i> 重置页面
             </el-button>
-            <el-button
+            <!-- <el-button
               type="success"
               size="large"
               @click="handleForceComplete"
@@ -202,7 +202,7 @@
               "
             >
               <i class="el-icon-check"></i> 强制完成
-            </el-button>
+            </el-button> -->
           </div>
         </div>
       </el-form>

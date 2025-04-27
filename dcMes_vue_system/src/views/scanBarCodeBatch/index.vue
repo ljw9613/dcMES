@@ -530,7 +530,7 @@ export default {
       scannedList: [], // 已扫描条码列表
       boxList: [], // 包装箱列表
       palletForm: {
-        productionPlanWorkOrderId:"",
+        productionPlanWorkOrderId: "",
         palletCode: "",
         saleOrderId: "",
         saleOrderNo: "",
@@ -1752,41 +1752,50 @@ export default {
           }
 
           // TODO 国内检查非成品条码检测是否有未完成的维修记录
-          if (
-            this.craftInfo &&
-            (!this.craftInfo.isProduct ||
-              this.craftInfo.materialCode !== isValid.materialCode)
-          ) {
-            // "PENDING_REVIEW", "REVIEWED", "VOIDED"
-            console.log("非成品条码检测是否有未完成的维修记录");
-            const repairRecord = await getData("product_repair", {
-              query: { barcode: cleanValue },
-              sort: { _id: -1 },
-            });
-            if (repairRecord.data.length > 0) {
-              if (repairRecord.data[0].status == "PENDING_REVIEW") {
+          // if (
+          //   this.craftInfo &&
+          //   (!this.craftInfo.isProduct ||
+          //     this.craftInfo.materialCode !== isValid.materialCode)
+          // ) {
+          // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+          console.log("非成品条码检测是否有未完成的维修记录");
+          const repairRecord = await getData("product_repair", {
+            query: { barcode: cleanValue },
+            sort: { _id: -1 },
+          });
+          if (repairRecord.data.length > 0) {
+            if (repairRecord.data[0].status == "PENDING_REVIEW") {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码存在未完成的维修记录");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(dwx);
+              return;
+            }
+            if (
+              repairRecord.data[0].status == "REVIEWED" &&
+              repairRecord.data[0].repairResult !== "QUALIFIED"
+            ) {
+              if (repairRecord.data[0].solution == "报废") {
                 this.unifiedScanInput = "";
                 this.$refs.scanInput.focus();
-                this.$message.error("该条码存在未完成的维修记录");
+                this.$message.error("该条码已完成报废处理");
                 this.popupType = "ng";
                 this.showPopup = true;
-                tone(dwx);
+                tone(tmyw);
                 return;
               }
-              if (
-                repairRecord.data[0].status == "REVIEWED" &&
-                repairRecord.data[0].repairResult !== "QUALIFIED"
-              ) {
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
-                this.$message.error("该条码已完成维修,但维修结果为不合格");
-                this.popupType = "ng";
-                this.showPopup = true;
-                tone(wxsb);
-                return;
-              }
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码已完成维修,但维修结果为不合格");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(wxsb);
+              return;
             }
           }
+          // }
           // 是包装箱条码，获取包装箱内的所有条码
           await this.handleBoxBarcode(cleanValue, boxResponse.data);
         } else {
@@ -1809,41 +1818,41 @@ export default {
           }
 
           // TODO 国内检查非成品条码检测是否有未完成的维修记录
-          if (
-            this.craftInfo &&
-            (!this.craftInfo.isProduct ||
-              this.craftInfo.materialCode !== isValidResult.materialCode)
-          ) {
-            // "PENDING_REVIEW", "REVIEWED", "VOIDED"
-            console.log("非成品条码检测是否有未完成的维修记录");
-            const repairRecord = await getData("product_repair", {
-              query: { barcode: cleanValue },
-              sort: { _id: -1 },
-            });
-            if (repairRecord.data.length > 0) {
-              if (repairRecord.data[0].status == "PENDING_REVIEW") {
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
-                this.$message.error("该条码存在未完成的维修记录");
-                this.popupType = "ng";
-                this.showPopup = true;
-                tone(dwx);
-                return;
-              }
-              if (
-                repairRecord.data[0].status == "REVIEWED" &&
-                repairRecord.data[0].repairResult !== "QUALIFIED"
-              ) {
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
-                this.$message.error("该条码已完成维修,但维修结果为不合格");
-                this.popupType = "ng";
-                this.showPopup = true;
-                tone(wxsb);
-                return;
-              }
+          // if (
+          //   this.craftInfo &&
+          //   (!this.craftInfo.isProduct ||
+          //     this.craftInfo.materialCode !== isValidResult.materialCode)
+          // ) {
+          // "PENDING_REVIEW", "REVIEWED", "VOIDED"
+          console.log("非成品条码检测是否有未完成的维修记录");
+          const repairRecord = await getData("product_repair", {
+            query: { barcode: cleanValue },
+            sort: { _id: -1 },
+          });
+          if (repairRecord.data.length > 0) {
+            if (repairRecord.data[0].status == "PENDING_REVIEW") {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码存在未完成的维修记录");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(dwx);
+              return;
+            }
+            if (
+              repairRecord.data[0].status == "REVIEWED" &&
+              repairRecord.data[0].repairResult !== "QUALIFIED"
+            ) {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码已完成维修,但维修结果为不合格");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(wxsb);
+              return;
             }
           }
+          // }
 
           await this.handleMainBarcode(cleanValue);
           // 是单个条码，处理单个条码
@@ -1864,6 +1873,19 @@ export default {
     // 处理包装箱条码
     async handleBoxBarcode(boxBarcode, boxData) {
       try {
+        // 检查包装箱条码数量是否超过托盘剩余可用数量
+        const remainingQuantity =
+          this.batchForm.batchSize - this.scannedList.length;
+        if (boxData.length > remainingQuantity) {
+          this.$message.error(
+            `包装箱内条码数量(${boxData.length})超过托盘剩余可用数量(${remainingQuantity})`
+          );
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          return;
+        }
+
         // 收集所有已扫描的子物料信息
         let componentScans = [];
         this.processMaterials.forEach((material) => {
@@ -1934,6 +1956,43 @@ export default {
               item.scanTime = this.formatDate(item.scanTime);
               return item;
             });
+
+            //如果是包装箱，则需要打印包装箱条码
+            if (row.boxItems.length > 0) {
+              let palletBarcodes = [];
+              row.boxItems.forEach((item) => {
+                let boxBarcode = item.boxBarcode;
+                item.boxBarcodes.forEach((boxBarcodeItem) => {
+                  palletBarcodes.push({
+                    barcode: boxBarcodeItem.barcode,
+                    boxBarcode: boxBarcode,
+                    scanTime: this.formatDate(boxBarcodeItem.scanTime),
+                  });
+                });
+              });
+              printData.palletBarcodes = palletBarcodes;
+            } else {
+              printData.palletBarcodes = row.palletBarcodes.map((item) => {
+                item.scanTime = this.formatDate(item.scanTime);
+                item.boxBarcode = "";
+                return item;
+              });
+            }
+
+            //处理多工单托盘的情况
+            if (printData.workOrders.length > 1) {
+              let workOrderNo = "";
+              printData.workOrders.forEach((item) => {
+                workOrderNo += item.workOrderNo + ",";
+              });
+              printData.workOrderNo = workOrderNo;
+            }
+
+            if (row.isLastPallet) {
+              printData.isLastPallet = "尾数托盘";
+            } else {
+              printData.isLastPallet = "";
+            }
 
             this.printData = printData;
 
@@ -2370,8 +2429,6 @@ export default {
         return;
       }
       this.batchForm.batchSize = value;
-
-    
     },
 
     // 新增保存批次数量方法
@@ -2501,12 +2558,12 @@ export default {
         });
         console.log(response, "response");
         if (response.code === 200 && response.data.length > 0) {
-          this.palletForm.productionPlanWorkOrderId =
-            response.data[0]._id;
+          this.palletForm.productionPlanWorkOrderId = response.data[0]._id;
           this.palletForm.saleOrderId = response.data[0].saleOrderId._id;
           this.palletForm.saleOrderNo = response.data[0].saleOrderNo;
           this.palletForm.productionOrderId =
-            response.data[0].productionOrderId && response.data[0].productionOrderId._id;
+            response.data[0].productionOrderId &&
+            response.data[0].productionOrderId._id;
           this.palletForm.workOrderNo = response.data[0].workOrderNo;
           this.palletForm.totalQuantity = response.data[0].totalQuantity;
           this.batchForm.batchSize = response.data[0].totalQuantity;

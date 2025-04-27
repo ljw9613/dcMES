@@ -138,7 +138,7 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && processStepData.processType == 'G'
+          mainMaterialId && processStepId
         "
       >
         <el-card class="scan-card">
@@ -841,11 +841,11 @@ export default {
     // 添加获取最新打印模板并强制更新的方法
     async refreshPrintTemplate() {
       if (!this.processStepId) return;
-      
+
       try {
         // 先清除本地缓存的打印模板
         localStorage.removeItem("printTemplate_scanBarCodeBatch");
-        
+
         // 获取工序信息
         const stepResponse = await getData("processStep", {
           query: { _id: this.processStepId },
@@ -858,7 +858,7 @@ export default {
         }
 
         const processStep = stepResponse.data[0];
-        
+
         // 检查工序是否关联了打印模板
         if (processStep.printTemplateId) {
           // 获取该工序关联的打印模板
@@ -874,17 +874,17 @@ export default {
           ) {
             const printTemplate = printTemplateResponse.data[0];
             console.log("获取到最新工序关联的打印模板:", printTemplate);
-            
+
             // 设置打印模板到本地存储
             this.localPrintTemplate = printTemplate;
-            
+
             // 确保UI组件更新
             this.$nextTick(() => {
               if (this.$refs.hirInput) {
                 this.$refs.hirInput.handleTemplateChange(printTemplate);
               }
             });
-            
+
             console.log("已强制刷新打印模板");
           }
         }
@@ -898,7 +898,7 @@ export default {
       try {
         // 先清除本地缓存的打印模板
         localStorage.removeItem("printTemplate_scanBarCodeBatch");
-        
+
         // 获取工序信息
         const stepResponse = await getData("processStep", {
           query: { _id: processId },
@@ -911,7 +911,7 @@ export default {
         }
 
         const processStep = stepResponse.data[0];
-        
+
         // 检查工序是否关联了打印模板
         if (processStep.printTemplateId) {
           // 获取该工序关联的打印模板
@@ -927,11 +927,11 @@ export default {
           ) {
             const printTemplate = printTemplateResponse.data[0];
             console.log("获取到工序关联的打印模板:", printTemplate);
-            
+
             // 设置打印模板到本地存储
             this.localPrintTemplate = printTemplate;
             this.$message.success("已自动应用工序关联的打印模板");
-            
+
             // 确保UI组件更新
             this.$nextTick(() => {
               if (this.$refs.hirInput) {
@@ -1076,11 +1076,11 @@ export default {
             ) {
               const printTemplate = printTemplateResponse.data[0];
               console.log("获取到工序关联的打印模板:", printTemplate);
-              
+
               // 设置打印模板到本地存储
               this.localPrintTemplate = printTemplate;
               this.$message.success("已自动应用工序关联的打印模板");
-              
+
               // 确保UI组件更新
               this.$nextTick(() => {
                 if (this.$refs.hirInput) {
@@ -1093,7 +1093,7 @@ export default {
             this.$message.warning("获取工序关联打印模板失败");
           }
         }
-        
+
         // 获取该工序所属的工艺信息
         const craftResponse = await getData("craft", {
           query: { _id: processStep.craftId },
@@ -1588,6 +1588,15 @@ export default {
             repairRecord.data[0].status == "REVIEWED" &&
             repairRecord.data[0].repairResult !== "QUALIFIED"
           ) {
+            if (repairRecord.data[0].solution == "报废") {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码已完成报废处理");
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(tmyw);
+              return;
+            }
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码已完成维修,但维修结果为不合格");
@@ -2391,8 +2400,6 @@ export default {
           }
         }
       });
-
-   
     }
 
     // 自动填充表单数据
@@ -2446,7 +2453,7 @@ export default {
     // 从本地存储获取转化模式设置
     const savedConversion = localStorage.getItem("enableConversion");
     this.enableConversion = savedConversion === "true";
-    
+
     // 清除之前的打印模板缓存，确保获取最新数据
     localStorage.removeItem("printTemplate_scanBarCodeBatch");
   },
@@ -2459,12 +2466,12 @@ export default {
     if (roles.buttonList.includes("scan_edit_configuration")) {
       this.hasEditPermission = true;
     }
-    
+
     if (this.processStepId) {
       // 获取选中工序的打印模板（自动会清除缓存并获取最新）
       this.refreshPrintTemplate();
     }
-    
+
     // 页面加载时自动获取焦点
     if (this.mainMaterialId && this.processStepId) {
       this.$refs.scanInput.focus();

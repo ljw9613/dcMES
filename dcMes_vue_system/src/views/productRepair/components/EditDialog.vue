@@ -39,6 +39,41 @@
         </el-col>
       </el-row> -->
       <el-row :gutter="20">
+        <el-col :span="24">
+          <el-form-item label="处理方案" prop="solution">
+            <el-select
+              v-model="form.solution"
+              clearable
+              placeholder="请选择处理方案"
+              style="width: 100%"
+              :disabled="dialogStatus == 'view'"
+            >
+              <el-option
+                v-for="dict in dict.type.repair_solution"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <!-- 维修信息 -->
+      <el-row :gutter="20">
+        <el-col :span="24">
+          <el-form-item label="不良现象" prop="defectDescription">
+            <el-input
+              type="textarea"
+              v-model="form.defectDescription"
+              placeholder="请描述不良现象"
+              :readonly="dialogStatus == 'view'"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="产品编码" prop="materialNumber">
             <el-input
@@ -95,20 +130,6 @@
         </el-col>
       </el-row>
 
-      <!-- 维修信息 -->
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="不良现象" prop="defectDescription">
-            <el-input
-              type="textarea"
-              v-model="form.defectDescription"
-              placeholder="请描述不良现象"
-              :readonly="dialogStatus == 'view'"
-            ></el-input>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
       <el-row :gutter="20">
         <el-col :span="24">
           <el-form-item label="分析原因" prop="causeAnalysis">
@@ -131,27 +152,6 @@
               placeholder="请输入维修描述"
               :readonly="dialogStatus == 'view'"
             ></el-input>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="处理方案" prop="solution">
-            <el-select
-              v-model="form.solution"
-              clearable
-              placeholder="请选择处理方案"
-              style="width: 100%"
-              :disabled="dialogStatus == 'view'"
-            >
-              <el-option
-                v-for="dict in dict.type.repair_solution"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
           </el-form-item>
         </el-col>
       </el-row>
@@ -343,6 +343,7 @@ export default {
         businessType: "",
         solution: "",
         productStatus: "REPAIRING",
+        originalProductStatus: "",
         status: "PENDING_REVIEW",
         remark: "",
         productionPlanWorkOrderId: "",
@@ -438,6 +439,22 @@ export default {
             mainBarcodeResult.data &&
             mainBarcodeResult.data.length > 0
           ) {
+            // 检查产品状态是否为完成状态
+            if (mainBarcodeResult.data[0].status === 'COMPLETED') {
+              try {
+                await this.$confirm('该产品已处于完成状态，继续操作将把产品状态变更为"维修中"，是否继续？', '状态变更提示', {
+                  confirmButtonText: '确认变更',
+                  cancelButtonText: '取消',
+                  type: 'warning'
+                });
+                // 用户确认，继续执行
+              } catch (error) {
+                // 用户取消，终止操作
+                this.barcode = '';
+                this.searchLoading = false;
+                return;
+              }
+            }
             this.handleScanInput(mainBarcodeResult.data[0].barcode);
             return;
           }
@@ -458,6 +475,22 @@ export default {
           currentBarcodeResult.data &&
           currentBarcodeResult.data.length > 0
         ) {
+          // 检查产品状态是否为完成状态
+          if (currentBarcodeResult.data[0].status === 'COMPLETED') {
+            try {
+              await this.$confirm('该产品已处于完成状态，继续操作将把产品状态变更为"维修中"，是否继续？', '状态变更提示', {
+                confirmButtonText: '确认变更',
+                cancelButtonText: '取消',
+                type: 'warning'
+              });
+              // 用户确认，继续执行
+            } catch (error) {
+              // 用户取消，终止操作
+              this.barcode = '';
+              this.searchLoading = false;
+              return;
+            }
+          }
           this.handleScanInput(currentBarcodeResult.data[0].barcode);
           return;
         }
@@ -497,10 +530,30 @@ export default {
           return;
         }
 
+        // 首先查询当前产品的状态信息
+        const flowQuery = {
+          query: {
+            barcode: barcode,
+          },
+        };
+        const flowResult = await getData("material_process_flow", flowQuery);
+        let isCompletedProduct = false;
+        
+        // 检查是否为已完成状态的产品
+        if (flowResult.code === 200 && 
+            flowResult.data && 
+            flowResult.data.length > 0 && 
+            flowResult.data[0].status === 'COMPLETED') {
+          isCompletedProduct = true;
+          // 记录原始产品状态
+          this.form.originalProductStatus = flowResult.data[0].productStatus || 'NORMAL';
+        }
+        
         // 调用托盘出库API
         const response = await scanProductRepair({
           barcode,
           form: this.form,
+          isCompletedProduct: isCompletedProduct, // 传递产品完成状态标记
         });
         if (response.code !== 200) {
           this.$message.error(response.message);
@@ -560,6 +613,7 @@ export default {
           businessType: "",
           solution: "",
           productStatus: "REPAIRING",
+          originalProductStatus: "",
           status: "PENDING_REVIEW",
           remark: "",
           productionPlanWorkOrderId: "",
@@ -582,6 +636,23 @@ export default {
         if (!this.form.barcodes || this.form.barcodes.length === 0) {
           this.$message.error("请至少扫描一个产品条码");
           return;
+        }
+
+        // 如果存在原始产品状态，且是从"COMPLETED"状态变更来的，再次确认
+        if (this.form.originalProductStatus && this.dialogStatus === 'create') {
+          try {
+            await this.$confirm(
+              '确认将完成状态的产品变更为维修状态？此操作将影响产品后续处理流程。', 
+              '最终确认', 
+              {
+                confirmButtonText: '确认提交',
+                cancelButtonText: '取消',
+                type: 'warning'
+              }
+            );
+          } catch (error) {
+            return; // 用户取消操作
+          }
         }
 
         this.submitLoading = true;

@@ -4,6 +4,8 @@ const materialProcessFlow = require("../model/project/materialProcessFlow");
 const productRepair = require("../model/project/productRepair");
 const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
 const materialPalletizing = require("../model/project/materialPalletizing");
+// 添加预生产条码模型引用
+const preProductionBarcode = require("../model/project/preProductionBarcode");
 // 扫条码获取产品信息
 router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
   try {
@@ -46,20 +48,20 @@ router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
     // 查询条码所在托盘信息
     // 先在托盘条码列表中查找
     const palletData = await materialPalletizing.findOne({
-      "palletBarcodes.barcode": barcode
+      "palletBarcodes.barcode": barcode,
     });
-    
+
     // 如果在palletBarcodes中找不到，查找boxItems中的boxBarcodes
     let boxPalletData = null;
     if (!palletData) {
       boxPalletData = await materialPalletizing.findOne({
-        "boxItems.boxBarcodes.barcode": barcode
+        "boxItems.boxBarcodes.barcode": barcode,
       });
     }
-    
+
     // 合并查询结果，优先使用palletData
     const targetPallet = palletData || boxPalletData;
-    
+
     // 如果找到托盘，检查托盘的出入库状态
     if (targetPallet) {
       // 如果托盘已入库，禁止维修
@@ -69,7 +71,7 @@ router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
           message: `该产品条码所在托盘(${targetPallet.palletCode})已入库，禁止维修`,
         });
       }
-      
+
       // 如果托盘已出库，禁止维修
       if (targetPallet.inWarehouseStatus === "OUT_WAREHOUSE") {
         return res.status(200).json({
@@ -77,40 +79,46 @@ router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
           message: `该产品条码所在托盘(${targetPallet.palletCode})已出库，禁止维修`,
         });
       }
-      
+
       // 如果托盘部分出库，需要检查该条码是否已出库
       if (targetPallet.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
         let isOutWarehouse = false;
-        
+
         // 检查palletBarcodes中是否有该条码且已出库
-        const barcodeItem = targetPallet.palletBarcodes.find(item => item.barcode === barcode);
+        const barcodeItem = targetPallet.palletBarcodes.find(
+          (item) => item.barcode === barcode
+        );
         if (barcodeItem && barcodeItem.outWarehouseStatus === "COMPLETED") {
           isOutWarehouse = true;
         }
-        
+
         // 如果在palletBarcodes中未确认出库，检查boxItems中的boxBarcodes
         if (!isOutWarehouse) {
           for (const boxItem of targetPallet.boxItems) {
-            const boxBarcodeItem = boxItem.boxBarcodes.find(item => item.barcode === barcode);
+            const boxBarcodeItem = boxItem.boxBarcodes.find(
+              (item) => item.barcode === barcode
+            );
             if (boxBarcodeItem) {
               // 对于部分出库的托盘，需要更精确地判断该条码是否已出库
               // 由于我们没有boxBarcodes中单个条码的出库状态，这里需要根据实际业务逻辑判断
-              
+
               // 方案：记录该条码在托盘中，告知用户需谨慎处理部分出库托盘中的产品
               return res.status(200).json({
                 code: 200,
-                message: "查询条码成功（注意：该产品在部分出库托盘中，请确认产品实际状态）",
+                message:
+                  "查询条码成功（注意：该产品在部分出库托盘中，请确认产品实际状态）",
                 data: {
                   ...materialProcessFlowData._doc,
                   inPalletWithCode: targetPallet.palletCode,
                   palletStatus: "PART_OUT_WAREHOUSE",
-                  warningMessage: "该产品所在托盘为部分出库状态，请确认产品是否已出库"
+                  warningMessage:
+                    "该产品所在托盘为部分出库状态，请确认产品是否已出库",
                 },
               });
             }
           }
         }
-        
+
         // 如果确认已出库，禁止维修
         if (isOutWarehouse) {
           return res.status(200).json({
@@ -267,8 +275,7 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
           await materialProcessFlow.findOneAndUpdate(
             { barcode: barcode.barcode },
             {
-              productStatus:
-                form.solution == "报废" ? "SCRAP" : "REPAIRING", // 默认为维修中
+              productStatus: form.solution == "报废" ? "SCRAP" : "REPAIRING", // 默认为维修中
               updateBy: userId,
               updateAt: new Date(),
             }
@@ -322,31 +329,64 @@ router.post("/api/v1/product_repair/submitProductRepair", async (req, res) => {
 router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
   try {
     const { repairId, repairResult, adverseEffect, userId } = req.body;
-    
+
     // 查找维修记录
     const repairRecord = await productRepair.findOne({ _id: repairId });
-    
+
     if (!repairRecord) {
       return res.status(200).json({
         code: 404,
         message: "未找到维修记录",
       });
     }
-    
+
     if (repairRecord.status === "REVIEWED") {
       return res.status(200).json({
-        code: 400,
+        code: 401,
         message: "该维修记录已审核",
       });
     }
-    
+
     if (repairRecord.status === "VOIDED") {
       return res.status(200).json({
-        code: 400,
+        code: 401,
         message: "该维修记录已作废",
       });
     }
-    
+
+    // 检查是否是报废处理方案
+    if (repairRecord.solution === "报废") {
+      // 检查是否存在完成的关键物料节点
+      const materialFlowRecord = await materialProcessFlow.findOne({
+        barcode: repairRecord.barcode,
+      });
+
+      if (materialFlowRecord) {
+        // 检查流程中是否有已完成且为关键物料的节点
+        const keyMaterialNodes = materialFlowRecord.processNodes.filter(
+          (node) =>
+            node.isKeyMaterial && node.status === "COMPLETED" && node.barcode
+        );
+
+        if (keyMaterialNodes.length > 0) {
+          // 返回提示信息，包含关键物料信息
+          const keyMaterialList = keyMaterialNodes.map((node) => ({
+            materialName: node.materialName || "未知物料",
+            materialCode: node.materialCode || "",
+            barcode: node.barcode,
+          }));
+
+          return res.status(200).json({
+            code: 401,
+            message: "该产品存在已绑定的关键物料，请先解绑关键物料后再进行报废",
+            data: {
+              keyMaterials: keyMaterialList,
+            },
+          });
+        }
+      }
+    }
+
     // 更新维修记录
     const updateData = {
       repairResult,
@@ -357,10 +397,10 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
       updateBy: userId,
       updateAt: new Date(),
     };
-    
+
     await productRepair.findByIdAndUpdate(repairId, updateData);
-    
-    // 检查是否是报废处理方案
+
+    // 处理报废逻辑
     if (repairRecord.solution === "报废") {
       // 更新物料流程状态为报废
       await materialProcessFlow.findOneAndUpdate(
@@ -371,36 +411,80 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
           updateAt: new Date(),
         }
       );
-      
+
+      // 查找对应的预生产条码并作废 - 直接通过printBarcode查找
+      try {
+        // 先通过printBarcode字段查找
+        let preBarcodeRecord = await preProductionBarcode.findOne({
+          printBarcode: repairRecord.barcode.toString(),
+        });
+
+        console.log(preBarcodeRecord?.printBarcode, "preBarcodeRecord");
+
+        // 如果仍未找到，尝试通过transformedBarcode字段查找
+        if (!preBarcodeRecord) {
+          preBarcodeRecord = await preProductionBarcode.findOne({
+            transformedBarcode: repairRecord.barcode.toString(),
+          });
+        }
+
+        // 如果找到对应记录，则进行作废
+        if (preBarcodeRecord) {
+          await preProductionBarcode.findByIdAndUpdate(preBarcodeRecord._id, {
+            status: "VOIDED",
+            voidReason: "产品报废维修作废",
+            voidBy: userId,
+            voidAt: new Date(),
+            updater: userId,
+            updateAt: new Date(),
+          });
+        }
+      } catch (error) {
+        console.error("作废预生产条码失败:", error);
+        // 但这不影响整体流程，所以不抛出异常
+      }
+
       // 如果有工单信息，更新工单报废数量
       if (repairRecord.productionPlanWorkOrderId) {
-        const workOrder = await productionPlanWorkOrder.findById(repairRecord.productionPlanWorkOrderId);
-        
+        const workOrder = await productionPlanWorkOrder.findById(
+          repairRecord.productionPlanWorkOrderId
+        );
+
         if (workOrder) {
           // 检查条码是否已经在报废列表中
           const existingScrapItem = workOrder.scrapProductBarcodeList.find(
-            item => item.barcode === repairRecord.barcode
+            (item) => item.barcode.toString() === repairRecord.barcode.toString()
           );
-          
+
           if (!existingScrapItem) {
-            // 更新工单报废数量和报废条码列表
+            // 准备更新数据
+            const updateWorkOrderData = {
+              $inc: { scrapQuantity: 1 },
+              $push: {
+                scrapProductBarcodeList: {
+                  barcode: repairRecord.barcode,
+                  scrapTime: new Date(),
+                },
+              },
+              updateBy: userId,
+              updateAt: new Date(),
+            };
+
+            // 如果工单状态是已完成，则改为已暂停
+            if (workOrder.status === "COMPLETED") {
+              updateWorkOrderData.status = "PAUSED";
+            }
+
+            // 更新工单报废数量、报废条码列表和可能的状态
             await productionPlanWorkOrder.findByIdAndUpdate(
               repairRecord.productionPlanWorkOrderId,
-              {
-                $inc: { scrapQuantity: 1 },
-                $push: {
-                  scrapProductBarcodeList: {
-                    barcode: repairRecord.barcode,
-                    scrapTime: new Date(),
-                  },
-                },
-              }
+              updateWorkOrderData
             );
           }
         }
       }
     }
-    
+
     res.json({
       code: 200,
       message: "审核成功",
@@ -418,14 +502,66 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
 router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
   try {
     const { repairIds, repairResult, adverseEffect, userId } = req.body;
-    
+
     if (!repairIds || !Array.isArray(repairIds) || repairIds.length === 0) {
       return res.status(200).json({
-        code: 400,
+        code: 401,
         message: "请选择要审核的记录",
       });
     }
-    
+
+    // 查找所有需要审核的记录
+    const repairRecords = await productRepair.find({
+      _id: { $in: repairIds },
+      status: "PENDING_REVIEW",
+    });
+
+    // 筛选出报废的记录
+    const scrapRepairs = repairRecords.filter(
+      (record) => record.solution === "报废"
+    );
+
+    // 检查所有报废记录的关键物料情况
+    const barcodeWithKeyMaterials = [];
+
+    for (const record of scrapRepairs) {
+      // 检查是否存在完成的关键物料节点
+      const materialFlowRecord = await materialProcessFlow.findOne({
+        barcode: record.barcode,
+      });
+
+      if (materialFlowRecord) {
+        // 检查流程中是否有已完成且为关键物料的节点
+        const keyMaterialNodes = materialFlowRecord.processNodes.filter(
+          (node) =>
+            node.isKeyMaterial && node.status === "COMPLETED" && node.barcode
+        );
+
+        if (keyMaterialNodes.length > 0) {
+          // 记录带有关键物料的条码信息
+          barcodeWithKeyMaterials.push({
+            barcode: record.barcode,
+            keyMaterials: keyMaterialNodes.map((node) => ({
+              materialName: node.materialName || "未知物料",
+              materialCode: node.materialCode || "",
+              barcode: node.barcode,
+            })),
+          });
+        }
+      }
+    }
+
+    // 如果存在带有关键物料的条码，返回提示信息
+    if (barcodeWithKeyMaterials.length > 0) {
+      return res.status(200).json({
+        code: 401,
+        message: "部分产品存在已绑定的关键物料，请先解绑关键物料后再进行报废",
+        data: {
+          barcodeWithKeyMaterials,
+        },
+      });
+    }
+
     // 更新数据
     const updateData = {
       repairResult,
@@ -436,22 +572,14 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
       updateBy: userId,
       updateAt: new Date(),
     };
-    
-    // 查找所有需要审核的记录
-    const repairRecords = await productRepair.find({
-      _id: { $in: repairIds },
-      status: "PENDING_REVIEW",
-    });
-    
+
     // 更新所有记录
     await productRepair.updateMany(
       { _id: { $in: repairIds }, status: "PENDING_REVIEW" },
       updateData
     );
-    
+
     // 处理报废的记录
-    const scrapRepairs = repairRecords.filter(record => record.solution === "报废");
-    
     for (const record of scrapRepairs) {
       // 更新物料流程状态为报废
       await materialProcessFlow.findOneAndUpdate(
@@ -462,36 +590,78 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
           updateAt: new Date(),
         }
       );
-      
+
+      // 查找对应的预生产条码并作废 - 直接通过printBarcode查找
+      try {
+        // 先通过printBarcode字段查找
+        let preBarcodeRecord = await preProductionBarcode.findOne({
+          printBarcode: record.barcode.toString(),
+        });
+
+        // 如果仍未找到，尝试通过transformedBarcode字段查找
+        if (!preBarcodeRecord) {
+          preBarcodeRecord = await preProductionBarcode.findOne({
+            transformedBarcode: record.barcode.toString(),
+          });
+        }
+
+        // 如果找到对应记录，则进行作废
+        if (preBarcodeRecord) {
+          await preProductionBarcode.findByIdAndUpdate(preBarcodeRecord._id, {
+            status: "VOIDED",
+            voidReason: "产品报废维修作废",
+            voidBy: userId,
+            voidAt: new Date(),
+            updater: userId,
+            updateAt: new Date(),
+          });
+        }
+      } catch (error) {
+        console.error("作废预生产条码失败:", error);
+        // 但这不影响整体流程，所以不抛出异常
+      }
+
       // 如果有工单信息，更新工单报废数量
       if (record.productionPlanWorkOrderId) {
-        const workOrder = await productionPlanWorkOrder.findById(record.productionPlanWorkOrderId);
-        
+        const workOrder = await productionPlanWorkOrder.findById(
+          record.productionPlanWorkOrderId
+        );
+
         if (workOrder) {
           // 检查条码是否已经在报废列表中
           const existingScrapItem = workOrder.scrapProductBarcodeList.find(
-            item => item.barcode === record.barcode
+            (item) => item.barcode.toString() === record.barcode.toString()
           );
-          
+
           if (!existingScrapItem) {
-            // 更新工单报废数量和报废条码列表
+            // 准备更新数据
+            const updateWorkOrderData = {
+              $inc: { scrapQuantity: 1 },
+              $push: {
+                scrapProductBarcodeList: {
+                  barcode: record.barcode,
+                  scrapTime: new Date(),
+                },
+              },
+              updateBy: userId,
+              updateAt: new Date(),
+            };
+
+            // 如果工单状态是已完成，则改为已暂停
+            if (workOrder.status === "COMPLETED") {
+              updateWorkOrderData.status = "PAUSED";
+            }
+
+            // 更新工单报废数量、报废条码列表和可能的状态
             await productionPlanWorkOrder.findByIdAndUpdate(
               record.productionPlanWorkOrderId,
-              {
-                $inc: { scrapQuantity: 1 },
-                $push: {
-                  scrapProductBarcodeList: {
-                    barcode: record.barcode,
-                    scrapTime: new Date(),
-                  },
-                },
-              }
+              updateWorkOrderData
             );
           }
         }
       }
     }
-    
+
     res.json({
       code: 200,
       message: "批量审核成功",

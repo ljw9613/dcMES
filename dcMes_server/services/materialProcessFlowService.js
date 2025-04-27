@@ -667,7 +667,8 @@ class MaterialProcessFlowService {
       //检测当前工单是否可以继续投入 - 仅在首道工序时检查
       if (planWorkOrder && processPosition.isFirst) {
         if (
-          planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+          planWorkOrder.inputQuantity - planWorkOrder.scrapQuantity >=
+          planWorkOrder.planProductionQuantity
         ) {
           throw new Error("工单已达到计划数量，无法继续投入");
         }
@@ -1526,6 +1527,7 @@ class MaterialProcessFlowService {
    * @param {Array} componentScans - 子物料信息
    * @param {string} userId - 用户ID
    * @param {string} lineId - 产线ID
+   * @param {boolean} fromRepairStation - 是否来自维修台，默认为false
    */
   static async scanBatchDocument(
     mainBarcode,
@@ -1533,7 +1535,8 @@ class MaterialProcessFlowService {
     batchDocNumber,
     componentScans,
     userId,
-    lineId
+    lineId,
+    fromRepairStation = false
   ) {
     try {
       // 查找主条码对应的流程记录
@@ -1766,12 +1769,22 @@ class MaterialProcessFlowService {
         processNode
       );
 
-      //根据产线获取对应的工单
-      const planWorkOrder = await ProductionPlanWorkOrder.findOne({
-        productionLineId: lineId,
-        materialId: flowRecord.materialId,
-        status: "IN_PROGRESS",
-      });
+      //根据条件获取对应的工单
+      let planWorkOrder;
+
+      if (fromRepairStation && flowRecord.productionPlanWorkOrderId) {
+        // 来自维修台时，直接使用条码关联的工单ID
+        planWorkOrder = await ProductionPlanWorkOrder.findOne({
+          _id: flowRecord.productionPlanWorkOrderId,
+        });
+      } else {
+        // 正常场景，根据产线获取对应的工单
+        planWorkOrder = await ProductionPlanWorkOrder.findOne({
+          productionLineId: lineId,
+          materialId: flowRecord.materialId,
+          status: "IN_PROGRESS",
+        });
+      }
 
       //成品条码必须有生产计划
       if (flowRecord.isProduct && !planWorkOrder) {
@@ -1798,7 +1811,8 @@ class MaterialProcessFlowService {
       //检测当前工单是否可以继续投入 - 仅在首道工序时检查
       if (planWorkOrder && processPosition.isFirst) {
         if (
-          planWorkOrder.inputQuantity >= planWorkOrder.planProductionQuantity
+          planWorkOrder.inputQuantity - planWorkOrder.scrapQuantity >=
+          planWorkOrder.planProductionQuantity
         ) {
           throw new Error("工单已达到计划数量，无法继续投入");
         }
@@ -1808,7 +1822,10 @@ class MaterialProcessFlowService {
       if (planWorkOrder) {
         if (processPosition.isFirst) {
           //检测当前工单是否可以继续投入
-          if (planWorkOrder.inputQuantity >= planWorkOrder.planQuantity) {
+          if (
+            planWorkOrder.inputQuantity - planWorkOrder.scrapQuantity >=
+            planWorkOrder.planQuantity
+          ) {
             throw new Error("工单已达到计划数量，无法继续投入");
           }
 
@@ -1937,7 +1954,8 @@ class MaterialProcessFlowService {
         type === "output"
           ? Math.floor(
               ((quantity + (workOrder?.outputQuantity || 0)) /
-                workOrder?.planProductionQuantity) *
+                (workOrder?.planProductionQuantity +
+                  workOrder?.scrapQuantity)) *
                 100
             )
           : undefined; // 投入量不影响进度
@@ -1950,7 +1968,10 @@ class MaterialProcessFlowService {
         );
       }
       // 检查工单状态
-      else if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
+      else if (
+        workOrder.outputQuantity >=
+        workOrder.planProductionQuantity + workOrder.scrapQuantity
+      ) {
         // 更新工单完成状态和时间
         workOrder.status = "COMPLETED";
         workOrder.endTime = new Date();
@@ -3380,6 +3401,33 @@ class MaterialProcessFlowService {
         );
       }
 
+      // 检查批次物料使用次数
+      if (materialNode.isBatch && materialNode.batchQuantity > 0) {
+        console.log(
+          `检测到批次物料，批次用量限制: ${materialNode.batchQuantity}次`
+        );
+        // 查找所有使用该批次条码的记录
+        const batchUsageFlows = await MaterialProcessFlow.find({
+          processNodes: {
+            $elemMatch: {
+              barcode: newBarcode,
+              status: "COMPLETED",
+            },
+          },
+        });
+
+        // 计算当前批次已使用的次数
+        const usageCount = batchUsageFlows.length;
+        console.log(`批次物料 ${newBarcode} 已使用 ${usageCount} 次`);
+
+        // 如果使用次数已达到或超过批次用量限制，抛出错误
+        if (usageCount >= materialNode.batchQuantity) {
+          throw new Error(
+            `批次物料条码 ${newBarcode} 已达到使用次数限制(${materialNode.batchQuantity}次)`
+          );
+        }
+      }
+
       // 6. 获取所有与原物料节点相关的子节点
       // 查找当前物料节点的所有子节点（包括子工序和子物料）
       const allChildNodes = [];
@@ -3502,37 +3550,9 @@ class MaterialProcessFlowService {
           }
         } else {
           console.log(`未在新条码流程中找到根物料节点，将重置所有子节点状态`);
-
-          // 如果没有找到根物料节点，重置所有子节点
-          // for (const childNode of allChildNodes) {
-          //   if (childNode.nodeType === "PROCESS_STEP") {
-          //     childNode.status = "PENDING";
-          //     childNode.endTime = null;
-          //   } else if (
-          //     childNode.nodeType === "MATERIAL" &&
-          //     childNode.requireScan
-          //   ) {
-          //     childNode.barcode = "";
-          //     childNode.status = "PENDING";
-          //   }
-          // }
         }
       } else {
         console.log(`新条码 ${newBarcode} 没有流程记录，将重置所有子节点状态`);
-
-        // 如果新条码没有流程记录，重置所有子节点状态
-        // for (const childNode of allChildNodes) {
-        //   if (childNode.nodeType === "PROCESS_STEP") {
-        //     childNode.status = "PENDING";
-        //     childNode.endTime = null;
-        //   } else if (
-        //     childNode.nodeType === "MATERIAL" &&
-        //     childNode.requireScan
-        //   ) {
-        //     childNode.barcode = "";
-        //     childNode.status = "PENDING";
-        //   }
-        // }
       }
 
       // 8. 创建替换记录

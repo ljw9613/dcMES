@@ -71,8 +71,8 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
 
   // 基础字段
   remark: { type: String }, // 备注
-  createBy: { type: String },
-  updateBy: { type: String },
+  createBy: { type: String, required: true }, // 创建人，添加required约束
+  updateBy: { type: String, required: true }, // 更新人，添加required约束
   createAt: { type: Date, default: Date.now },
   updateAt: { type: Date, default: Date.now },
 });
@@ -83,6 +83,8 @@ productionPlanWorkOrderSchema.index({ saleOrderNo: 1 });
 productionPlanWorkOrderSchema.index({ productionOrderNo: 1 });
 productionPlanWorkOrderSchema.index({ status: 1 });
 productionPlanWorkOrderSchema.index({ createAt: -1 });
+productionPlanWorkOrderSchema.index({ createBy: 1 }); // 添加创建人索引
+productionPlanWorkOrderSchema.index({ updateBy: 1 }); // 添加更新人索引
 
 module.exports = mongoose.model(
   "production_plan_work_order",

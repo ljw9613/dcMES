@@ -5,6 +5,7 @@ const MaterialPalletizing = require("../model/project/materialPalletizing"); // 
 const Excel = require("exceljs"); // 需要先安装: npm install exceljs
 const path = require("path");
 const fs = require("fs");
+const mongoose = require("mongoose");
 
 // 确保输出目录存在
 const ensureDirectoryExists = (directory) => {
@@ -757,7 +758,267 @@ async function runConsistencyAnalysis() {
   // analyzeBarcodeWorkOrderConsistency("P202502241740363948378");
 // }, 5000);
 
+// 导出工单物料节点数据的函数
+async function exportWorkOrderMaterialNodesData(workOrderIds) {
+  try {
+    if (!Array.isArray(workOrderIds)) {
+      workOrderIds = [workOrderIds]; // 确保是数组格式
+    }
+
+    // 创建工作簿和工作表
+    const workbook = new Excel.Workbook();
+    const mainSheet = workbook.addWorksheet("主条码及物料信息");
+
+    // 设置工作表格式 - 一行显示所有信息
+    mainSheet.columns = [
+      { header: "主条码", key: "barcode", width: 20 },
+      { header: "物料编码", key: "materialCode", width: 20 },
+      { header: "物料名称", key: "materialName", width: 30 },
+      { header: "流程状态", key: "status", width: 15 },
+      { header: "产品状态", key: "productStatus", width: 15 },
+      { header: "工单号", key: "workOrderNo", width: 25 },
+      // 特定工序节点信息
+      { header: "批次单据号", key: "batchDocNumber", width: 30 },
+      { header: "工序名称", key: "processName", width: 20 },
+      { header: "工序状态", key: "processStatus", width: 15 },
+      // 风扇物料信息
+      { header: "风扇物料节点ID", key: "fan_materialId", width: 30 },
+      { header: "风扇物料编码", key: "fan_materialCode", width: 20 },
+      { header: "风扇物料名称", key: "fan_materialName", width: 30 },
+      { header: "风扇条码", key: "fan_barcode", width: 20 },
+      { header: "风扇扫码时间", key: "fan_scanTime", width: 25 },
+      { header: "风扇节点状态", key: "fan_status", width: 15 },
+      // 风扇组件物料信息
+      { header: "风扇组件物料节点ID", key: "fanAssembly_materialId", width: 30 },
+      { header: "风扇组件物料编码", key: "fanAssembly_materialCode", width: 20 },
+      { header: "风扇组件物料名称", key: "fanAssembly_materialName", width: 30 },
+      { header: "风扇组件条码", key: "fanAssembly_barcode", width: 20 },
+      { header: "风扇组件扫码时间", key: "fanAssembly_scanTime", width: 25 },
+      { header: "风扇组件节点状态", key: "fanAssembly_status", width: 15 },
+    ];
+
+    // 3. 指定要查找的特定物料ID
+    const targetMaterialIds = {
+      "fan": "6757a56f354604091e7be8ac",          // 风扇
+      "fanAssembly": "675e2e1f354604091e8459ba"   // 风扇组件
+    };
+
+    // 指定要查找的特定工序ID
+    const targetProcessStepId = "67809626c022a0886b51eeae";
+
+    // 物料ID名称映射
+    const materialIdNames = {
+      "6757a56f354604091e7be8ac": "FW312右眼部风扇（鸿盈）",  
+      "675e2e1f354604091e8459ba": "FW312右眼部风扇组件(鸿盈)"   
+    };
+
+    // 状态映射为中文
+    const statusMap = {
+      "PENDING": "待处理",
+      "IN_PROCESS": "进行中",
+      "COMPLETED": "已完成",
+      "ABNORMAL": "异常"
+    };
+
+    // 2. 获取工单信息，用于显示工单号
+    const workOrderMap = {};
+    for (const workOrderId of workOrderIds) {
+      const workOrder = await ProductionPlanWorkOrder.findById(workOrderId).lean();
+      if (workOrder) {
+        workOrderMap[workOrderId] = workOrder.workOrderNo;
+      }
+    }
+
+    // 分批次处理参数
+    const batchSize = 100; // 每批处理的数据量
+    let skip = 0;
+    let totalProcessed = 0;
+    let rowCount = 0;
+    let hasMoreData = true;
+
+    console.log(`开始分批查询工单ID为 ${workOrderIds.join(', ')} 的数据，每批 ${batchSize} 条`);
+
+    // 分批查询和处理数据
+    while (hasMoreData) {
+      // 1. 查询指定工单ID下的主条码数据（分批）
+      const mainBarcodesData = await MaterialProcessFlow.find({
+        productionPlanWorkOrderId: { $in: workOrderIds.map(id => mongoose.Types.ObjectId(id)) }
+      })
+      .sort({ _id: 1 }) // 确保分页一致性
+      .skip(skip)
+      .limit(batchSize)
+      .lean();
+
+      const batchCount = mainBarcodesData.length;
+      console.log(`当前批次: 跳过 ${skip} 条，获取到 ${batchCount} 条数据`);
+      
+      if (batchCount === 0) {
+        hasMoreData = false;
+        continue;
+      }
+
+      totalProcessed += batchCount;
+      skip += batchSize;
+      
+      // 4. 处理每条主条码数据，提取需要的信息
+      for (const mainData of mainBarcodesData) {
+        const workOrderNo = workOrderMap[mainData.productionPlanWorkOrderId] || "未知工单";
+        const mainStatus = statusMap[mainData.status] || mainData.status || "未知";
+        
+        // 创建行数据对象
+        const rowData = {
+          barcode: mainData.barcode,
+          materialCode: mainData.materialCode,
+          materialName: mainData.materialName,
+          status: mainStatus,
+          productStatus: mainData.productStatus || "正常",
+          workOrderNo: workOrderNo,
+        };
+        
+        // 查找指定工序节点的批次单据号
+        const processNode = mainData.processNodes.find(node => 
+          node.nodeType === "PROCESS_STEP" && 
+          node.processStepId && node.processStepId.toString() === targetProcessStepId
+        );
+        
+        if (processNode) {
+          const nodeStatus = statusMap[processNode.status] || processNode.status || "未知";
+          rowData.batchDocNumber = processNode.batchDocNumber || "无批次单据号";
+          rowData.processName = processNode.processName || "未知工序";
+          rowData.processStatus = nodeStatus;
+        } else {
+          // 未找到指定工序节点
+          rowData.batchDocNumber = "未找到该工序";
+          rowData.processName = "未找到该工序";
+          rowData.processStatus = "未找到";
+        }
+        
+        // 查找processNodes中符合条件的物料节点
+        // 处理风扇物料节点
+        const fanNode = mainData.processNodes.find(node => 
+          node.nodeType === "MATERIAL" && 
+          node.materialId && node.materialId.toString() === targetMaterialIds.fan
+        );
+        
+        if (fanNode) {
+          const nodeStatus = statusMap[fanNode.status] || fanNode.status || "未知";
+          rowData.fan_materialId = fanNode.materialId.toString();
+          rowData.fan_materialCode = fanNode.materialCode || "";
+          rowData.fan_materialName = fanNode.materialName || materialIdNames[targetMaterialIds.fan];
+          rowData.fan_barcode = fanNode.barcode || "未扫码";
+          rowData.fan_scanTime = fanNode.scanTime ? new Date(fanNode.scanTime).toLocaleString() : "未扫码";
+          rowData.fan_status = nodeStatus;
+        } else {
+          // 风扇节点未找到
+          rowData.fan_materialId = targetMaterialIds.fan;
+          rowData.fan_materialCode = "";
+          rowData.fan_materialName = materialIdNames[targetMaterialIds.fan];
+          rowData.fan_barcode = "未找到";
+          rowData.fan_scanTime = "";
+          rowData.fan_status = "未找到";
+        }
+        
+        // 处理风扇组件物料节点
+        const fanAssemblyNode = mainData.processNodes.find(node => 
+          node.nodeType === "MATERIAL" && 
+          node.materialId && node.materialId.toString() === targetMaterialIds.fanAssembly
+        );
+        
+        if (fanAssemblyNode) {
+          const nodeStatus = statusMap[fanAssemblyNode.status] || fanAssemblyNode.status || "未知";
+          rowData.fanAssembly_materialId = fanAssemblyNode.materialId.toString();
+          rowData.fanAssembly_materialCode = fanAssemblyNode.materialCode || "";
+          rowData.fanAssembly_materialName = fanAssemblyNode.materialName || materialIdNames[targetMaterialIds.fanAssembly];
+          rowData.fanAssembly_barcode = fanAssemblyNode.barcode || "未扫码";
+          rowData.fanAssembly_scanTime = fanAssemblyNode.scanTime ? new Date(fanAssemblyNode.scanTime).toLocaleString() : "未扫码";
+          rowData.fanAssembly_status = nodeStatus;
+        } else {
+          // 风扇组件节点未找到
+          rowData.fanAssembly_materialId = targetMaterialIds.fanAssembly;
+          rowData.fanAssembly_materialCode = "";
+          rowData.fanAssembly_materialName = materialIdNames[targetMaterialIds.fanAssembly];
+          rowData.fanAssembly_barcode = "未找到";
+          rowData.fanAssembly_scanTime = "";
+          rowData.fanAssembly_status = "未找到";
+        }
+
+        // 添加行数据
+        mainSheet.addRow(rowData);
+        rowCount++;
+
+        // 每处理500行保存一次工作簿（内存优化）
+        if (rowCount % 500 === 0) {
+          console.log(`已处理 ${rowCount} 行数据，正在进行中间保存...`);
+          const tempOutputDir = path.join(__dirname, "../output/material_nodes/temp");
+          ensureDirectoryExists(tempOutputDir);
+          await workbook.xlsx.writeFile(path.join(
+            tempOutputDir,
+            `工单物料节点数据_临时_${rowCount}行.xlsx`
+          ));
+        }
+      }
+
+      // 避免内存溢出，提前释放批次数据
+      mainBarcodesData.length = 0;
+      
+      // 如果当前批次数据量小于batchSize，说明已经没有更多数据了
+      if (batchCount < batchSize) {
+        hasMoreData = false;
+      }
+    }
+
+    console.log(`总共处理了 ${totalProcessed} 条主条码数据，导出 ${rowCount} 行数据`);
+
+    if (totalProcessed === 0) {
+      console.log("未找到符合条件的主条码数据!");
+    }
+    
+    // 应用样式
+    mainSheet.getRow(1).font = { bold: true };
+    mainSheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFD3D3D3" },
+    };
+
+    // 保存工作簿
+    const outputDir = path.join(__dirname, "../output/material_nodes");
+    ensureDirectoryExists(outputDir);
+    const outputFile = path.join(
+      outputDir,
+      `工单物料节点数据_${new Date().toISOString().replace(/[:.]/g, "-")}.xlsx`
+    );
+    await workbook.xlsx.writeFile(outputFile);
+    console.log(`分析结果已保存至: ${outputFile}`);
+
+    return {
+      totalMainBarcodes: totalProcessed,
+      exportedRows: rowCount
+    };
+  } catch (error) {
+    console.error("导出过程中出错:", error);
+  }
+}
+
+// 执行工单物料节点数据导出的函数
+async function runMaterialNodesExport() {
+  const workOrderIds = ["67f3e4b64b1ff6e388591af8"]; // 在此设置要导出的工单ID
+  console.log(`开始导出工单物料节点数据: ${workOrderIds.join(', ')}`);
+  const result = await exportWorkOrderMaterialNodesData(workOrderIds);
+  if (result) {
+    console.log("\n===== 导出结果摘要 =====");
+    console.log(`总主条码数: ${result.totalMainBarcodes}`);
+    console.log(`导出行数: ${result.exportedRows}`);
+  }
+}
+
+// 可以在这里取消注释来直接运行导出功能
+setTimeout(() => {
+  runMaterialNodesExport();
+}, 5000);
+
 module.exports = {
   analyzeWorkOrderBarcodeStatus,
   analyzeBarcodeWorkOrderConsistency,
+  exportWorkOrderMaterialNodesData,
 };

@@ -258,8 +258,8 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: entryInfo.outboundQuantity, //应出库数量
-            outNumber: 0, //已出库数量
-            actualQuantity: 0, //实际出库数量
+            outNumber: sum, //已出库数量
+            actualQuantity: sum, //实际出库数量
             saleNumber: saleOrder.FQty, //销售数量
             entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
@@ -295,8 +295,8 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
             FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
             outboundQuantity: saleOrder.FQty - sum, //应出库数量
-            outNumber: 0, //已出库数量
-            actualQuantity: 0, //实际出库数量
+            outNumber: sum, //已出库数量
+            actualQuantity: sum, //实际出库数量
             saleNumber: saleOrder.FQty, //销售数量
             entryNo: newEntryNo,
             productionOrderNo: order.FBillNo,
@@ -497,11 +497,11 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       }
 
       // 更新托盘条目的数量
-      existingPallet.quantity = existingPallet.palletBarcodes ? existingPallet.palletBarcodes.length : remainingBarcodes.length;
+      existingPallet.quantity = pallet.totalQuantity;
 
       // 更新出库单数量和进度
       entry.outNumber = entry.entryItems.reduce(
-        (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+        (sum, item) => sum + item.quantity,
         0
       );
       entry.actualQuantity = entry.outNumber;
@@ -573,37 +573,17 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     //托盘出库
 
     // 5. 添加托盘到出库单
-    // 获取未出库的条码
-    const unOutBarcodes = pallet.palletBarcodes.filter(
-      (item) => item.outWarehouseStatus !== "COMPLETED"
-    );
-    
-    // 预先计算添加该托盘后的总出库数量
-    const currentTotalQuantity = entry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
-      0
-    );
-    const newTotalQuantity = currentTotalQuantity + unOutBarcodes.length;
-    
-    // 预先检查添加该托盘后是否会超过应出库数量
-    if (newTotalQuantity > entryInfo.outboundQuantity) {
-      return res.status(200).json({
-        code: 404,
-        message: "添加该托盘后会超过应出库数量,无法进行出库,需修改应出库数量",
-      });
-    }
-
     entry.entryItems.push({
       palletId: pallet._id,
       palletCode: pallet.palletCode,
-      quantity: unOutBarcodes.length, // 使用未出库条码的数量
+      quantity: pallet.totalQuantity,
       scanTime: new Date(),
       scanBy: userId,
       saleOrderNo: pallet.saleOrderNo, // 新增：销售订单
       materialCode: pallet.materialCode, //新增： 物料编码
       lineCode: pallet.productLineName, // 新增：产线
       palletType: pallet.palletType, // 新增：托盘类型
-      palletBarcodes: unOutBarcodes.map((item) => ({
+      palletBarcodes: pallet.palletBarcodes.map((item) => ({
         barcode: item.barcode,
         barcodeType: item.barcodeType,
         materialProcessFlowId: item.materialProcessFlowId,
@@ -615,7 +595,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 
     // 6. 更新出库单数量信息和完成进度
     entry.outNumber = entry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      (sum, item) => sum + item.quantity,
       0
     );
     entry.actualQuantity = entry.outNumber;
@@ -627,7 +607,6 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     //计算已出库数量是否超过应出库数量
     if (entry.outNumber > entryInfo.outboundQuantity) {
       return res.status(200).json({
-        code: 404,
         message: "该托盘数量已经超过应出库数量,无法进行出库,需修改应出库数量",
       });
     }
@@ -893,36 +872,6 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       });
     }
 
-    // 检查产品条码在托盘中的出库状态
-    const palletBarcode = pallet.palletBarcodes.find(
-      (item) => item.barcode === productBarcode
-    );
-    
-    if (!palletBarcode) {
-      return res.status(200).json({
-        code: 404,
-        message: "托盘中未找到该产品条码",
-      });
-    }
-    
-    // 检查产品条码是否已经出库
-    if (palletBarcode.outWarehouseStatus === "COMPLETED") {
-      // 新增：查找该条码所在的出库单
-      const existingEntryWithBarcode = await wareHouseOntry.findOne({
-        "entryItems.palletBarcodes.barcode": productBarcode
-      });
-      
-      let errorMessage = "该产品条码已出库";
-      if (existingEntryWithBarcode) {
-        errorMessage += `，出库单号：${existingEntryWithBarcode.entryNo}`;
-      }
-      
-      return res.status(200).json({
-        code: 404,
-        message: errorMessage,
-      });
-    }
-
     // 3. 验证托盘状态
     if (pallet.status !== "STACKED") {
       return res.status(200).json({
@@ -1113,8 +1062,8 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           HuoGuiCode: entryInfo.HuoGuiCode, // 货柜号
           FaQIaoNo: entryInfo.FaQIaoNo, // 发票号
           outboundQuantity: outboundQuantity, //应出库数量
-          outNumber: 0, //已出库数量，初始为0
-          actualQuantity: 0, //实际出库数量，初始为0
+          outNumber: 1, //已出库数量，初始为1
+          actualQuantity: 1, //实际出库数量，初始为1
           saleNumber: saleOrder.FQty, //销售数量
           entryNo: newEntryNo,
           productionOrderNo: order.FBillNo,
@@ -1295,7 +1244,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
     // 更新出库数量
     currentPalletItem.quantity = currentPalletItem.palletBarcodes.length;
     entry.outNumber = entry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      (sum, item) => sum + item.quantity,
       0
     );
     entry.actualQuantity = entry.outNumber;
@@ -1334,121 +1283,6 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
     return res.status(200).json({
       code: 500,
       message: error.message,
-    });
-  }
-});
-
-// 删除出库单并恢复相关条码状态
-router.post("/api/v1/warehouse_entry/delete_entry", async (req, res) => {
-  try {
-    const { entryId } = req.body;
-
-    // 1. 获取出库单详情
-    const entry = await wareHouseOntry.findById(entryId);
-    if (!entry) {
-      return res.status(200).json({
-        code: 404,
-        message: "出库单不存在",
-      });
-    }
-
-    // 2. 收集所有需要恢复状态的条码信息
-    const palletBarcodeMap = new Map(); // Map<palletCode, Array<barcode>>
-
-    if (entry.entryItems && entry.entryItems.length > 0) {
-      entry.entryItems.forEach(item => {
-        if (item.palletCode && item.palletBarcodes && item.palletBarcodes.length > 0) {
-          // 获取当前托盘中已出库的条码
-          const barcodes = item.palletBarcodes.map(b => b.barcode);
-          
-          // 添加到托盘条码映射
-          if (!palletBarcodeMap.has(item.palletCode)) {
-            palletBarcodeMap.set(item.palletCode, []);
-          }
-          palletBarcodeMap.get(item.palletCode).push(...barcodes);
-        }
-      });
-    }
-
-    // 3. 对每个托盘进行处理
-    const processResults = [];
-    
-    for (const [palletCode, barcodes] of palletBarcodeMap.entries()) {
-      try {
-        // 只更新特定条码的出库状态
-        const updateResult = await MaterialPallet.updateOne(
-          { palletCode: palletCode },
-          {
-            $set: {
-              "palletBarcodes.$[elem].outWarehouseStatus": "PENDING",
-              "palletBarcodes.$[elem].outWarehouseTime": null,
-              "palletBarcodes.$[elem].outWarehouseBy": null
-            }
-          },
-          {
-            arrayFilters: [{ "elem.barcode": { $in: barcodes } }]
-          }
-        );
-        
-        // 获取更新后的托盘信息，检查是否所有条码都已恢复
-        const updatedPallet = await MaterialPallet.findOne({ palletCode });
-        
-        if (updatedPallet) {
-          // 检查剩余的出库状态条码数量
-          const outWarehouseBarcodes = updatedPallet.palletBarcodes.filter(
-            b => b.outWarehouseStatus === "COMPLETED"
-          );
-          
-          // 根据剩余已出库条码数量决定托盘状态
-          let newStatus;
-          if (outWarehouseBarcodes.length === 0) {
-            // 如果没有已出库的条码，则恢复为"已入库"状态
-            newStatus = "IN_WAREHOUSE";
-          } else if (outWarehouseBarcodes.length < updatedPallet.palletBarcodes.length) {
-            // 如果有部分条码已出库，则设为"部分出库"状态
-            newStatus = "PART_OUT_WAREHOUSE";
-          } else {
-            // 所有条码都已出库，则状态为"已出库"
-            newStatus = "OUT_WAREHOUSE";
-          }
-          
-          // 更新托盘状态
-          await MaterialPallet.updateOne(
-            { palletCode },
-            { inWarehouseStatus: newStatus }
-          );
-          
-          processResults.push({
-            palletCode,
-            barcodesRestored: barcodes.length,
-            newStatus
-          });
-        }
-      } catch (error) {
-        console.error(`处理托盘 ${palletCode} 时出错:`, error);
-        processResults.push({
-          palletCode,
-          error: error.message
-        });
-      }
-    }
-
-    // 4. 删除出库单
-    await wareHouseOntry.deleteOne({ _id: entryId });
-
-    return res.status(200).json({
-      code: 200,
-      message: "出库单删除成功，已恢复相关条码状态",
-      data: {
-        entryNo: entry.entryNo,
-        processResults
-      }
-    });
-  } catch (error) {
-    console.error("删除出库单错误:", error);
-    return res.status(200).json({
-      code: 500,
-      message: error.message
     });
   }
 });

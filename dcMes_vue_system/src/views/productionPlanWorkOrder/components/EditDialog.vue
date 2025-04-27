@@ -785,6 +785,15 @@ export default {
           this.submitLoading = true;
           try {
             const formData = { ...this.form };
+            
+            // 添加创建人和修改人信息
+            if (this.dialogStatus === 'create') {
+              formData.createBy = this.$store.getters.name;
+              formData.updateBy = this.$store.getters.name;
+            } else {
+              formData.updateBy = this.$store.getters.name;
+            }
+            
             this.$emit("submit", formData);
             this.handleClose();
           } catch (error) {
@@ -884,26 +893,25 @@ export default {
         }
 
         // 检查原工单是否存在报废产品
-        if (this.form.inputQuantity - this.form.outputQuantity <= 0) {
+        if (this.form.scrapQuantity <= 0) {
           this.$message.warning("当前工单没有报废产品，无需补单");
           return;
         }
 
-        const result = await this.$confirm(
-          `当前工单报废数量为 ${
-            this.form.inputQuantity - this.form.outputQuantity
-          }，将创建补单数量为 ${
-            this.form.inputQuantity - this.form.outputQuantity
-          } 的工单，是否继续？`,
-          "创建补单确认",
-          {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
-            type: "warning",
+        // 使用输入框让用户输入补单数量
+        this.$prompt(`当前工单报废数量为 ${this.form.scrapQuantity}，请输入补单数量`, '创建补单', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          inputType: 'number',
+          inputValue: this.form.scrapQuantity,
+          inputValidator: (value) => {
+            if (!value) return '补单数量不能为空';
+            if (isNaN(Number(value)) || Number(value) <= 0) return '请输入有效的补单数量';
+            return true;
           }
-        );
-
-        if (result) {
+        }).then(({ value }) => {
+          const supplementQuantity = Number(value);
+          
           // 创建补单数据
           const supplementForm = {
             ...this.form,
@@ -916,20 +924,24 @@ export default {
               Date.now().toString(),
             status: "PENDING",
             businessType: "SUPPLEMENT", // 补单类型
-            planProductionQuantity:
-              this.form.inputQuantity - this.form.outputQuantity, // 补单数量等于报废数量
+            planProductionQuantity: supplementQuantity, // 补单数量为用户输入的数量
             inputQuantity: 0,
             outputQuantity: 0,
+            scrapQuantity: 0, // 新工单初始报废数量为0
+            scrapProductBarcodeList: [], // 新工单初始报废列表为空
             originalWorkOrderNo: this.form.workOrderNo, //关联原工单号
             originalWorkOrderId: this.form._id, // 关联原工单ID
-            supplementQuantity:
-              this.form.inputQuantity - this.form.outputQuantity, //补单数量
+            supplementQuantity: supplementQuantity, //补单数量
             remark: `补单-原工单号:${this.form.workOrderNo}`,
+            createBy: this.$store.getters.name, // 添加创建人
+            updateBy: this.$store.getters.name // 添加修改人
           };
 
           this.$emit("submit", supplementForm);
           this.handleClose();
-        }
+        }).catch(() => {
+          this.$message.info('已取消补单操作');
+        });
       } catch (error) {
         console.error("创建补单失败:", error);
         this.$message.error("创建补单失败");

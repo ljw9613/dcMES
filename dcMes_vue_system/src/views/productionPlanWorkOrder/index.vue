@@ -293,6 +293,31 @@
                     </template>
                 </el-table-column>
 
+                <!-- 添加创建人和更新人信息 -->
+                <el-table-column label="创建人" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.createBy || '暂无' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="创建时间" width="150">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.createAt, true) }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="更新人" width="100">
+                    <template slot-scope="scope">
+                        {{ scope.row.updateBy || '暂无' }}
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="更新时间" width="150">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.updateAt, true) }}
+                    </template>
+                </el-table-column>
+
                 <el-table-column label="操作" width="180" fixed="right">
                     <template slot-scope="scope">
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">
@@ -752,9 +777,19 @@ export default {
             try {
                 console.log(formData,'formData')
                 if (this.dialogStatus === 'create'||!formData._id) {
+                    // 确保创建时有创建人信息
+                    if (!formData.createBy) {
+                        formData.createBy = this.$store.getters.name;
+                    }
+                    if (!formData.updateBy) {
+                        formData.updateBy = this.$store.getters.name;
+                    }
                     await addData('production_plan_work_order', formData)
                     this.$message.success('添加成功')
                 } else {
+                    // 更新时添加修改人信息
+                    formData.updateBy = this.$store.getters.name;
+                    formData.updateAt = new Date();
                     await updateData('production_plan_work_order', { query: { _id: formData._id }, update: formData })
                     this.$message.success('更新成功')
                 }

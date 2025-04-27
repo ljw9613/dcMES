@@ -136,7 +136,10 @@
     <div class="right-content">
       <template
         v-if="
-          mainMaterialId && processStepId && (processStepData.processType == 'D' || processStepData.processType == 'C')
+          mainMaterialId &&
+          processStepId &&
+          (processStepData.processType == 'D' ||
+            processStepData.processType == 'C')
         "
       >
         <el-card class="scan-card">
@@ -183,7 +186,9 @@
                   workOrderInfo.inputQuantity || 0
                 }}</span>
                 <span class="separator">/</span>
-                <span class="value">{{ workOrderInfo.planProductionQuantity || 0 }}</span>
+                <span class="value">{{
+                  workOrderInfo.planProductionQuantity || 0
+                }}</span>
               </div>
             </div>
 
@@ -1496,6 +1501,27 @@ export default {
         const cleanValue = value.replace(/[\s\r\n]/g, "");
         if (!cleanValue) return;
 
+        //特殊处理
+        if (cleanValue.includes("102251-114010190087")) {
+          // 检查条码格式是否符合预期，并提取日期部分
+          const parts = cleanValue.split("-");
+          if (parts.length >= 4) {
+            const dateStr = parts[2]; // 获取第三段日期字符串
+            
+            // 判断日期是否小于20250201
+            if (dateStr && dateStr.length === 8 && dateStr < "20250201") {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该物料已过期，不可使用");
+              this.errorMessage = "该物料已过期，不可使用";
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(dwx);
+              return;
+            }
+          }
+        }
+
         const isValidResult = await this.validateBarcode(cleanValue);
         if (!isValidResult.isValid) {
           this.popupType = "ng";
@@ -1546,6 +1572,16 @@ export default {
             repairRecord.data[0].status == "REVIEWED" &&
             repairRecord.data[0].repairResult !== "QUALIFIED"
           ) {
+            if (repairRecord.data[0].solution == "报废") {
+              this.unifiedScanInput = "";
+              this.$refs.scanInput.focus();
+              this.$message.error("该条码已完成报废处理");
+              this.errorMessage = "该条码已完成报废处理";
+              this.popupType = "ng";
+              this.showPopup = true;
+              tone(tmyw);
+              return;
+            }
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
             this.$message.error("该条码已完成维修,但维修结果为不合格");
@@ -1573,15 +1609,34 @@ export default {
                 query: {
                   printBarcode: cleanValue,
                 },
-                limit: 1,
-                select: "status",
+                // 移除limit限制，查询所有匹配的条码
+                select: "status workOrderNo barcode",
               });
               console.log(checkPreProduction, "checkPreProduction");
+
+              // 有匹配的条码记录
               if (
                 checkPreProduction.data &&
                 checkPreProduction.data.length > 0
               ) {
-                if (checkPreProduction.data[0].status === "VOIDED") {
+                // 按状态优先级排序：PENDING > USED > SUSPENDED > VOIDED
+                const statusPriority = {
+                  PENDING: 0, // 待使用优先级最高
+                  USED: 1, // 已使用次之
+                  SUSPENDED: 2, // 已暂停再次之
+                  VOIDED: 3, // 已作废优先级最低
+                };
+
+                // 排序所有条码
+                const sortedBarcodes = [...checkPreProduction.data].sort(
+                  (a, b) => statusPriority[a.status] - statusPriority[b.status]
+                );
+
+                // 获取优先级最高的条码
+                const bestBarcode = sortedBarcodes[0];
+
+                // 如果最好的条码状态是已作废，不允许使用
+                if (bestBarcode.status === "VOIDED") {
                   this.unifiedScanInput = "";
                   this.$refs.scanInput.focus();
                   this.$message.error("该条码已作废");
@@ -1591,37 +1646,51 @@ export default {
                   tone(tmyw);
                   return;
                 }
-              }
-              //TODO 暂时去掉批次条码顺序校验
-              // const preProductionResponse = await getData(
-              //   "preProductionBarcode",
-              //   {
-              //     query: {
-              //       materialNumber: materialCode,
-              //       lineNum: this.lineNum, // 添加产线编码条件
-              //       status: "PENDING", // 只查询待使用的条码
-              //     },
-              //     sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
-              //     limit: 1,
-              //   }
-              // );
 
-              // if (
-              //   preProductionResponse.data &&
-              //   preProductionResponse.data.length > 0
-              // ) {
-              //   const expectedBarcode =
-              //     preProductionResponse.data[0].printBarcode;
-              //   if (cleanValue !== expectedBarcode) {
-              //     this.$message.error(
-              //       `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`
-              //     );
-              //     this.popupType = "ng";
-              //     this.showPopup = true;
-              //     tone(tmyw);
-              //     return;
-              //   }
-              // }
+                // 如果最好的条码状态是已暂停，不允许使用
+                if (bestBarcode.status === "SUSPENDED") {
+                  this.unifiedScanInput = "";
+                  this.$refs.scanInput.focus();
+                  this.$message.error("该条码已暂停使用");
+                  this.errorMessage = "该条码已暂停使用";
+                  this.popupType = "ng";
+                  this.showPopup = true;
+                  tone(tmyw);
+                  return;
+                }
+
+                // 如果存在多个条码且不全是作废/暂停状态，给出提示信息
+                if (checkPreProduction.data.length > 1) {
+                  const validBarcodes = sortedBarcodes.filter(
+                    (b) => b.status !== "VOIDED" && b.status !== "SUSPENDED"
+                  );
+
+                  if (validBarcodes.length > 1) {
+                    console.info(
+                      "存在多个有效条码记录，自动选择优先级最高的条码",
+                      bestBarcode
+                    );
+                    this.$notify({
+                      title: "注意",
+                      message: `存在${validBarcodes.length}个有效条码记录，已自动选择最优条码`,
+                      type: "warning",
+                      duration: 3000,
+                    });
+                  }
+                }
+
+                // 如果最好的条码是已使用状态，给出警告但允许继续
+                if (bestBarcode.status === "USED") {
+                  console.warn("使用了已扫描过的条码", bestBarcode);
+                  this.$notify({
+                    title: "警告",
+                    message: "该条码已被使用过，请确认是否重复扫描",
+                    type: "warning",
+                    duration: 5000,
+                  });
+                  // 继续允许使用
+                }
+              }
             }
             // 如果不是第一道工序或没有找到对应的预生产条码记录，继续正常流程
           } catch (error) {
@@ -2380,7 +2449,8 @@ export default {
           if (response.data && response.data[0]) {
             this.workOrderInfo = {
               workOrderNo: response.data[0].workOrderNo || 0,
-              planProductionQuantity: response.data[0].planProductionQuantity || 0,
+              planProductionQuantity:
+                response.data[0].planProductionQuantity || 0,
               inputQuantity: response.data[0].inputQuantity || 0,
             };
           }
