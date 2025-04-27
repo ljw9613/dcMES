@@ -193,45 +193,45 @@
               <el-button type="text" @click="handleClearCache" icon="el-icon-delete">
                 清除批次物料缓存
               </el-button>
-              <el-form
-                :model="batchForm"
-                label-width="100px"
-                v-if="hasEditPermission"
-              >
-                <el-form-item label="产品数量">
-                  <div class="batch-size-control">
-                    <el-input-number
+            <el-form
+              :model="batchForm"
+              label-width="100px"
+              v-if="hasEditPermission"
+            >
+              <el-form-item label="产品数量">
+                <div class="batch-size-control">
+                  <el-input-number
+                    size="mini"
+                    v-model="batchForm.batchSize"
+                    :min="1"
+                    :max="999"
+                    @change="handleBatchSizeChange"
+                    :disabled="batchSizeLocked"
+                  >
+                  </el-input-number>
+                  <template v-if="!batchSizeLocked">
+                    <el-button
+                      type="text"
                       size="mini"
-                      v-model="batchForm.batchSize"
-                      :min="1"
-                      :max="999"
-                      @change="handleBatchSizeChange"
-                      :disabled="batchSizeLocked"
+                      @click="handleSaveBatchSize"
+                      icon="el-icon-check"
                     >
-                    </el-input-number>
-                    <template v-if="!batchSizeLocked">
-                      <el-button
-                        type="text"
-                        size="mini"
-                        @click="handleSaveBatchSize"
-                        icon="el-icon-check"
-                      >
-                        保存
-                      </el-button>
-                    </template>
-                    <template v-else>
-                      <el-button
-                        type="text"
-                        style="color: red"
-                        @click="handleCancelBatchSize"
-                        icon="el-icon-close"
-                      >
-                        取消
-                      </el-button>
-                    </template>
-                  </div>
-                </el-form-item>
-              </el-form>
+                      保存
+                    </el-button>
+                  </template>
+                  <template v-else>
+                    <el-button
+                      type="text"
+                      style="color: red"
+                      @click="handleCancelBatchSize"
+                      icon="el-icon-close"
+                    >
+                      取消
+                    </el-button>
+                  </template>
+                </div>
+              </el-form-item>
+            </el-form>
             </div>
           </div>
 
@@ -284,6 +284,9 @@
                 <i class="el-icon-box"></i>
                 <span>物料匹配扫描</span>
               </div>
+              <el-tooltip content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除" placement="top">
+                <el-tag type="info" size="small">批次物料缓存已启用</el-tag>
+              </el-tooltip>
             </div>
 
             <div class="material-section">
@@ -1060,7 +1063,8 @@ export default {
               // 清除所有批次物料缓存
               const keys = Object.keys(localStorage);
               keys.forEach((key) => {
-                if (key.startsWith("batch_")) {
+                if (key.startsWith(`batch_${this.mainMaterialId}_${this.processStepId}`)) {
+                  console.log(`清除批次物料缓存: ${key}`);
                   localStorage.removeItem(key);
                   localStorage.removeItem(`${key}_usage`);
                 }
@@ -1070,6 +1074,7 @@ export default {
                 "lastWorkProductionPlanWorkOrderId_batchNew",
                 currentPlanId || ""
               );
+              this.$message.info("检测到工单已更换，批次物料缓存已清理");
             }
 
             this.processMaterials = processMaterialsResponse.data;
@@ -1479,12 +1484,13 @@ export default {
           const cachedBarcode = localStorage.getItem(cacheKey);
           const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
 
-          // 只有当设置了batchQuantity且超过限制时才清除缓存
+          // 只有当设置了batchQuantity且已超过限制时才清除缓存
+          // 其他情况保留批次物料缓存
           if (!material.batchQuantity || (cachedBarcode && currentUsage < material.batchQuantity)) {
             newBarcodes[material._id] = cachedBarcode;
             this.$set(this.validateStatus, material._id, !!cachedBarcode);
           } else {
-            // 如果使用次数已达到限制，清除缓存
+            // 如果使用次数已达到限制，才清除缓存
             localStorage.removeItem(cacheKey);
             localStorage.removeItem(usageKey);
             newBarcodes[material._id] = "";
@@ -1652,9 +1658,9 @@ export default {
                   this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
                   this.popupType = "ng";
                   this.showPopup = true;
-                  tone(tmyw);
-                  return;
-                }
+                    tone(tmyw);
+                    return;
+                  }
 
                 // 更新缓存和使用次数
                 localStorage.setItem(cacheKey, cleanValue);
@@ -1803,27 +1809,51 @@ export default {
               });
               this.palletForm.palletCode = "";
               this.scannedList = [];
-            }
+              // 组托完成不清除批次物料缓存，只更新使用次数
+              for (const material of this.processMaterials) {
+                if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                  const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                  const usageKey = `${cacheKey}_usage`;
+                  const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
 
-            // 提交成功后，更新批次物料的使用次数
-            for (const material of this.processMaterials) {
-              if (material.isBatch && this.scanForm.barcodes[material._id]) {
-                const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                const usageKey = `${cacheKey}_usage`;
-                const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
-
-                // 更新使用次数
-                const newUsage = currentUsage + 1;
-                localStorage.setItem(usageKey, newUsage.toString());
-                
-                // 如果设置了使用次数限制且达到限制，清除缓存
-                if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
-                  localStorage.removeItem(cacheKey);
-                  localStorage.removeItem(usageKey);
-                  this.$set(this.scanForm.barcodes, material._id, "");
-                  this.$set(this.validateStatus, material._id, false);
+                  // 更新使用次数
+                  const newUsage = currentUsage + 1;
+                  localStorage.setItem(usageKey, newUsage.toString());
+                  
+                  // 只有当设置了使用次数限制且达到限制时才清除缓存
+                  if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                    localStorage.removeItem(cacheKey);
+                    localStorage.removeItem(usageKey);
+                    this.$set(this.scanForm.barcodes, material._id, "");
+                    this.$set(this.validateStatus, material._id, false);
+                  }
                 }
               }
+              // 重置主条码，但保留子物料的批次缓存
+              this.scanForm.mainBarcode = "";
+              this.$set(this.validateStatus, "mainBarcode", false);
+            } else {
+              // 不是组托完成，提交成功后，更新批次物料的使用次数
+              for (const material of this.processMaterials) {
+                if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                  const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                  const usageKey = `${cacheKey}_usage`;
+                  const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+
+                  // 更新使用次数
+                  const newUsage = currentUsage + 1;
+                  localStorage.setItem(usageKey, newUsage.toString());
+                  
+                  // 如果设置了使用次数限制且达到限制，清除缓存
+                  if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                    localStorage.removeItem(cacheKey);
+                    localStorage.removeItem(usageKey);
+                    this.$set(this.scanForm.barcodes, material._id, "");
+                    this.$set(this.validateStatus, material._id, false);
+                  }
+                }
+              }
+              this.resetScanForm();
             }
 
             tone(smcg);
@@ -1963,15 +1993,13 @@ export default {
 
             this.printData = printData;
 
-            // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
+            // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表，但不清理批次物料缓存
             if (res.data.status == "STACKED") {
-              this.palletForm.palletCode = "";
-              this.palletForm.totalQuantity = 0;
-              this.scannedList = [];
-
               this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints2();
               });
+              this.palletForm.palletCode = "";
+              this.scannedList = [];
             }
           } else {
             this.$message.error(res.message);
@@ -2214,7 +2242,7 @@ export default {
     async handleClearCache() {
       try {
         await this.$confirm(
-          "确认清除所有页面缓存数据？此操作不可恢复。",
+          "确认清除当前工序的批次物料缓存数据？此操作不可恢复。",
           "提示",
           {
             confirmButtonText: "确定",
@@ -2230,22 +2258,32 @@ export default {
           background: "rgba(0, 0, 0, 0.7)",
         });
 
-        // 清除所有相关的localStorage
+        // 只清除当前工序的批次物料缓存
         const keys = Object.keys(localStorage);
+        let count = 0;
         keys.forEach((key) => {
-          // 清除批次物料缓存
-          if (key.startsWith("batch_")) {
+          // 只清除当前工序和物料的批次缓存
+          if (key.startsWith(`batch_${this.mainMaterialId}_${this.processStepId}`)) {
             localStorage.removeItem(key);
+            localStorage.removeItem(`${key}_usage`);
+            count++;
           }
         });
 
-        this.$message.success("缓存清除成功");
+        // 更新UI中的缓存状态
+        this.processMaterials.forEach((material) => {
+          if (material.isBatch) {
+            this.$set(this.scanForm.barcodes, material._id, "");
+            this.$set(this.validateStatus, material._id, false);
+            this.$set(this.batchUsageCount, material._id, 0);
+          }
+        });
+
+        this.$message.success(`缓存清除成功，共清除${count}个缓存项`);
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
           loading.close();
-          // 强制刷新页面
-          window.location.reload();
         }, 500);
       } catch (error) {
         if (error !== "cancel") {
