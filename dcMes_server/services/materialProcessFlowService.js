@@ -29,7 +29,9 @@ class MaterialProcessFlowService {
     materialCode,
     barcode,
     productLineId,
-    productLineName
+    productLineName,
+    isFromDevice = false,
+    productionPlanWorkOrderId = null
   ) {
     try {
       // 1. 获取物料信息
@@ -79,12 +81,19 @@ class MaterialProcessFlowService {
         productLineName,
       };
 
-      // 根据产线ID获取对应的工单
-      const planWorkOrder = await ProductionPlanWorkOrder.findOne({
-        productionLineId: productLineId,
-        // materialId: material._id,
-        status: "IN_PROGRESS",
-      });
+      let planWorkOrder = null;
+      if (isFromDevice) {
+        planWorkOrder = await ProductionPlanWorkOrder.findOne({
+          _id: productionPlanWorkOrderId,
+        });
+      } else {
+        // 根据产线ID获取对应的工单
+        planWorkOrder = await ProductionPlanWorkOrder.findOne({
+          productionLineId: productLineId,
+          // materialId: material._id,
+          status: "IN_PROGRESS",
+        });
+      }
 
       console.log(
         "🚀 ~ MaterialProcessFlowService ~ planWorkOrder:",
@@ -343,13 +352,17 @@ class MaterialProcessFlowService {
    * @param {Array<{materialId: string, barcode: string}>} componentScans - 子物料扫描信息数组
    * @param {string} userId - 用户ID
    * @param {string} lineId - 产线ID
+   * @param {boolean} isFromDevice - 是否来自设备
+   * @param {string} productionPlanWorkOrderId - 指定工单ID
    */
   static async scanProcessComponents(
     mainBarcode,
     processStepId,
     componentScans,
     userId,
-    lineId
+    lineId,
+    isFromDevice = false,
+    productionPlanWorkOrderId = null
   ) {
     try {
       // 1. 验证输入参数
@@ -626,21 +639,34 @@ class MaterialProcessFlowService {
         "🚀 ~ MaterialProcessFlowService ~ processPosimaterialIdtion:",
         flowRecord.materialId
       );
-
+      let planWorkOrder = null;
       //根据产线获取对应的工单
-      const planWorkOrder = await ProductionPlanWorkOrder.findOne({
-        productionLineId: lineId,
-        materialId: flowRecord.materialId,
-        status: "IN_PROGRESS",
-      });
+      if (flowRecord.isProduct && !isFromDevice) {
+        planWorkOrder = await ProductionPlanWorkOrder.findOne({
+          productionLineId: lineId,
+          materialId: flowRecord.materialId,
+          status: "IN_PROGRESS",
+        });
+      } else {
+        if (
+          !flowRecord.productionPlanWorkOrderId &&
+          !productionPlanWorkOrderId
+        ) {
+          throw new Error("当前产品条码未绑定工单,请选择工单后投入");
+        }
+        planWorkOrder = await ProductionPlanWorkOrder.findOne({
+          _id:
+            flowRecord.productionPlanWorkOrderId || productionPlanWorkOrderId,
+        });
+      }
 
       //成品条码必须有生产计划
-      if (flowRecord.isProduct && !planWorkOrder) {
+      if (flowRecord.isProduct && !planWorkOrder && !isFromDevice) {
         throw new Error("未查询到生产工单");
       }
 
       //对比当前产线工单和条码的工单
-      if (flowRecord.isProduct) {
+      if (flowRecord.isProduct && !isFromDevice) {
         // 先检查planWorkOrder是否存在
         if (!planWorkOrder) {
           throw new Error("未找到有效的产线工单");

@@ -89,6 +89,8 @@ router.post("/api/v1/create-flow", async (req, res) => {
       barcode,
       productLineId,
       productLineName,
+      isFromDevice = false,
+      productionPlanWorkOrderId = null,
     } = req.body;
     const flowRecord =
       await MaterialProcessFlowService.createFlowByMaterialCode(
@@ -96,7 +98,9 @@ router.post("/api/v1/create-flow", async (req, res) => {
         materialCode,
         barcode,
         productLineId,
-        productLineName
+        productLineName,
+        isFromDevice,
+        productionPlanWorkOrderId
       );
     res.json({
       code: 200,
@@ -125,6 +129,7 @@ router.post("/api/v1/scan-components", async (req, res) => {
       componentScans, // 子物料条码数组
       userId, // 用户ID
       lineId, // 产线ID
+      isFromDevice = false, // 是否来自设备
     } = req.body;
 
     // 参数验证
@@ -147,7 +152,8 @@ router.post("/api/v1/scan-components", async (req, res) => {
       processStepId,
       componentScans,
       userId,
-      lineId
+      lineId,
+      isFromDevice
     );
 
     res.json({
@@ -632,7 +638,8 @@ router.post("/api/v1/machine-scan-components", async (req, res) => {
       processStepId,
       componentScans,
       userId,
-      lineId
+      lineId,
+      true
     );
 
     res.json({
