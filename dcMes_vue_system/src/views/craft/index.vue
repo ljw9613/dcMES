@@ -661,7 +661,7 @@
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
+        <el-row :gutter="20" v-if="processDialogVisible">
           <el-col :span="12">
             <el-form-item label="绑定设备" prop="machineId">
               <zr-select
