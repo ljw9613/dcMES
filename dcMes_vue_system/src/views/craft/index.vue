@@ -1795,16 +1795,64 @@ export default {
       // 解析当前编码
       const parts = this.processForm.processCode.split("_");
       const craftType = parts[0];
-      const sequence = parts[parts.length - 1];
       const businessType = parts.length > 3 ? parts[3] : "";
 
-      // 使用统一的编码生成逻辑
-      this.processForm.processCode = this.generateUnifiedCode(
-        craftType,
-        value,
-        sequence,
-        businessType
-      );
+      try {
+        // 获取当前工艺下特定工序类型的最大序列号
+        const existingProcesses = await getData("processStep", {
+          query: {
+            craftId: this.tempCraftId,
+            processType: value,
+            _id: { $ne: this.tempProcessId }, // 排除当前正在编辑的工序
+          },
+        });
+
+        // 初始化最大序列号为0
+        let maxSequence = 0;
+
+        // 分析现有工序编码，提取最大序列号
+        if (existingProcesses.data && existingProcesses.data.length > 0) {
+          existingProcesses.data.forEach((process) => {
+            if (process.processCode) {
+              const codeParts = process.processCode.split("_");
+              // 通常序列号是第三部分（索引2）
+              if (codeParts.length > 2) {
+                const seqPart = codeParts[2];
+                if (/^\d+$/.test(seqPart)) {
+                  const seq = parseInt(seqPart);
+                  if (!isNaN(seq) && seq > maxSequence) {
+                    maxSequence = seq;
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // 序列号加1，并确保格式为四位数字（前导零填充）
+        const newSequence = (maxSequence + 1).toString().padStart(4, "0");
+
+        // 使用统一的编码生成逻辑
+        this.processForm.processCode = this.generateUnifiedCode(
+          craftType,
+          value,
+          newSequence,
+          businessType
+        );
+        
+        console.log("工序类型变更后新生成的编码:", this.processForm.processCode);
+      } catch (error) {
+        console.error("生成工序编码失败:", error);
+        // 发生错误时，仍然生成一个基本的编码（使用时间戳作为序列号以避免冲突）
+        const timestamp = new Date().getTime().toString().slice(-8);
+        const fallbackSequence = timestamp.slice(-4);
+        this.processForm.processCode = this.generateUnifiedCode(
+          craftType,
+          value,
+          fallbackSequence,
+          businessType
+        );
+      }
       
       // 当工序类型为打印工序(G)时，清空物料数据
       if (value === 'G') {
