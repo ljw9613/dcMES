@@ -5,14 +5,30 @@
         <div class="flow-chart-container">
             <div v-loading="loading" class="flow-container">
                 <div v-if="!flowData || flowData.length === 0" class="empty-data">
-                    暂无流程图数据
+                    <el-empty description="暂无流程图数据" :image-size="100">
+                        <template #description>
+                            <p>该物料暂无完整流程图数据</p>
+                        </template>
+                    </el-empty>
                 </div>
                 <template v-else>
+                    <!-- 调试信息 -->
+                    <div class="debug-info" v-if="showDebugInfo">
+                        <pre>{{ JSON.stringify(flowData, null, 2) }}</pre>
+                    </div>
+                    <!-- 流程图节点 -->
                     <flow-node :node="flowData[0]" />
                 </template>
             </div>
         </div>
 
+        <!-- 调试工具栏 -->
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="toggleDebug" size="small" type="info">
+                {{ showDebugInfo ? '隐藏调试信息' : '显示调试信息' }}
+            </el-button>
+            <el-button @click="dialogVisible = false">关闭</el-button>
+        </div>
     </el-dialog>
 </template>
 
@@ -39,6 +55,32 @@ export default {
             default: () => []
         }
     },
+    data() {
+        return {
+            showDebugInfo: false,
+            internalFlowData: null
+        }
+    },
+    watch: {
+        flowData: {
+            handler(newVal) {
+                console.log('FlowChart组件接收到数据:', newVal);
+                this.internalFlowData = newVal;
+            },
+            immediate: true,
+            deep: true
+        },
+        visible(val) {
+            if (val) {
+                // 当对话框显示时，确保数据已正确加载
+                console.log('流程图对话框打开，数据状态:', this.flowData);
+                this.$nextTick(() => {
+                    // 强制重新渲染视图
+                    this.$forceUpdate();
+                });
+            }
+        }
+    },
     computed: {
         dialogVisible: {
             get() {
@@ -52,6 +94,9 @@ export default {
     methods: {
         handleDialogClosed() {
             this.$emit('update:visible', false);
+        },
+        toggleDebug() {
+            this.showDebugInfo = !this.showDebugInfo;
         }
     }
 }
@@ -120,10 +165,10 @@ export default {
 
             // 通用滚动条属性
             overflow: auto;
-            
+
             // 平滑滚动效果
             scroll-behavior: smooth;
-            
+
             // 触摸设备的滚动
             -webkit-overflow-scrolling: touch;
         }
@@ -136,13 +181,14 @@ export default {
         }
 
         .empty-data {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
             text-align: center;
-            padding: 20px;
-            color: #409EFF;
-            font-size: 14px;
+            color: #909399;
         }
     }
-
 }
 
 // 滚动条样式
@@ -163,5 +209,24 @@ export default {
 
 .flow-container::-webkit-scrollbar-thumb:hover {
     background: #337ecc;
+}
+
+// 调试信息样式
+.debug-info {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #f8f8f8;
+    border: 1px dashed #dcdfe6;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow: auto;
+
+    pre {
+        margin: 0;
+        white-space: pre-wrap;
+        font-family: Consolas, Monaco, 'Andale Mono', monospace;
+        font-size: 12px;
+        color: #333;
+    }
 }
 </style>

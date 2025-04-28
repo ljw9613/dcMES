@@ -211,7 +211,7 @@
               作废
             </el-button> -->
             <el-button
-              v-if="row.status === 'PENDING'"
+              v-if="row.status === 'PENDING' && $checkPermission('预生产条码暂停')"
               type="text"
               size="small"
               @click="handleSuspend(row)"
@@ -219,14 +219,14 @@
               暂停
             </el-button>
             <el-button
-              v-if="row.status === 'SUSPENDED'"
+              v-if="row.status === 'SUSPENDED' && $checkPermission('预生产条码恢复')"
               type="text"
               size="small"
               @click="handleResume(row)"
             >
               恢复
             </el-button>
-            <el-button type="text" size="small" @click="handlePrint(row)">
+            <el-button type="text" size="small" @click="handlePrint(row)" v-if="$checkPermission('预生产条码打印')">
               打印
             </el-button>
           </template>

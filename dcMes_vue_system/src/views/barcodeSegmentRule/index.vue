@@ -66,13 +66,13 @@
         </el-table-column>
         <el-table-column label="操作" width="260" align="center">
           <template slot-scope="{row}">
-            <el-button type="text" size="small" @click="handleEdit(row)">
+            <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码段规则编辑')">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button type="text" size="small" @click="handleBindMaterial(row)">
+            <el-button type="text" size="small" @click="handleBindMaterial(row)" v-if="$checkPermission('条码段规则绑定物料')">
               <i class="el-icon-link"></i> 绑定物料
             </el-button>
-            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
+            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码段规则删除')">
               <i class="el-icon-delete"></i> 删除
             </el-button>
           </template>
@@ -919,7 +919,7 @@ export default {
 
         for (const segment of rule.segments) {
           const segmentResult = await this.generateSegmentValue(segment, params);
-          
+
           // 保存原始值用于显示明细
           segments.push({
             name: segment.name,
@@ -932,7 +932,7 @@ export default {
           let baseValue = segmentResult.basic;
           let displayValue = baseValue;
           let basicPrintValue = baseValue;
-          
+
           // 展示条码（只在showPrefix/showSuffix为true或未定义时显示前缀后缀）
           if (segment.config.prefix) {
             displayValue = segment.config.prefix + displayValue;
@@ -1037,12 +1037,12 @@ export default {
     formatDateWithMappings(date, format) {
       let value = this.formatDate(date, format.dateFormat)
       const dateFormat = format.dateFormat || '';
-      
+
       // 解析日期格式，找出年月日的位置
       const yearPos = dateFormat.indexOf('YYYY');
       const monthPos = dateFormat.indexOf('MM');
       const dayPos = dateFormat.indexOf('DD');
-      
+
       // 只有在格式中存在且有映射时才应用映射
       if (yearPos !== -1 && format.yearMappings && format.yearMappings.length) {
         const yearStr = value.substring(yearPos, yearPos + 4);
@@ -1051,7 +1051,7 @@ export default {
           value = value.substring(0, yearPos) + mapping.code + value.substring(yearPos + 4);
         }
       }
-      
+
       if (monthPos !== -1 && format.monthMappings && format.monthMappings.length) {
         const monthStr = value.substring(monthPos, monthPos + 2);
         const mapping = format.monthMappings.find(m => m.value === monthStr);
@@ -1059,7 +1059,7 @@ export default {
           value = value.substring(0, monthPos) + mapping.code + value.substring(monthPos + 2);
         }
       }
-      
+
       if (dayPos !== -1 && format.dayMappings && format.dayMappings.length) {
         const dayStr = value.substring(dayPos, dayPos + 2);
         const mapping = format.dayMappings.find(m => m.value === dayStr);

@@ -123,14 +123,40 @@ const actions = {
           if (!data) {
             return reject("Verification failed, please Login again.");
           }
+
           const { nickName, role, department, serveId, avatar } = data;
           console.log("InfoData");
           console.log("data: ", data);
-          if (role && role.menuList) {
-            let authLists = formatRole2Auth(role.menuList);
-            console.log("authLists: ", authLists);
-            commit("SET_AUTH", authLists);
+
+          // 确保role存在
+          if (role) {
+            // 处理菜单权限
+            if (role.menuList) {
+              let authLists = formatRole2Auth(role.menuList);
+              console.log("authLists: ", authLists);
+              commit("SET_AUTH", authLists);
+            }
+
+            // 确保buttonList字段存在，如果不存在则初始化为空数组
+            if (!role.buttonList) {
+              role.buttonList = [];
+              console.warn('角色中未找到buttonList，已初始化为空数组');
+            }
+
+            // 如果是超级管理员，自动授予所有权限
+            if (role.name === 'admin' || role.name === '超级管理员' || role.label === 'admin') {
+              console.log('当前用户是超级管理员，自动拥有所有权限');
+
+              // 这里可以添加所有已知的权限，或者保持空数组让checkPermission逻辑处理
+              // role.buttonList = [...所有权限列表...];
+            }
+
+            console.log('用户角色信息:', role);
+            console.log('按钮权限列表:', role.buttonList);
+          } else {
+            console.error('未找到角色信息');
           }
+
           commit("SET_ROLES", role);
           commit("SET_NAME", nickName);
           commit("SET_AVATAR", avatar || require("@/assets/ren1.png"));

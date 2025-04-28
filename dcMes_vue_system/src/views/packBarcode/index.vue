@@ -117,7 +117,7 @@
         <el-table-column label="操作" width="100" align="center">
           <template slot-scope="{ row }">
             <el-button
-              v-if="row.status === 'PENDING'"
+              v-if="row.status === 'PENDING' && $checkPermission('装箱条码作废')"
               type="text"
               size="small"
               @click="handleVoid(row)"
@@ -386,4 +386,4 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-</style> 
+</style>

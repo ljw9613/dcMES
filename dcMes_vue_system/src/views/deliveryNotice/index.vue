@@ -308,24 +308,34 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" fixed="right" width="180">
+        <el-table-column label="操作" fixed="right" width="250">
           <template slot-scope="scope">
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('发货通知单同步')"
               @click="handleOneSync(scope.row)"
               >同步</el-button
             >
-            <el-button type="text" size="small" @click="handleExt(scope.row)"
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单拓展数据')"
+              @click="handleExt(scope.row)"
               >拓展数据</el-button
             >
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('发货通知单物流信息')"
               @click="handleLogistics(scope.row)"
               >物流信息</el-button
             >
-            <el-button type="text" size="small" @click="handlePrint(scope.row)"
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单打印')"
+              @click="handlePrint(scope.row)"
               >打印</el-button
             >
           </template>

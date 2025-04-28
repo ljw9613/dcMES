@@ -53,12 +53,12 @@
                     </el-form-item>
 
                     <el-form-item label="创建日期" prop="dateRange">
-                        <el-date-picker 
-                            v-model="searchForm.dateRange" 
-                            type="daterange" 
+                        <el-date-picker
+                            v-model="searchForm.dateRange"
+                            type="daterange"
                             range-separator="至"
-                            start-placeholder="开始日期" 
-                            end-placeholder="结束日期" 
+                            start-placeholder="开始日期"
+                            end-placeholder="结束日期"
                             value-format="yyyy-MM-dd"
                             style="width: 260px">
                         </el-date-picker>
@@ -163,10 +163,10 @@
                         {{ formatDateTime(scope.row.FCreateDate) }}
                     </template>
                 </el-table-column> -->
-                <el-table-column label="操作" fixed="right" width="180">
+                <el-table-column label="操作" fixed="right" width="220">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单同步')" @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单打印')" @click="handlePrint(scope.row)">打印</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -347,7 +347,7 @@ export default {
                 }
                 return;
             }
-            
+
             const selectedOrg = this.orgOptions.find(org => org.value === value);
             if (selectedOrg) {
                 if (type === 'prd') {

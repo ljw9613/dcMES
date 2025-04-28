@@ -382,20 +382,20 @@
 
         <el-table-column label="操作" fixed="right" width="200">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleView(scope.row)"
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录查看')" @click="handleView(scope.row)"
               >查看</el-button
             >
             <el-button
               type="text"
               size="small"
-              v-if="hasUpdateProcessNodes"
+              v-if="$checkPermission('条码记录更新流程节点')"
               @click="handleUpdateFlowNodes(scope.row)"
               >更新流程节点</el-button
             >
             <el-button
               type="text"
               size="small"
-              v-if="hasFixAbnormalNodes"
+              v-if="$checkPermission('条码记录修复异常节点')"
               @click="handleAutoFixInconsistentProcessNodes(scope.row)"
             >
               修复异常节点
@@ -403,7 +403,7 @@
             <el-button
               type="text"
               size="small"
-              v-if="hasRepairProcessNodes"
+              v-if="$checkPermission('条码记录修复流程进度')"
               @click="handleFixFlowProgress(scope.row)"
             >
               修复流程进度
@@ -411,6 +411,7 @@
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('条码记录导出条码数据')"
               @click="handleSingleMainExport(scope.row)"
             >
               导出条码数据
@@ -2451,10 +2452,10 @@ export default {
 
         // 设置每批次请求的数据量
         const batchSize = 50;
-        
+
         // 存储所有导出数据
         let exportData = [];
-        
+
         // 批次处理变量
         let hasMoreData = true;
         let currentBatch = 0;
@@ -2466,7 +2467,7 @@ export default {
             // 分批次获取全部数据
             while (hasMoreData) {
               progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
-              
+
               const batchReq = {
                 query: {},
                 skip: currentBatch * batchSize,
@@ -2474,103 +2475,103 @@ export default {
                 sort: { createAt: -1 },
                 count: true
               };
-              
+
               const batchResult = await getData("material_process_flow", batchReq);
-              
+
               if (batchResult.code !== 200) {
                 throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
               }
-              
+
               // 第一次请求时获取总数
               if (currentBatch === 0) {
                 totalCount = batchResult.countnum || 0;
-                
+
                 if (totalCount === 0) {
                   this.$message.warning("没有可导出的数据");
                   progressLoading.close();
                   return;
                 }
               }
-              
+
               // 处理当前批次数据
               const batchData = batchResult.data || [];
-              
+
               // 如果返回数据少于批次大小，说明没有更多数据了
               if (batchData.length < batchSize) {
                 hasMoreData = false;
               }
-              
+
               // 添加到导出数据
               exportData = [...exportData, ...batchData];
-              
+
               // 显示加载进度
               const loadedPercent = Math.min(
                 100,
                 Math.floor((exportData.length / totalCount) * 100)
               );
               progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
-              
+
               currentBatch++;
-              
+
               // 如果已加载数据达到总数，结束加载
               if (exportData.length >= totalCount) {
                 hasMoreData = false;
               }
             }
             break;
-            
+
           case "search":
             // 分批次获取搜索结果数据
             let searchReq = await this.searchData();
             searchReq.sort = { createAt: -1 };
             searchReq.count = true;
-            
+
             // 先获取总数
             const countResult = await getData("material_process_flow", {...searchReq, limit: 1});
             totalCount = countResult.countnum || 0;
-            
+
             if (totalCount === 0) {
               this.$message.warning("没有可导出的数据");
               progressLoading.close();
               return;
             }
-            
+
             // 分批次请求数据
             while (hasMoreData) {
               progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
-              
+
               const batchReq = {
                 ...searchReq,
                 skip: currentBatch * batchSize,
                 limit: batchSize
               };
-              
+
               const batchResult = await getData("material_process_flow", batchReq);
-              
+
               if (batchResult.code !== 200) {
                 throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
               }
-              
+
               // 处理当前批次数据
               const batchData = batchResult.data || [];
-              
+
               // 如果返回数据少于批次大小，说明没有更多数据了
               if (batchData.length < batchSize) {
                 hasMoreData = false;
               }
-              
+
               // 添加到导出数据
               exportData = [...exportData, ...batchData];
-              
+
               // 显示加载进度
               const loadedPercent = Math.min(
                 100,
                 Math.floor((exportData.length / totalCount) * 100)
               );
               progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
-              
+
               currentBatch++;
-              
+
               // 如果已加载数据达到总数，结束加载
               if (exportData.length >= totalCount) {
                 hasMoreData = false;
@@ -3010,7 +3011,7 @@ export default {
         this.showReplaceDialog(row);
       }
     },
-    
+
     // 提取显示替换对话框的逻辑为单独的方法
     showReplaceDialog(row) {
       this.replaceSelectedNode = row;

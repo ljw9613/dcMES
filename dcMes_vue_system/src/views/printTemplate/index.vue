@@ -186,26 +186,26 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
-            <el-button 
-              v-if="checkPermission('print_template_editing')"
-              type="text" 
-              size="small" 
-              @click="handleEdit(scope.row)"
-            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('打印模版编辑')"
+              @click="handleEdit(scope.row)">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button 
-              type="text" 
-              size="small" 
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('打印模版打印')"
               @click="handlePrint(scope.row)"
             >
               <i class="el-icon-printer"></i> 打印
             </el-button>
             <el-button
-              v-if="checkPermission('delete_print_template')"
               type="text"
               size="small"
               class="delete-btn"
+              v-if="$checkPermission('打印模版删除')"
               @click="handleDelete(scope.row)"
             >
               <i class="el-icon-delete"></i> 删除
@@ -252,40 +252,40 @@
           <div v-for="(param, index) in currentPrintRow.printParams" :key="index">
             <el-form-item :label="param.paramName || param.paramKey">
               <!-- 字符串类型或未指定类型 -->
-              <el-input 
-                v-if="param.paramType === 'string' || !param.paramType" 
+              <el-input
+                v-if="param.paramType === 'string' || !param.paramType"
                 :value="getPrintParamValue(param.paramKey)"
                 @input="updatePrintParamValue(param.paramKey, $event)"
                 :placeholder="`请输入${param.paramName || param.paramKey}`"
               ></el-input>
               <!-- 数字类型 -->
-              <el-input-number 
-                v-else-if="param.paramType === 'number'" 
+              <el-input-number
+                v-else-if="param.paramType === 'number'"
                 :value="getPrintParamValue(param.paramKey)"
                 @change="updatePrintParamValue(param.paramKey, $event)"
                 :controls="true"
                 :placeholder="`请输入${param.paramName || param.paramKey}`"
               ></el-input-number>
               <!-- 日期类型 -->
-              <el-date-picker 
-                v-else-if="param.paramType === 'date'" 
+              <el-date-picker
+                v-else-if="param.paramType === 'date'"
                 :value="getPrintParamValue(param.paramKey)"
                 @input="updatePrintParamValue(param.paramKey, $event)"
-                type="date" 
-                value-format="yyyy-MM-dd" 
+                type="date"
+                value-format="yyyy-MM-dd"
                 :placeholder="`请选择${param.paramName || param.paramKey}`"
               ></el-date-picker>
               <!-- 布尔类型 -->
-              <el-switch 
-                v-else-if="param.paramType === 'boolean'" 
+              <el-switch
+                v-else-if="param.paramType === 'boolean'"
                 :active-value="true"
                 :inactive-value="false"
                 :value="getPrintParamValue(param.paramKey) === true"
                 @change="(val) => updatePrintParamValue(param.paramKey, val)"
               ></el-switch>
               <!-- 其他类型默认使用文本框 -->
-              <el-input 
-                v-else 
+              <el-input
+                v-else
                 :value="getPrintParamValue(param.paramKey)"
                 @input="updatePrintParamValue(param.paramKey, $event)"
                 :placeholder="`请输入${param.paramName || param.paramKey}`"
@@ -378,7 +378,7 @@ export default {
       console.log(e.detail.hiprint); // hiprint 模块
       // 更多 API 可查看 log
       console.log(e.detail.designerUtils);
-     
+
     //   e.detail.designerUtils.hiprintTemplate.setFontList([
     //     { title: "微软雅黑", value: "Microsoft YaHei" },
     //     { title: "黑体", value: "STHeitiSC-Light" },
@@ -590,10 +590,10 @@ export default {
         if (!formData.printParams) {
           formData.printParams = [];
         }
-        
+
         // 转换formData为纯对象，避免Vue响应式对象可能引起的问题
         const cleanData = JSON.parse(JSON.stringify(formData));
-        
+
         if (this.dialogStatus === "create") {
           // 生成模板编号
           const templateCode = await this.getTemplateCode(
@@ -602,7 +602,7 @@ export default {
           cleanData.templateCode = templateCode;
 
           console.log('准备添加的数据:', cleanData);
-          
+
           // 使用简化的数据结构
           await addData("printTemplate", cleanData);
           this.$message.success("添加成功");
@@ -722,27 +722,27 @@ export default {
 
     handlePrint(row) {
       this.currentPrintRow = row;
-      
+
       // 创建一个全新的对象
       this.printForm.paramValues = {};
-      
+
       // 初始化参数值
       if (row.printParams && row.printParams.length > 0) {
         row.printParams.forEach(param => {
           let defaultValue = param.defaultValue || '';
-          
+
           // 特殊处理布尔类型值
           if (param.paramType === 'boolean') {
             if (defaultValue === 'true') defaultValue = true;
             else if (defaultValue === 'false') defaultValue = false;
             else defaultValue = false; // 默认为false
           }
-          
+
           // 使用Vue的$set方法确保响应式更新
           this.$set(this.printForm.paramValues, param.paramKey, defaultValue);
         });
       }
-      
+
       this.printDialogVisible = true;
     },
 
@@ -803,27 +803,27 @@ export default {
 
     checkPermission(permission) {
       console.log('检查权限:', permission);
-      
+
       try {
         // 获取用户角色信息
         const roles = this.$store.getters.roles || {};
         console.log('用户角色信息:', roles);
-        
+
         // 检查buttonList是否存在并包含特定权限
         if (roles.buttonList && Array.isArray(roles.buttonList)) {
           return roles.buttonList.includes(permission);
         }
-        
+
         // 如果找不到buttonList，尝试其他可能的路径
         if (roles.permissions) {
           return roles.permissions.includes(permission);
         }
-        
+
         // 超级管理员默认拥有所有权限
         if (roles.roleKey === 'admin' || roles.isAdmin) {
           return true;
         }
-        
+
         console.warn('未找到权限列表，默认返回true');
         return true; // 在开发过程中默认返回true方便测试
       } catch (error) {

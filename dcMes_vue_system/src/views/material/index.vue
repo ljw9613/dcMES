@@ -65,24 +65,6 @@
 
                 <div v-show="showAdvanced">
                     <el-row :gutter="20">
-                        <!-- <el-col :span="6">
-                            <el-form-item label="BOM分类">
-                                <el-select v-model="searchForm.FBOMCATEGORY" placeholder="请选择BOM分类" clearable
-                                    style="width: 100%">
-                                    <el-option label="标准BOM" value="STANDARD" />
-                                    <el-option label="工程BOM" value="ENGINEERING" />
-                                </el-select>
-                            </el-form-item>
-                        </el-col>
-                        <el-col :span="6">
-                            <el-form-item label="BOM用途">
-                                <el-select v-model="searchForm.FBOMUSE" placeholder="请选择BOM用途" clearable
-                                    style="width: 100%">
-                                    <el-option label="生产用" value="PRODUCTION" />
-                                    <el-option label="设计用" value="DESIGN" />
-                                </el-select>
-                            </el-form-item>
-                        </el-col> -->
                         <el-col :span="6">
                             <el-form-item label="物料属性">
                                 <el-select v-model="searchForm.FErpClsID" placeholder="请选择物料属性" clearable
@@ -169,11 +151,31 @@
 
                 <el-table-column label="操作" fixed="right" width="200">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleViewFlowChart(scope.row)">查看流程图</el-button>
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)">DI码管理</el-button>
-                        <el-button type="text" size="small" @click="handleEanEdit(scope.row)">EAN码管理</el-button>
-                        <el-button type="text" size="small" @click="handleBarcodeRule(scope.row)">条码规则</el-button>
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息查看流程图')"
+                          @click="handleViewFlowChart(scope.row)">查看流程图</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息DI码管理')"
+                          @click="handleEdit(scope.row)">DI码管理</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息EAN码管理')"
+                          @click="handleEanEdit(scope.row)">EAN码管理</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息条码规则')"
+                          @click="handleBarcodeRule(scope.row)">条码规则</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息同步')"
+                          @click="handleOneSync(scope.row)">同步</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -503,6 +505,7 @@ export default {
             eanDialogVisible: false,
             eanNumList: [],
             eanNumTemp: {},
+            hasViewFlowChartPermission: true // 默认显示流程图按钮
         }
     },
     methods: {
@@ -545,7 +548,7 @@ export default {
                         case 'FNameEn':
                             req.query.$and.push({ [key]: { $regex: value, $options: 'i' } });
                             break;
-                        
+
                         // 特殊处理规格型号，使其可以处理包含空格的查询
                         case 'FSpecification':
                             // 移除正则表达式特殊字符，确保查询安全
@@ -879,6 +882,9 @@ export default {
                 // 添加调试日志
                 console.log('当前物料:', row);
 
+                // 先显示对话框，避免加载完成后没有显示
+                this.flowChartDialogVisible = true;
+
                 // 1. 查询该物料是否有关联的工艺
                 const craftResponse = await getData('craft', {
                     query: { materialId: row._id },
@@ -888,6 +894,7 @@ export default {
 
                 if (!craftResponse.data || craftResponse.data.length === 0) {
                     this.$message.info('该物料未关联工艺，无流程图');
+                    this.flowChartLoading = false;
                     return;
                 }
 
@@ -901,20 +908,23 @@ export default {
 
                 if (!processStepResponse.data || processStepResponse.data.length === 0) {
                     this.$message.info('该物料工艺下无工序，无流程图');
+                    this.flowChartLoading = false;
                     return;
                 }
 
                 // 3. 构建流程图数据
-                this.flowChartDialogVisible = true;
                 const flowData = await this.buildFlowChartData(row._id, new Set(), false);
                 console.log('构建的流程图数据:', flowData);
 
-                this.processedFlowChartData = [flowData]; // 修改这里，直接传入数组形式
+                // 即使flowData为空也保持对话框打开
+                this.processedFlowChartData = flowData ? [flowData] : [];
                 console.log('处理后的流程图数据:', this.processedFlowChartData);
+
+                // 更新完成后停止加载状态
+                this.flowChartLoading = false;
             } catch (error) {
                 console.error('获取流程图数据失败:', error);
                 this.$message.error('获取流程图数据失败');
-            } finally {
                 this.flowChartLoading = false;
             }
         },
@@ -1710,6 +1720,9 @@ export default {
     },
     created() {
         this.fetchData();
+
+        // 检查流程图查看权限
+        this.hasViewFlowChartPermission = this.$checkPermission('物料信息查看流程图');
     }
 }
 </script>

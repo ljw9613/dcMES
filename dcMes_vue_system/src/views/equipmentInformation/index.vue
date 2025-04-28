@@ -128,7 +128,7 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
-                    
+
                 </el-row> -->
 
         <el-form-item>
@@ -269,17 +269,24 @@
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('设备信息刷新')"
               @click="handleRefresh(scope.row)"
             >
               <i class="el-icon-refresh"></i> 刷新
             </el-button>
-            <el-button type="text" size="small" @click="handleEdit(scope.row)">
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('设备信息编辑')"
+              @click="handleEdit(scope.row)"
+            >
               <i class="el-icon-edit"></i> 编辑
             </el-button>
             <el-button
               type="text"
               size="small"
               class="delete-btn"
+              v-if="$checkPermission('设备信息删除')"
               @click="handleDelete(scope.row)"
             >
               <i class="el-icon-delete"></i> 删除

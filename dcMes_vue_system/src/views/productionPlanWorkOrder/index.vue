@@ -48,7 +48,7 @@
                                 placeholder="请输入生产单号" clearable style="width: 100%">
                                 <template #option="{ item }">
                                     <div class="select-option">
-                                        <div class="option-main">   
+                                        <div class="option-main">
                                             <span class="option-label">{{ item.FBillNo }}</span>
                                             <el-tag size="mini" type="info" class="option-tag">
                                                 {{ item.FBillNo }} - {{ item.FUseOrgId_FName }}
@@ -103,7 +103,7 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="报废数量">
-                            <el-input-number v-model="searchForm.scrapQuantity" placeholder="最低报废数量" 
+                            <el-input-number v-model="searchForm.scrapQuantity" placeholder="最低报废数量"
                                 :min="0" controls-position="right" clearable style="width: 100%"></el-input-number>
                         </el-form-item>
                     </el-col>
@@ -250,9 +250,9 @@
 
                 <el-table-column label="报废条码" width="100">
                     <template slot-scope="scope">
-                        <el-button 
-                            type="text" 
-                            size="small" 
+                        <el-button
+                            type="text"
+                            size="small"
                             @click="viewScrapBarcode(scope.row)"
                             v-if="scope.row.scrapProductBarcodeList && scope.row.scrapProductBarcodeList.length > 0">
                             查看 ({{ scope.row.scrapProductBarcodeList.length }})
@@ -320,10 +320,19 @@
 
                 <el-table-column label="操作" width="180" fixed="right">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)">
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产计划编辑')"
+                          @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)">
+                        <el-button
+                          type="text"
+                          size="small"
+                          class="delete-btn"
+                          v-if="$checkPermission('生产计划删除')"
+                          @click="handleDelete(scope.row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
                     </template>
@@ -717,14 +726,14 @@ export default {
             const year = dateObj.getFullYear();
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dateObj.getDate()).padStart(2, '0');
-            
+
             if (isDateTime) {
                 const hour = String(dateObj.getHours()).padStart(2, '0');
                 const minute = String(dateObj.getMinutes()).padStart(2, '0');
                 const second = String(dateObj.getSeconds()).padStart(2, '0');
                 return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
             }
-            
+
             return `${year}-${month}-${day}`;
         },
 
@@ -861,15 +870,15 @@ export default {
                     this.scrapBarcodeLoading = false;
                     return;
                 }
-                
+
                 const result = await getData('production_plan_work_order', {
                     query: { _id: row._id }
                 });
-                
+
                 // 检查返回结果是否有效
                 if (result && result.data && result.data.length > 0) {
                     this.scrapDetailData = result.data[0];
-                    
+
                     // 检查报废条码列表是否存在
                     if (!this.scrapDetailData.scrapProductBarcodeList) {
                         this.scrapDetailData.scrapProductBarcodeList = [];

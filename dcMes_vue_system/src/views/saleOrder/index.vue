@@ -16,7 +16,7 @@
                             <el-input v-model="searchForm.FBillNo" placeholder="请输入订单编号" clearable></el-input>
                         </el-form-item>
                     </el-col>
-                   
+
                     <el-col :span="6">
                         <el-form-item label="客户名称">
                             <el-input v-model="searchForm.FCustId_FName" placeholder="请输入客户名称" clearable></el-input>
@@ -233,12 +233,28 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="180">
+                <el-table-column label="操作" fixed="right" width="240">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
-                        <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
-                        <el-button type="text" size="small" @click="handleCustInfo(scope.row)">客户信息</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单同步')"
+                          @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单拓展数据')"
+                          @click="handleExt(scope.row)">拓展数据</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单打印')"
+                          @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单客户信息')"
+                          @click="handleCustInfo(scope.row)">客户信息</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -1108,7 +1124,7 @@ export default {
             printData.FApproveDate = this.formatDate(printData.FApproveDate);
             printData.FCreateDate = this.formatDate(printData.FCreateDate);
             printData.FPlanDeliveryDate = this.formatDate(printData.FPlanDeliveryDate);
-            
+
             this.printData = printData;
             console.log("🚀 ~ handlePrint ~ printData:", printData)
             this.$nextTick(() => {

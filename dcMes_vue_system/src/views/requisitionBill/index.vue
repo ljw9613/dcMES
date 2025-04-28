@@ -13,10 +13,10 @@
 
                 <el-form-item label="单据状态">
                     <el-select v-model="searchForm.FDocumentStatus" placeholder="请选择单据状态" clearable>
-                        <el-option 
-                            v-for="item in dictMap.documentStatus" 
-                            :key="item.value" 
-                            :label="item.label" 
+                        <el-option
+                            v-for="item in dictMap.documentStatus"
+                            :key="item.value"
+                            :label="item.label"
                             :value="item.value" />
                     </el-select>
                 </el-form-item>
@@ -193,12 +193,12 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="180">
+                <el-table-column label="操作" fixed="right" width="250">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
-                        <el-button type="text" size="small" @click="showMaterialDetail(scope.row)">物料明细</el-button>
-                        <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单同步')" @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单拓展数据')" @click="handleExt(scope.row)">拓展数据</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单物料明细')" @click="showMaterialDetail(scope.row)">物料明细</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单打印')" @click="handlePrint(scope.row)">打印</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -659,7 +659,7 @@ export default {
 
         // 处理打印
         async handlePrint(row) {
-            
+
             if (!this.printTemplate) {
                 this.$message.warning('请先选择打印模板');
                 return;

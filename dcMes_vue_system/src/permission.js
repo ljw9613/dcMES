@@ -77,20 +77,41 @@ router.beforeEach((to, from, next) => {
       NProgress.done()
     }
   }
-  
+
   // 输出路由信息，检查meta.noCache是否正确设置
   console.log('路由跳转:', to.path, 'meta:', to.meta, 'name:', to.name)
-  
+
   next()
 })
 
 router.afterEach((to) => {
   // 完成进度条
   NProgress.done()
-  
+
   // 添加页面到tagsView (如果该行代码不存在，需要添加)
   if (to.name && to.meta && to.meta.title) {
     store.dispatch('tagsView/addView', to)
     console.log('添加页面到TagsView:', to.name, to.path, to.meta)
   }
+
+  // 此处添加日志，在路由切换完成后检查角色信息
+  setTimeout(() => {
+    const store = router.app.$store;
+    if (store && store.getters && store.getters.roles) {
+      console.log('%c⚡角色权限诊断⚡', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
+      console.log('角色信息:', store.getters.roles);
+      console.log('按钮权限列表 (buttonList):', store.getters.roles.buttonList);
+      console.log('是否为数组:', Array.isArray(store.getters.roles.buttonList));
+      console.log('权限项数量:', store.getters.roles.buttonList ? store.getters.roles.buttonList.length : 0);
+
+      // 检查用户类型
+      if (store.getters.roles.name === 'admin' ||
+          store.getters.roles.name === '超级管理员' ||
+          store.getters.roles.label === 'admin') {
+        console.log('当前用户是超级管理员，自动拥有所有权限');
+      } else {
+        console.log('当前用户是普通用户，需要检查权限列表');
+      }
+    }
+  }, 1000); // 延迟1秒执行，确保路由切换完成后获取最新状态
 })

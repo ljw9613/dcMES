@@ -67,13 +67,13 @@
                 </el-table-column>
                 <el-table-column label="操作" width="200" align="center">
                     <template slot-scope="{row}">
-                        <el-button type="text" size="small" @click="handleView(row)">
+                        <el-button type="text" size="small" @click="handleView(row)" v-if="$checkPermission('条码匹配规则查看物料列表')">
                             <i class="el-icon-view"></i> 查看物料列表
                         </el-button>
-                        <el-button type="text" size="small" @click="handleEdit(row)">
+                        <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码匹配规则编辑')">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
+                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码匹配规则删除')">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
                     </template>
