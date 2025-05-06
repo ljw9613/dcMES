@@ -38,12 +38,12 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="客户PO号" prop="FCustPO">
-              <el-input v-model="formData.FCustPO" clearable></el-input>
+              <el-input v-model="formData.FCustPO" clearable @blur="handleInputBlur('FCustPO')"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="客户PO行号" prop="FCustPOLineNo">
-              <el-input v-model="formData.FCustPOLineNo" clearable></el-input>
+              <el-input v-model="formData.FCustPOLineNo" clearable @blur="handleInputBlur('FCustPOLineNo')"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -51,22 +51,22 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="SAP ID" prop="FSapId">
-              <el-input v-model="formData.FSapId" clearable></el-input>
+              <el-input v-model="formData.FSapId" clearable @blur="handleInputBlur('FSapId')"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="采购订单号（客户）" prop="FPurchaseOrderNo">
-              <el-input v-model="formData.FPurchaseOrderNo" clearable></el-input>
+              <el-input v-model="formData.FPurchaseOrderNo" clearable @blur="handleInputBlur('FPurchaseOrderNo')"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="客户物料名称" prop="FCustMaterialName">
-              <el-input v-model="formData.FCustMaterialName" clearable></el-input>
+              <el-input v-model="formData.FCustMaterialName" clearable @blur="handleInputBlur('FCustMaterialName')"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="客户物料名称（英文）" prop="FCustMaterialNameEn">
-              <el-input v-model="formData.FCustMaterialNameEn" clearable></el-input>
+              <el-input v-model="formData.FCustMaterialNameEn" clearable @blur="handleInputBlur('FCustMaterialNameEn')"></el-input>
             </el-form-item>
           </el-col>
 
@@ -84,7 +84,7 @@
         </el-row>
 
         <el-form-item label="备注" prop="FRemark">
-          <el-input type="textarea" v-model="formData.FRemark" :rows="3" placeholder="请输入备注信息"></el-input>
+          <el-input type="textarea" v-model="formData.FRemark" :rows="3" placeholder="请输入备注信息" @blur="handleInputBlur('FRemark')"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -254,6 +254,14 @@ export default {
         this.submitLoading = true
         try {
           const params = { ...this.formData }
+          
+          // 处理所有字符串字段，去除前后空格
+          Object.keys(params).forEach(key => {
+            if (typeof params[key] === 'string') {
+              params[key] = params[key].trim()
+            }
+          })
+          
           params.FModifyTime = new Date()
 
           let result
@@ -299,6 +307,12 @@ export default {
     handleClose() {
       this.tableData = []
       this.dialogVisible = false
+    },
+
+    handleInputBlur(field) {
+      if (this.formData[field]) {
+        this.formData[field] = this.formData[field].trim()
+      }
     }
   }
 }

@@ -7,12 +7,17 @@
 
 const express = require(`express`);
 const router = express.Router();
+const apiLogger = require("../middleware/apiLogger");
+
+// 使用API日志中间件，指定服务名称
+router.use(apiLogger("generalCRUD"));
 
 const user_login = require("../model/system/user_login");
 const menu = require("../model/system/menu");
 const role = require("../model/system/role");
 const dictData = require("../model/system/dictData");
 const dictType = require("../model/system/dictType");
+const apiLog = require("../model/system/apiLog");
 
 //mes 模型
 const craft = require("../model/project/craft");
@@ -82,6 +87,7 @@ const ADDROUTER = require("../libs/request");
 //三个参数 挂载路由 ， 表名 ， 表Model
 
 ADDROUTER(router, "user_login", user_login);
+ADDROUTER(router, "apiLog", apiLog);
 ADDROUTER(router, "menu", menu);
 ADDROUTER(router, "role", role);
 ADDROUTER(router, "dictType", dictType);

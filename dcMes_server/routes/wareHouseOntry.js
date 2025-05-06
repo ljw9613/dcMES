@@ -6,6 +6,11 @@ const MaterialPallet = require("../model/project/materialPalletizing");
 const { k3cMethod } = require("./k3cMethod");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
+const apiLogger = require("../middleware/apiLogger");
+
+// 使用API日志中间件，指定服务名称
+router.use(apiLogger("wareHouseOntry"));
+
 // 创建一个生成出库单号的辅助函数（按日期生成流水号）
 async function generateEntryNoByProductionOrder(productionOrderNo) {
   // 获取当前日期并格式化为YYYYMMDD

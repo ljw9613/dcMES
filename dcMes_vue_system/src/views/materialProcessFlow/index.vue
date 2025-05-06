@@ -1235,13 +1235,17 @@ export default {
     async handleUnbind(row) {
       try {
         // 检查产品状态是否为已完成状态
-        if (this.dataForm.status === 'COMPLETED') {
+        if (this.dataForm.status === "COMPLETED") {
           try {
-            await this.$confirm('该产品已处于完成状态，继续操作可能会影响产品状态，是否继续？', '状态提示', {
-              confirmButtonText: '确认继续',
-              cancelButtonText: '取消',
-              type: 'warning'
-            });
+            await this.$confirm(
+              "该产品已处于完成状态，继续操作可能会影响产品状态，是否继续？",
+              "状态提示",
+              {
+                confirmButtonText: "确认继续",
+                cancelButtonText: "取消",
+                type: "warning",
+              }
+            );
             // 用户确认，继续执行
           } catch (error) {
             // 用户取消，终止操作
@@ -1817,8 +1821,23 @@ export default {
 
       // 处理基础查询条件
       if (this.searchForm.barcode && this.searchForm.barcode.trim()) {
+        //是否为升级条码
+        const preProductionResponse = await getData("preProductionBarcode", {
+          query: {
+            transformedPrintBarcode: this.searchForm.barcode.trim(),
+          },
+          select: {
+            transformedPrintBarcode: 1,
+            printBarcode: 1,
+          },
+          limit: 1,
+        });
+        let barcode = this.searchForm.barcode.trim();
+        if (preProductionResponse.code === 200 && preProductionResponse.data.length > 0) {
+          barcode = preProductionResponse.data[0].printBarcode;
+        }
         req.query.$and.push({
-          barcode: { $regex: this.searchForm.barcode.trim(), $options: "i" },
+          barcode: { $regex: barcode, $options: "i" },
         });
       }
       if (this.searchForm.materialCode && this.searchForm.materialCode.trim()) {
@@ -2451,10 +2470,10 @@ export default {
 
         // 设置每批次请求的数据量
         const batchSize = 50;
-        
+
         // 存储所有导出数据
         let exportData = [];
-        
+
         // 批次处理变量
         let hasMoreData = true;
         let currentBatch = 0;
@@ -2466,111 +2485,124 @@ export default {
             // 分批次获取全部数据
             while (hasMoreData) {
               progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
-              
+
               const batchReq = {
                 query: {},
                 skip: currentBatch * batchSize,
                 limit: batchSize,
                 sort: { createAt: -1 },
-                count: true
+                count: true,
               };
-              
-              const batchResult = await getData("material_process_flow", batchReq);
-              
+
+              const batchResult = await getData(
+                "material_process_flow",
+                batchReq
+              );
+
               if (batchResult.code !== 200) {
-                throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
+                throw new Error(
+                  batchResult.msg || `获取第${currentBatch + 1}批数据失败`
+                );
               }
-              
+
               // 第一次请求时获取总数
               if (currentBatch === 0) {
                 totalCount = batchResult.countnum || 0;
-                
+
                 if (totalCount === 0) {
                   this.$message.warning("没有可导出的数据");
                   progressLoading.close();
                   return;
                 }
               }
-              
+
               // 处理当前批次数据
               const batchData = batchResult.data || [];
-              
+
               // 如果返回数据少于批次大小，说明没有更多数据了
               if (batchData.length < batchSize) {
                 hasMoreData = false;
               }
-              
+
               // 添加到导出数据
               exportData = [...exportData, ...batchData];
-              
+
               // 显示加载进度
               const loadedPercent = Math.min(
                 100,
                 Math.floor((exportData.length / totalCount) * 100)
               );
               progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
-              
+
               currentBatch++;
-              
+
               // 如果已加载数据达到总数，结束加载
               if (exportData.length >= totalCount) {
                 hasMoreData = false;
               }
             }
             break;
-            
+
           case "search":
             // 分批次获取搜索结果数据
             let searchReq = await this.searchData();
             searchReq.sort = { createAt: -1 };
             searchReq.count = true;
-            
+
             // 先获取总数
-            const countResult = await getData("material_process_flow", {...searchReq, limit: 1});
+            const countResult = await getData("material_process_flow", {
+              ...searchReq,
+              limit: 1,
+            });
             totalCount = countResult.countnum || 0;
-            
+
             if (totalCount === 0) {
               this.$message.warning("没有可导出的数据");
               progressLoading.close();
               return;
             }
-            
+
             // 分批次请求数据
             while (hasMoreData) {
               progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
-              
+
               const batchReq = {
                 ...searchReq,
                 skip: currentBatch * batchSize,
-                limit: batchSize
+                limit: batchSize,
               };
-              
-              const batchResult = await getData("material_process_flow", batchReq);
-              
+
+              const batchResult = await getData(
+                "material_process_flow",
+                batchReq
+              );
+
               if (batchResult.code !== 200) {
-                throw new Error(batchResult.msg || `获取第${currentBatch + 1}批数据失败`);
+                throw new Error(
+                  batchResult.msg || `获取第${currentBatch + 1}批数据失败`
+                );
               }
-              
+
               // 处理当前批次数据
               const batchData = batchResult.data || [];
-              
+
               // 如果返回数据少于批次大小，说明没有更多数据了
               if (batchData.length < batchSize) {
                 hasMoreData = false;
               }
-              
+
               // 添加到导出数据
               exportData = [...exportData, ...batchData];
-              
+
               // 显示加载进度
               const loadedPercent = Math.min(
                 100,
                 Math.floor((exportData.length / totalCount) * 100)
               );
               progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
-              
+
               currentBatch++;
-              
+
               // 如果已加载数据达到总数，结束加载
               if (exportData.length >= totalCount) {
                 hasMoreData = false;
@@ -2993,24 +3025,30 @@ export default {
     },
     handleReplaceComponent(row) {
       // 检查产品状态是否为已完成状态
-      if (this.dataForm.status === 'COMPLETED') {
-        this.$confirm('该产品已处于完成状态，继续操作可能会影响产品状态，是否继续？', '状态提示', {
-          confirmButtonText: '确认继续',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }).then(() => {
-          // 用户确认，继续执行替换操作
-          this.showReplaceDialog(row);
-        }).catch(() => {
-          // 用户取消，终止操作
-          return;
-        });
+      if (this.dataForm.status === "COMPLETED") {
+        this.$confirm(
+          "该产品已处于完成状态，继续操作可能会影响产品状态，是否继续？",
+          "状态提示",
+          {
+            confirmButtonText: "确认继续",
+            cancelButtonText: "取消",
+            type: "warning",
+          }
+        )
+          .then(() => {
+            // 用户确认，继续执行替换操作
+            this.showReplaceDialog(row);
+          })
+          .catch(() => {
+            // 用户取消，终止操作
+            return;
+          });
       } else {
         // 直接显示替换对话框
         this.showReplaceDialog(row);
       }
     },
-    
+
     // 提取显示替换对话框的逻辑为单独的方法
     showReplaceDialog(row) {
       this.replaceSelectedNode = row;

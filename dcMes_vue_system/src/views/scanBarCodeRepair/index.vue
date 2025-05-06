@@ -117,38 +117,48 @@
             </el-form-item>
 
             <el-form-item label="维修工单" required>
-              <zr-select
-                v-if="!mainMaterialId"
-                :disabled="!!mainMaterialId && !!processStepId"
-                v-model="formData.workProductionPlanWorkOrderId"
-                collection="production_plan_work_order"
-                :search-fields="['workOrderNo', 'materialName']"
-                label-key="workOrderNo"
-                tag-key="materialName"
-                sub-key="inputQuantity"
-                :multiple="false"
-                placeholder="请输入工单号/型号搜索（必填）"
-                @select="handleWorkOrderSelect"
-              >
-                <template #option="{ item }">
-                  <div class="item-option">
-                    <div class="item-info">
-                      <span>{{ item.workOrderNo }} - {{ item.materialName }}</span>
-                      <el-tag size="mini" type="info">{{ item.lineName }}</el-tag>
+              <div class="input-with-buttons">
+                <zr-select
+                  v-if="!mainMaterialId"
+                  :disabled="!!mainMaterialId && !!processStepId"
+                  v-model="formData.workProductionPlanWorkOrderId"
+                  collection="production_plan_work_order"
+                  :search-fields="['workOrderNo', 'materialName']"
+                  label-key="workOrderNo"
+                  tag-key="materialName"
+                  sub-key="inputQuantity"
+                  :multiple="false"
+                  placeholder="请输入工单号/型号搜索（必填）"
+                  :query-params="workOrderQueryParams"
+                  @select="handleWorkOrderSelect"
+                >
+                  <template #option="{ item }">
+                    <div class="item-option">
+                      <div class="item-info">
+                        <span>{{ item.workOrderNo }} - {{ item.materialName }}</span>
+                        <el-tag size="mini" type="info">{{ item.lineName }}</el-tag>
+                      </div>
+                      <div>
+                        <small>计划: {{item.planProductionQuantity}}</small>
+                        <small>投入: {{item.inputQuantity}}</small>
+                      </div>
                     </div>
-                    <div>
-                      <small>计划: {{item.planProductionQuantity}}</small>
-                      <small>投入: {{item.inputQuantity}}</small>
-                    </div>
-                  </div>
-                </template>
-              </zr-select>
-              <el-input
-                v-else
-                v-model="workProductionPlanWorkOrderNo"
-                placeholder="请输入工单号"
-                :disabled="!!mainMaterialId && !!processStepId"
-              />
+                  </template>
+                </zr-select>
+                <el-input
+                  v-else
+                  v-model="workProductionPlanWorkOrderNo"
+                  placeholder="请输入工单号"
+                  :disabled="!!mainMaterialId && !!processStepId"
+                />
+                <el-button 
+                  v-if="formData.workProductionPlanWorkOrderId && !mainMaterialId" 
+                  type="text" 
+                  icon="el-icon-delete" 
+                  @click="clearWorkOrder"
+                  title="清空工单选择"
+                ></el-button>
+              </div>
             </el-form-item>
           </div>
 
@@ -524,6 +534,7 @@ export default {
       },
       enableConversion: false, // 添加转化开关状态
       printData: {}, // 添加打印数据对象
+      workOrderQueryParams: { query: {} }, // 添加工单查询参数
     };
   },
   computed: {
@@ -658,6 +669,19 @@ export default {
       },
       deep: true, // 深度监听对象的变化
     },
+    // 监听产品型号变化，更新工单查询参数
+    'formData.productModel': {
+      handler(newVal) {
+        this.updateWorkOrderQueryParams();
+      },
+      immediate: true
+    },
+    // 监听产线变化，更新工单查询参数
+    'formData.productLine': {
+      handler(newVal) {
+        this.updateWorkOrderQueryParams();
+      }
+    }
   },
 
   methods: {
@@ -906,6 +930,9 @@ export default {
         localStorage.setItem("lineNum", item.lineNum);
         localStorage.setItem("productLineName", item.lineName);
         localStorage.setItem("productLineId", item._id);
+        
+        // 更新工单查询参数
+        this.updateWorkOrderQueryParams();
       }
     },
     // API 调用方法
@@ -988,6 +1015,9 @@ export default {
         console.log("获取到的工序:", processSteps);
         this.processStepOptions = processSteps;
         this.formData.productModel = materialId;
+
+        // 更新工单查询参数
+        this.updateWorkOrderQueryParams();
       } catch (error) {
         console.error("获取工序列表失败:", error);
         this.$message.error("获取工序列表失败");
@@ -1054,6 +1084,10 @@ export default {
         this.mainMaterialId = this.formData.productModel;
         this.processStepId = this.formData.processStep;
         this.productLineId = this.formData.productLine;
+        
+        // 保存工单信息到缓存
+        this.workProductionPlanWorkOrderId = this.formData.workProductionPlanWorkOrderId;
+        this.workProductionPlanWorkOrderNo = this.formData.workProductionPlanWorkOrderNo;
 
         // 更新生产计划ID缓存
         localStorage.setItem(
@@ -1599,6 +1633,27 @@ export default {
         this.formData.productLine = this.productLineId;
         this.formData.lineName = this.productLineName;
       }
+      
+      // 添加工单信息的填充
+      if (this.workProductionPlanWorkOrderId && this.workProductionPlanWorkOrderNo) {
+        this.formData.workProductionPlanWorkOrderId = this.workProductionPlanWorkOrderId;
+        this.formData.workProductionPlanWorkOrderNo = this.workProductionPlanWorkOrderNo;
+        
+        // 如果已经有工单但没有物料ID，尝试从工单获取物料ID
+        if (!this.formData.productModel && this.workProductionPlanWorkOrderId) {
+          try {
+            const workOrder = await this.getWorkProductionPlanWorkOrderById(this.workProductionPlanWorkOrderId);
+            if (workOrder && workOrder.materialId) {
+              this.formData.productModel = workOrder.materialId;
+            }
+          } catch (error) {
+            console.error("从工单获取物料信息失败:", error);
+          }
+        }
+      }
+      
+      // 更新工单查询参数
+      this.updateWorkOrderQueryParams();
     },
 
     // 修改重置扫码表单方法
@@ -2134,25 +2189,32 @@ export default {
           }
         });
 
-        // 只清除工序相关localStorage,保留产线相关的缓存
+        // 只清除工序相关localStorage,保留产线相关的缓存和工单缓存
         localStorage.removeItem("mainMaterialId");
         localStorage.removeItem("processStepId");
         localStorage.removeItem("materialName");
         localStorage.removeItem("processName");
 
-        // 注意:不清除以下产线相关的缓存
+        // 注意:不清除以下缓存
         // localStorage.removeItem('productLineId');
         // localStorage.removeItem('productLineName');
+        // localStorage.removeItem('workProductionPlanWorkOrderId');
+        // localStorage.removeItem('workProductionPlanWorkOrderNo');
 
-        // 重置表单数据,但保留产线信息
+        // 重置表单数据,但保留产线信息和工单信息
         const productLine = this.formData.productLine;
         const lineName = this.formData.lineName;
+        const workProductionPlanWorkOrderId = this.formData.workProductionPlanWorkOrderId;
+        const workProductionPlanWorkOrderNo = this.formData.workProductionPlanWorkOrderNo;
+        
         this.formData = {
           productModel: "",
           productLine: productLine, // 保留产线信息
           lineName: lineName, // 保留产线名称
           processStep: "",
           componentName: "",
+          workProductionPlanWorkOrderId: workProductionPlanWorkOrderId, // 保留工单ID
+          workProductionPlanWorkOrderNo: workProductionPlanWorkOrderNo, // 保留工单号
         };
 
         this.$message.success("已取消工序设置");
@@ -2828,6 +2890,41 @@ export default {
         console.error("刷新打印模板失败:", error);
       }
     },
+    // 添加clearWorkOrder方法
+    clearWorkOrder() {
+      this.formData.workProductionPlanWorkOrderId = "";
+      this.formData.workProductionPlanWorkOrderNo = "";
+      this.workProductionPlanWorkOrderId = "";
+      this.workProductionPlanWorkOrderNo = "";
+      
+      // 更新工单查询参数
+      this.updateWorkOrderQueryParams();
+      
+      this.$message.success("已清空工单选择");
+    },
+    updateWorkOrderQueryParams() {
+      // 构建查询参数对象
+      const queryParams = { 
+        query: {
+          // 只显示进行中的工单
+          status: { $in: ["PENDING", "IN_PROGRESS"] }
+        }
+      };
+
+      // 如果有产品型号，添加过滤条件
+      if (this.formData.productModel) {
+        queryParams.query.materialId = this.formData.productModel;
+      }
+
+      // 如果有产线ID，添加过滤条件
+      if (this.formData.productLine) {
+        queryParams.query.productionLineId = this.formData.productLine;
+      }
+
+      // 更新查询参数
+      this.workOrderQueryParams = queryParams;
+      console.log("已更新工单查询参数:", this.workOrderQueryParams);
+    },
   },
   async created() {
     // 从本地存储中恢复自动打印开关状态
@@ -2952,6 +3049,32 @@ export default {
   min-height: 100vh;
   background-color: #f5f7fa;
   padding: 20px;
+}
+
+/* 新增：带按钮的输入框容器 */
+.input-with-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.input-with-buttons .el-button {
+  margin-left: 5px;
+}
+
+/* 新增：错误高亮样式 */
+.error-highlight {
+  animation: highlight 1.5s ease-in-out;
+}
+
+@keyframes highlight {
+  0%, 100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 10px #f56c6c;
+    transform: scale(1.02);
+  }
 }
 
 /* 维修主题样式 */

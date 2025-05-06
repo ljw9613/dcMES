@@ -338,6 +338,7 @@
                         :main-barcode="productDetailsData.barcode"
                         :flow-chart-data="processedFlowChartData"
                         @unbind-success="handleUnbindSuccess"
+                        @replace-success="handleReplaceSuccess"
                       >
                       </material-info>
                     </el-tab-pane>
@@ -1220,6 +1221,14 @@ export default {
 
         // 处理解绑成功
         async handleUnbindSuccess() {
+            // 重新加载数据
+            if (this.productDetailsData._id) {
+                await this.handleViewProductDetails({ barcode: this.productDetailsData.barcode });
+            }
+        },
+
+        // 处理替换成功
+        async handleReplaceSuccess() {
             // 重新加载数据
             if (this.productDetailsData._id) {
                 await this.handleViewProductDetails({ barcode: this.productDetailsData.barcode });

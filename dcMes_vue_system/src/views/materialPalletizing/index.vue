@@ -1166,7 +1166,7 @@ export default {
         (typeof value === "object" && Object.keys(value).length === 0)
       );
     },
-    searchData() {
+    async searchData() {
       let req = {
         query: {
           $and: [],
@@ -1225,7 +1225,25 @@ export default {
       }
 
       if (this.searchForm.barcode) {
-        const barcode = escapeRegex(this.searchForm.barcode);
+        //是否为升级条码
+        //是否为升级条码
+        const preProductionResponse = await getData("preProductionBarcode", {
+          query: {
+            transformedPrintBarcode: this.searchForm.barcode.trim(),
+          },
+          select: {
+            transformedPrintBarcode: 1,
+            printBarcode: 1,
+          },
+          limit: 1,
+        });
+        let barcode = escapeRegex(this.searchForm.barcode);
+        if (
+          preProductionResponse.code === 200 &&
+          preProductionResponse.data.length > 0
+        ) {
+          barcode = preProductionResponse.data[0].printBarcode;
+        }
         req.query.$and.push({
           $or: [
             { "palletBarcodes.barcode": barcode },
@@ -1289,7 +1307,8 @@ export default {
     async fetchData() {
       this.listLoading = true;
       try {
-        let req = this.searchData();
+        let req = await this.searchData();
+        console.log(req, "req");
         req.page = this.currentPage;
         req.skip = (this.currentPage - 1) * this.pageSize;
         req.limit = this.pageSize;
@@ -1508,49 +1527,57 @@ export default {
       // 添加加载状态
       const loading = this.$loading({
         lock: true,
-        text: '正在准备打印数据...',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.7)'
+        text: "正在准备打印数据...",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.7)",
       });
 
       try {
         // 先检查关键数据是否存在
         if (!row || !row.palletCode) {
-          this.$message.error('托盘数据不完整，无法打印');
+          this.$message.error("托盘数据不完整，无法打印");
           loading.close();
           return;
         }
 
         let printData = JSON.parse(JSON.stringify(row)); // 深拷贝避免修改原始数据
-        
+
         // 格式化日期
         printData.createAt = this.formatDate(row.createAt);
-        
+
         // 填充车间信息
         printData.workshop =
           (row.productionOrderId && row.productionOrderId.FWorkShopID_FName) ||
           "未记录生产车间";
-        
+
         // 生成二维码数据
-        const lineCode = (row.productLineId && row.productLineId.lineCode) || "未记录生产线";
+        const lineCode =
+          (row.productLineId && row.productLineId.lineCode) || "未记录生产线";
         const materialCode = row.materialCode || "";
         const saleOrderNo = row.saleOrderNo || "";
         const totalQuantity = row.totalQuantity || 0;
-        
+
         printData.qrcode = `${row.palletCode}#${saleOrderNo}#${materialCode}#${totalQuantity}#${lineCode}`;
-        
+
         // 处理包装箱条码
         if (row.boxItems && row.boxItems.length > 0) {
           let palletBarcodes = [];
           row.boxItems.forEach((item) => {
-            if (item && item.boxBarcode && item.boxBarcodes && Array.isArray(item.boxBarcodes)) {
+            if (
+              item &&
+              item.boxBarcode &&
+              item.boxBarcodes &&
+              Array.isArray(item.boxBarcodes)
+            ) {
               let boxBarcode = item.boxBarcode;
               item.boxBarcodes.forEach((boxBarcodeItem) => {
                 if (boxBarcodeItem && boxBarcodeItem.barcode) {
                   palletBarcodes.push({
                     barcode: boxBarcodeItem.barcode,
                     boxBarcode: boxBarcode,
-                    scanTime: this.formatDate(boxBarcodeItem.scanTime || new Date())
+                    scanTime: this.formatDate(
+                      boxBarcodeItem.scanTime || new Date()
+                    ),
                   });
                 }
               });
@@ -1562,7 +1589,7 @@ export default {
             return {
               barcode: item.barcode || "",
               scanTime: this.formatDate(item.scanTime || new Date()),
-              boxBarcode: ""
+              boxBarcode: "",
             };
           });
         } else {
@@ -1574,7 +1601,7 @@ export default {
 
         // 检查关键打印数据是否准备好
         if (!printData.palletCode || !printData.palletBarcodes) {
-          this.$message.error('托盘信息不完整，无法打印');
+          this.$message.error("托盘信息不完整，无法打印");
           loading.close();
           return;
         }
@@ -1589,23 +1616,25 @@ export default {
         }
 
         console.log(printData, "printData");
-        
+
         // 数据准备好后，赋值并调用打印方法
         this.printData = printData;
-        
+
         // 使用nextTick确保DOM更新后再调用打印
         this.$nextTick(() => {
           if (this.$refs.hirInput) {
             this.$refs.hirInput.handlePrints();
             loading.close();
           } else {
-            this.$message.error('打印组件未加载，请重试');
+            this.$message.error("打印组件未加载，请重试");
             loading.close();
           }
         });
       } catch (error) {
-        console.error('准备打印数据时出错:', error);
-        this.$message.error('准备打印数据时出错: ' + (error.message || '未知错误'));
+        console.error("准备打印数据时出错:", error);
+        this.$message.error(
+          "准备打印数据时出错: " + (error.message || "未知错误")
+        );
         loading.close();
       }
     },
@@ -1677,15 +1706,27 @@ export default {
 
       try {
         // 构建查询条件
-        let req = this.searchData();
+        let req = await this.searchData();
         req.populate = JSON.stringify([
           { path: "productLineId" },
           { path: "productionOrderId" },
         ]);
+        req.limit = 100;
+        req.skip = 0;
 
-        // 获取所有数据（不分页）
-        const result = await getData("material_palletizing", req);
-        const totalItems = result.data.length;
+        // 获取所有数据
+        let result = [];
+        while (true) {
+          const res = await getData("material_palletizing", req);
+          if (res.data.length === 0) {
+            break;
+          }
+          result.push(...res.data);
+          req.skip += req.limit;
+        }
+
+        
+        const totalItems = result.length;
 
         // 准备 Excel 数据
         const exportData = [];

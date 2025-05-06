@@ -53,6 +53,7 @@
     "vue-data-dict": "^2.0.1",
     "vue-directive-image-previewer": "^2.2.2",
     "vue-iframe": "^0.0.0",
+    "vue-json-pretty": "^2.4.0",
     "vue-plugin-hiprint": "0.0.58-fix",
     "vue-quill-editor": "^3.0.6",
     "vue-router": "3.0.6",

@@ -25,6 +25,9 @@ const apiLogSchema = new mongoose.Schema({
   
   // 用户信息
   userId: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 用户ID
+  userName: { type: String }, // 用户名
+  realName: { type: String }, // 真实姓名
+  roleId: { type: mongoose.Schema.ObjectId, ref: "role" }, // 角色ID
   userIp: { type: String }, // 用户IP地址
   
   // 时间戳
@@ -37,5 +40,7 @@ apiLogSchema.index({ serviceName: 1 });
 apiLogSchema.index({ timestamp: -1 });
 apiLogSchema.index({ success: 1 });
 apiLogSchema.index({ userId: 1 });
+apiLogSchema.index({ userName: 1 });
+apiLogSchema.index({ roleId: 1 });
 
 module.exports = mongoose.model("api_log", apiLogSchema); 

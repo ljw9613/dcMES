@@ -6,6 +6,11 @@ const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrde
 const materialPalletizing = require("../model/project/materialPalletizing");
 // 添加预生产条码模型引用
 const preProductionBarcode = require("../model/project/preProductionBarcode");
+const apiLogger = require("../middleware/apiLogger");
+
+// 使用API日志中间件，指定服务名称
+router.use(apiLogger("productRepair"));
+
 // 扫条码获取产品信息
 router.post("/api/v1/product_repair/scanProductRepair", async (req, res) => {
   try {
@@ -483,6 +488,16 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
           }
         }
       }
+    } else if (repairResult === "QUALIFIED") {
+      // 当维修结果为合格时，将产品状态更新为正常
+      await materialProcessFlow.findOneAndUpdate(
+        { barcode: repairRecord.barcode },
+        {
+          productStatus: "NORMAL",
+          updateBy: userId,
+          updateAt: new Date(),
+        }
+      );
     }
 
     res.json({
@@ -519,6 +534,11 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
     // 筛选出报废的记录
     const scrapRepairs = repairRecords.filter(
       (record) => record.solution === "报废"
+    );
+    
+    // 筛选出非报废的记录
+    const nonScrapRepairs = repairRecords.filter(
+      (record) => record.solution !== "报废"
     );
 
     // 检查所有报废记录的关键物料情况
@@ -660,6 +680,22 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
           }
         }
       }
+    }
+
+    // 处理非报废且维修结果为合格的记录
+    if (repairResult === "QUALIFIED" && nonScrapRepairs.length > 0) {
+      // 获取所有非报废维修记录的条码
+      const barcodes = nonScrapRepairs.map(record => record.barcode);
+      
+      // 批量更新这些条码的产品状态为正常
+      await materialProcessFlow.updateMany(
+        { barcode: { $in: barcodes } },
+        {
+          productStatus: "NORMAL",
+          updateBy: userId,
+          updateAt: new Date(),
+        }
+      );
     }
 
     res.json({

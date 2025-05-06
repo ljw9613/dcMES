@@ -1,7 +1,12 @@
-module.exports = function (app, biaoMing, schemaModel) {
-  app
+const apiLogger = require("../middleware/apiLogger");
+
+module.exports = function (router, biaoMing, schemaModel) {
+  // 创建特定于该表的apiLogger实例
+  const loggerMiddleware = apiLogger(`${biaoMing}CRUD`);
+  
+  router
     .route(`/api/v1/${biaoMing}`)
-    .get(async (req, res, next) => {
+    .get(loggerMiddleware, async (req, res, next) => {
       try {
         var queryData = {};
         var findData = {};
@@ -58,7 +63,7 @@ module.exports = function (app, biaoMing, schemaModel) {
         res.status(500).send(e);
       }
     })
-    .delete(async (req, res, next) => {
+    .delete(loggerMiddleware, async (req, res, next) => {
       try {
         console.log('Delete request body:', req.body);
         
@@ -99,7 +104,7 @@ module.exports = function (app, biaoMing, schemaModel) {
         });
       }
     })
-    .post(async (req, res, next) => {
+    .post(loggerMiddleware, async (req, res, next) => {
       try {
         var result = null;
         console.log('req.body: ', req.body);
@@ -113,7 +118,7 @@ module.exports = function (app, biaoMing, schemaModel) {
         res.status(500).send(e);
       }
     })
-    .put(async (req, res, next) => {
+    .put(loggerMiddleware, async (req, res, next) => {
       try {
         var updateQuery = schemaModel.updateMany(
           req.body.query,

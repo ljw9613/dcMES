@@ -273,6 +273,23 @@ export default {
         return;
       }
 
+      //是否为升级条码
+      const preProductionResponse = await getData("preProductionBarcode", {
+        query: {
+          transformedPrintBarcode: this.scanForm.barcode.trim(),
+        },
+        select: {
+          transformedPrintBarcode: 1,
+          printBarcode: 1,
+        },
+        limit: 1,
+      });
+
+      if (preProductionResponse.data && preProductionResponse.data.length > 0) {
+        console.log("升级条码:", preProductionResponse.data[0]);
+        this.scanForm.barcode = preProductionResponse.data[0].printBarcode;
+      }
+
       this.scanning = true;
 
       try {
@@ -449,19 +466,21 @@ export default {
     },
     getBarcodeWorkOrderNo(barcodeItem) {
       if (!barcodeItem || !barcodeItem.productionPlanWorkOrderId) return null;
-      
+
       // 如果有工单数组，从中查找匹配的工单
       if (this.palletData.workOrders && this.palletData.workOrders.length) {
         const workOrder = this.palletData.workOrders.find(
-          wo => wo.productionPlanWorkOrderId && 
-               wo.productionPlanWorkOrderId === barcodeItem.productionPlanWorkOrderId
+          (wo) =>
+            wo.productionPlanWorkOrderId &&
+            wo.productionPlanWorkOrderId ===
+              barcodeItem.productionPlanWorkOrderId
         );
-        
+
         if (workOrder) {
           return workOrder.workOrderNo;
         }
       }
-      
+
       // 向后兼容：使用旧字段
       return this.palletData.workOrderNo;
     },

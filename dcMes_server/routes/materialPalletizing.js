@@ -1,6 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const materialPalletizingService = require("../services/materialPalletizing");
+const apiLogger = require("../middleware/apiLogger");
+
+// 使用API日志中间件，指定服务名称
+router.use(apiLogger("materialPalletizing"));
+
 // 添加托盘条码接口
 router.post("/api/v1/handlePalletBarcode", async (req, res) => {
   try {

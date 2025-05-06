@@ -6,6 +6,11 @@ const MaterialPallet = require("../model/project/materialPalletizing");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const { k3cMethod } = require("./k3cMethod");
 const K3Stock = require("../model/k3/K3_BD_STOCK");
+const apiLogger = require("../middleware/apiLogger");
+
+// 使用API日志中间件，指定服务名称
+router.use(apiLogger("wareHouseEntry"));
+
 // 扫码入库（包含自动创建入库单的逻辑）
 router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
   try {
