@@ -236,14 +236,14 @@
         <el-table-column label="操作" width="120" fixed="right">
           <template slot-scope="scope">
             <el-button
-              v-if="scope.row.samplingStatus !== 'VOIDED'"
+              v-if="scope.row.samplingStatus !== 'VOIDED' && $checkPermission('UDI抽检作废')"
               type="text"
               size="mini"
               @click="handleVoid(scope.row)"
             >
               作废
             </el-button>
-            <el-button type="text" size="mini" @click="handleDetail(scope.row)">
+            <el-button type="text" size="mini" @click="handleDetail(scope.row)" v-if="$checkPermission('UDI抽检详情')">
               详情
             </el-button>
           </template>

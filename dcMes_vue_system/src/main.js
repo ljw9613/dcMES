@@ -118,6 +118,16 @@ Vue.use(Dict, {
   }
 })
 
+// 添加权限检查工具
+import permission from '@/utils/permission'
+// 添加全局指令
+import directives from '@/directives'
+
+// 权限方法挂载
+Vue.prototype.$checkPermission = permission.checkPermission
+// 注册全局指令
+Vue.use(directives)
+
 new Vue({
   el: "#app", router, store, render: h => h(App)
 });

@@ -27,7 +27,7 @@
                                 <el-option v-for="dict in dict.type.document_Status" :key="dict.value" :label="dict.label"
                                 :value="dict.value" />
                             </el-select>
-                            
+
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -168,7 +168,11 @@
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" width="100">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产订单同步')"
+                          @click="handleOneSync(scope.row)">同步</el-button>
                     </template>
                 </el-table-column>
             </template>

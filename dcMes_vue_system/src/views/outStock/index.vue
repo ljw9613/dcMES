@@ -270,12 +270,12 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="180">
+                <el-table-column label="操作" fixed="right" width="250">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单同步')" @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单拓展数据')" @click="handleExt(scope.row)">拓展数据</el-button>
                         <!-- <el-button type="text" size="small" @click="handleLogistics(scope.row)">物流信息</el-button> -->
-                        <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单打印')" @click="handlePrint(scope.row)">打印</el-button>
                     </template>
                 </el-table-column>
             </template>
@@ -481,7 +481,7 @@ export default {
 
         // 处理打印
         async handlePrint(row) {
-            // 
+            //
             console.log("this.localPrintTemplate", this.localPrintTemplate)
             if (!this.localPrintTemplate) {
                 this.$message.warning('请先选择打印模板');
@@ -608,7 +608,7 @@ export default {
         resetForm() {
             // 重置表单
             this.$refs.searchForm.resetFields();
-            
+
             // 创建空的初始化表单
             const initialForm = {
                 FBillNo: '',
@@ -627,10 +627,10 @@ export default {
                 FDocumentStatus: '',
                 dateRange: [],
             };
-            
+
             // 使用Object.assign完全替换对象
             Object.assign(this.searchForm, initialForm);
-            
+
             // 重新加载数据
             this.fetchData();
         },
@@ -916,12 +916,12 @@ export default {
     /* 优化搜索表单样式 */
     .search-form {
         width: 100%;
-        
+
         .search-row {
             width: 100%;
             margin: 0;
             padding-bottom: 10px;
-            
+
             &.advanced-search {
                 border-top: 1px dashed #dcdfe6;
                 padding-top: 15px;
@@ -940,11 +940,11 @@ export default {
             align-items: center;
             flex-wrap: wrap;
             justify-content: flex-end;
-            
+
             .el-button {
                 margin-left: 8px;
                 margin-bottom: 5px;
-                
+
                 &:first-child {
                     margin-left: 0;
                 }
@@ -963,24 +963,24 @@ export default {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        
+
         .title-left {
             display: flex;
             align-items: center;
-            
+
             i {
                 font-size: 18px;
                 margin-right: 8px;
                 color: #409EFF;
             }
-            
+
             .title-text {
                 font-size: 16px;
                 font-weight: 600;
                 color: #303133;
             }
         }
-        
+
         .title-right {
             display: flex;
             align-items: center;

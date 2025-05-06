@@ -208,27 +208,36 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="220">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleEdit(scope.row)"
-              >编辑</el-button
-            >
-            <el-button type="text" size="small" @click="handleDelete(scope.row)"
-              >删除</el-button
-            >
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('生产工艺编辑')"
+              @click="handleEdit(scope.row)"
+            >编辑</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺删除')"
+              @click="handleDelete(scope.row)"
+            >删除</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺导出')"
               @click="handleExportSingle(scope.row)"
-              >导出</el-button
-            >
+            >导出</el-button>
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('生产工艺导出BOM')"
               @click="handleExportBOM(scope.row)"
-              >导出BOM</el-button
-            >
-            <el-button type="text" size="small" @click="handleCopy(scope.row)"
-              >复制</el-button
-            >
+            >导出BOM</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺复制')"
+              @click="handleCopy(scope.row)"
+            >复制</el-button>
           </template>
         </el-table-column>
       </template>
@@ -1839,7 +1848,7 @@ export default {
           newSequence,
           businessType
         );
-        
+
         console.log("工序类型变更后新生成的编码:", this.processForm.processCode);
       } catch (error) {
         console.error("生成工序编码失败:", error);
@@ -1853,13 +1862,13 @@ export default {
           businessType
         );
       }
-      
+
       // 当工序类型为打印工序(G)时，清空物料数据
       if (value === 'G') {
         // 清空界面上的物料表格数据
         this.materialTableData.tableList = [];
         this.materialTableData.total = 0;
-        
+
         // 如果是编辑状态且工序ID存在，则删除数据库中关联的物料数据
         if (this.processOperationType === 'edit' && this.tempProcessId) {
           try {
@@ -1970,12 +1979,12 @@ export default {
         return;
       }
 
-  
+
       this.tempProcessId = row._id;
       this.processForm = JSON.parse(JSON.stringify(row));
       // 确保工序的业务类型与工艺保持一致
       this.processForm.businessType = this.craftForm.businessType;
-    
+
       this.processForm.machineId = row.machineId && row.machineId._id;
       // 打印日志，查看printTemplateId的值
       console.log("编辑工序数据:", this.processForm);
@@ -2055,7 +2064,7 @@ export default {
           try {
             // 复制表单数据，避免修改原始表单
             const formData = JSON.parse(JSON.stringify(this.processForm));
-            
+
             // 处理打印模板ID，仅当工序类型为G(打印工序)时保留，否则删除该字段
             if (formData.processType !== "G") {
               delete formData.printTemplateId;
@@ -2064,9 +2073,9 @@ export default {
               this.$message.warning("打印工序必须选择打印模版");
               return;
             }
-            
+
             console.log("提交前处理后的表单数据:", formData);
-            
+
             // 检查同一工艺下是否存在相同工序编码
             const existingProcess = await getData("processStep", {
               query: {
@@ -2138,14 +2147,14 @@ export default {
             if (!Array.isArray(formData.machineIds)) {
               formData.machineIds = [];
             }
-            
+
             // 构建工序数据
 
             // 确保machineIds是数组
             if (!Array.isArray(formData.machineIds)) {
               formData.machineIds = [];
             }
-            
+
             // 构建工序数据
             const processData = {
               ...formData,
@@ -2178,7 +2187,7 @@ export default {
 
             // 重新排序所有工序
             await this.reorderProcessSteps();
-            
+
           } catch (error) {
             console.error("操作失败:", error);
             this.$message.error("操作失败: " + error.message);
@@ -2197,7 +2206,7 @@ export default {
         this.materialTableData.total = 0;
         return;
       }
-      
+
       this.materialTableData.listLoading = true;
       try {
         const processId = this.processForm._id;
@@ -2237,7 +2246,7 @@ export default {
         this.$message.warning('打印工序不需要添加物料');
         return;
       }
-      
+
       // 检查工序类型是否为 F
       // if (this.processForm.processType === 'F') {
       //     this.$message.warning('托盘工序不能添加物料');

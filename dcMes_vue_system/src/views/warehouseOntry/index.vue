@@ -376,7 +376,7 @@
             <el-button
               type="text"
               style="color: orange"
-              v-if="scope.row.status !== 'COMPLETED'"
+              v-if="scope.row.status !== 'COMPLETED' && $checkPermission('生产出库单修改应出库数量')"
               @click="handleUpdateNumber(scope.row)"
               >修改应出库数量</el-button
             >
@@ -385,15 +385,16 @@
               style="color: green"
               v-if="
                 scope.row.outboundQuantity > scope.row.outNumber &&
-                scope.row.status === 'IN_PROGRESS'
+                scope.row.status === 'IN_PROGRESS' &&
+                $checkPermission('生产出库单继续出库')
               "
               @click="handleChuKu(scope.row)"
               :loading="scanLoading"
             >
               继续出库
             </el-button>
-            <!-- <el-button 
-                            type="text" 
+            <!-- <el-button
+                            type="text"
                             style="color: #67C23A"
                             v-if="scope.row.outboundMode === 'SINGLE' && hasPalletPartOut(scope.row) && scope.row.status == 'IN_PROGRESS'"
                             @click="handleFinishPallet(scope.row)"
@@ -405,13 +406,14 @@
             <el-button
               type="text"
               style="color: red"
-              v-if="hasDeletePermission"
+              v-if="$checkPermission('生产出库单删除')"
               @click="handleDelete(scope.row)"
               >删除</el-button
             >
             <el-button
               type="text"
               style="color: blue"
+              v-if="$checkPermission('生产出库单导出')"
               @click="handleSingleExport(scope.row)"
               >导出</el-button
             >
@@ -1061,7 +1063,7 @@ export default {
 
           if (response.code === 200) {
             this.$message.success("删除成功，已恢复相关条码状态");
-            
+
             // 可以显示详细信息
             if (response.data && response.data.processResults) {
               const totalPallets = response.data.processResults.length;
@@ -1070,7 +1072,7 @@ export default {
               );
               console.log(`成功处理 ${totalPallets} 个托盘，恢复了 ${totalBarcodes} 个条码的状态`);
             }
-            
+
             this.fetchData(); // 刷新数据
           } else {
             this.$message.error(response.message || "删除失败");

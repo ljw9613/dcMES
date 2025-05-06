@@ -192,12 +192,28 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="180">
+                <el-table-column label="操作" fixed="right" width="250">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button type="text" size="small" @click="handleExt(scope.row)">拓展数据</el-button>
-                        <el-button type="text" size="small" @click="showMaterialDetail(scope.row)">物料明细</el-button>
-                        <el-button type="text" size="small" @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产领料单同步')"
+                          @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产领料单拓展数据')"
+                          @click="handleExt(scope.row)">拓展数据</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产领料单物料明细')"
+                          @click="showMaterialDetail(scope.row)">物料明细</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产领料单打印')"
+                          @click="handlePrint(scope.row)">打印</el-button>
                     </template>
                 </el-table-column>
             </template>

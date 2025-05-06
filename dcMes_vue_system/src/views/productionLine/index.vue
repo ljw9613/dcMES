@@ -97,13 +97,26 @@
 
                 <el-table-column label="操作" width="250" fixed="right">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleRefresh(scope.row)">
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产产线设备刷新')"
+                          @click="handleRefresh(scope.row)">
                             <i class="el-icon-refresh"></i> 设备刷新
                         </el-button>
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)">
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产产线编辑')"
+                          @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)">
+                        <el-button
+                          type="text"
+                          size="small"
+                          class="delete-btn"
+                          v-if="$checkPermission('生产产线删除')"
+                          @click="handleDelete(scope.row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
                     </template>
@@ -224,7 +237,7 @@ export default {
                 let req = this.searchData();
                 req.page = this.currentPage;
                 req.skip = (this.currentPage - 1) * this.pageSize;
-                req.limit = this.pageSize;  
+                req.limit = this.pageSize;
                 req.sort = { createAt: -1 };
                 req.count = true;
                 const result = await getData("production_line", req);

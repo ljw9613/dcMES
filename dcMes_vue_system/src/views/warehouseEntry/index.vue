@@ -261,11 +261,11 @@
             <el-button
               type="text"
               style="color: red"
-              v-if="hasDeletePermission"
+              v-if="$checkPermission('生产入库单删除')"
               @click="handleDelete(scope.row)"
               >删除</el-button
             >
-            <el-button type="text" v-if="hasAsyncStockPermission" @click="handleSync(scope.row)">同步金蝶云</el-button>
+            <el-button type="text" v-if="$checkPermission('生产入库单同步金蝶云')" @click="handleSync(scope.row)">同步金蝶云</el-button>
           </template>
         </el-table-column>
       </template>
@@ -711,7 +711,7 @@ export default {
     if (!roles || !roles.buttonList) {
       return false;
     }
-    
+
     if (roles.buttonList.includes("Delete_inbound_and_outbound_documents")) {
       this.hasDeletePermission = true;
     }
@@ -719,7 +719,7 @@ export default {
     if (roles.buttonList.includes("Async_stock_permission")) {
       this.hasAsyncStockPermission = true;
     }
-    
+
   },
 };
 </script>
@@ -739,20 +739,20 @@ export default {
       margin-bottom: 15px;
     }
   }
-  
+
   .select-option {
     display: flex;
     flex-direction: column;
-    
+
     .option-main {
       display: flex;
       align-items: center;
-      
+
       .option-label {
         margin-right: 10px;
       }
     }
-    
+
     .option-info {
       margin-top: 5px;
       font-size: 12px;

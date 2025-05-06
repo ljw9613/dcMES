@@ -382,20 +382,20 @@
 
         <el-table-column label="操作" fixed="right" width="200">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleView(scope.row)"
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录查看')" @click="handleView(scope.row)"
               >查看</el-button
             >
             <el-button
               type="text"
               size="small"
-              v-if="hasUpdateProcessNodes"
+              v-if="$checkPermission('条码记录更新流程节点')"
               @click="handleUpdateFlowNodes(scope.row)"
               >更新流程节点</el-button
             >
             <el-button
               type="text"
               size="small"
-              v-if="hasFixAbnormalNodes"
+              v-if="$checkPermission('条码记录修复异常节点')"
               @click="handleAutoFixInconsistentProcessNodes(scope.row)"
             >
               修复异常节点
@@ -403,7 +403,7 @@
             <el-button
               type="text"
               size="small"
-              v-if="hasRepairProcessNodes"
+              v-if="$checkPermission('条码记录修复流程进度')"
               @click="handleFixFlowProgress(scope.row)"
             >
               修复流程进度
@@ -411,6 +411,7 @@
             <el-button
               type="text"
               size="small"
+              v-if="$checkPermission('条码记录导出条码数据')"
               @click="handleSingleMainExport(scope.row)"
             >
               导出条码数据
@@ -2494,10 +2495,7 @@ export default {
                 count: true,
               };
 
-              const batchResult = await getData(
-                "material_process_flow",
-                batchReq
-              );
+              const batchResult = await getData("material_process_flow", batchReq);
 
               if (batchResult.code !== 200) {
                 throw new Error(
@@ -2572,10 +2570,7 @@ export default {
                 limit: batchSize,
               };
 
-              const batchResult = await getData(
-                "material_process_flow",
-                batchReq
-              );
+              const batchResult = await getData("material_process_flow", batchReq);
 
               if (batchResult.code !== 200) {
                 throw new Error(

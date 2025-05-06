@@ -160,7 +160,7 @@
                         {{ formatDate(scope.row.reviewTime) }}
                     </template>
                 </el-table-column>
-                
+
                 <el-table-column label="产品状态" align="center" width="100">
                     <template slot-scope="scope">
                         <el-tag :type="getProductStatusType(scope.row.productStatus)">
@@ -168,7 +168,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                
+
                 <el-table-column label="维修结果" align="center" width="100" fixed="right">
                     <template slot-scope="scope">
                         <el-tag :type="getRepairResultType(scope.row.repairResult)" v-if="scope.row.repairResult">
@@ -186,22 +186,22 @@
                 </el-table-column>
                 <el-table-column label="操作" width="250" fixed="right">
                     <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleView(scope.row)" style="color: #409EFF;">
+                        <el-button type="text" size="small" @click="handleView(scope.row)" style="color: #409EFF;" v-if="$checkPermission('产品维修查看')">
                             <i class="el-icon-view"></i> 查看
                         </el-button>
-                        <el-button type="text" size="small" @click="handleViewProductDetails(scope.row)" style="color: blue;">
+                        <el-button type="text" size="small" @click="handleViewProductDetails(scope.row)" style="color: blue;" v-if="$checkPermission('产品维修查看产品详情')">
                             <i class="el-icon-view"></i> 查看产品详情
                         </el-button>
                         <el-button type="text" size="small" @click="handleReview(scope.row)" style="color: green;"
-                            v-if="scope.row.status == 'PENDING_REVIEW' && hasMaintenanceAudit">
+                            v-if="scope.row.status == 'PENDING_REVIEW' && hasMaintenanceAudit && $checkPermission('产品维修审核')">
                             <i class="el-icon-edit"></i> 审核
                         </el-button>
                         <el-button type="text" size="small" @click="handleEdit(scope.row)"
-                            v-if="scope.row.status == 'PENDING_REVIEW'">
+                            v-if="scope.row.status == 'PENDING_REVIEW' && $checkPermission('产品维修修改')">
                             <i class="el-icon-edit"></i> 修改
                         </el-button>
                         <el-button type="text" size="small" class="delete-btn" @click="handleVoid(scope.row)"
-                            v-if="scope.row.status == 'PENDING_REVIEW'">
+                            v-if="scope.row.status == 'PENDING_REVIEW' && $checkPermission('产品维修作废')">
                             <i class="el-icon-delete"></i> 作废
                         </el-button>
                     </template>
@@ -771,7 +771,7 @@ export default {
         async submitReview() {
             try {
                 const row = this.tableList.find(item => item._id === this.reviewForm._id);
-                
+
                 // 如果是报废处理方案，不需要选择维修结果
                 if (row && row.solution === '报废') {
                     // 直接审核通过，不需要维修结果
@@ -780,7 +780,7 @@ export default {
                         adverseEffect: this.reviewForm.adverseEffect,
                         userId: this.$store.state.user.id
                     });
-                    
+
                     if (response.code === 200) {
                         this.$message.success('报废审核成功');
                         this.reviewDialogVisible = false;
@@ -789,10 +789,10 @@ export default {
                         // 处理关键物料的情况
                         if (response.code != 200 && response.data && response.data.keyMaterials) {
                             // 显示关键物料列表
-                            const keyMaterialsInfo = response.data.keyMaterials.map(item => 
+                            const keyMaterialsInfo = response.data.keyMaterials.map(item =>
                                 `${item.materialName}(${item.materialCode || '无编码'}) - 条码: ${item.barcode}`
                             ).join('<br/>');
-                            
+
                             this.$alert(
                                 `<div style="max-height: 300px; overflow-y: auto;">
                                     <p>${response.message}</p>
@@ -812,7 +812,7 @@ export default {
                     }
                     return;
                 }
-                
+
                 // 非报废处理方案，需要选择维修结果
                 if (!this.reviewForm.repairResult) {
                     this.$message.warning('请选择维修结果');
@@ -834,10 +834,10 @@ export default {
                     // 处理关键物料的情况
                     if (response.code === 400 && response.data && response.data.keyMaterials) {
                         // 显示关键物料列表
-                        const keyMaterialsInfo = response.data.keyMaterials.map(item => 
+                        const keyMaterialsInfo = response.data.keyMaterials.map(item =>
                             `${item.materialName}(${item.materialCode || '无编码'}) - 条码: ${item.barcode}`
                         ).join('<br/>');
-                        
+
                         this.$alert(
                             `<div style="max-height: 300px; overflow-y: auto;">
                                 <p>${response.message}</p>
@@ -888,30 +888,30 @@ export default {
             try {
                 // 检查是否包含报废处理方案的记录
                 const hasScrapItems = this.selection.some(item => item.solution === '报废');
-                
+
                 // 如果包含报废记录，可以不要求选择维修结果
                 if (hasScrapItems && !this.batchReviewForm.repairResult) {
                     const scrapIds = this.selection
                         .filter(item => item.solution === '报废')
                         .map(item => item._id);
-                    
+
                     const nonScrapIds = this.selection
                         .filter(item => item.solution !== '报废')
                         .map(item => item._id);
-                    
+
                     // 先处理非报废记录
                     if (nonScrapIds.length > 0) {
                         this.$message.warning('非报废维修记录需要选择维修结果');
                         return;
                     }
-                    
+
                     // 处理报废记录
                     const response = await batchReviewRepair({
                         repairIds: scrapIds,
                         adverseEffect: this.batchReviewForm.adverseEffect,
                         userId: this.$store.state.user.id
                     });
-                    
+
                     if (response.code === 200) {
                         this.$message.success(`批量审核成功，共处理 ${response.data.updatedCount} 条记录，其中报废 ${response.data.scrapCount} 条`);
                         this.batchReviewDialogVisible = false;
@@ -926,14 +926,14 @@ export default {
                                 barcodeInfo += `<div style="margin-bottom: 10px;">
                                     <strong>条码: ${item.barcode}</strong>
                                     <ul style="margin: 5px 0 0 20px;">`;
-                                    
+
                                     item.keyMaterials.forEach(material => {
                                         barcodeInfo += `<li>${material.materialName}(${material.materialCode || '无编码'}) - 条码: ${material.barcode}</li>`;
                                     });
-                                    
+
                                     barcodeInfo += `</ul></div>`;
                             });
-                            
+
                             this.$alert(
                                 `<div style="max-height: 400px; overflow-y: auto;">
                                     <p>${response.message}</p>
@@ -953,7 +953,7 @@ export default {
                     }
                     return;
                 }
-                
+
                 // 常规处理逻辑，要求选择维修结果
                 if (!this.batchReviewForm.repairResult) {
                     this.$message.warning('请选择维修结果');
@@ -961,7 +961,7 @@ export default {
                 }
 
                 const ids = this.selection.map(item => item._id);
-                
+
                 const response = await batchReviewRepair({
                     repairIds: ids,
                     repairResult: this.batchReviewForm.repairResult,
@@ -983,14 +983,14 @@ export default {
                             barcodeInfo += `<div style="margin-bottom: 10px;">
                                 <strong>条码: ${item.barcode}</strong>
                                 <ul style="margin: 5px 0 0 20px;">`;
-                                
+
                             item.keyMaterials.forEach(material => {
                                 barcodeInfo += `<li>${material.materialName}(${material.materialCode || '无编码'}) - 条码: ${material.barcode}</li>`;
                             });
-                            
+
                             barcodeInfo += `</ul></div>`;
                         });
-                        
+
                         this.$alert(
                             `<div style="max-height: 400px; overflow-y: auto;">
                                 <p>${response.message}</p>
@@ -1243,7 +1243,7 @@ export default {
             };
             return statusMap[status] || status;
         },
-        
+
         getProductStatusType(status) {
             const typeMap = {
                 'NORMAL': 'success',

@@ -424,54 +424,58 @@
             {{ formatDate(scope.row.createAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center">
+        <el-table-column label="操作" align="center" width="240">
           <template slot-scope="scope">
             <el-button
               type="text"
               style="color: red"
-              v-if="hasInitializeTrayDocumentsPermission"
+              v-if="$checkPermission('托盘单据初始化单据')"
               @click="handleAllDelete(scope.row)"
               >初始化单据</el-button
             >
             <el-button
               type="text"
               style="color: red"
-              v-if="hasInitializeTrayDocumentsPermission"
+              v-if="$checkPermission('托盘单据删除单据')"
               @click="Delete(scope.row)"
               >删除单据</el-button
             >
             <el-button
               type="text"
               style="color: #e6a23c"
-              v-if="scope.row.status === 'STACKING'"
+              v-if="scope.row.status === 'STACKING' && $checkPermission('托盘单据强制完成')"
               @click="handleForceComplete(scope.row)"
             >
               强制完成
             </el-button>
-            <el-button type="text" @click="handlePrint(scope.row)"
+            <el-button type="text" v-if="$checkPermission('托盘单据打印单据')" @click="handlePrint(scope.row)"
               >打印单据</el-button
             >
             <el-button
               type="text"
               style="color: orange"
+              v-if="$checkPermission('托盘单据解绑记录查看')"
               @click="showHistory(scope.row)"
               >解绑记录</el-button
             >
             <el-button
               type="text"
               style="color: #409eff"
+              v-if="$checkPermission('托盘单据详情查看')"
               @click="showDetail(scope.row)"
               >查看详情</el-button
             >
             <el-button
               type="text"
               style="color: #67c23a"
+              v-if="$checkPermission('托盘单据拆分托盘')"
               @click="handleSplitPallet(scope.row)"
               >拆分托盘</el-button
             >
             <el-button
               type="text"
               style="color: #67c23a"
+              v-if="$checkPermission('托盘单据抽检复位')"
               @click="handleInspectionReset(scope.row)"
               >抽检复位</el-button
             >
