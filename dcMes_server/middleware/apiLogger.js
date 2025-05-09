@@ -28,25 +28,25 @@ const apiLogger = (serviceName) => {
     // 获取授权头
     const authHeader = req.headers.authorization || '';
     
-    // 调试信息
-    // console.log(`[${serviceName}] Authorization头:`, authHeader);
+    // 添加详细的调试信息
+    console.log(`[${serviceName}] 完整请求头:`, req.headers);
+    console.log(`[${serviceName}] Authorization头:`, authHeader);
     
     // 正确提取token，确保移除"Bearer "前缀
     const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
     
-    // 调试信息
-    // console.log(`[${serviceName}] 提取的token:`, token);
+    console.log(`[${serviceName}] 提取的token:`, token);
+    console.log(`[${serviceName}] token长度:`, token.length);
     
     if (token && token.length > 0) {
       try {
-        // 验证token是否有效
-        // console.log(`[${serviceName}] 正在验证token...`);
-        // console.log(`[${serviceName}] 使用密钥:`, config.secretOrPrivateKey);
+        console.log(`[${serviceName}] 正在验证token...`);
+        console.log(`[${serviceName}] 使用密钥:`, config.secretOrPrivateKey);
         
         // 验证token并解析用户信息
         const decoded = jwt.verify(token, config.secretOrPrivateKey);
         
-        // console.log(`[${serviceName}] Token解析成功:`, decoded);
+        console.log(`[${serviceName}] Token解析成功:`, decoded);
         
         userId = decoded._id;
         userName = decoded.userName;

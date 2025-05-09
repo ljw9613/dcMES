@@ -16,9 +16,16 @@ service.interceptors.request.use(
 
     if (store.getters.token) {
       const token = store.getters.token;
+      // 添加调试信息
+      console.log('当前token:', token);
+      console.log('token类型:', typeof token);
+      console.log('token长度:', token.length);
+      
       // 确保token存在且有效再添加到请求头中
       if (token && typeof token === 'string' && token.trim() !== '') {
         config.headers.common["Authorization"] = "Bearer " + token;
+        // 打印完整的请求头
+        console.log('请求头:', config.headers);
       }
       // 添加用户名到请求头
       config.headers["username"] = store.getters.id || "onLogin";

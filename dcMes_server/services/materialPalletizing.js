@@ -916,13 +916,13 @@ class MaterialPalletizingService {
       }
 
       // 减少工单产出量 - 解绑托盘中所有条码减少相应产出量
-      // if (pallet.productionPlanWorkOrderId && pallet.barcodeCount > 0) {
-      //   await materialProcessFlowService.updateWorkOrderQuantity(
-      //     pallet.productionPlanWorkOrderId.toString(),
-      //     "output",
-      //     -pallet.barcodeCount // 负数表示减少产出量
-      //   );
-      // }
+      if (pallet.productionPlanWorkOrderId && pallet.barcodeCount > 0) {
+        await materialProcessFlowService.updateWorkOrderQuantity(
+          pallet.productionPlanWorkOrderId.toString(),
+          "output",
+          -pallet.barcodeCount // 负数表示减少产出量
+        );
+      }
 
       // 2. 清空托盘条码列表和箱记录
       pallet.palletBarcodes = [];

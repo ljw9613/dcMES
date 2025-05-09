@@ -7,6 +7,7 @@ const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const { k3cMethod } = require("./k3cMethod");
 const K3Stock = require("../model/k3/K3_BD_STOCK");
 const apiLogger = require("../middleware/apiLogger");
+const warehouseService = require("../services/warehouseService"); // 导入仓库服务
 
 // 使用API日志中间件，指定服务名称
 router.use(apiLogger("wareHouseEntry"));
@@ -200,6 +201,17 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
     });
 
     await entry.save();
+
+    // 9. 调用第三方接口通知托盘入库
+    warehouseService.notifyInWarehousePallet(pallet.workOrderNo, palletCode)
+      .then(result => {
+        if (!result.success) {
+          console.error(`托盘入库通知失败，托盘码: ${palletCode}, 工单号: ${pallet.workOrderNo}, 错误: ${result.error}`);
+        }
+      })
+      .catch(error => {
+        console.error(`托盘入库通知发生异常，托盘码: ${palletCode}, 工单号: ${pallet.workOrderNo}, 错误: ${error.message}`);
+      });
 
     // 准备返回的托盘信息
     const palletInfo = {

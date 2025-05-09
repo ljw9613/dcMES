@@ -7,6 +7,7 @@ const { k3cMethod } = require("./k3cMethod");
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
 const K3SaleOrder = require("../model/k3/k3_SAL_SaleOrder");
 const apiLogger = require("../middleware/apiLogger");
+const warehouseService = require("../services/warehouseService"); // 导入仓库服务
 
 // 使用API日志中间件，指定服务名称
 router.use(apiLogger("wareHouseOntry"));
@@ -519,6 +520,18 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       if (entry.outNumber >= entry.outboundQuantity) {
         entry.status = "COMPLETED";
         entry.completedTime = new Date();
+        // 调用通知接口
+        warehouseService.notifyOutWarehouseCompleted(entry.entryNo)
+          .then(result => {
+            if (!result.success) {
+              console.error(`出库单${entry.entryNo}完成通知失败: ${result.error}`);
+            }
+          })
+          .catch(error => {
+            console.error(`出库单${entry.entryNo}完成通知出错: ${error.message}`);
+          });
+      } else {
+        entry.status = "IN_PROGRESS";
       }
 
       // 更新托盘状态为完全出库
@@ -641,6 +654,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     if (entry.outNumber >= entry.outboundQuantity) {
       entry.status = "COMPLETED";
       entry.completedTime = new Date();
+      // 调用通知接口
+      warehouseService.notifyOutWarehouseCompleted(entry.entryNo)
+        .then(result => {
+          if (!result.success) {
+            console.error(`出库单${entry.entryNo}完成通知失败: ${result.error}`);
+          }
+        })
+        .catch(error => {
+          console.error(`出库单${entry.entryNo}完成通知出错: ${error.message}`);
+        });
     } else {
       entry.status = "IN_PROGRESS";
     }
@@ -1180,6 +1203,16 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
         if (entry.outNumber >= entry.outboundQuantity) {
           entry.status = "COMPLETED";
           entry.endTime = new Date();
+          // 调用通知接口
+          warehouseService.notifyOutWarehouseCompleted(entry.entryNo)
+            .then(result => {
+              if (!result.success) {
+                console.error(`出库单${entry.entryNo}完成通知失败: ${result.error}`);
+              }
+            })
+            .catch(error => {
+              console.error(`出库单${entry.entryNo}完成通知出错: ${error.message}`);
+            });
         }
 
         // 保存更新
@@ -1314,6 +1347,16 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
     if (entry.outNumber >= entry.outboundQuantity) {
       entry.status = "COMPLETED";
       entry.endTime = new Date();
+      // 调用通知接口
+      warehouseService.notifyOutWarehouseCompleted(entry.entryNo)
+        .then(result => {
+          if (!result.success) {
+            console.error(`出库单${entry.entryNo}完成通知失败: ${result.error}`);
+          }
+        })
+        .catch(error => {
+          console.error(`出库单${entry.entryNo}完成通知出错: ${error.message}`);
+        });
     }
 
     // 调用服务方法更新托盘出入库状态

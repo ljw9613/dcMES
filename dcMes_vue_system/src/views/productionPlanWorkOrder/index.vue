@@ -95,58 +95,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-            <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
-                <el-row :gutter="20">
-                    <el-col :span="6">
-                        <el-form-item label="工单号">
-                            <el-input v-model="searchForm.workOrderNo" placeholder="请输入工单号" clearable></el-input>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="工单状态">
-                            <el-select v-model="searchForm.status" placeholder="请选择工单状态" clearable style="width: 100%">
-                                <el-option v-for="dict in dict.type.work_order_status" :key="dict.value"
-                                    :label="dict.label" :value="dict.value" />
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="销售单号">
-                            <zr-select v-model="searchForm.saleOrderNo" collection="k3_SAL_SaleOrder"
-                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
-                                placeholder="请输入销售单号" clearable style="width: 100%">
-                                <template #option="{ item }">
-                                    <div class="select-option">
-                                        <div class="option-main">
-                                            <span class="option-label">{{ item.FBillNo }}</span>
-                                            <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.FBillNo }} - {{ item.FSaleOrgId }}
-                                            </el-tag>
-                                        </div>
-                                    </div>
-                                </template>
-                            </zr-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="生产单号">
-                            <zr-select v-model="searchForm.productionOrderNo" collection="k3_PRD_MO"
-                                :search-fields="['FBillNo']" label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false"
-                                placeholder="请输入生产单号" clearable style="width: 100%">
-                                <template #option="{ item }">
-                                    <div class="select-option">
-                                        <div class="option-main">
-                                            <span class="option-label">{{ item.FBillNo }}</span>
-                                            <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.FBillNo }} - {{ item.FUseOrgId_FName }}
-                                            </el-tag>
-                                        </div>
-                                    </div>
-                                </template>
-                            </zr-select>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
 
         <el-row :gutter="20">
           <el-col :span="6">
@@ -236,61 +184,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="6">
-                        <el-form-item label="产品名称">
-                            <zr-select v-model="searchForm.materialName" collection="k3_BD_MATERIAL"
-                                :search-fields="['FNumber', 'FName']" label-key="FName" value-key="FName" sub-key="FMATERIALID"
-                                :multiple="false" placeholder="请输入物料编码/名称搜索" clearable style="width: 100%">
-                                <template #option="{ item }">
-                                    <div class="select-option">
-                                        <div class="option-main">
-                                            <span class="option-label">{{ item.FNumber }} - {{ item.FName }}</span>
-                                            <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.FMATERIALID }} - {{ item.FUseOrgId_FName }}
-                                            </el-tag>
-                                        </div>
-                                        <div class="option-sub" v-if="item.FSpecification">
-                                            <small>规格: {{ item.FSpecification }}</small>
-                                        </div>
-                                    </div>
-                                </template>
-                            </zr-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="产线名称">
-                            <zr-select v-model="searchForm.lineName" collection="production_line"
-                                :search-fields="['lineCode', 'lineName']" label-key="lineName" sub-key="lineCode"
-                                :multiple="false" placeholder="请输入产线编码/名称搜索" clearable style="width: 100%">
-                                <template #option="{ item }">
-                                    <div class="select-option">
-                                        <div class="option-main">
-                                            <span class="option-label">{{ item.lineCode }} - {{ item.lineName }}</span>
-                                            <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.lineCode }} - {{ item.lineNum }}
-                                            </el-tag>
-                                        </div>
-                                    </div>
-                                </template>
-                            </zr-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="报废数量">
-                            <el-input-number v-model="searchForm.scrapQuantity" placeholder="最低报废数量"
-                                :min="0" controls-position="right" clearable style="width: 100%"></el-input-number>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="18">
-                        <el-form-item label="计划时间">
-                            <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
-                                start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"
-                                style="width: 100%">
-                            </el-date-picker>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
 
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
@@ -453,18 +346,6 @@
             <span v-else>暂无数据</span>
           </template>
         </el-table-column>
-                <el-table-column label="报废条码" width="100">
-                    <template slot-scope="scope">
-                        <el-button
-                            type="text"
-                            size="small"
-                            @click="viewScrapBarcode(scope.row)"
-                            v-if="scope.row.scrapProductBarcodeList && scope.row.scrapProductBarcodeList.length > 0">
-                            查看 ({{ scope.row.scrapProductBarcodeList.length }})
-                        </el-button>
-                        <span v-else>暂无数据</span>
-                    </template>
-                </el-table-column>
 
         <!-- 计划状态 -->
         <el-table-column label="计划状态" width="100">
@@ -542,27 +423,6 @@
         </el-table-column>
       </template>
     </base-table>
-                <el-table-column label="操作" width="180" fixed="right">
-                    <template slot-scope="scope">
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('生产计划编辑')"
-                          @click="handleEdit(scope.row)">
-                            <i class="el-icon-edit"></i> 编辑
-                        </el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          class="delete-btn"
-                          v-if="$checkPermission('生产计划删除')"
-                          @click="handleDelete(scope.row)">
-                            <i class="el-icon-delete"></i> 删除
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </template>
-        </base-table>
 
     <edit-dialog
       :visible.sync="dialogFormVisible"
@@ -996,26 +856,6 @@ export default {
 
       return `${year}-${month}-${day}`;
     },
-        // 格式化日期
-        formatDate(date, isDateTime = false) {
-            if (!date) return '暂无数据';
-            const dateObj = new Date(date);
-            if (isNaN(dateObj.getTime())) {
-                return '无效日期';
-            }
-            const year = dateObj.getFullYear();
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dateObj.getDate()).padStart(2, '0');
-
-            if (isDateTime) {
-                const hour = String(dateObj.getHours()).padStart(2, '0');
-                const minute = String(dateObj.getMinutes()).padStart(2, '0');
-                const second = String(dateObj.getSeconds()).padStart(2, '0');
-                return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-            }
-
-            return `${year}-${month}-${day}`;
-        },
 
     // 格式化数字
     formatNumber(num) {
@@ -1198,52 +1038,6 @@ export default {
     checkComponentName(this);
   },
 };
-        // 查看报废条码详情
-        async viewScrapBarcode(row) {
-            this.scrapBarcodeDialogVisible = true;
-            this.scrapDetailData = JSON.parse(JSON.stringify(row));
-            this.scrapBarcodeLoading = true;
-            try {
-                // 确保有ID才发起请求
-                if (!row._id) {
-                    console.error('工单ID不存在');
-                    this.$message.error('工单ID不存在，无法获取报废条码');
-                    this.scrapBarcodeLoading = false;
-                    return;
-                }
-
-                const result = await getData('production_plan_work_order', {
-                    query: { _id: row._id }
-                });
-
-                // 检查返回结果是否有效
-                if (result && result.data && result.data.length > 0) {
-                    this.scrapDetailData = result.data[0];
-
-                    // 检查报废条码列表是否存在
-                    if (!this.scrapDetailData.scrapProductBarcodeList) {
-                        this.scrapDetailData.scrapProductBarcodeList = [];
-                        console.warn('报废条码列表为空');
-                    }
-                } else {
-                    console.error('未获取到工单数据');
-                    this.$message.warning('未获取到报废条码数据');
-                }
-            } catch (error) {
-                console.error('获取报废条码详情失败:', error);
-                this.$message.error('获取报废条码详情失败');
-            } finally {
-                this.scrapBarcodeLoading = false;
-            }
-        },
-    },
-    created() {
-        this.fetchData();
-    },
-    mounted() {
-        checkComponentName(this)
-    }
-}
 </script>
 
 <style lang="scss" scoped>
