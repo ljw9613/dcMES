@@ -175,7 +175,16 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="18">
+          <el-col :span="6">
+            <el-form-item label="托盘编号">
+              <el-input
+                v-model="searchForm.palletCode"
+                placeholder="请输入托盘编号"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="开始时间">
               <el-date-picker
                 v-model="searchForm.dateRange"
@@ -1150,6 +1159,7 @@ export default {
         progress: "",
         workOrderNo: "",
         productionPlanWorkOrderId: "", // 添加生产计划工单ID字段
+        palletCode: "", // 添加托盘编号字段
       },
       tableList: [],
       total: 0,
@@ -1925,6 +1935,55 @@ export default {
         }
       }
 
+      // 处理托盘编号查询
+      if (this.searchForm.palletCode && this.searchForm.palletCode.trim()) {
+        try {
+          // 先查询托盘数据
+          const palletResult = await getData("material_palletizing", {
+            query: {
+              palletCode: { $regex: this.searchForm.palletCode.trim(), $options: "i" }
+            },
+            select: "palletBarcodes.materialProcessFlowId",
+          });
+          
+          if (palletResult.code === 200 && palletResult.data && palletResult.data.length > 0) {
+            // 提取所有关联的materialProcessFlowId
+            const materialProcessFlowIds = [];
+            palletResult.data.forEach(pallet => {
+              if (pallet.palletBarcodes && pallet.palletBarcodes.length > 0) {
+                pallet.palletBarcodes.forEach(item => {
+                  if (item.materialProcessFlowId) {
+                    materialProcessFlowIds.push(item.materialProcessFlowId);
+                  }
+                });
+              }
+            });
+            
+            if (materialProcessFlowIds.length > 0) {
+              req.query.$and.push({
+                _id: { $in: materialProcessFlowIds }
+              });
+            } else {
+              // 如果没有找到匹配的记录，添加一个不可能匹配的条件
+              req.query.$and.push({
+                _id: null
+              });
+            }
+          } else {
+            // 如果没有找到匹配的托盘，添加一个不可能匹配的条件
+            req.query.$and.push({
+              _id: null
+            });
+          }
+        } catch (error) {
+          console.error("查询托盘数据失败:", error);
+          // 发生错误时添加一个不可能匹配的条件
+          req.query.$and.push({
+            _id: null
+          });
+        }
+      }
+
       if (!req.query.$and.length) {
         delete req.query.$and;
       }
@@ -1950,6 +2009,7 @@ export default {
         progress: "",
         workOrderNo: "",
         productionPlanWorkOrderId: "", // 确保重置生产计划工单ID字段
+        palletCode: "", // 重置托盘编号字段
       };
       this.currentPage = 1;
       this.fetchData();

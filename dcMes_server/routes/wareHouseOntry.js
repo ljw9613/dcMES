@@ -611,6 +611,20 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    // 检查托盘中的条码是否已在其他出库单中出库
+    for (const barcode of unOutBarcodes) {
+      const existingInOtherEntry = await wareHouseOntry.findOne({
+        "entryItems.palletBarcodes.barcode": barcode.barcode
+      });
+      
+      if (existingInOtherEntry && existingInOtherEntry._id.toString() !== entry._id.toString()) {
+        return res.status(200).json({
+          code: 404,
+          message: `条码 ${barcode.barcode} 已在出库单 ${existingInOtherEntry.entryNo} 中出库`,
+        });
+      }
+    }
+
     entry.entryItems.push({
       palletId: pallet._id,
       palletCode: pallet.palletCode,
@@ -933,9 +947,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       });
     }
     
-    // 检查产品条码是否已经出库
     if (palletBarcode.outWarehouseStatus === "COMPLETED") {
-      // 新增：查找该条码所在的出库单
       const existingEntryWithBarcode = await wareHouseOntry.findOne({
         "entryItems.palletBarcodes.barcode": productBarcode
       });

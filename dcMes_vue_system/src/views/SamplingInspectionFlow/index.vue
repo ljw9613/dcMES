@@ -336,6 +336,20 @@
           <el-form-item label="产品状态">
             <el-input v-model="currentFlowData.status" readonly></el-input>
           </el-form-item>
+          <el-form-item label="流程状态">
+            <el-tag
+              :type="
+                flowStatus === 'COMPLETED'
+                  ? 'success'
+                  : 'danger'
+              "
+            >
+              {{ getFlowStatusText(flowStatus) }}
+            </el-tag>
+          </el-form-item>
+          <el-form-item label="最后完成节点" v-if="lastCompletedNode">
+            <span>{{ getNodeName(lastCompletedNode) }}</span>
+          </el-form-item>
           <el-form-item label="销售订单号">
             <el-input v-model="currentFlowData.saleOrderNo" readonly></el-input>
           </el-form-item>
@@ -464,6 +478,10 @@ export default {
         ],
       },
       currentFlowData: null,
+
+      // 新增字段 - 流程状态和最后完成节点
+      flowStatus: "",
+      lastCompletedNode: null,
     };
   },
   computed: {
@@ -1114,6 +1132,34 @@ export default {
       return statusMap[status] || "wait";
     },
 
+    // 获取流程状态文本
+    getFlowStatusText(status) {
+      const statusMap = {
+        PENDING: "待处理",
+        IN_PROCESS: "进行中",
+        COMPLETED: "已完成",
+        ABNORMAL: "异常",
+      };
+      return statusMap[status] || status;
+    },
+
+    // 获取节点名称
+    getNodeName(node) {
+      if (!node) return "";
+
+      if (node.nodeType === "PROCESS_STEP") {
+        return `${node.processName || ""} ${
+          node.processCode ? `(${node.processCode})` : ""
+        }`;
+      } else if (node.nodeType === "MATERIAL") {
+        return `${node.materialName || ""} ${
+          node.materialCode ? `(${node.materialCode})` : ""
+        }`;
+      }
+
+      return "";
+    },
+
     // 获取步骤图标
     getStepIcon(node) {
       if (node.nodeType === "PROCESS_STEP") {
@@ -1752,6 +1798,29 @@ export default {
 
         if (result.code === 200 && result.data.length > 0) {
           this.currentFlowData = result.data[0];
+
+          // 保存流程状态信息
+          this.flowStatus = this.currentFlowData.status;
+          
+          
+          // 查找最后一个完成的节点
+          if (
+            this.currentFlowData.processNodes &&
+            this.currentFlowData.processNodes.length > 0
+          ) {
+            // 按照完成时间降序排序，找出最后完成的节点
+            const completedNodes = this.currentFlowData.processNodes
+              .filter(
+                (node) => node.status === "COMPLETED" && node.processStepId
+              )
+              .sort(
+                (a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0)
+              );
+
+            this.lastCompletedNode =
+              completedNodes.length > 0 ? completedNodes[0] : null;
+          }
+
           this.showQualityCheck = true;
         } else {
           this.$message.error("未找到该产品信息");
@@ -1770,10 +1839,48 @@ export default {
         const flowresult = await getData("material_process_flow", {
           query: { barcode: this.scanForm.barcode },
         });
+
         if (flowresult.code === 200 && flowresult.data.length > 0) {
-          if (flowresult.data[0].status != "COMPLETED") {
-            this.$message.error("该条码产品条码未完成工序");
-            return;
+          const flowData = flowresult.data[0];
+
+          // 保存流程状态信息
+          this.flowStatus = flowData.status;
+
+          // 查找最后一个完成的节点
+          if (flowData.processNodes && flowData.processNodes.length > 0) {
+            // 按照完成时间降序排序，找出最后完成的节点
+            const completedNodes = flowData.processNodes
+              .filter((node) => node.status === "COMPLETED" && node.processStepId)
+              .sort(
+                (a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0)
+              );
+
+            this.lastCompletedNode =
+              completedNodes.length > 0 ? completedNodes[0] : null;
+          }
+
+          if (flowData.status != "COMPLETED") {
+            // 显示未完成工序的提示，但允许继续操作
+            await this.$confirm(
+              `该条码产品尚未完成全部工序，当前状态：${this.getFlowStatusText(
+                flowData.status
+              )}，最后完成节点：${this.getNodeName(
+                this.lastCompletedNode
+              )}，是否继续抽检？`,
+              "产品未完成提示",
+              {
+                confirmButtonText: "继续抽检",
+                cancelButtonText: "取消",
+                type: "warning",
+              }
+            ).catch(() => {
+              // 用户取消，重置表单
+              this.scanForm.barcode = "";
+              this.$refs.barcodeInput.focus();
+              throw new Error("cancel");
+            });
+
+            // 用户选择继续，不返回，继续执行后面的代码
           }
         }
 
@@ -1844,6 +1951,19 @@ export default {
               status: this.currentFlowData.status,
               saleOrderNo: this.currentFlowData.saleOrderNo,
               batchNo: this.currentFlowData.batchNo,
+              // 添加流程状态和最后完成节点信息
+              flowStatus: this.flowStatus,
+              lastCompletedNodeInfo: this.lastCompletedNode
+                ? {
+                    nodeId: this.lastCompletedNode.nodeId,
+                    nodeType: this.lastCompletedNode.nodeType,
+                    processName: this.lastCompletedNode.processName,
+                    processCode: this.lastCompletedNode.processCode,
+                    materialName: this.lastCompletedNode.materialName,
+                    materialCode: this.lastCompletedNode.materialCode,
+                    endTime: this.lastCompletedNode.endTime,
+                  }
+                : null,
             };
 
             // 保存抽检记录
@@ -2215,6 +2335,25 @@ export default {
       color: #909399;
     }
   }
+}
+
+.flow-status-info {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #f5f7fa;
+}
+
+.flow-status-tag {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.last-node-info {
+  margin-top: 8px;
+  color: #606266;
+  font-size: 14px;
 }
 
 .main-material {

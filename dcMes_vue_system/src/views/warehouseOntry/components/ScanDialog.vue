@@ -426,62 +426,199 @@ export default {
 
         const barcode = this.scanForm.barcode.trim();
 
-        // 发送扫描事件到父组件
-        const success = await this.$emit("scan", barcode);
-        if (success) {
-          // 解析条码信息
-          const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
-            barcode.split("#");
+        // 添加加载状态
+        const loading = this.$loading({
+          lock: true,
+          text: "处理托盘条码中...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
+        });
 
-          // 调用托盘出库API
-          const response = await scanPalletOn({
-            palletCode,
-            userId: this.$store.state.user.id,
-            entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
-            entryInfo: {
-              ...this.entryInfo,
-              HuoGuiCode: this.entryInfo.HuoGuiCode,
-              FaQIaoNo: this.entryInfo.FaQIaoNo,
-              workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-                (item) => ({
-                  workOrderNo: item.workOrderNo,
-                  workOrderId: item._id,
-                  productionOrderNo: item.productionOrderNo,
-                })
-              ),
-            },
-          });
+        try {
+          // 发送扫描事件到父组件
+          const success = await this.$emit("scan", barcode);
+          if (success) {
+            // 解析条码信息
+            const [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+              barcode.split("#");
 
-          // 更新出库单信息
-          if (response.data) {
-            // 保留原有的货柜号和发票号
-            const huoGuiCode = this.entryInfo.HuoGuiCode;
-            const faQIaoNo = this.entryInfo.FaQIaoNo;
+            // 调用托盘出库API
+            const response = await scanPalletOn({
+              palletCode,
+              userId: this.$store.state.user.id,
+              entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
+              entryInfo: {
+                ...this.entryInfo,
+                HuoGuiCode: this.entryInfo.HuoGuiCode,
+                FaQIaoNo: this.entryInfo.FaQIaoNo,
+                workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
+                  (item) => ({
+                    workOrderNo: item.workOrderNo,
+                    workOrderId: item._id,
+                    productionOrderNo: item.productionOrderNo,
+                  })
+                ),
+              },
+            });
 
-            this.entryInfo = {
-              ...response.data,
-              HuoGuiCode: response.data.HuoGuiCode || huoGuiCode,
-              FaQIaoNo: response.data.FaQIaoNo || faQIaoNo,
-            };
+            // 更新出库单信息
+            if (response.data) {
+              // 保留原有的货柜号和发票号
+              const huoGuiCode = this.entryInfo.HuoGuiCode;
+              const faQIaoNo = this.entryInfo.FaQIaoNo;
 
-            // 确保托盘数量正确显示
-            if (
-              this.entryInfo.entryItems &&
-              this.entryInfo.entryItems.length > 0
-            ) {
-              this.entryInfo.palletCount = this.entryInfo.entryItems.length;
+              this.entryInfo = {
+                ...response.data,
+                HuoGuiCode: response.data.HuoGuiCode || huoGuiCode,
+                FaQIaoNo: response.data.FaQIaoNo || faQIaoNo,
+              };
+
+              // 确保托盘数量正确显示
+              if (
+                this.entryInfo.entryItems &&
+                this.entryInfo.entryItems.length > 0
+              ) {
+                this.entryInfo.palletCount = this.entryInfo.entryItems.length;
+              }
+
+              // 如果返回的数据没有包含货柜号和发票号，需要再次更新这两个字段
+              if (!response.data.HuoGuiCode || !response.data.FaQIaoNo) {
+                await updateData("warehouse_ontry", {
+                  query: { _id: this.entryInfo._id },
+                  update: {
+                    HuoGuiCode: huoGuiCode,
+                    FaQIaoNo: faQIaoNo,
+                  },
+                });
+              }
+
+              // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
+              const isCompleted =
+                (response.data.progress && response.data.progress === 100) ||
+                (response.data.outNumber &&
+                  response.data.outboundQuantity &&
+                  Number(response.data.outNumber) >=
+                    Number(response.data.outboundQuantity));
+
+              // 如果已完成，则更新状态为已完成并自动关闭对话框
+              if (isCompleted) {
+                loading.close();
+                this.dialogVisible = false;
+                setTimeout(() => {
+                  this.$message.success("该出库单已完成出库");
+                  // 通知父组件刷新数据
+                  this.$emit('refresh');
+                }, 1000);
+                return;
+              }
             }
 
-            // 如果返回的数据没有包含货柜号和发票号，需要再次更新这两个字段
-            if (!response.data.HuoGuiCode || !response.data.FaQIaoNo) {
-              await updateData("warehouse_ontry", {
-                query: { _id: this.entryInfo._id },
-                update: {
-                  HuoGuiCode: huoGuiCode,
-                  FaQIaoNo: faQIaoNo,
-                },
-              });
+            if (response.code !== 200) {
+              loading.close();
+              // 如果托盘已部分出库，提示用户可以整托出库
+              if (
+                response.message ===
+                "该托盘已部分出库，请使用整托出库功能完成剩余产品出库"
+              ) {
+                this.$confirm(
+                  "该托盘已部分出库，是否要完成所有剩余产品的出库？",
+                  "提示",
+                  {
+                    confirmButtonText: "整托出库",
+                    cancelButtonText: "取消",
+                    type: "warning",
+                  }
+                )
+                  .then(async () => {
+                    // 添加整托出库的加载状态
+                    const entirePalletLoading = this.$loading({
+                      lock: true,
+                      text: "处理整托出库中...",
+                      spinner: "el-icon-loading",
+                      background: "rgba(0, 0, 0, 0.7)",
+                    });
+                    
+                    try {
+                      // 用户选择整托出库，调用整托出库API
+                      const entirePalletResponse = await scanPalletOn({
+                        palletCode,
+                        userId: this.$store.state.user.id,
+                        entryInfo: {
+                          ...this.entryInfo,
+                          HuoGuiCode: this.entryInfo.HuoGuiCode,
+                          FaQIaoNo: this.entryInfo.FaQIaoNo,
+                          workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
+                            (item) => ({
+                              workOrderNo: item.workOrderNo,
+                              workOrderId: item._id,
+                              productionOrderNo: item.productionOrderNo,
+                            })
+                          ),
+                        },
+                        palletFinished: true, // 指示整托出库
+                      });
+
+                      entirePalletLoading.close();
+                      
+                      if (entirePalletResponse.code === 200) {
+                        this.entryInfo = {
+                          ...entirePalletResponse.data,
+                          HuoGuiCode: this.entryInfo.HuoGuiCode,
+                          FaQIaoNo: this.entryInfo.FaQIaoNo,
+                        };
+
+                        this.$message.success("整托出库成功");
+
+                        // 清空输入框并聚焦
+                        this.scanForm.barcode = "";
+                        this.$nextTick(() => {
+                          this.$refs.scanInput.focus();
+                        });
+                      } else {
+                        this.$message.error(entirePalletResponse.message);
+                        // 清空输入框并聚焦
+                        this.scanForm.barcode = "";
+                        this.$nextTick(() => {
+                          this.$refs.scanInput.focus();
+                        });
+                      }
+                    } catch (error) {
+                      entirePalletLoading.close();
+                      this.$message.error("整托出库失败：" + error.message);
+                      this.scanForm.barcode = "";
+                      this.$nextTick(() => {
+                        this.$refs.scanInput.focus();
+                      });
+                    }
+                  })
+                  .catch(() => {
+                    this.$message.info("已取消整托出库");
+                  });
+                return;
+              } else {
+                // 清空输入框并聚焦
+                this.scanForm.barcode = "";
+                this.$nextTick(() => {
+                  this.$refs.scanInput.focus();
+                });
+                this.$message.error(response.message);
+                return;
+              }
             }
+
+            loading.close();
+            
+            if (response.mode === "init") {
+              this.$message.success("出库单初始化成功");
+            } else {
+              this.$message.success("托盘扫码出库成功");
+            }
+
+            // 清空输入框并聚焦
+            this.scanForm.barcode = "";
+            this.$nextTick(() => {
+              this.$refs.scanInput.focus();
+            });
 
             // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
             const isCompleted =
@@ -501,111 +638,16 @@ export default {
               }, 1000);
               return;
             }
-          }
-
-          if (response.code !== 200) {
-            // 如果托盘已部分出库，提示用户可以整托出库
-            if (
-              response.message ===
-              "该托盘已部分出库，请使用整托出库功能完成剩余产品出库"
-            ) {
-              this.$confirm(
-                "该托盘已部分出库，是否要完成所有剩余产品的出库？",
-                "提示",
-                {
-                  confirmButtonText: "整托出库",
-                  cancelButtonText: "取消",
-                  type: "warning",
-                }
-              )
-                .then(async () => {
-                  // 用户选择整托出库，调用整托出库API
-                  const entirePalletResponse = await scanPalletOn({
-                    palletCode,
-                    userId: this.$store.state.user.id,
-                    entryInfo: {
-                      ...this.entryInfo,
-                      HuoGuiCode: this.entryInfo.HuoGuiCode,
-                      FaQIaoNo: this.entryInfo.FaQIaoNo,
-                      workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-                        (item) => ({
-                          workOrderNo: item.workOrderNo,
-                          workOrderId: item._id,
-                          productionOrderNo: item.productionOrderNo,
-                        })
-                      ),
-                    },
-                    palletFinished: true, // 指示整托出库
-                  });
-
-                  if (entirePalletResponse.code === 200) {
-                    this.entryInfo = {
-                      ...entirePalletResponse.data,
-                      HuoGuiCode: this.entryInfo.HuoGuiCode,
-                      FaQIaoNo: this.entryInfo.FaQIaoNo,
-                    };
-
-                    this.$message.success("整托出库成功");
-
-                    // 清空输入框并聚焦
-                    this.scanForm.barcode = "";
-                    this.$nextTick(() => {
-                      this.$refs.scanInput.focus();
-                    });
-                  } else {
-                    this.$message.error(entirePalletResponse.message);
-                    // 清空输入框并聚焦
-                    this.scanForm.barcode = "";
-                    this.$nextTick(() => {
-                      this.$refs.scanInput.focus();
-                    });
-                  }
-                })
-                .catch(() => {
-                  this.$message.info("已取消整托出库");
-                });
-              return;
-            } else {
-              // 清空输入框并聚焦
-              this.scanForm.barcode = "";
-              this.$nextTick(() => {
-                this.$refs.scanInput.focus();
-              });
-              this.$message.error(response.message);
-              return;
-            }
-          }
-
-          if (response.mode === "init") {
-            this.$message.success("出库单初始化成功");
           } else {
-            this.$message.success("托盘扫码出库成功");
+            loading.close();
           }
-
-          // 清空输入框并聚焦
+        } catch (error) {
+          loading.close();
+          this.$message.error("处理托盘条码失败：" + error.message);
           this.scanForm.barcode = "";
           this.$nextTick(() => {
             this.$refs.scanInput.focus();
           });
-
-          // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
-          const isCompleted =
-            (response.data.progress && response.data.progress === 100) ||
-            (response.data.outNumber &&
-              response.data.outboundQuantity &&
-              Number(response.data.outNumber) >=
-                Number(response.data.outboundQuantity));
-
-          // 如果已完成，则更新状态为已完成并自动关闭对话框
-          if (isCompleted) {
-            this.dialogVisible = false;
-            setTimeout(() => {
-              this.$message.success("该出库单已完成出库");
-              // 通知父组件刷新数据
-              this.$emit('refresh');
-            }, 1000);
-            return;
-          }
         }
       } catch (error) {
         this.scanForm.barcode = "";
@@ -827,100 +869,121 @@ export default {
     // 处理单个产品条码的方法
     async processSingleProductBarcode(barcode) {
       try {
-        // 调用产品条码提交接口
-        const response = await submitProductBarcode({
-          productBarcode: barcode,
-          userId: this.$store.state.user.id,
-          entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
-          entryInfo: {
-            ...this.entryInfo,
-            HuoGuiCode: this.entryInfo.HuoGuiCode,
-            FaQIaoNo: this.entryInfo.FaQIaoNo,
-            workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-              (item) => ({
-                workOrderNo: item.workOrderNo,
-                workOrderId: item._id,
-                productionOrderNo: item.productionOrderNo,
-              })
-            ),
-            outboundMode: this.entryInfo.outboundMode,
-          },
+        // 添加加载状态
+        const loading = this.$loading({
+          lock: true,
+          text: "处理产品条码中...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
         });
+        
+        try {
+          // 调用产品条码提交接口
+          const response = await submitProductBarcode({
+            productBarcode: barcode,
+            userId: this.$store.state.user.id,
+            entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
+            entryInfo: {
+              ...this.entryInfo,
+              HuoGuiCode: this.entryInfo.HuoGuiCode,
+              FaQIaoNo: this.entryInfo.FaQIaoNo,
+              workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
+                (item) => ({
+                  workOrderNo: item.workOrderNo,
+                  workOrderId: item._id,
+                  productionOrderNo: item.productionOrderNo,
+                })
+              ),
+              outboundMode: this.entryInfo.outboundMode,
+            },
+          });
 
-        if (response.code !== 200) {
-          this.$message.error(response.message);
-          // 清空输入框并聚焦
+          if (response.code !== 200) {
+            loading.close();
+            this.$message.error(response.message);
+            // 清空输入框并聚焦
+            this.productScanForm.barcode = "";
+            this.$nextTick(() => {
+              this.$refs.productScanInput.focus();
+            });
+            return;
+          }
+
+          // 更新出库单信息
+          if (response.data && response.data.entry) {
+            // 保留原有的货柜号和发票号
+            const huoGuiCode = this.entryInfo.HuoGuiCode;
+            const faQIaoNo = this.entryInfo.FaQIaoNo;
+
+            this.entryInfo = {
+              ...response.data.entry,
+              outboundMode: this.entryInfo.outboundMode,
+              HuoGuiCode: response.data.entry.HuoGuiCode || huoGuiCode,
+              FaQIaoNo: response.data.entry.FaQIaoNo || faQIaoNo,
+            };
+
+            // 确保托盘数量正确显示
+            if (
+              this.entryInfo.entryItems &&
+              this.entryInfo.entryItems.length > 0
+            ) {
+              this.entryInfo.palletCount = this.entryInfo.entryItems.length;
+            }
+
+            // 如果返回的数据没有包含货柜号和发票号，需要再次更新这两个字段
+            if (
+              !response.data.entry.HuoGuiCode ||
+              !response.data.entry.FaQIaoNo
+            ) {
+              await updateData("warehouse_ontry", {
+                query: { _id: this.entryInfo._id },
+                update: {
+                  HuoGuiCode: huoGuiCode,
+                  FaQIaoNo: faQIaoNo,
+                },
+              });
+            }
+
+            // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
+            const entryData = response.data.entry;
+            const isCompleted =
+              (response.data.progress && response.data.progress === 100) ||
+              (entryData.progress && entryData.progress === 100) ||
+              (entryData.outNumber &&
+                entryData.outboundQuantity &&
+                Number(entryData.outNumber) >=
+                  Number(entryData.outboundQuantity));
+
+            // 如果已完成，则更新状态为已完成并自动关闭对话框
+            if (isCompleted) {
+              loading.close();
+              this.dialogVisible = false;
+              setTimeout(() => {
+                this.$message.success("该出库单已完成出库");
+                // 通知父组件刷新数据
+                this.$emit('refresh');
+              }, 1000);
+              return;
+            }
+          }
+
+          loading.close();
+          
+          // 清空输入框
           this.productScanForm.barcode = "";
           this.$nextTick(() => {
             this.$refs.productScanInput.focus();
           });
-          return;
+
+          this.$message.success("产品条码出库成功");
+        } catch (error) {
+          loading.close();
+          this.$message.error("处理产品条码失败：" + error.message);
+          this.productScanForm.barcode = "";
+          this.$nextTick(() => {
+            this.$refs.productScanInput.focus();
+          });
         }
-
-        // 更新出库单信息
-        if (response.data && response.data.entry) {
-          // 保留原有的货柜号和发票号
-          const huoGuiCode = this.entryInfo.HuoGuiCode;
-          const faQIaoNo = this.entryInfo.FaQIaoNo;
-
-          this.entryInfo = {
-            ...response.data.entry,
-            outboundMode: this.entryInfo.outboundMode,
-            HuoGuiCode: response.data.entry.HuoGuiCode || huoGuiCode,
-            FaQIaoNo: response.data.entry.FaQIaoNo || faQIaoNo,
-          };
-
-          // 确保托盘数量正确显示
-          if (
-            this.entryInfo.entryItems &&
-            this.entryInfo.entryItems.length > 0
-          ) {
-            this.entryInfo.palletCount = this.entryInfo.entryItems.length;
-          }
-
-          // 如果返回的数据没有包含货柜号和发票号，需要再次更新这两个字段
-          if (
-            !response.data.entry.HuoGuiCode ||
-            !response.data.entry.FaQIaoNo
-          ) {
-            await updateData("warehouse_ontry", {
-              query: { _id: this.entryInfo._id },
-              update: {
-                HuoGuiCode: huoGuiCode,
-                FaQIaoNo: faQIaoNo,
-              },
-            });
-          }
-
-          // 检查是否已完成出库（进度为100%或已出库数量等于应出库数量）
-          const entryData = response.data.entry;
-          const isCompleted =
-            (response.data.progress && response.data.progress === 100) ||
-            (entryData.progress && entryData.progress === 100) ||
-            (entryData.outNumber &&
-              entryData.outboundQuantity &&
-              Number(entryData.outNumber) >=
-                Number(entryData.outboundQuantity));
-
-          // 如果已完成，则更新状态为已完成并自动关闭对话框
-          if (isCompleted) {
-            this.dialogVisible = false;
-            setTimeout(() => {
-              this.$message.success("该出库单已完成出库");
-              // 通知父组件刷新数据
-              this.$emit('refresh');
-            }, 1000);
-            return;
-          }
-        }
-
-        // 清空输入框
-        this.productScanForm.barcode = "";
-        this.$nextTick(() => {
-          this.$refs.productScanInput.focus();
-        });
-
-        this.$message.success("产品条码出库成功");
       } catch (error) {
         console.error("处理单个产品条码失败:", error);
         // 清空输入框并聚焦

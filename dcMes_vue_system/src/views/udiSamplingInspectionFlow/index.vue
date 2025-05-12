@@ -236,14 +236,22 @@
         <el-table-column label="操作" width="120" fixed="right">
           <template slot-scope="scope">
             <el-button
-              v-if="scope.row.samplingStatus !== 'VOIDED' && $checkPermission('UDI抽检作废')"
+              v-if="
+                scope.row.samplingStatus !== 'VOIDED' &&
+                $checkPermission('UDI抽检作废')
+              "
               type="text"
               size="mini"
               @click="handleVoid(scope.row)"
             >
               作废
             </el-button>
-            <el-button type="text" size="mini" @click="handleDetail(scope.row)" v-if="$checkPermission('UDI抽检详情')">
+            <el-button
+              type="text"
+              size="mini"
+              @click="handleDetail(scope.row)"
+              v-if="$checkPermission('UDI抽检详情')"
+            >
               详情
             </el-button>
           </template>
@@ -326,6 +334,22 @@
               v-model="currentBarcodeData.materialName"
               readonly
             ></el-input>
+          </el-form-item>
+          <el-form-item label="流程状态">
+            <el-tag
+              :type="
+                flowStatus === 'COMPLETED'
+                  ? 'success'
+                  : flowStatus === 'ABNORMAL'
+                  ? 'danger'
+                  : 'warning'
+              "
+            >
+              {{ getFlowStatusText(flowStatus) }}
+            </el-tag>
+          </el-form-item>
+          <el-form-item label="最后完成节点" v-if="lastCompletedNode">
+            <span>{{ getNodeName(lastCompletedNode) }}</span>
           </el-form-item>
 
           <!-- 条码验证部分 -->
@@ -448,6 +472,48 @@
               <div class="detail-row">
                 <div class="detail-label">物料名称</div>
                 <div class="detail-value">{{ scope.row.materialName }}</div>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 添加流程状态信息 -->
+        <el-table
+          :data="[currentDetail]"
+          border
+          style="width: 100%; margin-bottom: 20px"
+          :show-header="false"
+          v-if="currentDetail.flowStatus"
+        >
+          <el-table-column prop="flowStatus" label="流程状态">
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">流程状态</div>
+                <div class="detail-value">
+                  <el-tag
+                    :type="
+                      scope.row.flowStatus === 'COMPLETED'
+                        ? 'success'
+                        : 'danger'
+                    "
+                  >
+                    {{ getFlowStatusText(scope.row.flowStatus) }}
+                  </el-tag>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="lastCompletedNode"
+            label="最后完成节点"
+            v-if="currentDetail.lastCompletedNode"
+          >
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">最后完成节点</div>
+                <div class="detail-value">
+                  {{ getNodeName(scope.row.lastCompletedNode) }}
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -776,6 +842,10 @@ export default {
       },
       detailDialogVisible: false,
       currentDetail: null,
+
+      // 新增字段 - 流程状态和最后完成节点
+      flowStatus: "",
+      lastCompletedNode: null,
 
       // 摄像头相关
       cameraDialog: false,
@@ -2189,10 +2259,52 @@ export default {
         const flowresult = await getData("material_process_flow", {
           query: { barcode: this.scanForm.barcode },
         });
+
         if (flowresult.code === 200 && flowresult.data.length > 0) {
-          if (flowresult.data[0].status != "COMPLETED") {
-            this.$message.error("该条码产品条码未完成工序");
+          // 保存流程状态信息
+          const flowData = flowresult.data[0];
+          this.flowStatus = flowData.status;
+
+          // 查找最后一个完成的节点
+          if (flowData.processNodes && flowData.processNodes.length > 0) {
+            // 按照完成时间降序排序，找出最后完成的节点
+            const completedNodes = flowData.processNodes
+              .filter(
+                (node) => node.status === "COMPLETED" && node.processStepId
+              )
+              .sort(
+                (a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0)
+              );
+
+            this.lastCompletedNode =
+              completedNodes.length > 0 ? completedNodes[0] : null;
+          }
+
+          if (flowData.status != "COMPLETED") {
+            // 显示未完成工序的提示，但允许继续操作
+            await this.$confirm(
+              `该条码产品尚未完成全部工序，当前状态：${this.getFlowStatusText(
+                flowData.status
+              )}，最后完成节点：${this.getNodeName(
+                this.lastCompletedNode
+              )}，是否继续抽检？`,
+              "产品未完成提示",
+              {
+                confirmButtonText: "继续抽检",
+                cancelButtonText: "取消",
+                type: "warning",
+              }
+            ).catch(() => {
+              // 用户取消，重置表单
+              this.scanForm.barcode = "";
+              this.$refs.barcodeInput.focus();
+              throw new Error("cancel");
+            });
+            // 用户取消，重置表单
+            this.scanForm.barcode = "";
+            this.$refs.barcodeInput.focus();
             return;
+            // 用户选择继续，不返回，继续执行后面的代码
           }
         }
 
@@ -2434,6 +2546,19 @@ export default {
           },
           // 添加照片URL
           photoUrl: photoData ? photoData.url : "",
+          // 添加流程状态和最后完成节点信息
+          flowStatus: this.flowStatus,
+          lastCompletedNodeInfo: this.lastCompletedNode
+            ? {
+                nodeId: this.lastCompletedNode.nodeId,
+                nodeType: this.lastCompletedNode.nodeType,
+                processName: this.lastCompletedNode.processName,
+                processCode: this.lastCompletedNode.processCode,
+                materialName: this.lastCompletedNode.materialName,
+                materialCode: this.lastCompletedNode.materialCode,
+                endTime: this.lastCompletedNode.endTime,
+              }
+            : null,
         };
 
         // 调用API提交数据
@@ -2487,10 +2612,49 @@ export default {
       this.handleVoid(row, callback);
     },
     handleDetail(row) {
-      // 处理详情逻辑
-      console.log("详情:", row);
       this.currentDetail = row;
       this.detailDialogVisible = true;
+
+      // 获取流程状态和最后完成节点信息
+      this.getFlowStatusForDetail(row.barcode);
+    },
+
+    // 获取详情的流程状态信息
+    async getFlowStatusForDetail(barcode) {
+      try {
+        const flowResult = await getData("material_process_flow", {
+          query: { barcode: barcode },
+        });
+
+        if (flowResult.code === 200 && flowResult.data.length > 0) {
+          const flowData = flowResult.data[0];
+
+          // 添加流程状态到当前详情中
+          this.$set(this.currentDetail, "flowStatus", flowData.status);
+
+          console.log(flowData.processNodes, "flowData.processNodes");
+          // 查找最后一个完成的节点
+          if (flowData.processNodes && flowData.processNodes.length > 0) {
+            const completedNodes = flowData.processNodes
+              .filter(
+                (node) => node.status === "COMPLETED" && node.processStepId
+              )
+              .sort(
+                (a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0)
+              );
+
+            if (completedNodes.length > 0) {
+              this.$set(
+                this.currentDetail,
+                "lastCompletedNode",
+                completedNodes[0]
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error("获取流程状态失败:", error);
+      }
     },
     // 获取抽检状态类型
     getSamplingStatusType(status) {
@@ -2510,6 +2674,34 @@ export default {
         VOIDED: "已作废",
       };
       return statusMap[status] || status;
+    },
+
+    // 获取流程状态文本
+    getFlowStatusText(status) {
+      const statusMap = {
+        PENDING: "待处理",
+        IN_PROCESS: "进行中",
+        COMPLETED: "已完成",
+        ABNORMAL: "异常",
+      };
+      return statusMap[status] || status;
+    },
+
+    // 获取节点名称
+    getNodeName(node) {
+      if (!node) return "";
+
+      if (node.nodeType === "PROCESS_STEP") {
+        return `${node.processName || ""} ${
+          node.processCode ? `(${node.processCode})` : ""
+        }`;
+      } else if (node.nodeType === "MATERIAL") {
+        return `${node.materialName || ""} ${
+          node.materialCode ? `(${node.materialCode})` : ""
+        }`;
+      }
+
+      return "";
     },
 
     // 获取验证提示信息
@@ -2582,6 +2774,9 @@ export default {
     handleDetail(row) {
       this.currentDetail = row;
       this.detailDialogVisible = true;
+
+      // 获取流程状态和最后完成节点信息
+      this.getFlowStatusForDetail(row.barcode);
     },
 
     // 打开摄像头对话框
@@ -3640,6 +3835,25 @@ export default {
 .detail-value {
   flex: 1;
   word-break: break-all;
+}
+
+.flow-status-info {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #f5f7fa;
+}
+
+.flow-status-tag {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.last-node-info {
+  margin-top: 8px;
+  color: #606266;
+  font-size: 14px;
 }
 
 .photo-section {

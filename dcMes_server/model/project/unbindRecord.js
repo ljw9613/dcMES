@@ -33,6 +33,10 @@ const UnbindRecordSchema = new Schema(
         originalBarcode: String,
       },
     ],
+    operationType: {
+      type: String,
+      default: "UNBIND",
+    },
     // 解绑原因
     reason: {
       type: String,

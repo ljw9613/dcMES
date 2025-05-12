@@ -1959,6 +1959,25 @@ class MaterialProcessFlowService {
 
       const updateField = type === "input" ? "inputQuantity" : "outputQuantity";
 
+      // 扣减情况下，先查询当前数量，确保不会小于0
+      if (quantity < 0) {
+        const currentWorkOrder = await mongoose
+          .model("production_plan_work_order")
+          .findById(workOrderId);
+        
+        if (!currentWorkOrder) {
+          console.log(`未找到工单(ID: ${workOrderId})`);
+          return null;
+        }
+        
+        const currentValue = currentWorkOrder[updateField] || 0;
+        // 确保扣减后不小于0
+        if (currentValue + quantity < 0) {
+          quantity = -currentValue; // 最多扣减到0
+          console.log(`工单(ID: ${workOrderId})${type === "input" ? "投入" : "产出"}量不足，最多扣减到0`);
+        }
+      }
+
       const workOrder = await mongoose
         .model("production_plan_work_order")
         .findOneAndUpdate(
