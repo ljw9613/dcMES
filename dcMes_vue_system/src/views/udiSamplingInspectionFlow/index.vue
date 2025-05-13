@@ -16,10 +16,28 @@
       <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
         <el-row :gutter="20">
           <el-col :span="6">
+            <el-form-item label="主条码">
+              <el-input
+                v-model="searchForm.barcode"
+                placeholder="请输入主条码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
             <el-form-item label="产品编码">
               <el-input
                 v-model="searchForm.materialCode"
                 placeholder="请输入产品编码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="销售单号">
+              <el-input
+                v-model="searchForm.saleOrderNo"
+                placeholder="请输入销售单号"
                 clearable
               ></el-input>
             </el-form-item>
@@ -37,15 +55,9 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
-            <el-form-item label="销售单号">
-              <el-input
-                v-model="searchForm.saleOrderNo"
-                placeholder="请输入销售单号"
-                clearable
-              ></el-input>
-            </el-form-item>
-          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="抽检状态">
               <el-select
@@ -760,6 +772,7 @@ export default {
   data() {
     return {
       searchForm: {
+        barcode: "",
         materialCode: "",
         isQualified: "",
         saleOrderNo: "",
@@ -1274,6 +1287,7 @@ export default {
         if (value !== "" && value !== null && value !== undefined) {
           // 修改这里的判断条件
           switch (key) {
+            case "barcode":
             case "materialCode":
             case "saleOrderNo":
             case "batchNo":
@@ -1313,6 +1327,7 @@ export default {
     resetForm() {
       this.$refs.searchForm.resetFields();
       this.searchForm = {
+        barcode: "",
         materialCode: "",
         isQualified: "",
         saleOrderNo: "",

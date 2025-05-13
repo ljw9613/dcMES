@@ -1615,6 +1615,11 @@ class MaterialProcessFlowService {
           node.requireScan
       );
 
+      // 如果有需要扫码的物料，必须提供componentScans
+      if (materialNodes.length > 0 && (!componentScans || componentScans.length === 0)) {
+        throw new Error(`该工序需要扫描${materialNodes.length}个物料，但未提供扫码信息`);
+      }
+
       // 如果提供了 componentScans，验证扫码数量是否匹配
       if (componentScans && componentScans.length > 0) {
         if (componentScans.length !== materialNodes.length) {

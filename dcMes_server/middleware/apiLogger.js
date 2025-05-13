@@ -38,6 +38,10 @@ const apiLogger = (serviceName) => {
     console.log(`[${serviceName}] 提取的token:`, token);
     console.log(`[${serviceName}] token长度:`, token.length);
     
+    // 检查请求路径是否为登录路由或不需要验证的路由
+    const isLoginRoute = req.path.includes("/login") || req.path.includes("/auth");
+    const isPublicRoute = req.path.includes("/public") || req.path.includes("/health") || req.path.includes("/ping");
+    
     if (token && token.length > 0) {
       try {
         console.log(`[${serviceName}] 正在验证token...`);
@@ -54,8 +58,73 @@ const apiLogger = (serviceName) => {
         roleId = decoded.roleId;
       } catch (err) {
         console.error(`[${serviceName}] Token验证失败:`, err.message);
-        // 不阻止请求继续，只是记录错误
+        
+        // 如果不是登录或公开路由，则返回401错误
+        if (!isLoginRoute && !isPublicRoute) {
+          // 记录验证失败日志
+          try {
+            const logEntry = new ApiLog({
+              endpoint: req.originalUrl || req.url,
+              method: req.method,
+              serviceName: serviceName,
+              requestParams: req.params,
+              requestQuery: req.query,
+              requestBody: req.body,
+              responseStatus: 401,
+              responseBody: { success: false, message: "Token验证失败，请重新登录", code: 401 },
+              success: false,
+              executionTime: Date.now() - startTime,
+              errorMessage: err.message,
+              userIp: req.ip || req.connection.remoteAddress,
+              timestamp: new Date()
+            });
+            
+            await logEntry.save();
+          } catch (logErr) {
+            console.error(`[${serviceName}] 记录API日志时出错:`, logErr);
+          }
+          
+          // 返回401错误，通知前端重新登录
+          return res.status(401).json({
+            success: false,
+            message: "Token验证失败，请重新登录",
+            code: 401
+          });
+        }
       }
+    } else if (!isLoginRoute && !isPublicRoute) {
+      // 如果非公开路由且没有提供token，返回401错误
+      console.error(`[${serviceName}] 未提供Token`);
+      
+      // 记录未提供Token的日志
+      try {
+        const logEntry = new ApiLog({
+          endpoint: req.originalUrl || req.url,
+          method: req.method,
+          serviceName: serviceName,
+          requestParams: req.params,
+          requestQuery: req.query,
+          requestBody: req.body,
+          responseStatus: 401,
+          responseBody: { success: false, message: "未提供授权Token，请登录", code: 401 },
+          success: false,
+          executionTime: Date.now() - startTime,
+          errorMessage: "未提供授权Token",
+          userIp: req.ip || req.connection.remoteAddress,
+          timestamp: new Date()
+        });
+        
+        await logEntry.save();
+      } catch (logErr) {
+        console.error(`[${serviceName}] 记录API日志时出错:`, logErr);
+      }
+      
+      // 返回401错误
+      return res.status(401).json({
+        success: false,
+        message: "未提供授权Token，请登录",
+        code: 401
+      });
     }
 
     // 请求处理完成后记录日志
