@@ -1616,8 +1616,13 @@ class MaterialProcessFlowService {
       );
 
       // 如果有需要扫码的物料，必须提供componentScans
-      if (materialNodes.length > 0 && (!componentScans || componentScans.length === 0)) {
-        throw new Error(`该工序需要扫描${materialNodes.length}个物料，但未提供扫码信息`);
+      if (
+        materialNodes.length > 0 &&
+        (!componentScans || componentScans.length === 0)
+      ) {
+        throw new Error(
+          `该工序需要扫描${materialNodes.length}个物料，但未提供扫码信息`
+        );
       }
 
       // 如果提供了 componentScans，验证扫码数量是否匹配
@@ -1969,17 +1974,21 @@ class MaterialProcessFlowService {
         const currentWorkOrder = await mongoose
           .model("production_plan_work_order")
           .findById(workOrderId);
-        
+
         if (!currentWorkOrder) {
           console.log(`未找到工单(ID: ${workOrderId})`);
           return null;
         }
-        
+
         const currentValue = currentWorkOrder[updateField] || 0;
         // 确保扣减后不小于0
         if (currentValue + quantity < 0) {
           quantity = -currentValue; // 最多扣减到0
-          console.log(`工单(ID: ${workOrderId})${type === "input" ? "投入" : "产出"}量不足，最多扣减到0`);
+          console.log(
+            `工单(ID: ${workOrderId})${
+              type === "input" ? "投入" : "产出"
+            }量不足，最多扣减到0`
+          );
         }
       }
 
@@ -3823,6 +3832,71 @@ class MaterialProcessFlowService {
       };
     } catch (error) {
       console.error("物料替换失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 初始化产品条码 - 删除产品流程记录并更新工单数量
+   * @param {String} barcode - 产品条码
+   * @param {String} userId - 操作用户ID
+   * @returns {Object} 处理结果
+   */
+  static async initializeProduct(barcode, userId) {
+    try {
+      // 1. 查找产品流程记录
+      const flowRecord = await MaterialProcessFlow.findOne({ barcode });
+      if (!flowRecord) {
+        throw new Error(`未找到条码 ${barcode} 的流程记录`);
+      }
+
+      // 2. 保存相关信息，用于后续操作
+      const workOrderId = flowRecord.productionPlanWorkOrderId;
+      const status = flowRecord.status;
+      const progress = flowRecord.progress;
+      const materialName = flowRecord.materialName;
+      const materialCode = flowRecord.materialCode;
+
+      // 3. 根据产品状态更新工单投入输出数量
+      if (workOrderId) {
+        // 如果产品状态为"已完成"，扣减1个产出量
+        if (status === "COMPLETED") {
+          await this.updateWorkOrderQuantity(
+            workOrderId.toString(),
+            "output",
+            -1
+          );
+        }
+        if (progress > 0) {
+          await this.updateWorkOrderQuantity(
+            workOrderId.toString(),
+            "input",
+            -1
+          );
+        }
+      }
+
+      // 4. 删除流程记录
+      await MaterialProcessFlow.deleteOne({ _id: flowRecord._id });
+
+      // 5. 记录操作日志
+      console.log(
+        `用户 ${userId} 初始化产品 ${barcode} (${materialCode} - ${materialName})`
+      );
+
+      return {
+        success: true,
+        message: `成功初始化产品条码 ${barcode}`,
+        detail: {
+          barcode,
+          materialCode,
+          materialName,
+          status: status,
+          workOrderId: workOrderId,
+        },
+      };
+    } catch (error) {
+      console.error("初始化产品条码失败:", error);
       throw error;
     }
   }

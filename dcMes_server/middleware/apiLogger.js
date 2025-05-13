@@ -39,7 +39,7 @@ const apiLogger = (serviceName) => {
     console.log(`[${serviceName}] token长度:`, token.length);
     
     // 检查请求路径是否为登录路由或不需要验证的路由
-    const isLoginRoute = req.path.includes("/login") || req.path.includes("/auth");
+    const isLoginRoute = req.path.includes("/login") || req.path.includes("/auth") || req.path.includes("/api/v1/user/info");
     const isPublicRoute = req.path.includes("/public") || req.path.includes("/health") || req.path.includes("/ping");
     
     if (token && token.length > 0) {

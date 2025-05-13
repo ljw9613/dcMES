@@ -87,3 +87,12 @@ export function replaceComponent(data) {
     })
 }
 
+// 初始化产品条码
+export function initializeProduct(data) {
+    return request({
+        url: '/materialProcessFlow/initializeProduct',
+        method: 'post',
+        data
+    })
+}
+

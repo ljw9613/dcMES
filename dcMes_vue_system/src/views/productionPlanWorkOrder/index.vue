@@ -732,6 +732,9 @@ export default {
         req.sort = { planStartTime: -1 };
         req.count = true;
 
+        // 清空数据缓存，确保获取最新数据
+        this.clearQuantityCache();
+        
         const result = await getData("production_plan_work_order", req);
         this.tableList = result.data;
         this.total = result.countnum;
@@ -869,7 +872,7 @@ export default {
       this.fetchData(); // 获取数据
     },
 
-    // 选择项改变
+    // 表格多选事件
     handleSelectionChange(selection) {
       this.selection = selection;
     },
@@ -893,6 +896,8 @@ export default {
             await removeData("production_plan_work_order", {
               query: { _id: row._id },
             });
+            // 清除该行的缓存数据
+            this.clearQuantityCache(row._id);
             this.$message.success("删除成功");
             this.fetchData();
           } catch (error) {
@@ -903,6 +908,30 @@ export default {
         .catch(() => {
           this.$message.info("已取消删除");
         });
+    },
+
+    // 编辑按钮点击事件
+    async handleEdit(row) {
+      this.listLoading = true;
+      try {
+        // 从服务器获取最新数据，避免使用缓存数据
+        const result = await getData("production_plan_work_order", {
+          query: { _id: row._id }
+        });
+        
+        if (result.data && result.data.length > 0) {
+          this.dialogStatus = "edit";
+          this.dataForm = JSON.parse(JSON.stringify(result.data[0]));
+          this.dialogFormVisible = true;
+        } else {
+          this.$message.error("获取最新工单数据失败");
+        }
+      } catch (error) {
+        console.error("获取工单详情失败:", error);
+        this.$message.error("获取工单详情失败");
+      } finally {
+        this.listLoading = false;
+      }
     },
 
     // 提交表单
@@ -923,10 +952,17 @@ export default {
           // 更新时添加修改人信息
           formData.updateBy = this.$store.getters.name;
           formData.updateAt = new Date();
+          //删除投入量和产出量的修改
+          delete formData.inputQuantity;
+          delete formData.outputQuantity;
+
           await updateData("production_plan_work_order", {
             query: { _id: formData._id },
             update: formData,
           });
+          
+          // 清除该行的数据缓存，确保下次获取最新数据
+          this.clearQuantityCache(formData._id);
           this.$message.success("更新成功");
         }
         this.fetchData();
@@ -941,18 +977,6 @@ export default {
       this.dialogStatus = "create";
       this.dataForm = {};
       this.dialogFormVisible = true;
-    },
-
-    // 编辑按钮点击事件
-    handleEdit(row) {
-      console.log(row, "this.row");
-      this.dialogStatus = "edit";
-      this.dataForm = JSON.parse(JSON.stringify(row));
-      console.log(this.dataForm, "this.dataForm");
-      this.$nextTick(() => {
-        console.log(this.dataForm);
-        this.dialogFormVisible = true;
-      });
     },
 
     // 批量删除按钮点击事件
@@ -977,6 +1001,8 @@ export default {
             await removeData("production_plan_work_order", {
               query: { _id: { $in: ids } },
             });
+            // 清除所有被删除行的缓存数据
+            ids.forEach(id => this.clearQuantityCache(id));
             this.$message.success("批量删除成功");
             this.fetchData();
           } catch (error) {
@@ -985,11 +1011,6 @@ export default {
           }
         })
         .catch(() => {});
-    },
-
-    // 表格多选事件
-    handleSelectionChange(selection) {
-      this.selection = selection;
     },
 
     // 查看报废条码详情

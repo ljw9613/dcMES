@@ -516,9 +516,35 @@
             </template>
           </el-table-column>
           <el-table-column
+            prop="productStatus"
+            label="产品状态"
+            v-if="currentDetail.productStatus"
+          >
+            <template slot-scope="scope">
+              <div class="detail-row">
+                <div class="detail-label">产品状态</div>
+                <div class="detail-value">
+                  <el-tag
+                    :type="getProductStatusType(scope.row.productStatus)"
+                  >
+                    {{ getProductStatusText(scope.row.productStatus) }}
+                  </el-tag>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-table
+          :data="[currentDetail]"
+          border
+          style="width: 100%; margin-bottom: 20px"
+          :show-header="false"
+          v-if="currentDetail.lastCompletedNode"
+        >
+          <el-table-column
             prop="lastCompletedNode"
             label="最后完成节点"
-            v-if="currentDetail.lastCompletedNode"
           >
             <template slot-scope="scope">
               <div class="detail-row">
@@ -2280,6 +2306,15 @@ export default {
           const flowData = flowresult.data[0];
           this.flowStatus = flowData.status;
 
+          // 检查产品状态是否为报废
+          if (flowData.productStatus === "SCRAP") {
+            this.$message.error("该产品已报废，不可进行抽检");
+            this.scanForm.barcode = "";
+            this.$refs.barcodeInput.focus();
+            this.isProcessingBarcode = false;
+            return;
+          }
+
           // 查找最后一个完成的节点
           if (flowData.processNodes && flowData.processNodes.length > 0) {
             // 按照完成时间降序排序，找出最后完成的节点
@@ -2302,7 +2337,7 @@ export default {
                 flowData.status
               )}，最后完成节点：${this.getNodeName(
                 this.lastCompletedNode
-              )}，是否继续抽检？`,
+              )}，不可以进行抽检`,
               "产品未完成提示",
               {
                 confirmButtonText: "继续抽检",
@@ -2393,6 +2428,14 @@ export default {
 
         if (result2.code !== 200 || result2.data.length === 0) {
           this.$message.error("未找到该产品条码生产记录");
+          this.scanForm.barcode = "";
+          this.$refs.barcodeInput.focus();
+          return;
+        }
+
+        // 再次检查产品状态是否为报废
+        if (result2.code === 200 && result2.data.length > 0 && result2.data[0].productStatus === "SCRAP") {
+          this.$message.error("该产品已报废，不可进行抽检");
           this.scanForm.barcode = "";
           this.$refs.barcodeInput.focus();
           return;
@@ -2646,6 +2689,9 @@ export default {
 
           // 添加流程状态到当前详情中
           this.$set(this.currentDetail, "flowStatus", flowData.status);
+          
+          // 添加产品状态到当前详情中
+          this.$set(this.currentDetail, "productStatus", flowData.productStatus);
 
           console.log(flowData.processNodes, "flowData.processNodes");
           // 查找最后一个完成的节点
@@ -2704,7 +2750,7 @@ export default {
 
     // 获取节点名称
     getNodeName(node) {
-      if (!node) return "";
+      if (!node) return "无";
 
       if (node.nodeType === "PROCESS_STEP") {
         return `${node.processName || ""} ${
@@ -3090,6 +3136,24 @@ export default {
         this.stopCamera();
         this.cameraDialog = false;
       }
+    },
+    getProductStatusType(status) {
+      const statusMap = {
+        NORMAL: "success",
+        REPAIRING: "warning",
+        SCRAP: "danger",
+      };
+      return statusMap[status] || "info";
+    },
+
+    // 获取产品状态文本
+    getProductStatusText(status) {
+      const statusMap = {
+        NORMAL: "正常",
+        REPAIRING: "维修中",
+        SCRAP: "已报废",
+      };
+      return statusMap[status] || status;
     },
   },
   created() {

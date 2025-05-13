@@ -89,16 +89,43 @@ router.post('/api/v1/user/login', async (req, res, next) => {
 
 //管理后台获得登录信息
 router.post('/api/v1/user/info', async (reqs, res, next) => {
-    console.log(reqs.body)
-    var user = await user_login.findOne({
-        _id: reqs.body.id
-    }).populate({ path: 'role', populate: { path: 'menuList' } });
-    console.log(user)
-    if (user !== null) {
-        res.json({
-            code: 200,
-            data: user
-        })
+    try {
+        console.log('用户信息查询请求体:', reqs.body);
+        console.log('请求头:', reqs.headers);
+        
+        // 检查是否有用户ID
+        if (!reqs.body.id) {
+            console.error('缺少用户ID参数');
+            return res.status(400).json({
+                code: 400,
+                message: '缺少必要的用户ID参数'
+            });
+        }
+        
+        var user = await user_login.findOne({
+            _id: reqs.body.id
+        }).populate({ path: 'role', populate: { path: 'menuList' } });
+        
+        console.log('查询到的用户信息:', user);
+        
+        if (user !== null) {
+            res.json({
+                code: 200,
+                data: user
+            });
+        } else {
+            console.error('未找到用户信息:', reqs.body.id);
+            res.status(404).json({
+                code: 404,
+                message: '未找到用户信息'
+            });
+        }
+    } catch (error) {
+        console.error('获取用户信息出错:', error);
+        res.status(500).json({
+            code: 500,
+            message: '服务器内部错误'
+        });
     }
 })
 

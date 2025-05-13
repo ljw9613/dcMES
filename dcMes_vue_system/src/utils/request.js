@@ -39,23 +39,39 @@ const handleJWTError = (message) => {
 service.interceptors.request.use(
   config => {
     // do something before request is sent
-
-    if (store.getters.token) {
-      const token = store.getters.token;
-      // 添加调试信息
-      console.log('当前token:', token);
-      console.log('token类型:', typeof token);
-      console.log('token长度:', token.length);
-      
+    const token = store.getters.token;
+    
+    // 添加调试信息
+    console.log('请求URL:', config.url);
+    console.log('当前token:', token);
+    
+    if (token) {
       // 确保token存在且有效再添加到请求头中
-      if (token && typeof token === 'string' && token.trim() !== '') {
-        config.headers.common["Authorization"] = "Bearer " + token;
-        // 打印完整的请求头
-        console.log('请求头:', config.headers);
+      if (typeof token === 'string' && token.trim() !== '') {
+        // 添加Bearer前缀，确保格式正确
+        config.headers.common["Authorization"] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        console.log('添加到请求头的token:', config.headers.common["Authorization"]);
       }
+      
+      // 为user/info接口特殊处理
+      if (config.url && config.url.includes('/api/v1/user/info')) {
+        // 确保请求体中包含用户ID
+        if (!config.data || !config.data.id) {
+          const userId = store.getters.id;
+          console.log('为user/info添加用户ID:', userId);
+          config.data = config.data || {};
+          config.data.id = userId;
+        }
+      }
+      
       // 添加用户名到请求头
       config.headers["username"] = store.getters.id || "onLogin";
     }
+    
+    // 打印完整的请求头和请求体
+    console.log('请求头:', JSON.stringify(config.headers));
+    console.log('请求体:', JSON.stringify(config.data));
+    
     return config;
   },
   error => {

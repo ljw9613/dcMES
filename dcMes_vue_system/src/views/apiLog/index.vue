@@ -102,7 +102,11 @@
       <!-- 接口路径 -->
       <el-table-column align="center" label="接口路径" min-width="180">
         <template slot-scope="scope">
-          <el-tooltip :content="scope.row.endpoint" placement="top" effect="light">
+          <el-tooltip
+            :content="scope.row.endpoint"
+            placement="top"
+            effect="light"
+          >
             <span class="endpoint-text">{{ scope.row.endpoint }}</span>
           </el-tooltip>
         </template>
@@ -111,10 +115,7 @@
       <!-- 请求方法 -->
       <el-table-column align="center" label="请求方法" width="100">
         <template slot-scope="scope">
-          <el-tag 
-            :type="getMethodTagType(scope.row.method)" 
-            size="medium"
-          >
+          <el-tag :type="getMethodTagType(scope.row.method)" size="medium">
             {{ scope.row.method }}
           </el-tag>
         </template>
@@ -123,7 +124,7 @@
       <!-- 服务名称 -->
       <el-table-column align="center" label="服务名称" min-width="150">
         <template slot-scope="scope">
-          {{ scope.row.serviceName || '未指定' }}
+          {{ scope.row.serviceName || "未指定" }}
         </template>
       </el-table-column>
 
@@ -139,7 +140,7 @@
       <el-table-column align="center" label="状态码" width="100">
         <template slot-scope="scope">
           <span :class="getStatusCodeClass(scope.row.responseStatus)">
-            {{ scope.row.responseStatus || '-' }}
+            {{ scope.row.responseStatus || "-" }}
           </span>
         </template>
       </el-table-column>
@@ -148,7 +149,7 @@
       <el-table-column align="center" label="执行时间(ms)" width="120">
         <template slot-scope="scope">
           <span :class="getExecutionTimeClass(scope.row.executionTime)">
-            {{ scope.row.executionTime || '-' }}
+            {{ scope.row.executionTime || "-" }}
           </span>
         </template>
       </el-table-column>
@@ -157,13 +158,13 @@
       <el-table-column align="center" label="用户" min-width="120">
         <template slot-scope="scope">
           <div v-if="scope.row.userId">
-            {{ getUserName(scope.row.userId) }}
+            {{ scope.row.userId && scope.row.userId.userName }}
           </div>
           <div v-else>
             <el-tag size="small" type="info">匿名访问</el-tag>
           </div>
           <div class="user-ip text-muted">
-            IP: {{ scope.row.userIp || '未知' }}
+            IP: {{ scope.row.userIp || "未知" }}
           </div>
         </template>
       </el-table-column>
@@ -172,7 +173,9 @@
       <el-table-column align="center" label="请求时间" min-width="160">
         <template slot-scope="scope">
           <i class="el-icon-time" />
-          <span>{{ scope.row.timestamp | parseTime("{y}-{m}-{d} {h}:{i}:{s}") }}</span>
+          <span>{{
+            scope.row.timestamp | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+          }}</span>
         </template>
       </el-table-column>
 
@@ -225,23 +228,25 @@
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="服务名称">
-              {{ currentLog.serviceName || '未指定' }}
+              {{ currentLog.serviceName || "未指定" }}
             </el-descriptions-item>
             <el-descriptions-item label="状态">
               <el-tag v-if="currentLog.success" type="success">成功</el-tag>
               <el-tag v-else type="danger">失败</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="状态码">
-              {{ currentLog.responseStatus || '-' }}
+              {{ currentLog.responseStatus || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="执行时间">
-              {{ currentLog.executionTime || '-' }} ms
+              {{ currentLog.executionTime || "-" }} ms
             </el-descriptions-item>
             <el-descriptions-item label="用户ID">
-              {{ currentLog.userId || '匿名访问' }}
+              {{
+                (currentLog.userId && currentLog.userId.userName) || "匿名访问"
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="用户IP">
-              {{ currentLog.userIp || '未知' }}
+              {{ currentLog.userIp || "未知" }}
             </el-descriptions-item>
             <el-descriptions-item label="请求时间" :span="2">
               {{ currentLog.timestamp | parseTime("{y}-{m}-{d} {h}:{i}:{s}") }}
@@ -272,12 +277,17 @@
             <pre>{{ formatJSON(currentLog.requestBody) }}</pre>
           </el-card>
 
-          <el-empty v-if="!hasRequestData" description="没有请求数据"></el-empty>
+          <el-empty
+            v-if="!hasRequestData"
+            description="没有请求数据"
+          ></el-empty>
         </el-tab-pane>
 
         <!-- 响应数据 -->
         <el-tab-pane label="响应数据" name="response">
-          <pre v-if="currentLog.responseBody" class="json-content">{{ formatJSON(currentLog.responseBody) }}</pre>
+          <pre v-if="currentLog.responseBody" class="json-content">{{
+            formatJSON(currentLog.responseBody)
+          }}</pre>
           <el-empty v-else description="没有响应数据"></el-empty>
         </el-tab-pane>
 
@@ -303,9 +313,9 @@
 
 <script>
 import { getData } from "@/api/data";
-import { parseTime } from '@/utils/index';
-import FileSaver from 'file-saver';
-import XLSX from 'xlsx';
+import { parseTime } from "@/utils/index";
+import FileSaver from "file-saver";
+import XLSX from "xlsx";
 
 export default {
   name: "apiLog",
@@ -316,7 +326,7 @@ export default {
       listLoading: true,
       total: 0,
       downloadLoading: false,
-      
+
       // 查询参数
       endpoint: "",
       serviceName: "",
@@ -324,31 +334,42 @@ export default {
       dateRange: [],
       listQuery: {
         page: 1,
-        limit: 10
+        limit: 10,
       },
-      
+
       // 详情弹窗
       logDetailVisible: false,
       currentLog: {},
       activeTab: "basic",
-      
+
       // 用户映射缓存
-      userNameMap: {}
+      userNameMap: {},
     };
   },
   computed: {
     hasRequestParams() {
-      return this.currentLog.requestParams && Object.keys(this.currentLog.requestParams).length > 0;
+      return (
+        this.currentLog.requestParams &&
+        Object.keys(this.currentLog.requestParams).length > 0
+      );
     },
     hasRequestQuery() {
-      return this.currentLog.requestQuery && Object.keys(this.currentLog.requestQuery).length > 0;
+      return (
+        this.currentLog.requestQuery &&
+        Object.keys(this.currentLog.requestQuery).length > 0
+      );
     },
     hasRequestBody() {
-      return this.currentLog.requestBody && Object.keys(this.currentLog.requestBody).length > 0;
+      return (
+        this.currentLog.requestBody &&
+        Object.keys(this.currentLog.requestBody).length > 0
+      );
     },
     hasRequestData() {
-      return this.hasRequestParams || this.hasRequestQuery || this.hasRequestBody;
-    }
+      return (
+        this.hasRequestParams || this.hasRequestQuery || this.hasRequestBody
+      );
+    },
   },
   created() {
     this.fetchData();
@@ -362,116 +383,122 @@ export default {
         return JSON.stringify(json);
       }
     },
-    
+
     // 获取数据
     fetchData() {
       this.listLoading = true;
-      
+
       // 构建查询条件
       const query = this.buildQuery();
-      
+
       const data = {
         query,
         limit: this.listQuery.limit,
         sort: { timestamp: -1 },
+        populate: JSON.stringify([
+          { path: "userId", select: "userName nickName" },
+        ]),
         skip: (this.listQuery.page - 1) * this.listQuery.limit,
-        count: true
+        count: true,
       };
 
-      getData("apiLog", data).then(response => {
-        this.logList = response.data || [];
-        this.total = response.countnum || 0;
-        
-        // 加载用户信息
-        this.loadUserInfo();
-      }).catch(error => {
-        console.error("获取API日志数据失败:", error);
-        this.$notify({
-          title: "错误",
-          message: "获取API日志失败",
-          type: "error"
+      getData("apiLog", data)
+        .then((response) => {
+          this.logList = response.data || [];
+          this.total = response.countnum || 0;
+
+          // 加载用户信息
+          // this.loadUserInfo();
+        })
+        .catch((error) => {
+          console.error("获取API日志数据失败:", error);
+          this.$notify({
+            title: "错误",
+            message: "获取API日志失败",
+            type: "error",
+          });
+        })
+        .finally(() => {
+          this.listLoading = false;
         });
-      }).finally(() => {
-        this.listLoading = false;
-      });
     },
-    
+
     // 构建查询条件
     buildQuery() {
       const query = {};
-      
+
       if (this.endpoint) {
         query.endpoint = { $regex: this.endpoint };
       }
-      
+
       if (this.serviceName) {
         query.serviceName = { $regex: this.serviceName };
       }
-      
+
       if (this.status !== "" && this.status !== null) {
         query.success = this.status;
       }
-      
+
       // 处理日期范围
       if (this.dateRange && this.dateRange.length === 2) {
         const [startDate, endDate] = this.dateRange;
         query.timestamp = {
           $gte: new Date(startDate),
-          $lte: new Date(endDate + ' 23:59:59')
+          $lte: new Date(endDate + " 23:59:59"),
         };
       }
-      
+
       return query;
     },
-    
-    // 加载用户信息
-    loadUserInfo() {
-      // 收集所有用户ID
-      const userIds = this.logList
-        .filter(log => log.userId)
-        .map(log => log.userId)
-        .filter((value, index, self) => self.indexOf(value) === index);
-      
-      if (userIds.length === 0) return;
-      
-      getData("user_login", {
-        query: { _id: { $in: userIds } },
-        projection: { _id: 1, userName: 1, nickName: 1 }
-      }).then(response => {
-        const users = response.data || [];
-        
-        // 构建用户映射
-        users.forEach(user => {
-          this.userNameMap[user._id] = user.nickName || user.userName;
-        });
-      }).catch(error => {
-        console.error("加载用户信息失败:", error);
-      });
-    },
-    
+
+    // // 加载用户信息
+    // loadUserInfo() {
+    //   // 收集所有用户ID
+    //   const userIds = this.logList
+    //     .filter(log => log.userId)
+    //     .map(log => log.userId)
+    //     .filter((value, index, self) => self.indexOf(value) === index);
+
+    //   if (userIds.length === 0) return;
+
+    //   getData("user_login", {
+    //     query: { _id: { $in: userIds } },
+    //     projection: { _id: 1, userName: 1, nickName: 1 }
+    //   }).then(response => {
+    //     const users = response.data || [];
+
+    //     // 构建用户映射
+    //     users.forEach(user => {
+    //       this.userNameMap[user._id] = user.nickName || user.userName;
+    //     });
+    //   }).catch(error => {
+    //     console.error("加载用户信息失败:", error);
+    //   });
+    // },
+
     // 根据用户ID获取用户名
     getUserName(userId) {
       return this.userNameMap[userId] || userId;
     },
-    
+
     // 查看日志详情
     viewLogDetail(log) {
       this.currentLog = log;
       this.activeTab = "basic";
       this.logDetailVisible = true;
     },
-    
+
     // 处理筛选
     handleFilter() {
       this.listQuery.page = 1;
       this.fetchData();
     },
-    
+
     // 清除过滤器
     clearFilter() {
       this.fetchData();
     },
-    
+
     // 重置过滤器
     resetFilter() {
       this.endpoint = "";
@@ -481,19 +508,19 @@ export default {
       this.listQuery.page = 1;
       this.fetchData();
     },
-    
+
     // 分页大小变化
     handleSizeChange(val) {
       this.listQuery.limit = val;
       this.fetchData();
     },
-    
+
     // 页码变化
     handleCurrentChange(val) {
       this.listQuery.page = val;
       this.fetchData();
     },
-    
+
     // 获取HTTP方法标签类型
     getMethodTagType(method) {
       const methodMap = {
@@ -501,11 +528,11 @@ export default {
         POST: "primary",
         PUT: "warning",
         DELETE: "danger",
-        PATCH: "warning"
+        PATCH: "warning",
       };
       return methodMap[method] || "info";
     },
-    
+
     // 获取状态码类名
     getStatusCodeClass(code) {
       if (!code) return "";
@@ -514,7 +541,7 @@ export default {
       if (code >= 500) return "danger-text";
       return "";
     },
-    
+
     // 获取执行时间类名
     getExecutionTimeClass(time) {
       if (!time) return "";
@@ -522,87 +549,92 @@ export default {
       if (time < 500) return "warning-text";
       return "danger-text";
     },
-    
+
     // 导出日志
     handleExport() {
       this.$confirm("确认导出所选API日志吗?", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        type: "warning"
-      }).then(() => {
-        this.downloadLoading = true;
-        
-        // 构建查询条件
-        const query = this.buildQuery();
-        
-        // 获取要导出的数据
-        getData("apiLog", {
-          query,
-          sort: { timestamp: -1 },
-          limit: 5000 // 限制导出数量
-        }).then(response => {
-          const logs = response.data || [];
-          
-          // 准备导出数据
-          const exportData = logs.map(log => ({
-            接口路径: log.endpoint,
-            请求方法: log.method,
-            服务名称: log.serviceName || '未指定',
-            状态: log.success ? '成功' : '失败',
-            状态码: log.responseStatus || '-',
-            执行时间: log.executionTime ? `${log.executionTime}ms` : '-',
-            用户ID: log.userId || '匿名',
-            用户IP: log.userIp || '未知',
-            请求时间: parseTime(log.timestamp, '{y}-{m}-{d} {h}:{i}:{s}'),
-            错误信息: log.errorMessage || '-'
-          }));
-          
-          // 生成Excel文件
-          const wb = XLSX.utils.book_new();
-          const ws = XLSX.utils.json_to_sheet(exportData);
-          
-          // 设置列宽
-          const colWidths = [
-            { wch: 50 }, // 接口路径
-            { wch: 10 }, // 请求方法
-            { wch: 20 }, // 服务名称
-            { wch: 10 }, // 状态
-            { wch: 10 }, // 状态码
-            { wch: 15 }, // 执行时间
-            { wch: 24 }, // 用户ID
-            { wch: 15 }, // 用户IP
-            { wch: 20 }, // 请求时间
-            { wch: 50 }  // 错误信息
-          ];
-          ws['!cols'] = colWidths;
-          
-          XLSX.utils.book_append_sheet(wb, ws, 'API日志');
-          
-          // 导出文件
-          const now = parseTime(new Date(), '{y}{m}{d}{h}{i}');
-          XLSX.writeFile(wb, `API日志_${now}.xlsx`);
-          
-          this.$notify({
-            title: '成功',
-            message: '导出成功',
-            type: 'success',
-            duration: 2000
-          });
-        }).catch(error => {
-          console.error("导出API日志失败:", error);
-          this.$notify({
-            title: '错误',
-            message: '导出日志失败',
-            type: 'error'
-          });
-        }).finally(() => {
-          this.downloadLoading = false;
+        type: "warning",
+      })
+        .then(() => {
+          this.downloadLoading = true;
+
+          // 构建查询条件
+          const query = this.buildQuery();
+
+          // 获取要导出的数据
+          getData("apiLog", {
+            query,
+            sort: { timestamp: -1 },
+            limit: 5000, // 限制导出数量
+          })
+            .then((response) => {
+              const logs = response.data || [];
+
+              // 准备导出数据
+              const exportData = logs.map((log) => ({
+                接口路径: log.endpoint,
+                请求方法: log.method,
+                服务名称: log.serviceName || "未指定",
+                状态: log.success ? "成功" : "失败",
+                状态码: log.responseStatus || "-",
+                执行时间: log.executionTime ? `${log.executionTime}ms` : "-",
+                用户ID: log.userId || "匿名",
+                用户IP: log.userIp || "未知",
+                请求时间: parseTime(log.timestamp, "{y}-{m}-{d} {h}:{i}:{s}"),
+                错误信息: log.errorMessage || "-",
+              }));
+
+              // 生成Excel文件
+              const wb = XLSX.utils.book_new();
+              const ws = XLSX.utils.json_to_sheet(exportData);
+
+              // 设置列宽
+              const colWidths = [
+                { wch: 50 }, // 接口路径
+                { wch: 10 }, // 请求方法
+                { wch: 20 }, // 服务名称
+                { wch: 10 }, // 状态
+                { wch: 10 }, // 状态码
+                { wch: 15 }, // 执行时间
+                { wch: 24 }, // 用户ID
+                { wch: 15 }, // 用户IP
+                { wch: 20 }, // 请求时间
+                { wch: 50 }, // 错误信息
+              ];
+              ws["!cols"] = colWidths;
+
+              XLSX.utils.book_append_sheet(wb, ws, "API日志");
+
+              // 导出文件
+              const now = parseTime(new Date(), "{y}{m}{d}{h}{i}");
+              XLSX.writeFile(wb, `API日志_${now}.xlsx`);
+
+              this.$notify({
+                title: "成功",
+                message: "导出成功",
+                type: "success",
+                duration: 2000,
+              });
+            })
+            .catch((error) => {
+              console.error("导出API日志失败:", error);
+              this.$notify({
+                title: "错误",
+                message: "导出日志失败",
+                type: "error",
+              });
+            })
+            .finally(() => {
+              this.downloadLoading = false;
+            });
+        })
+        .catch(() => {
+          // 用户取消导出
         });
-      }).catch(() => {
-        // 用户取消导出
-      });
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -636,12 +668,12 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  
+
   i {
     font-size: 16px;
     font-weight: 500;
   }
-  
+
   .screen_content_first_btutton {
     display: flex;
     gap: 10px;
@@ -652,26 +684,27 @@ export default {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  
+
   .screen_content_second_one {
     display: flex;
     align-items: center;
     margin-right: 20px;
     margin-bottom: 10px;
-    
+
     div {
       margin-right: 10px;
     }
-    
-    .el-input, .el-select {
+
+    .el-input,
+    .el-select {
       width: 220px;
     }
   }
-  
+
   .date-range {
     width: 100%;
     margin-bottom: 15px;
-    
+
     .el-date-editor {
       width: 350px;
     }
@@ -727,7 +760,7 @@ export default {
   padding: 10px;
   background-color: #f8f8f8;
   border-radius: 4px;
-  
+
   pre {
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -742,15 +775,15 @@ export default {
   .el-table td {
     vertical-align: middle;
   }
-  
+
   .el-tag {
     text-transform: uppercase;
   }
-  
+
   .el-descriptions-item__label {
     width: 120px;
   }
-  
+
   .vjs-tree {
     font-size: 12px;
   }
@@ -773,7 +806,7 @@ export default {
 
 .json-card {
   margin-bottom: 15px;
-  
+
   pre {
     background-color: #f8f8f8;
     border-radius: 4px;

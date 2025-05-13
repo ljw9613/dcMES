@@ -1131,6 +1131,7 @@ import {
   autoFixInconsistentProcessNodes,
   fixFlowProgress,
   replaceComponent, // 添加新的API引入
+  initializeProduct, // 添加新的API引入
 } from "@/api/materialProcessFlowService";
 import XLSX from "xlsx";
 import JSZip from "jszip";
@@ -1526,26 +1527,28 @@ export default {
           }
         );
 
-        if (!row._id) {
-          this.$message.error("请选择要初始化的记录");
+        if (!row.barcode) {
+          this.$message.error("未找到产品条码");
           return;
         }
-        // 调用成品初始化 API
-        const result = await removeData("material_process_flow", {
-          query: { _id: row._id },
+        
+        // 调用成品初始化API
+        const result = await initializeProduct({
+          barcode: row.barcode,
+          userId: this.$store.state.user.id || "system"
         });
 
-        if (result.code === 200) {
+        if (result.code === 200 && result.success) {
           this.$message.success("初始化成功");
           // 重新加载数据
           this.fetchData();
         } else {
-          throw new Error(result.msg || "初始化失败");
+          throw new Error(result.message || "初始化失败");
         }
       } catch (error) {
         if (error !== "cancel") {
-          console.error("删除失败:", error);
-          this.$message.error(error.message || "删除失败");
+          console.error("初始化失败:", error);
+          this.$message.error(error.message || "初始化失败");
         }
       }
     },

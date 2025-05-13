@@ -202,6 +202,28 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="产品维修状态" prop="productStatus">
+          <template slot-scope="scope">
+            <el-tag
+              :type="
+                getProductStatusType(
+                  scope.row.materialProcessFlowId
+                    ? scope.row.materialProcessFlowId.productStatus
+                    : null
+                )
+              "
+            >
+              {{
+                getProductStatusText(
+                  scope.row.materialProcessFlowId
+                    ? scope.row.materialProcessFlowId.productStatus
+                    : null
+                )
+              }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
         <el-table-column label="销售订单号" prop="saleOrderNo">
           <template slot-scope="scope">
             {{
@@ -334,7 +356,9 @@
             ></el-input>
           </el-form-item>
           <el-form-item label="产品状态">
-            <el-input v-model="currentFlowData.status" readonly></el-input>
+            <el-tag :type="getProductStatusType(currentFlowData.productStatus)">
+              {{ getProductStatusText(currentFlowData.productStatus) }}
+            </el-tag>
           </el-form-item>
           <el-form-item label="流程状态">
             <el-tag
@@ -1798,6 +1822,14 @@ export default {
 
         if (result.code === 200 && result.data.length > 0) {
           this.currentFlowData = result.data[0];
+          
+          // 检查产品状态是否为报废
+          if (this.currentFlowData.productStatus === "SCRAP") {
+            this.$message.error("该产品已报废，不可进行抽检");
+            this.scanForm.barcode = "";
+            this.$refs.barcodeInput.focus();
+            return;
+          }
 
           // 保存流程状态信息
           this.flowStatus = this.currentFlowData.status;
@@ -1842,6 +1874,12 @@ export default {
 
         if (flowresult.code === 200 && flowresult.data.length > 0) {
           const flowData = flowresult.data[0];
+          
+          // 检查产品状态是否为报废
+          if (flowData.productStatus === "SCRAP") {
+            this.$message.error("该产品已报废，不可进行抽检");
+            return;
+          }
 
           // 保存流程状态信息
           this.flowStatus = flowData.status;
@@ -1995,6 +2033,37 @@ export default {
       } finally {
         this.scanLoading = false;
       }
+    },
+
+    // 获取流程状态文本
+    getFlowStatusText(status) {
+      const statusMap = {
+        PENDING: "待处理",
+        IN_PROCESS: "进行中",
+        COMPLETED: "已完成",
+        ABNORMAL: "异常",
+      };
+      return statusMap[status] || status;
+    },
+
+    // 获取产品状态类型
+    getProductStatusType(status) {
+      const statusMap = {
+        NORMAL: "success",
+        REPAIRING: "warning",
+        SCRAP: "danger",
+      };
+      return statusMap[status] || "info";
+    },
+
+    // 获取产品状态文本
+    getProductStatusText(status) {
+      const statusMap = {
+        NORMAL: "正常",
+        REPAIRING: "维修中",
+        SCRAP: "已报废",
+      };
+      return statusMap[status] || status;
     },
   },
   created() {
