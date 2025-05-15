@@ -1430,7 +1430,20 @@ export default {
           });
           if (response.success) {
             this.$message.success("初始化成功");
-            this.fetchData();
+            await this.fetchData(); // 等待主列表数据刷新
+            // 如果详情弹窗是打开的，并且是当前操作的托盘，则刷新详情数据或关闭
+            if (this.detailDialogVisible && this.detailData && this.detailData.palletCode === row.palletCode) {
+              const updatedPallet = this.tableList.find(p => p.palletCode === row.palletCode);
+              if (updatedPallet) {
+                // 初始化后，托盘数据可能已清空或状态改变
+                this.detailData = JSON.parse(JSON.stringify(updatedPallet)); // 更新详情弹窗内的数据
+              } else {
+                // 初始化后托盘可能不再符合列表筛选条件或已被逻辑删除
+                this.$message.info("托盘已初始化，详情将关闭。");
+                this.detailDialogVisible = false;
+                this.detailData = null;
+              }
+            }
           } else {
             this.$message.error(response.message);
           }
@@ -1457,7 +1470,19 @@ export default {
 
             if (response.success) {
               this.$message.success("解绑成功");
-              this.fetchData();
+              await this.fetchData(); // 等待主列表数据刷新
+              // 如果详情弹窗是打开的，并且是当前操作的托盘，则刷新详情数据
+              if (this.detailDialogVisible && this.detailData && this.detailData.palletCode === palletCode) {
+                const updatedPallet = this.tableList.find(p => p.palletCode === palletCode);
+                if (updatedPallet) {
+                  this.detailData = JSON.parse(JSON.stringify(updatedPallet)); // 更新详情弹窗内的数据
+                } else {
+                  // 如果在列表中找不到，可能托盘已被删除或状态改变，关闭详情弹窗
+                  this.$message.info("托盘数据已更新，但当前托盘详情无法完全刷新，可能已被处理。");
+                  this.detailDialogVisible = false;
+                  this.detailData = null;
+                }
+              }
             } else {
               this.$message.error(response.message);
             }

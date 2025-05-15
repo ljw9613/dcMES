@@ -1523,11 +1523,17 @@ export default {
         let cleanValue = value.trim().replace(/[\r\n]/g, "");
         if (!cleanValue) return;
         //查询是否有过托盘解绑记录
-        const palletUnbindResponse = await getData("MaterialPalletizingUnbindLog", {
+        const palletUnbindResponse = await getData("material_palletizing_unbind_log", {
           query: {
             unbindBarcode: cleanValue,
-
           },
+          select: {
+            palletCode: 1,
+          },
+          sort:{
+            _id: -1,
+          },
+          limit: 1,
         });
         if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
           let palletUnbindData = palletUnbindResponse.data[0];
@@ -1781,12 +1787,12 @@ export default {
             this.batchForm.batchSize = res.data.totalQuantity;
 
             // 添加到已扫描列表
-            this.scannedList.push({
-              barcode: this.scanForm.mainBarcode,
-              type: "single",
-              boxBarcode: "",
-              scanTime: new Date(),
-            });
+            // this.scannedList.push({
+            //   barcode: this.scanForm.mainBarcode,
+            //   type: "single",
+            //   boxBarcode: "",
+            //   scanTime: new Date(),
+            // });
 
             let materialPalletizingPrintData = await getData(
               "material_palletizing",
@@ -1815,6 +1821,14 @@ export default {
               return item;
             });
             this.printData = printData;
+
+            // 根据后端返回的 palletBarcodes 更新 scannedList
+            this.scannedList = printData.palletBarcodes.map(item => ({
+                barcode: item.barcode,
+                scanTime: item.scanTime, // scanTime is already formatted
+                type: item.barcodeType,
+                boxBarcode: item.boxBarcode
+            }));
 
             // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
             if (res.data.status == "STACKED") {
@@ -2004,7 +2018,6 @@ export default {
               item.scanTime = this.formatDate(item.scanTime);
               return item;
             });
-
             this.printData = printData;
 
             // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表，但不清理批次物料缓存

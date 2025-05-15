@@ -1538,6 +1538,33 @@ export default {
         let cleanValue = value.trim().replace(/[\r\n]/g, "");
         if (!cleanValue) return;
 
+        //查询是否有过托盘解绑记录
+        const palletUnbindResponse = await getData(
+          "material_palletizing_unbind_log",
+          {
+            query: {
+              unbindBarcode: cleanValue,
+            },
+            select: {
+              palletCode: 1,
+            },
+            sort: {
+              _id: -1,
+            },
+            limit: 1,
+          }
+        );
+        if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
+          let palletUnbindData = palletUnbindResponse.data[0];
+          this.$message.error(
+            `该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`
+          );
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          return;
+        }
+
         // 根据不同模式处理扫描值
         if (this.scanMode === "rfid") {
           // 查询RFID标签对应的主条码
@@ -1923,12 +1950,12 @@ export default {
             this.palletForm.totalQuantity = res.data.totalQuantity;
             this.batchForm.batchSize = res.data.totalQuantity;
 
-            this.scannedList.push({
-              barcode: item.barcode,
-              type: "box",
-              boxBarcode: boxBarcode,
-              scanTime: new Date(),
-            });
+            // this.scannedList.push({
+            //   barcode: item.barcode,
+            //   type: "box",
+            //   boxBarcode: boxBarcode,
+            //   scanTime: new Date(),
+            // });
             // 打印托盘条码
             let materialPalletizingPrintData = await getData(
               "material_palletizing",
@@ -1995,6 +2022,14 @@ export default {
             }
 
             this.printData = printData;
+
+            // 根据后端返回的 palletBarcodes 更新 scannedList
+            this.scannedList = this.printData.palletBarcodes.map(pbItem => ({
+                barcode: pbItem.barcode,
+                scanTime: pbItem.scanTime, // scanTime is already formatted by previous map
+                type: pbItem.barcodeType, 
+                boxBarcode: pbItem.boxBarcode
+            }));
 
             // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
             if (res.data.status == "STACKED") {
@@ -2071,12 +2106,12 @@ export default {
           this.batchForm.batchSize = res.data.totalQuantity;
 
           // 添加到已扫描列表
-          this.scannedList.push({
-            barcode,
-            type: "single",
-            boxBarcode: "",
-            scanTime: new Date(),
-          });
+          // this.scannedList.push({
+          //   barcode,
+          //   type: "single",
+          //   boxBarcode: "",
+          //   scanTime: new Date(),
+          // });
 
           let materialPalletizingPrintData = await getData(
             "material_palletizing",
@@ -2105,6 +2140,14 @@ export default {
             return item;
           });
           this.printData = printData;
+
+          // 根据后端返回的 palletBarcodes 更新 scannedList
+          this.scannedList = this.printData.palletBarcodes.map(pbItem => ({
+              barcode: pbItem.barcode,
+              scanTime: pbItem.scanTime, // scanTime is already formatted by previous map
+              type: pbItem.barcodeType, 
+              boxBarcode: pbItem.boxBarcode 
+          }));
 
           // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
           if (res.data.status == "STACKED") {
