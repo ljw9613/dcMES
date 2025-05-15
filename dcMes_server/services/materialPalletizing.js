@@ -423,14 +423,29 @@ class MaterialPalletizingService {
       };
 
       // 更新对应工单的数量
-      if (pallet.workOrders && pallet.workOrders.length > 0) {
-        const workOrderIndex = pallet.workOrders.findIndex(
-          (wo) =>
-            wo.productionPlanWorkOrderId &&
-            wo.productionPlanWorkOrderId.toString() ===
-              productionPlan._id.toString()
-        );
+      if (!pallet.workOrders) {
+        pallet.workOrders = [];
+      }
+      const workOrderIndex = pallet.workOrders.findIndex(
+        (wo) =>
+          wo.productionPlanWorkOrderId &&
+          wo.productionPlanWorkOrderId.toString() ===
+            productionPlan._id.toString()
+      );
 
+      if (boxBarcode) {
+        // 如果是箱内码，不增加 workOrders.quantity，但确保工单条目存在
+        if (workOrderIndex === -1) {
+          pallet.workOrders.push({
+            productionOrderId: productionPlan.productionOrderId,
+            productionOrderNo: productionPlan.productionOrderNo,
+            workOrderNo: productionPlan.workOrderNo,
+            productionPlanWorkOrderId: productionPlan._id,
+            quantity: 0, // 初始化为0，因为这是箱内码
+          });
+        }
+      } else {
+        // 如果是单个条码，增加 workOrders.quantity
         if (workOrderIndex !== -1) {
           pallet.workOrders[workOrderIndex].quantity += 1;
         } else {
@@ -440,20 +455,9 @@ class MaterialPalletizingService {
             productionOrderNo: productionPlan.productionOrderNo,
             workOrderNo: productionPlan.workOrderNo,
             productionPlanWorkOrderId: productionPlan._id,
-            quantity: 1,
+            quantity: 1, // 初始化为1，因为是单个条码
           });
         }
-      } else {
-        // 如果工单列表不存在，初始化它
-        pallet.workOrders = [
-          {
-            productionOrderId: productionPlan.productionOrderId,
-            productionOrderNo: productionPlan.productionOrderNo,
-            workOrderNo: productionPlan.workOrderNo,
-            productionPlanWorkOrderId: productionPlan._id,
-            quantity: 1,
-          },
-        ];
       }
 
       // 处理箱条码
@@ -569,12 +573,18 @@ class MaterialPalletizingService {
    * @returns {Object} 清理后的托盘对象
    */
   static cleanZeroQuantityWorkOrders(pallet) {
-    // 确保工单数组存在
     if (!pallet.workOrders || !Array.isArray(pallet.workOrders)) {
       return pallet;
     }
     // 过滤掉数量为0的工单
-    pallet.workOrders = pallet.workOrders.filter((wo) => wo.quantity > 0);
+    pallet.workOrders = pallet.workOrders.filter(workOrderEntry => {
+      const isStillReferencedInPalletBarcodes = pallet.palletBarcodes.some(
+        pb => pb.productionPlanWorkOrderId && 
+              pb.productionPlanWorkOrderId.toString() === workOrderEntry.productionPlanWorkOrderId.toString()
+      );
+      // 保留条件：quantity > 0 (有独立添加的条码) 或者 仍然被 palletBarcodes 中的条码引用 (意味着有箱内码关联)
+      return workOrderEntry.quantity > 0 || isStillReferencedInPalletBarcodes;
+    });
 
     return pallet;
   }
@@ -762,36 +772,24 @@ class MaterialPalletizingService {
           );
         }
 
-        // 减少工单产出量 - 解绑单个条码减少一个产出量
-        // if (pallet.productionPlanWorkOrderId) {
-        //   await materialProcessFlowService.updateWorkOrderQuantity(
-        //     pallet.productionPlanWorkOrderId.toString(),
-        //     "output",
-        //     -1 // 负数表示减少产出量
-        //   );
-        // }
-
-        // 找到条码对应的工单记录并减少计数
-        const palletBarcode = pallet.palletBarcodes.find(
-          (pb) => pb.barcode === barcode
-        );
-        if (
-          palletBarcode &&
-          palletBarcode.productionPlanWorkOrderId &&
-          pallet.workOrders
-        ) {
-          const workOrderIndex = pallet.workOrders.findIndex(
-            (wo) =>
-              wo.productionPlanWorkOrderId &&
-              wo.productionPlanWorkOrderId.toString() ===
-                palletBarcode.productionPlanWorkOrderId.toString()
+        // 根据新的逻辑调整 workOrders.quantity
+        const unbindingBarcodeInfo = originalData.palletBarcodes.find(pb => pb.barcode === barcode);
+        if (unbindingBarcodeInfo && unbindingBarcodeInfo.productionPlanWorkOrderId && pallet.workOrders) {
+          const wasInAnyBox = originalData.boxItems.some(origBox => 
+            origBox.boxBarcodes && origBox.boxBarcodes.some(bb => bb.barcode === barcode)
           );
-
-          if (
-            workOrderIndex !== -1 &&
-            pallet.workOrders[workOrderIndex].quantity > 0
-          ) {
-            pallet.workOrders[workOrderIndex].quantity -= 1;
+          
+          if (!wasInAnyBox) { // 仅当条码是独立添加时才扣减 quantity
+            const workOrderIndex = pallet.workOrders.findIndex(
+              (wo) => wo.productionPlanWorkOrderId && 
+                      wo.productionPlanWorkOrderId.toString() === unbindingBarcodeInfo.productionPlanWorkOrderId.toString()
+            );
+            if (workOrderIndex !== -1 && pallet.workOrders[workOrderIndex].quantity > 0) {
+              pallet.workOrders[workOrderIndex].quantity -= 1;
+              console.log(`托盘解绑：单独条码 ${barcode}，工单 ${pallet.workOrders[workOrderIndex].workOrderNo} quantity 减 1`);
+            }
+          } else {
+            console.log(`托盘解绑：箱内条码 ${barcode}，工单 quantity 不变`);
           }
         }
 

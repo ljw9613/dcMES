@@ -1470,17 +1470,61 @@ export default {
 
             if (response.success) {
               this.$message.success("解绑成功");
-              await this.fetchData(); // 等待主列表数据刷新
-              // 如果详情弹窗是打开的，并且是当前操作的托盘，则刷新详情数据
+              await this.fetchData(); // 刷新主列表数据
+
+              // 如果详情弹窗是打开的，并且是当前操作的托盘，则专门刷新详情数据
               if (this.detailDialogVisible && this.detailData && this.detailData.palletCode === palletCode) {
-                const updatedPallet = this.tableList.find(p => p.palletCode === palletCode);
-                if (updatedPallet) {
-                  this.detailData = JSON.parse(JSON.stringify(updatedPallet)); // 更新详情弹窗内的数据
-                } else {
-                  // 如果在列表中找不到，可能托盘已被删除或状态改变，关闭详情弹窗
-                  this.$message.info("托盘数据已更新，但当前托盘详情无法完全刷新，可能已被处理。");
-                  this.detailDialogVisible = false;
-                  this.detailData = null;
+                try {
+                  // 通过 palletCode 重新获取托盘的最新详情
+                  const singlePalletRes = await getData("material_palletizing", {
+                    query: { palletCode: palletCode },
+                    populate: JSON.stringify([ // 确保包含必要的关联数据
+                      { path: "productLineId" },
+                      { path: "productionOrderId" }
+                    ]),
+                    limit: 1
+                  });
+
+                  if (singlePalletRes.data && singlePalletRes.data.length > 0) {
+                    const freshDetailData = singlePalletRes.data[0];
+                    
+                    // 保存当前条码列表的分页状态
+                    const oldCurrentPage = this.detailCurrentPage;
+                    const oldPageSize = this.detailPageSize;
+
+                    this.detailData = JSON.parse(JSON.stringify(freshDetailData)); // 更新详情弹窗数据
+
+                    // 调整条码列表的分页
+                    if (this.detailData.palletBarcodes) {
+                      const newBarcodeCount = this.detailData.palletBarcodes.length;
+                      let newCurrentPage = oldCurrentPage;
+                      const maxPage = Math.ceil(newBarcodeCount / oldPageSize) || 1;
+                      if (newCurrentPage > maxPage) {
+                        newCurrentPage = maxPage;
+                      }
+                      this.detailCurrentPage = newCurrentPage;
+                    } else {
+                      this.detailData.palletBarcodes = []; // 确保 palletBarcodes 是一个数组
+                      this.detailCurrentPage = 1; // 如果没有条码则重置到第一页
+                    }
+                  } else {
+                    // 如果解绑后托盘找不到了（例如，解绑的是最后一个条码导致托盘被删除或状态变更）
+                    this.$message.info("托盘详情无法加载，其数据可能已变更或已被删除。");
+                    this.detailDialogVisible = false;
+                    this.detailData = null;
+                  }
+                } catch (e) {
+                  console.error("刷新托盘详情失败:", e);
+                  this.$message.error("刷新托盘详情失败，请尝试关闭后重新打开查看。");
+                  // 作为后备，可以尝试从已更新的 tableList 同步（原逻辑）
+                  const updatedPallet = this.tableList.find(p => p.palletCode === palletCode);
+                  if (updatedPallet) {
+                     this.detailData = JSON.parse(JSON.stringify(updatedPallet));
+                  } else {
+                    // 如果在主列表中也找不到，则关闭详情
+                    this.detailDialogVisible = false;
+                    this.detailData = null;
+                  }
                 }
               }
             } else {
