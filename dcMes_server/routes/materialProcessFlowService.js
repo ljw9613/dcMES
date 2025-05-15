@@ -240,6 +240,35 @@ router.post("/api/v1/update-flow-nodes", async (req, res) => {
   }
 });
 
+// 添加初始化产品条码的路由
+router.post('/api/v1/initializeProduct', async (req, res) => {
+  try {
+    const { barcode, userId } = req.body;
+    if (!barcode) {
+      return res.json({
+        code: 400,
+        success: false,
+        message: '请提供产品条码'
+      });
+    }
+
+    const result = await MaterialProcessFlowService.initializeProduct(barcode, userId);
+    return res.json({
+      code: 200,
+      success: true,
+      message: '初始化成功',
+      data: result
+    });
+  } catch (error) {
+    console.error('初始化产品条码失败:', error);
+    return res.json({
+      code: 500,
+      success: false,
+      message: error.message || '初始化产品条码失败'
+    });
+  }
+});
+
 // 自动修复主条码中的异常子条码数据
 router.post("/api/v1/auto-fix-inconsistent-process-nodes", async (req, res) => {
   try {

@@ -71,7 +71,7 @@ const materialPalletizingSchema = new mongoose.Schema({
   productLineName: { type: String }, // 产线名称
 
   // 托盘物料基本信息
-  materialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 主要物料ID
+  materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 主要物料ID
   materialCode: { type: String }, // 主要物料编码
   materialName: { type: String }, // 主要物料名称
   materialSpec: { type: String }, // 规格型号

@@ -69,7 +69,7 @@ class MaterialPalletizingService {
       });
 
       const totalExistingBarcodes = existingPallets.reduce(
-        (sum, p) => sum + p.barcodeCount,
+        (sum, p) => sum + p.totalQuantity,
         0
       );
 

@@ -1522,7 +1522,21 @@ export default {
       try {
         let cleanValue = value.trim().replace(/[\r\n]/g, "");
         if (!cleanValue) return;
+        //查询是否有过托盘解绑记录
+        const palletUnbindResponse = await getData("MaterialPalletizingUnbindLog", {
+          query: {
+            unbindBarcode: cleanValue,
 
+          },
+        });
+        if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
+          let palletUnbindData = palletUnbindResponse.data[0];
+          this.$message.error(`该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`);
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          return;
+        }
         //是否为升级条码
         const preProductionResponse = await getData("preProductionBarcode", {
           query: {

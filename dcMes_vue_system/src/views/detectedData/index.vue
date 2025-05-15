@@ -62,6 +62,42 @@
                             <el-input v-model="searchForm.materialCode" placeholder="请输入物料编码" clearable></el-input>
                         </el-form-item>
                     </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="销售订单">
+                            <zr-select
+                                v-model="searchForm.saleOrderNo"
+                                collection="k3_SAL_SaleOrder" 
+                                :search-fields="['FBillNo']"
+                                label-key="FBillNo"
+                                value-key="FBillNo"
+                                :multiple="false"
+                                placeholder="请输入销售订单号搜索"
+                                clearable
+                                style="width: 100%"
+                            >
+                                <template #option="{ item }">
+                                    <div class="select-option">
+                                        <div class="option-main">
+                                            <span class="option-label">{{ item.FBillNo }}</span>
+                                            <el-tag size="mini" type="info" class="option-tag" v-if="item.FSaleOrgId_FName">
+                                                {{ item.FSaleOrgId_FName }}
+                                            </el-tag>
+                                        </div>
+                                    </div>
+                                </template>
+                            </zr-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                        <el-form-item label="流程状态">
+                            <el-select v-model="searchForm.materialFlowStatus" placeholder="请选择流程状态" clearable style="width: 100%">
+                                <el-option label="待处理" value="PENDING" />
+                                <el-option label="进行中" value="IN_PROCESS" />
+                                <el-option label="已完成" value="COMPLETED" />
+                                <el-option label="异常" value="ABNORMAL" />
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
                 </el-row>
 
                 <el-form-item>
@@ -216,7 +252,9 @@ export default {
                 scanCode: '',
                 machineId: '',
                 processId: '',
-                dateRange: []
+                dateRange: [],
+                saleOrderNo: '',
+                materialFlowStatus: ''
             },
             tableList: [],
             total: 0,
@@ -239,6 +277,131 @@ export default {
         }
     },
     methods: {
+        // 辅助函数：分批次获取数据 (通用)
+        async fetchDataInBatches(collectionName, baseQuery, batchSize = 100) {
+            let allData = [];
+            let currentPage = 1;
+            let hasMoreData = true;
+            // Minimal user feedback for this generic helper to avoid flooding messages
+            // console.log(`正在从 ${collectionName} 分批获取数据...`);
+
+            while (hasMoreData) {
+                const queryParams = {
+                    ...baseQuery,
+                    skip: (currentPage - 1) * batchSize,
+                    limit: batchSize,
+                    count: true
+                };
+
+                try {
+                    const result = await getData(collectionName, queryParams);
+                    if (result.data && result.data.length > 0) {
+                        allData = allData.concat(result.data);
+                        if (result.data.length < batchSize) {
+                            hasMoreData = false; // 最后一页
+                        } else {
+                            currentPage++;
+                        }
+                    } else {
+                        hasMoreData = false; // 没有数据了
+                    }
+                } catch (error) {
+                    console.error(`Error fetching batch from ${collectionName}:`, error);
+                    this.$message.error(`从 ${collectionName} 分批获取数据时发生错误`);
+                    hasMoreData = false; 
+                }
+            }
+            // console.log(`${collectionName} 数据获取完成，共 ${allData.length} 条`);
+            return allData;
+        },
+
+        // 新的辅助函数：分批处理 scanCodes 来查询 InspectionLastData
+        async fetchInspectionDataAdvanced(baseParams, allScanCodes, options) {
+            const {
+                isPaginated = false,
+                page, // 1-indexed
+                limit,
+                sort = { _id: -1 },
+                scanCodeBatchSize = 200, // 每批 $in 查询中包含的 scanCode 数量
+                progressCallback, // 用于导出时的进度回调
+                populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }])
+            } = options;
+
+            let collectedData = [];
+            let totalCountFromBatches = 0;
+
+            // 如果提供了 allScanCodes 且为空数组 (通常意味着物料编码搜索无结果)，则直接返回空
+            if (allScanCodes && allScanCodes.length === 0) {
+                return { data: [], countnum: 0 };
+            }
+            
+            // 如果 allScanCodes 未提供 (例如，非物料编码搜索)，则执行一次查询
+            const scanCodeBatches = allScanCodes && allScanCodes.length > 0 
+                ? Array.from({ length: Math.ceil(allScanCodes.length / scanCodeBatchSize) }, (_, i) =>
+                    allScanCodes.slice(i * scanCodeBatchSize, (i + 1) * scanCodeBatchSize)
+                  )
+                : [null]; // 单次执行，不基于 scanCode 批次
+
+            const numEffectiveBatches = scanCodeBatches.length;
+
+            for (let i = 0; i < numEffectiveBatches; i++) {
+                const scanCodeBatch = scanCodeBatches[i];
+                const currentReq = JSON.parse(JSON.stringify(baseParams)); // 深拷贝基础查询参数
+
+                if (scanCodeBatch) { // 如果当前是基于 scanCode 批次进行查询
+                    if (!currentReq.query.$and) {
+                        currentReq.query.$and = [];
+                    }
+                    // 添加当前批次的 scanCode $in 条件
+                    currentReq.query.$and.push({ scanCode: { $in: scanCodeBatch } });
+                }
+                
+                currentReq.populate = populate;
+                currentReq.sort = sort;
+
+                if (isPaginated) {
+                    currentReq.count = true; // 需要计数来累加总数
+                    // 为了正确分页，这里我们获取当前 scanCodeBatch 的所有数据
+                    // 然后在循环结束后统一排序和分页。这可能导致加载较多数据。
+                    const result = await getData("InspectionLastData", { ...currentReq }); // 获取此批次所有数据
+                    if (result.data) {
+                        collectedData = collectedData.concat(result.data);
+                    }
+                    // 获取当前批次实际数量用于总数累加（如果API直接返回countnum则使用，否则依赖data.length）
+                    // 假设getData在没有分页参数时返回所有匹配项，且包含countnum
+                    const batchCountResult = await getData("InspectionLastData", {...currentReq, limit:1, count:true})
+                    totalCountFromBatches += (batchCountResult.countnum || 0);
+
+                } else { // 非分页模式 (通常用于导出)
+                    currentReq.count = false; // 导出时不需要单独计数，最后汇总长度即可
+                    const result = await getData("InspectionLastData", currentReq); // 获取此批次所有数据
+                    if (result.data) {
+                        collectedData = collectedData.concat(result.data);
+                    }
+                    if (progressCallback) {
+                        // 进度是基于 scanCode 批次的处理进度
+                        progressCallback(Math.round(((i + 1) / numEffectiveBatches) * 100));
+                    }
+                }
+            }
+
+            if (isPaginated) {
+                // 对所有收集到的数据进行排序
+                collectedData.sort((a, b) => {
+                    if (sort && sort._id === -1) { // 示例: 按 _id 降序
+                        return (a._id < b._id) ? 1 : ((a._id > b._id) ? -1 : 0);
+                    }
+                    // TODO: 可以根据需要扩展更通用的排序逻辑
+                    return 0;
+                });
+
+                const skipAmount = (page - 1) * limit;
+                const paginatedSlice = collectedData.slice(skipAmount, skipAmount + limit);
+                return { data: paginatedSlice, countnum: totalCountFromBatches };
+            }
+
+            return collectedData; // 对于导出，返回所有数据
+        },
         inspectionDataHandle(row) {
             let data = []
             // 处理常规字段
@@ -266,61 +429,96 @@ export default {
                 (typeof value === 'object' && Object.keys(value).length === 0)
             )
         },
-        searchData() {
-            let req = {
-                query: {
-                    $and: []
-                }
-            };
+        // 重构后的 searchData，变为 async 并负责解析 scanCodes
+        async resolvedSearchParameters() {
+            let directQueryConditions = { query: { $and: [] } }; // 保持与API一致的结构
+            const escapeRegexFunc = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-            // 转义特殊字符的辅助函数
-            const escapeRegex = (string) => {
-                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            };
-
-            // 处理扫描码
+            // 1. 构建直接查询条件
             if (this.searchForm.scanCode && this.searchForm.scanCode.trim()) {
-                req.query.$and.push({
-                    scanCode: {
-                        $regex: escapeRegex(this.searchForm.scanCode.trim()),
-                        $options: 'i'
-                    }
+                directQueryConditions.query.$and.push({
+                    scanCode: { $regex: escapeRegexFunc(this.searchForm.scanCode.trim()), $options: 'i' }
                 });
             }
-
-            // 处理设备ID
             if (this.searchForm.machineId) {
-                req.query.$and.push({
-                    machineId: this.searchForm.machineId  // 直接使用ID匹配，不需要模糊查询
-                });
+                directQueryConditions.query.$and.push({ machineId: this.searchForm.machineId });
             }
-
-            // 处理工序ID
             if (this.searchForm.processId) {
-                req.query.$and.push({
-                    processId: this.searchForm.processId
-                });
+                directQueryConditions.query.$and.push({ processId: this.searchForm.processId });
             }
-
-            // 处理日期范围
             if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
                 const [startDate, endDate] = this.searchForm.dateRange;
-                req.query.$and.push({
+                directQueryConditions.query.$and.push({
                     createTime: {
                         $gte: new Date(startDate).toISOString(),
                         $lte: new Date(endDate + ' 23:59:59.999').toISOString()
                     }
                 });
             }
-
-            // 如果没有查询条件，则移除 $and 操作符
-            if (!req.query.$and.length) {
-                delete req.query.$and;
+            if (!directQueryConditions.query.$and.length) {
+                delete directQueryConditions.query.$and;
             }
 
-            return req;
-        },
+            // 2. 解析物料编码和销售订单以获取 scanCodes
+            let resolvedScanCodes = null; // null: 无需解析, []: 解析后无结果, [...]: 解析结果
+            const hasMaterialCode = !!this.searchForm.materialCode;
+            const hasSaleOrderNo = !!this.searchForm.saleOrderNo;
+            const hasMaterialFlowStatus = !!this.searchForm.materialFlowStatus;
 
+            if (hasMaterialCode || hasSaleOrderNo || hasMaterialFlowStatus) {
+                let materialFlowQueryParts = [];
+                if (hasMaterialCode) {
+                    materialFlowQueryParts.push({ materialCode: { $regex: this.searchForm.materialCode.trim(), $options: 'i' } });
+                }
+                if (hasMaterialFlowStatus) {
+                    materialFlowQueryParts.push({ status: this.searchForm.materialFlowStatus });
+                }
+
+                if (hasSaleOrderNo) {
+                    this.$message.info('正在查询销售订单关联的工单...');
+                    const workOrderResult = await this.fetchDataInBatches("production_plan_work_order", {
+                        query: { saleOrderNo: this.searchForm.saleOrderNo },
+                        select: '_id'
+                    }, 200);
+
+                    if (workOrderResult && workOrderResult.length > 0) {
+                        const workOrderIds = workOrderResult.map(wo => wo._id);
+                        materialFlowQueryParts.push({ productionPlanWorkOrderId: { $in: workOrderIds } });
+                        this.$message.success(`销售订单关联到 ${workOrderIds.length} 个工单。`);
+                    } else {
+                        this.$message.warning('未找到与该销售订单关联的工单。');
+                        if (hasSaleOrderNo && !hasMaterialCode && !hasMaterialFlowStatus) {
+                            resolvedScanCodes = [];
+                        } else {
+                            materialFlowQueryParts.push({ productionPlanWorkOrderId: { $in: [] } });
+                        }
+                    }
+                }
+                
+                // 只有当 resolvedScanCodes 仍然是 null (即销售订单不是唯一条件且未提前返回空) 并且 materialFlowQueryParts 有内容时才查询
+                if (resolvedScanCodes === null && materialFlowQueryParts.length > 0) {
+                    const finalMaterialFlowQuery = materialFlowQueryParts.length === 1 ? materialFlowQueryParts[0] : { $and: materialFlowQueryParts };
+                    this.$message.info('正在查询物料/工单对应的流程条码...');
+                    const materialFlowItems = await this.fetchDataInBatches("material_process_flow", {
+                        query: finalMaterialFlowQuery,
+                        select: 'barcode'
+                    });
+
+                    if (materialFlowItems && materialFlowItems.length > 0) {
+                        resolvedScanCodes = materialFlowItems.map(item => item.barcode);
+                        this.$message.success(`找到 ${resolvedScanCodes.length} 个相关流程条码。`);
+                    } else {
+                        resolvedScanCodes = []; // 未找到条码，设置为空数组
+                        this.$message.warning('未找到物料编码/销售订单/流程状态对应的流程条码记录。');
+                    }
+                } else if (resolvedScanCodes === null && !hasMaterialCode && !hasSaleOrderNo && !hasMaterialFlowStatus) {
+                     // No material, sales order, or status filter, resolvedScanCodes remains null
+                } else if (resolvedScanCodes === null) {
+                    if (hasMaterialCode || hasSaleOrderNo || hasMaterialFlowStatus) resolvedScanCodes = []; 
+                }
+            }
+            return { directQuery: directQueryConditions, scanCodes: resolvedScanCodes };
+        },
         resetForm() {
             this.$refs.searchForm.resetFields();
             this.searchForm = {
@@ -328,71 +526,64 @@ export default {
                 scanCode: '',
                 machineId: '',
                 processId: '',
-                dateRange: []
+                dateRange: [],
+                saleOrderNo: '',
+                materialFlowStatus: ''
             };
             this.currentPage = 1;
             this.fetchData();
         },
-
         async fetchData() {
             this.listLoading = true;
             try {
-                let scanCodes = [];
-                
-                // 如果输入了物料编码，先查询对应的物料条码
-                if (this.searchForm.materialCode) {
-                    const materialFlowResult = await getData("material_process_flow", {
-                        query: {
-                            materialCode: this.searchForm.materialCode
-                        },
-                        select: 'barcode'
-                    });
+                const { directQuery, scanCodes } = await this.resolvedSearchParameters();
+
+                if (scanCodes !== null) { // 物料编码或销售订单筛选已激活
+                    if (scanCodes.length === 0) {
+                        this.$message.warning('根据物料/销售订单筛选，未找到对应的检测数据。');
+                        this.tableList = [];
+                        this.total = 0;
+                    } else {
+                        this.$message.info(`正在基于 ${scanCodes.length} 个条码分批查询检测数据...`);
+                        const inspectionResults = await this.fetchInspectionDataAdvanced(directQuery, scanCodes, {
+                            isPaginated: true,
+                            page: this.currentPage,
+                            limit: this.pageSize,
+                            sort: directQuery.sort || { _id: -1 } // directQuery is {query: {...}}, sort is not top-level
+                        });
+                        this.tableList = inspectionResults.data;
+                        this.total = inspectionResults.countnum;
+                    }
+                } else { // 标准查询，不涉及 material_process_flow 查找
+                    let finalQuery = directQuery.query ? { ...directQuery } : { query: {} }; // Ensure 'query' property exists
+                    finalQuery.page = this.currentPage;
+                    finalQuery.skip = (this.currentPage - 1) * this.pageSize;
+                    finalQuery.limit = this.pageSize;
+                    finalQuery.sort = { _id: -1 }; 
+                    finalQuery.count = true;
+                    finalQuery.populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]);
                     
-                    if (materialFlowResult.data && materialFlowResult.data.length > 0) {
-                        scanCodes = materialFlowResult.data.map(item => item.barcode);
-                    }
+                    const result = await getData("InspectionLastData", finalQuery);
+                    this.tableList = result.data;
+                    this.total = result.countnum;
                 }
-
-                let req = this.searchData();
-                
-                // 如果有物料编码查询结果，添加条码查询条件
-                if (scanCodes.length > 0) {
-                    if (!req.query.$and) {
-                        req.query.$and = [];
-                    }
-                    req.query.$and.push({
-                        scanCode: { $in: scanCodes }
-                    });
-                }
-
-                req.page = this.currentPage;
-                req.skip = (this.currentPage - 1) * this.pageSize;
-                req.limit = this.pageSize;
-                req.sort = { _id: -1 };
-                req.count = true;
-                req.populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]);
-                
-                const result = await getData("InspectionLastData", req);
-                this.tableList = result.data;
-                this.total = result.countnum;
             } catch (error) {
                 console.error('获取数据失败:', error);
                 this.$message.error('获取数据失败');
+                this.tableList = []; // 出错时清空数据
+                this.total = 0;
             } finally {
                 this.listLoading = false;
             }
         },
-
         baseTableHandleCurrentChange(currentPage) {
             this.currentPage = currentPage;
             this.fetchData();
         },
-
         baseTableHandleSizeChange(pageSize) {
             this.pageSize = pageSize;
             this.fetchData();
         },
-
         formatDate(date) {
             if (!date) return '暂无数据';
             const dateObj = new Date(date);
@@ -407,28 +598,23 @@ export default {
             const seconds = String(dateObj.getSeconds()).padStart(2, '0');
             return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         },
-
         search() {
             this.currentPage = 1;
             this.fetchData();
         },
-
         handleSelectionChange(selection) {
             this.selection = selection;
         },
-
         handleView(row) {
             this.dataForm = JSON.parse(JSON.stringify(row));
             this.dialogStatus = 'view';
             this.dialogFormVisible = true;
         },
-
         handleEdit(row) {
             this.dialogStatus = 'edit';
             this.dataForm = JSON.parse(JSON.stringify(row));
             this.dialogFormVisible = true;
         },
-
         handleDelete(row) {
             this.$confirm('确认要删除该检测数据吗?', '提示', {
                 confirmButtonText: '确定',
@@ -447,13 +633,11 @@ export default {
                 this.$message.info('已取消删除');
             });
         },
-
         handleAdd() {
             this.dialogStatus = 'create';
             this.dataForm = {};
             this.dialogFormVisible = true;
         },
-
         handleBatchDelete() {
             if (!this.selection.length) {
                 this.$message.warning('请选择要删除的记录');
@@ -476,7 +660,6 @@ export default {
                 }
             }).catch(() => { });
         },
-
         async handleSubmit(formData) {
             try {
                 if (this.dialogStatus === 'create') {
@@ -493,14 +676,12 @@ export default {
                 this.$message.error('操作失败');
             }
         },
-
         showHistory(row) {
             this.historyCurrentPage = 1;
             this.dataForm = row;
             this.fetchHistoryData(row.scanCode);
             this.historyDialogVisible = true;
         },
-
         async fetchHistoryData(scanCode) {
             this.historyListLoading = true;
             try {
@@ -522,215 +703,264 @@ export default {
                 this.historyListLoading = false;
             }
         },
-
         historyTableHandleCurrentChange(currentPage) {
             this.historyCurrentPage = currentPage;
             this.fetchHistoryData(this.dataForm.scanCode);
         },
-
         historyTableHandleSizeChange(pageSize) {
             this.historyPageSize = pageSize;
             this.fetchHistoryData(this.dataForm.scanCode);
         },
-
         async handleExport() {
             this.exportLoading = true;
             this.exportProgress = 0;
             this.exportDialogVisible = true;
+            let overallProgress = 0;
 
             try {
-                let scanCodes = [];
-                
-                // 如果输入了物料编码，先查询对应的物料条码
-                if (this.searchForm.materialCode) {
-                    const materialFlowResult = await getData("material_process_flow", {
-                        query: {
-                            materialCode: this.searchForm.materialCode
-                        },
-                        select: 'barcode'
-                    });
-                    
-                    if (materialFlowResult.data && materialFlowResult.data.length > 0) {
-                        scanCodes = materialFlowResult.data.map(item => item.barcode);
-                    } else {
-                        this.$message.warning('未找到该物料编码对应的条码记录');
+                const { directQuery, scanCodes: resolvedScanCodes } = await this.resolvedSearchParameters();
+
+                let materialFlowStagePercentage = 0;
+                if (resolvedScanCodes !== null) { // 物料、销售订单或流程状态筛选已激活
+                    materialFlowStagePercentage = 0.3; 
+                    overallProgress = materialFlowStagePercentage * 100;
+                    this.exportProgress = Math.round(overallProgress);
+                    if (resolvedScanCodes.length === 0) {
+                        this.$message.warning('导出操作：根据物料/销售订单筛选，未找到对应的流程条码记录，无法导出。');
                         this.exportDialogVisible = false;
                         this.exportLoading = false;
                         return;
                     }
                 }
-
-                // 构建查询条件
-                let req = this.searchData();
                 
-                // 如果有物料编码查询结果，添加条码查询条件
-                if (scanCodes.length > 0) {
-                    if (!req.query.$and) {
-                        req.query.$and = [];
-                    }
-                    req.query.$and.push({
-                        scanCode: { $in: scanCodes }
+                let inspectionFetchPercentage = 1.0 - materialFlowStagePercentage;
+
+                let baseReqForExport = directQuery.query ? JSON.parse(JSON.stringify(directQuery)) : { query: {} };
+                delete baseReqForExport.page;
+                delete baseReqForExport.skip;
+                delete baseReqForExport.limit;
+                delete baseReqForExport.count;
+
+                let allInspectionData = [];
+                const progressCallbackForInspection = (batchProgress) => {
+                    this.exportProgress = Math.round(overallProgress + (batchProgress / 100 * inspectionFetchPercentage * 100));
+                };
+
+                if (resolvedScanCodes !== null && resolvedScanCodes.length > 0) {
+                    this.$message.info(`导出操作：正在基于 ${resolvedScanCodes.length} 个条码分批导出检测数据...`);
+                    allInspectionData = await this.fetchInspectionDataAdvanced(baseReqForExport, resolvedScanCodes, {
+                        isPaginated: false,
+                        sort: baseReqForExport.sort || { _id: -1 },
+                        progressCallback: progressCallbackForInspection
                     });
-                }
-                
-                req.populate = JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]);
-
-                // 获取所有数据（不分页）
-                const result = await getData("InspectionLastData", req);
-                const totalItems = result.data.length;
-
-                if (totalItems === 0) {
-                    this.$message.warning('未找到符合条件的检测数据');
+                } else if (resolvedScanCodes === null) { // 没有通过物料流筛选条码，直接用 directQuery (如果有内容)
+                     this.$message.info(`导出操作：正在导出所有符合直接筛选条件的检测数据...`);
+                     const finalExportQuery = { 
+                        ...baseReqForExport, 
+                        populate: JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]) 
+                    };
+                    const result = await getData("InspectionLastData", finalExportQuery);
+                    allInspectionData = result.data || [];
+                    this.exportProgress = Math.round(overallProgress + inspectionFetchPercentage * 100);
+                } else { // resolvedScanCodes is [], means filters were applied but no barcodes found
+                    this.$message.warning('导出操作：未找到符合条件的条码，无法导出。');
                     this.exportDialogVisible = false;
                     this.exportLoading = false;
                     return;
                 }
 
-                // 准备 Excel 数据
-                const exportData = [];
-                const batchSize = 100;
-                const header = ['扫描码', '设备名称', '工序名称', '检测结果', '检测时间', '检测详情'];
+                overallProgress = Math.round(overallProgress + inspectionFetchPercentage * 100);
+                this.exportProgress = Math.min(overallProgress, 90);
 
-                for (let i = 0; i < totalItems; i += batchSize) {
-                    const batch = result.data.slice(i, i + batchSize).map(item => [
-                        item.scanCode,
-                        item.machineId ? item.machineId.machineName : '--',
-                        item.processId ? item.processId.processName : '--',
-                        !item.error ? '合格' : '不合格',
-                        this.formatDate(item.createTime),
-                        this.inspectionDataHandle(item).join('; ')
-                    ]);
-
-                    exportData.push(...batch);
-
-                    // 更新进度
-                    this.exportProgress = Math.round((i + batch.length) / totalItems * 100);
-
-                    // 给UI一个更新的机会
-                    await new Promise(resolve => setTimeout(resolve, 10));
+                if (!allInspectionData || allInspectionData.length === 0) {
+                    this.$message.warning('未找到对应的检测数据');
+                    this.exportDialogVisible = false;
+                    this.exportLoading = false;
+                    return;
                 }
+                
+                this.$message.info(`共找到 ${allInspectionData.length} 条检测数据，准备格式化并导出...`);
 
-                console.log(exportData);
-                // 导出Excel
+                const exportData = allInspectionData.map(item => [
+                    item.scanCode,
+                    item.machineId ? item.machineId.machineName : '--',
+                    item.processId ? item.processId.processName : '--',
+                    !item.error ? '合格' : '不合格',
+                    this.formatDate(item.createTime),
+                    this.inspectionDataHandle(item).join('; ')
+                ]);
+
+                this.exportProgress = 95; // 格式化完成
+
+                // 生成动态文件名，如果用户有输入物料编码或销售订单，则包含它们
+                let fileNameParts = ['检测数据'];
+                if (this.searchForm.materialCode) fileNameParts.unshift(this.searchForm.materialCode);
+                if (this.searchForm.saleOrderNo) fileNameParts.unshift(this.searchForm.saleOrderNo);
+                if (this.searchForm.materialFlowStatus) fileNameParts.push(this.searchForm.materialFlowStatus);
+                
+                const filename = `${fileNameParts.join('_')}_${new Date().getTime()}`;
+
                 import('@/vendor/Export2Excel').then(excel => {
                     excel.export_json_to_excel({
-                        header: header,
+                        header: ['扫描码', '设备名称', '工序名称', '检测结果', '检测时间', '检测详情'],
                         data: exportData,
-                        filename: '检测数据' + new Date().getTime(),
+                        filename: filename,
                         autoWidth: true,
                         bookType: 'xlsx'
                     });
                     this.exportProgress = 100;
                     this.$message.success('导出成功');
-                });
-
-                // 延迟关闭对话框
-                setTimeout(() => {
+                     setTimeout(() => {
+                        this.exportDialogVisible = false;
+                    }, 1000);
+                }).catch(err => {
+                    console.error("导出Excel失败:", err);
+                    this.$message.error('导出Excel失败');
                     this.exportDialogVisible = false;
-                    this.exportProgress = 0;
-                }, 1000);
+                });
 
             } catch (error) {
                 console.error('导出失败:', error);
-                this.$message.error('导出失败');
+                this.$message.error('导出失败: ' + (error.message || '未知错误'));
                 this.exportDialogVisible = false;
             } finally {
                 this.exportLoading = false;
+                 if (!this.exportDialogVisible) {
+                     this.exportProgress = 0;
+                }
             }
         },
-
         async handleExportByMaterial() {
-            if (!this.searchForm.materialCode) {
-                this.$message.warning('请输入物料编码');
-                return;
-            }
+            // 移除了物料编码必填的检查，使其行为更像 handleExport
+            // if (!this.searchForm.materialCode) {
+            //     this.$message.warning('请输入物料编码');
+            //     return;
+            // }
 
             this.exportLoading = true;
             this.exportProgress = 0;
             this.exportDialogVisible = true;
+            let overallProgress = 0;
 
             try {
-                // 1. 先查询物料流程表获取条码
-                const materialFlowResult = await getData("material_process_flow", {
-                    query: {
-                        materialCode: this.searchForm.materialCode
-                    },
-                    select: 'barcode'
-                });
+                // 调用 resolvedSearchParameters 来获取所有筛选条件对应的条码
+                const { directQuery, scanCodes: resolvedScanCodes } = await this.resolvedSearchParameters();
 
-                if (!materialFlowResult.data || materialFlowResult.data.length === 0) {
-                    this.$message.warning('未找到该物料编码对应的条码记录');
+                let materialFlowStagePercentage = 0;
+                if (resolvedScanCodes !== null) { // 物料、销售订单或流程状态筛选已激活
+                    materialFlowStagePercentage = 0.3; 
+                    overallProgress = materialFlowStagePercentage * 100;
+                    this.exportProgress = Math.round(overallProgress);
+                    if (resolvedScanCodes.length === 0) {
+                        this.$message.warning('按条件筛选：未找到对应的流程条码记录，无法导出。');
+                        this.exportDialogVisible = false;
+                        this.exportLoading = false;
+                        return;
+                    }
+                } else {
+                    // 如果 resolvedScanCodes 是 null，意味着用户没有通过物料编码、销售订单或流程状态筛选
+                    // 对于"按物料导出"的原始意图，这可能不应该发生，或者应该提示用户至少选择一个主要筛选条件
+                    // 但如果我们要使其行为像通用导出，那么这种情况是允许的，它会导出所有符合 directQuery 的数据
+                    // 为保持与 resolvedSearchParameters 的一致性，如果 resolvedScanCodes 为 null，则表示不基于物料流筛选。
+                    // 但对于名为 handleExportByMaterial 的函数，这可能令人困惑。 
+                    // 暂时按"允许导出所有"处理，如果 resolvedScanCodes 为 null。
+                    this.$message.info('未指定物料、销售订单或流程状态，将尝试导出符合其他条件的检测数据。');
+                }
+
+                let inspectionFetchPercentage = 1.0 - materialFlowStagePercentage;
+                let baseReqForExport = directQuery.query ? JSON.parse(JSON.stringify(directQuery)) : { query: {} };
+                delete baseReqForExport.page;
+                delete baseReqForExport.skip;
+                delete baseReqForExport.limit;
+                delete baseReqForExport.count;
+
+                let allInspectionData = [];
+                const progressCallbackForInspection = (batchProgress) => {
+                    this.exportProgress = Math.round(overallProgress + (batchProgress / 100 * inspectionFetchPercentage * 100));
+                };
+
+                if (resolvedScanCodes !== null && resolvedScanCodes.length > 0) {
+                    this.$message.info(`按条件筛选导出：正在基于 ${resolvedScanCodes.length} 个条码分批导出检测数据...`);
+                    allInspectionData = await this.fetchInspectionDataAdvanced(baseReqForExport, resolvedScanCodes, {
+                        isPaginated: false,
+                        sort: baseReqForExport.sort || { _id: -1 },
+                        progressCallback: progressCallbackForInspection
+                    });
+                } else if (resolvedScanCodes === null) { // 没有通过物料流筛选条码，直接用 directQuery (如果有内容)
+                     this.$message.info(`按条件筛选导出：正在导出所有符合直接筛选条件的检测数据...`);
+                     const finalExportQuery = { 
+                        ...baseReqForExport, 
+                        populate: JSON.stringify([{ path: 'machineId' }, { path: 'processId' }]) 
+                    };
+                    const result = await getData("InspectionLastData", finalExportQuery);
+                    allInspectionData = result.data || [];
+                    this.exportProgress = Math.round(overallProgress + inspectionFetchPercentage * 100);
+                } else { // resolvedScanCodes is [], means filters were applied but no barcodes found
+                    this.$message.warning('按条件筛选导出：未找到符合条件的条码，无法导出。');
                     this.exportDialogVisible = false;
+                    this.exportLoading = false;
                     return;
                 }
 
-                const barcodes = materialFlowResult.data.map(item => item.barcode);
-                
-                // 2. 使用条码数组查询检测数据
-                const inspectionResult = await getData("InspectionLastData", {
-                    query: {
-                        scanCode: { $in: barcodes }
-                    },
-                    populate: JSON.stringify([{ path: 'machineId' }, { path: 'processId' }])
-                });
+                overallProgress = Math.round(overallProgress + inspectionFetchPercentage * 100);
+                this.exportProgress = Math.min(overallProgress, 90);
 
-                if (!inspectionResult.data || inspectionResult.data.length === 0) {
+                if (!allInspectionData || allInspectionData.length === 0) {
                     this.$message.warning('未找到对应的检测数据');
                     this.exportDialogVisible = false;
+                    this.exportLoading = false;
                     return;
                 }
-
-                const totalItems = inspectionResult.data.length;
                 
-                // 准备导出数据
-                const exportData = [];
-                const batchSize = 100;
-                const header = ['扫描码', '设备名称', '工序名称', '检测结果', '检测时间', '检测详情'];
+                this.$message.info(`按条件筛选导出：共找到 ${allInspectionData.length} 条检测数据，准备格式化并导出...`);
 
-                for (let i = 0; i < totalItems; i += batchSize) {
-                    const batch = inspectionResult.data.slice(i, i + batchSize).map(item => [
-                        item.scanCode,
-                        item.machineId ? item.machineId.machineName : '--',
-                        item.processId ? item.processId.processName : '--',
-                        !item.error ? '合格' : '不合格',
-                        this.formatDate(item.createTime),
-                        this.inspectionDataHandle(item).join('; ')
-                    ]);
+                const exportData = allInspectionData.map(item => [
+                    item.scanCode,
+                    item.machineId ? item.machineId.machineName : '--',
+                    item.processId ? item.processId.processName : '--',
+                    !item.error ? '合格' : '不合格',
+                    this.formatDate(item.createTime),
+                    this.inspectionDataHandle(item).join('; ')
+                ]);
 
-                    exportData.push(...batch);
+                this.exportProgress = 95; // 格式化完成
 
-                    // 更新进度
-                    this.exportProgress = Math.round((i + batch.length) / totalItems * 100);
+                // 生成动态文件名，如果用户有输入物料编码或销售订单，则包含它们
+                let fileNameParts = ['检测数据'];
+                if (this.searchForm.materialCode) fileNameParts.unshift(this.searchForm.materialCode);
+                if (this.searchForm.saleOrderNo) fileNameParts.unshift(this.searchForm.saleOrderNo);
+                if (this.searchForm.materialFlowStatus) fileNameParts.push(this.searchForm.materialFlowStatus);
+                
+                const filename = `${fileNameParts.join('_')}_${new Date().getTime()}`;
 
-                    // 给UI一个更新的机会
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-
-                // 导出Excel
                 import('@/vendor/Export2Excel').then(excel => {
                     excel.export_json_to_excel({
-                        header: header,
+                        header: ['扫描码', '设备名称', '工序名称', '检测结果', '检测时间', '检测详情'],
                         data: exportData,
-                        filename: `${this.searchForm.materialCode}_检测数据_${new Date().getTime()}`,
+                        filename: filename,
                         autoWidth: true,
                         bookType: 'xlsx'
                     });
                     this.exportProgress = 100;
-                    this.$message.success('导出成功');
+                    this.$message.success('按条件筛选导出成功');
+                     setTimeout(() => {
+                        this.exportDialogVisible = false;
+                    }, 1000);
+                }).catch(err => {
+                    console.error("按条件筛选导出Excel失败:", err);
+                    this.$message.error('按条件筛选导出Excel失败');
+                    this.exportDialogVisible = false;
                 });
 
-                // 延迟关闭对话框
-                setTimeout(() => {
-                    this.exportDialogVisible = false;
-                    this.exportProgress = 0;
-                }, 1000);
-
             } catch (error) {
-                console.error('导出失败:', error);
-                this.$message.error('导出失败');
+                console.error('按条件筛选导出失败:', error);
+                this.$message.error('按条件筛选导出失败: ' + (error.message || '未知错误'));
                 this.exportDialogVisible = false;
             } finally {
                 this.exportLoading = false;
+                 if (!this.exportDialogVisible) {
+                     this.exportProgress = 0;
+                }
             }
         }
     },

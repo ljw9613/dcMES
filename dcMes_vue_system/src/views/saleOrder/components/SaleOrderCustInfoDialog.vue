@@ -116,6 +116,40 @@ export default {
     }
   },
   data() {
+    // 自定义校验器：校验客户PO号（添可订单）
+    const validateFCustPO = (rule, value, callback) => {
+      if (this._isTinecoOrder()) {
+        const trimmedValue = value ? String(value).trim() : '';
+        if (!trimmedValue) {
+          callback(new Error('添可订单的客户PO号不能为空或仅包含空格'));
+          return;
+        }
+        // 检查是否包含特殊符号，此处以 / 为例
+        if (trimmedValue.includes('/')) {
+          callback(new Error('添可订单的客户PO号不能包含特殊符号 "/"'));
+          return;
+        }
+      }
+      callback(); // 如果不是添可订单或校验通过，则放行
+    };
+
+    // 自定义校验器：校验客户PO行号（添可订单）
+    const validateFCustPOLineNo = (rule, value, callback) => {
+      if (this._isTinecoOrder()) {
+        const trimmedValue = value ? String(value).trim() : '';
+        if (!trimmedValue) {
+          callback(new Error('添可订单的客户PO行号不能为空或仅包含空格'));
+          return;
+        }
+        // 检查是否包含特殊符号，此处以 / 为例
+        if (trimmedValue.includes('/')) {
+          callback(new Error('添可订单的客户PO行号不能包含特殊符号 "/"'));
+          return;
+        }
+      }
+      callback(); // 如果不是添可订单或校验通过，则放行
+    };
+
     return {
       loading: false,
       submitLoading: false,
@@ -125,10 +159,12 @@ export default {
       formData: this.getInitialFormData(),
       rules: {
         FCustPO: [
-          { required: true, message: '请输入客户PO号', trigger: 'blur' }
+          { required: true, message: '请输入客户PO号', trigger: 'blur' },
+          { validator: validateFCustPO, trigger: 'blur' } // 添加针对添可订单的自定义校验
         ],
         FCustPOLineNo: [
-          { required: true, message: '请输入客户PO行号', trigger: 'blur' }
+          { required: true, message: '请输入客户PO行号', trigger: 'blur' },
+          { validator: validateFCustPOLineNo, trigger: 'blur' } // 添加针对添可订单的自定义校验
         ],
         FSapId: [
           { required: true, message: '请输入SAP ID', trigger: 'blur' }
@@ -183,6 +219,12 @@ export default {
         FStatus: 'ENABLE',
         FRemark: ''
       }
+    },
+    // 辅助方法：判断是否为添可订单
+    // K3中添可客户的结算客户编码为 CUST0199
+    _isTinecoOrder() {
+      // 确保 saleOrderData 存在并且 FSettleId_FNumber 字段可用
+      return this.saleOrderData && this.saleOrderData.FSettleId_FNumber === 'CUST0199';
     },
     // 获取表格数据
     async fetchData() {
