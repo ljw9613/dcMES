@@ -136,11 +136,7 @@
       </el-card>
     </div>
     <div class="right-content">
-      <template
-        v-if="
-          mainMaterialId && processStepId
-        "
-      >
+      <template v-if="mainMaterialId && processStepId">
         <el-card class="scan-card">
           <!-- 标题部分 -->
           <div class="card-header">
@@ -2029,13 +2025,17 @@ export default {
 
             //追觅综合字段
             printData.printBarcodeZH =
-              printData.barcode +
+              printData.printBarcode +
               "," +
               printData.FCustPO +
               "," +
               printData.productionDate +
               "," +
               printData.quantity;
+
+
+            //createDate
+            printData.createDate = `${year}.${month}`;
 
             //无线吸尘器生产日期
             printData.wxxcqProductionDate = `${year}.${month}`;
