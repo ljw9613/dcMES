@@ -261,20 +261,22 @@ export default {
       menu.checked = checked;
       menu.indeterminate = false;
 
-      // 级联选择子菜单，但不包括权限类型的菜单
+      // 级联选择子菜单
       if(menu.children && menu.children.length > 0) {
         menu.children.forEach(subMenu => {
           // 设置二级菜单状态
           subMenu.checked = checked;
           subMenu.indeterminate = false;
 
-          // 级联选择三级菜单，但跳过权限类型菜单
+          // 级联选择三级菜单
           if(subMenu.children && subMenu.children.length > 0) {
             subMenu.children.forEach(thirdMenu => {
-              // 如果是权限类型菜单且当前操作是取消选中，则保持原状态
-              if (thirdMenu.type === '权限' && !checked) {
-                // 不修改权限菜单的选中状态
-              } else {
+              if (thirdMenu.type === '权限') {
+                if (!checked) { // 如果父级(目录)被取消勾选，则权限子菜单也取消勾选
+                  thirdMenu.checked = false;
+                }
+                // 如果父级(目录)被勾选，权限子菜单的勾选状态保持不变
+              } else { // 非权限类型的子菜单正常级联
                 thirdMenu.checked = checked;
               }
             });
@@ -292,13 +294,15 @@ export default {
       subMenu.checked = checked;
       subMenu.indeterminate = false;
 
-      // 级联选择三级菜单，但跳过权限类型菜单
+      // 级联选择三级菜单
       if(subMenu.children && subMenu.children.length > 0) {
         subMenu.children.forEach(thirdMenu => {
-          // 如果是权限类型菜单且当前操作是取消选中，则保持原状态
-          if (thirdMenu.type === '权限' && !checked) {
-            // 不修改权限菜单的选中状态
-          } else {
+          if (thirdMenu.type === '权限') {
+            if (!checked) { // 如果父级(子菜单)被取消勾选，则权限子菜单也取消勾选
+              thirdMenu.checked = false;
+            }
+            // 如果父级(子菜单)被勾选，权限子菜单的勾选状态保持不变
+          } else { // 非权限类型的子菜单正常级联
             thirdMenu.checked = checked;
           }
         });
@@ -367,63 +371,77 @@ export default {
 
     // 发送选中值变化事件
     emitChange() {
-      // 收集所有选中的菜单项，包括明确勾选的菜单和权限
-      const collectSelectedMenuInfos = (menus) => {
-        if (!menus || !menus.length) return [];
-
-        return menus.reduce((acc, menu) => {
-          // 如果菜单被选中，添加到结果中
-          if (menu.checked === true) {
-            acc.push({
-              id: menu._id,
-              name: menu.menuName,
-              type: menu.type || '菜单'
-            });
-          }
-
-          // 处理子菜单，始终递归检查所有子菜单
-          if (menu.children && menu.children.length) {
-            const selectedChildren = collectSelectedMenuInfos(menu.children);
-            acc.push(...selectedChildren);
-          }
-
-          return acc;
-        }, []);
+      const selectedIdsCollector = new Set();
+      const collectCheckedWithParents = (menus, parentIds = []) => {
+          if (!menus || !menus.length) return;
+          menus.forEach(menu => {
+              const currentPath = [...parentIds, menu._id];
+              if (menu.checked) {
+                  currentPath.forEach(id => {
+                    if (id !== null && id !== undefined) { // 确保不添加无效ID
+                       selectedIdsCollector.add(id);
+                    }
+                  });
+              }
+              if (menu.children && menu.children.length) {
+                  collectCheckedWithParents(menu.children, currentPath);
+              }
+          });
       };
 
-      // 获取所有选中的菜单信息
-      const selectedMenus = collectSelectedMenuInfos(this.menuList);
+      collectCheckedWithParents(this.menuList);
+      const uniqueIds = [...selectedIdsCollector].filter(id => id != null);
 
-      // 提取ID列表
-      const selectedIds = selectedMenus.map(item => item.id);
 
-      // 确保没有重复ID
-      const uniqueIds = [...new Set(selectedIds)].filter(Boolean);
+      // 详细打印选中状态 (保留原有日志，但修改其数据源和说明)
+      console.log('===== 菜单树选中状态 (emitChange) =====');
 
-      // 详细打印选中状态
-      console.log('===== 菜单树选中状态 =====');
-
-      // 打印勾选信息，特别标记权限菜单
-      const getMenuState = (menu, indent = '') => {
+      const getMenuStateInfo = (menu, indent = '') => {
         const state = menu.checked ? '✓' : menu.indeterminate ? '⊙' : '✗';
         const permMark = menu.type === '权限' ? ' [权限]' : '';
-        console.log(`${indent}${state} ${menu.menuName}${permMark}`);
+        const isInFinalList = uniqueIds.includes(menu._id) ? ' (in final list)' : '';
+        console.log(`${indent}${state} ${menu.menuName}${permMark}${isInFinalList}`);
 
         if (menu.children && menu.children.length) {
           menu.children.forEach(child => {
-            getMenuState(child, indent + '  ');
+            getMenuStateInfo(child, indent + '  ');
           });
         }
       };
 
-      console.log('菜单选中状态树:');
-      this.menuList.forEach(menu => getMenuState(menu));
+      console.log('菜单勾选/半选状态树 (以及是否在最终ID列表中):');
+      this.menuList.forEach(menu => getMenuStateInfo(menu));
+      
+      // 收集用于表格展示的详细信息
+      const selectedMenuDetailsForTable = [];
+      const collectDetailsForTable = (menus, parentPathNames = []) => {
+          if (!menus || !menus.length) return;
+          menus.forEach(menu => {
+              if (uniqueIds.includes(menu._id)) {
+                  selectedMenuDetailsForTable.push({
+                      id: menu._id,
+                      name: menu.menuName,
+                      type: menu.type || '菜单',
+                      path: [...parentPathNames, menu.menuName].join(' / ')
+                  });
+              }
+              if (menu.children && menu.children.length) {
+                  collectDetailsForTable(menu.children, [...parentPathNames, menu.menuName]);
+              }
+          });
+      };
+      collectDetailsForTable(this.menuList);
 
-      console.log('最终选中的菜单列表:');
-      console.table(selectedMenus.map(item => ({
-        菜单名称: item.name,
-        菜单类型: item.type
-      })));
+
+      console.log('最终选中的菜单ID列表 (包含父级):', JSON.parse(JSON.stringify(uniqueIds)));
+      console.log('最终选中的菜单详细信息 (包含父级):');
+      console.table(selectedMenuDetailsForTable.map(item => ({
+        'ID': item.id,
+        '菜单名称': item.name,
+        '菜单类型': item.type,
+        '菜单路径': item.path
+      })).sort((a,b) => a.菜单路径.localeCompare(b.菜单路径)));
+
 
       // 向父组件发送选中的菜单ID
       this.$emit('input', uniqueIds);

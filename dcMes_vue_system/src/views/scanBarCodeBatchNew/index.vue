@@ -112,7 +112,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="hasEditPermission">
+          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -196,7 +196,7 @@
             <el-form
               :model="batchForm"
               label-width="100px"
-              v-if="hasEditPermission"
+              v-if="$checkPermission('扫码编辑配置')"
             >
               <el-form-item label="产品数量">
                 <div class="batch-size-control">
@@ -524,6 +524,7 @@ export default {
       scanMode: localStorage.getItem("scanMode") || "normal", // 默认为普通模式
 
       craftInfo: {},
+      craftHasPackingProcess: false, // 新增：标记当前工艺是否包含装箱工序
     };
   },
   computed: {
@@ -1030,6 +1031,22 @@ export default {
 
         this.craftInfo = craft; // 保存工艺信息
 
+        // 新增：检查当前工艺是否包含装箱工序
+        this.craftHasPackingProcess = false; // 默认重置
+        if (this.craftInfo && this.craftInfo.processSteps && this.craftInfo.processSteps.length > 0) {
+          try {
+            const processStepDetailsResponse = await getData("processStep", {
+              query: { _id: { $in: this.craftInfo.processSteps } },
+            });
+            if (processStepDetailsResponse.code === 200 && processStepDetailsResponse.data && processStepDetailsResponse.data.length > 0) {
+              this.craftHasPackingProcess = processStepDetailsResponse.data.some(step => step.processType === 'E');
+              console.log("当前工艺 (scanBarCodeBatchNew) 是否包含装箱工序 (craftHasPackingProcess):", this.craftHasPackingProcess);
+            }
+          } catch (error) {
+            console.error("检查工艺是否包含装箱工序失败 (scanBarCodeBatchNew):", error);
+          }
+        }
+
         // 获取工艺对应的物料信息
         const material = await this.getMaterialById(craft.materialId);
 
@@ -1519,9 +1536,38 @@ export default {
         return;
       }
 
+      let cleanValue = ""; // 初始化 cleanValue
       try {
-        let cleanValue = value.trim().replace(/[\r\n]/g, "");
-        if (!cleanValue) return;
+        cleanValue = value.trim().replace(/[\r\n]/g, "");
+        if (!cleanValue) {
+          // 如果清理后为空，则在此处返回，finally仍会执行
+          return;
+        }
+
+        // 新增前置校验：如果当前工艺包含装箱工序，则必须扫描包装箱条码
+        if (this.craftHasPackingProcess) {
+          const boxCheckResponse = await getData("material_process_flow", {
+            query: {
+              processNodes: {
+                $elemMatch: {
+                  barcode: cleanValue,
+                  isPackingBox: true,
+                },
+              },
+            },
+            limit: 1, // 只需要知道是否存在
+          });
+          const isScannedBoxBarcode = boxCheckResponse.data && boxCheckResponse.data.length > 0;
+          if (!isScannedBoxBarcode) {
+            this.$message.error("当前工艺包含装箱工序，必须扫描包装箱条码。");
+            this.popupType = "ng";
+            this.showPopup = true;
+            tone(tmyw);
+            // 清空并聚焦的逻辑移至finally
+            return; // 终止处理
+          }
+        }
+
         //查询是否有过托盘解绑记录
         const palletUnbindResponse = await getData("material_palletizing_unbind_log", {
           query: {
@@ -1590,8 +1636,6 @@ export default {
             });
             if (repairRecord.data.length > 0) {
               if (repairRecord.data[0].status == "PENDING_REVIEW") {
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
                 this.$message.error("该条码存在未完成的维修记录");
                 this.popupType = "ng";
                 this.showPopup = true;
@@ -1603,16 +1647,12 @@ export default {
                 repairRecord.data[0].repairResult !== "QUALIFIED"
               ) {
                 if (repairRecord.data[0].solution == "报废") {
-                  this.unifiedScanInput = "";
-                  this.$refs.scanInput.focus();
                   this.$message.error("该条码已完成报废处理");
                   this.popupType = "ng";
                   this.showPopup = true;
                   tone(tmyw);
                   return;
                 }
-                this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
                 this.$message.error("该条码已完成维修,但维修结果为不合格");
                 this.popupType = "ng";
                 this.showPopup = true;
@@ -1770,7 +1810,7 @@ export default {
             materialName: this.mainMaterialName,
             materialSpec: this.mainMaterialSpec,
             mainBarcode: this.scanForm.mainBarcode,
-            boxBarcode: null,
+            boxBarcode: null, // 在这个新的流程中，不直接处理包装箱条码的概念，所以设为null
             totalQuantity: this.batchForm.batchSize,
             userId: this.$store.state.user.id,
             componentScans,
@@ -1785,14 +1825,6 @@ export default {
             this.palletForm.saleOrderNo = res.data.saleOrderNo;
             this.palletForm.totalQuantity = res.data.totalQuantity;
             this.batchForm.batchSize = res.data.totalQuantity;
-
-            // 添加到已扫描列表
-            // this.scannedList.push({
-            //   barcode: this.scanForm.mainBarcode,
-            //   type: "single",
-            //   boxBarcode: "",
-            //   scanTime: new Date(),
-            // });
 
             let materialPalletizingPrintData = await getData(
               "material_palletizing",
@@ -1822,33 +1854,26 @@ export default {
             });
             this.printData = printData;
 
-            // 根据后端返回的 palletBarcodes 更新 scannedList
             this.scannedList = printData.palletBarcodes.map(item => ({
                 barcode: item.barcode,
-                scanTime: item.scanTime, // scanTime is already formatted
+                scanTime: item.scanTime, 
                 type: item.barcodeType,
                 boxBarcode: item.boxBarcode
             }));
 
-            // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
             if (res.data.status == "STACKED") {
               this.$nextTick(() => {
                 this.$refs.hirInput.handlePrints2();
               });
               this.palletForm.palletCode = "";
               this.scannedList = [];
-              // 组托完成不清除批次物料缓存，只更新使用次数
               for (const material of this.processMaterials) {
                 if (material.isBatch && this.scanForm.barcodes[material._id]) {
                   const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                   const usageKey = `${cacheKey}_usage`;
                   const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
-
-                  // 更新使用次数
                   const newUsage = currentUsage + 1;
                   localStorage.setItem(usageKey, newUsage.toString());
-                  
-                  // 只有当设置了使用次数限制且达到限制时才清除缓存
                   if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
                     localStorage.removeItem(cacheKey);
                     localStorage.removeItem(usageKey);
@@ -1857,22 +1882,16 @@ export default {
                   }
                 }
               }
-              // 重置主条码，但保留子物料的批次缓存
               this.scanForm.mainBarcode = "";
               this.$set(this.validateStatus, "mainBarcode", false);
             } else {
-              // 不是组托完成，提交成功后，更新批次物料的使用次数
               for (const material of this.processMaterials) {
                 if (material.isBatch && this.scanForm.barcodes[material._id]) {
                   const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                   const usageKey = `${cacheKey}_usage`;
                   const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
-
-                  // 更新使用次数
                   const newUsage = currentUsage + 1;
                   localStorage.setItem(usageKey, newUsage.toString());
-                  
-                  // 如果设置了使用次数限制且达到限制，清除缓存
                   if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
                     localStorage.removeItem(cacheKey);
                     localStorage.removeItem(usageKey);
@@ -1888,7 +1907,8 @@ export default {
             this.popupType = "ok";
             this.showPopup = true;
             this.$message.success("条码扫描成功");
-            this.resetScanForm();
+            // resetScanForm 在 STACKED 和非 STACKED 分支中都已调用或部分调用，这里可能不需要再次调用
+            // this.resetScanForm(); 
           } else {
             this.$message.error(res.message);
             this.popupType = "ng";
@@ -1900,7 +1920,7 @@ export default {
             } else {
               tone(tmyw);
             }
-            this.resetScanForm();
+            this.resetScanForm(); // 确保在错误时重置
             return;
           }
         }
@@ -1910,6 +1930,8 @@ export default {
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
+        // 可以在这里也调用 resetScanForm() 如果需要的话
+        // this.resetScanForm();
       } finally {
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();

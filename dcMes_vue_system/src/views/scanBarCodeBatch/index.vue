@@ -112,7 +112,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="hasEditPermission">
+          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -159,7 +159,7 @@
             <el-form
               :model="batchForm"
               label-width="100px"
-              v-if="hasEditPermission"
+              v-if="$checkPermission('扫码编辑配置')"
             >
               <el-form-item label="产品数量">
                 <div class="batch-size-control">
@@ -553,6 +553,7 @@ export default {
       scanMode: localStorage.getItem("scanMode") || "normal", // 默认为普通模式
 
       craftInfo: {},
+      craftHasPackingProcess: false, // 新增：标记当前工艺是否包含装箱工序
     };
   },
   computed: {
@@ -1058,6 +1059,23 @@ export default {
         const craft = craftResponse.data[0];
 
         this.craftInfo = craft; // 保存工艺信息
+
+        // 新增：检查当前工艺是否包含装箱工序
+        this.craftHasPackingProcess = false; // 默认重置
+        if (this.craftInfo && this.craftInfo.processSteps && this.craftInfo.processSteps.length > 0) {
+          try {
+            const processStepDetailsResponse = await getData("processStep", {
+              query: { _id: { $in: this.craftInfo.processSteps } },
+            });
+            if (processStepDetailsResponse.code === 200 && processStepDetailsResponse.data && processStepDetailsResponse.data.length > 0) {
+              this.craftHasPackingProcess = processStepDetailsResponse.data.some(step => step.processType === 'E');
+              console.log("当前工艺是否包含装箱工序 (craftHasPackingProcess):", this.craftHasPackingProcess);
+            }
+          } catch (error) {
+            console.error("检查工艺是否包含装箱工序失败:", error);
+            // 此处保持 craftHasPackingProcess 为 false，校验将不会因此失败
+          }
+        }
 
         // 获取工艺对应的物料信息
         const material = await this.getMaterialById(craft.materialId);
@@ -1761,8 +1779,21 @@ export default {
             },
           },
         });
+        const isBoxBarcode = boxResponse.data && boxResponse.data.length > 0;
+
+        // 新增前置校验：如果当前工艺包含装箱工序，则必须扫描包装箱条码
+        if (this.craftHasPackingProcess && !isBoxBarcode) {
+          this.$message.error("当前工艺包含装箱工序，必须扫描包装箱条码。");
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          this.unifiedScanInput = ""; // 清空输入框
+          this.$refs.scanInput.focus(); // 重新聚焦
+          return; // 终止处理
+        }
+
         console.log("boxResponse", boxResponse);
-        if (boxResponse.data && boxResponse.data.length > 0) {
+        if (isBoxBarcode) {
           // 首先取一条主条码数据进行校验是否为当前产品
           let mainBarcode = boxResponse.data[0].barcode;
           let isValid = await this.validateBarcode(mainBarcode);

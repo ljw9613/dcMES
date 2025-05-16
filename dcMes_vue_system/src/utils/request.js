@@ -42,15 +42,15 @@ service.interceptors.request.use(
     const token = store.getters.token;
     
     // 添加调试信息
-    console.log('请求URL:', config.url);
-    console.log('当前token:', token);
+    // console.log('请求URL:', config.url);
+    // console.log('当前token:', token);
     
     if (token) {
       // 确保token存在且有效再添加到请求头中
       if (typeof token === 'string' && token.trim() !== '') {
         // 添加Bearer前缀，确保格式正确
         config.headers.common["Authorization"] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-        console.log('添加到请求头的token:', config.headers.common["Authorization"]);
+        // console.log('添加到请求头的token:', config.headers.common["Authorization"]);
       }
       
       // 为user/info接口特殊处理
@@ -58,7 +58,7 @@ service.interceptors.request.use(
         // 确保请求体中包含用户ID
         if (!config.data || !config.data.id) {
           const userId = store.getters.id;
-          console.log('为user/info添加用户ID:', userId);
+          // console.log('为user/info添加用户ID:', userId);
           config.data = config.data || {};
           config.data.id = userId;
         }
@@ -69,8 +69,8 @@ service.interceptors.request.use(
     }
     
     // 打印完整的请求头和请求体
-    console.log('请求头:', JSON.stringify(config.headers));
-    console.log('请求体:', JSON.stringify(config.data));
+    // console.log('请求头:', JSON.stringify(config.headers));
+    // console.log('请求体:', JSON.stringify(config.data));
     
     return config;
   },

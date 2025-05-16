@@ -240,13 +240,13 @@
             >
             <el-button
               type="primary"
-              v-if="hasFixAbnormalNodes"
+              v-if="$checkPermission('条码记录修复异常节点')"
               @click="handleBatchAutoFixInconsistentProcessNodes"
               >批量修复异常节点</el-button
             >
             <el-button
               type="primary"
-              v-if="hasRepairProcessNodes"
+              v-if="$checkPermission('条码记录修复流程进度')"
               @click="handleBatchFixFlowProgress"
               >批量修复流程进度</el-button
             >
@@ -991,7 +991,7 @@
                 <el-button
                   type="text"
                   style="color: red"
-                  v-if="hasFinishedBarcodeInitialization"
+                  v-if="$checkPermission('成品初始化')"
                   @click="handleInit(scope.row)"
                   >成品初始化</el-button
                 >

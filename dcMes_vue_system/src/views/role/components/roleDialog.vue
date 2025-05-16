@@ -17,8 +17,8 @@
         </el-form-item>
 
         <!-- 原按钮权限部分，暂时注释掉 -->
-        <!--
-        <el-form-item label="按钮权限" label-width="100px" required>
+        
+        <!-- <el-form-item label="按钮权限" label-width="100px" required>
           <el-select
             v-model="postList.buttonList"
             multiple
@@ -26,7 +26,7 @@
             collapse-tags
             placeholder="请选择按钮权限"
             class="permission-select"
-            :popper-class="'permission-dropdown'"
+            :popper-class="permission-dropdown"
           >
             <el-option
               v-for="dict in dict.type.button_permissions"
@@ -51,8 +51,8 @@
               {{btn.label}}
             </el-tag>
           </div>
-        </el-form-item>
-        -->
+        </el-form-item> -->
+       
 
         <!-- 菜单权限，现在包含按钮权限功能 -->
         <el-form-item label="菜单及权限" label-width="100px" required>
@@ -154,23 +154,35 @@ export default {
     extractPermissionsFromMenuList() {
       // 不再需要使用buttonList，因为权限现在存储在menuList中
       // 根据菜单选择自动生成buttonList
-      if (!this.permissionMenus.length || !this.postList.menuList) return [];
+      if (!this.postList || !this.postList.menuList || !this.postList.menuList.length) {
+        console.log('%c提取权限 - 选中的菜单列表为空或未定义，返回空权限列表。', 'color:#FF0000; font-weight:bold;');
+        return [];
+      }
+      if (!this.permissionMenus || !this.permissionMenus.length) {
+        console.log('%c提取权限 - 权限菜单定义列表(permissionMenus)为空，返回空权限列表。', 'color:#FF0000; font-weight:bold;');
+        return [];
+      }
 
       const selectedPerms = [];
 
-      console.log('%c提取权限 - 权限菜单:', 'color:#E6A23C; font-weight:bold;', JSON.parse(JSON.stringify(this.permissionMenus)));
-      console.log('%c提取权限 - 选中的菜单:', 'color:#E6A23C; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.menuList)));
+      console.groupCollapsed('%c权限提取详细日志', 'color:#007bff; font-weight:bold;');
+      console.log('%c可用权限项 (this.permissionMenus):', 'color:#E6A23C; font-weight:bold;', JSON.parse(JSON.stringify(this.permissionMenus)));
+      console.log('%c当前选中的菜单ID (this.postList.menuList):', 'color:#67C23A; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.menuList)));
 
-      // 遍历所有权限菜单
-      this.permissionMenus.forEach(perm => {
-        // 如果这个权限菜单被选中，则添加其权限标识到列表
-        if (this.postList.menuList.includes(perm.id)) {
-          console.log(`找到权限: ${perm.name} (${perm.perms})`);
-          selectedPerms.push(perm.perms);
+      // 遍历所有预定义的权限菜单项
+      this.permissionMenus.forEach(permDefinition => {
+        console.log(`%c检查权限项: ${permDefinition.name} (ID: ${permDefinition.id}, Perms: ${permDefinition.perms})`, 'color:grey;');
+        // 检查这个预定义权限项的ID是否存在于实际选中的菜单ID列表中
+        if (this.postList.menuList.includes(permDefinition.id)) {
+          console.log(`%c  匹配成功! 权限 '${permDefinition.name}' (ID: ${permDefinition.id}) 在选中的菜单列表中。将添加权限: ${permDefinition.perms}`, 'color:green; font-weight:bold;');
+          selectedPerms.push(permDefinition.perms);
+        } else {
+          console.log(`%c  未匹配。权限 '${permDefinition.name}' (ID: ${permDefinition.id}) 不在选中的菜单列表中。`, 'color:red;');
         }
       });
+      console.groupEnd();
 
-      console.log('%c提取权限 - 最终权限列表:', 'color:#67C23A; font-weight:bold;', selectedPerms);
+      console.log('%c提取权限 - 最终生成的权限标识列表 (selectedPerms):', 'color:#28a745; font-weight:bold;', JSON.parse(JSON.stringify(selectedPerms)));
 
       return selectedPerms;
     },

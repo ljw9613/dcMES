@@ -103,7 +103,7 @@
                 <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息"></el-input>
             </el-form-item>
             <!-- 当前生产工序 -->
-            <el-row :gutter="20" v-if="dialogStatus == 'edit' && hasOneKeyProductionPermission">
+            <el-row :gutter="20" v-if="dialogStatus == 'edit' && $checkPermission('一键生产')">
                 <el-col :span="24">
                     <div class="tip-box">
                         <p>请勿随意修改当前产线的生产主物料</p>
@@ -111,7 +111,7 @@
                 </el-col>
             </el-row>
             <!-- 一键生产 -->
-            <el-form-item label="一键生产" v-if="dialogStatus == 'edit' && hasOneKeyProductionPermission">
+            <el-form-item label="一键生产" v-if="dialogStatus == 'edit' && $checkPermission('一键生产')">
                 <zr-select v-model="form.currentMaterial" collection="k3_BD_MATERIAL"
                     :search-fields="['FNumber', 'FName']" label-key="FName" sub-key="FMATERIALID" :multiple="false"
                     placeholder="请输入物料编码/名称搜索">

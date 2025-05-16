@@ -90,8 +90,8 @@ router.post('/api/v1/user/login', async (req, res, next) => {
 //管理后台获得登录信息
 router.post('/api/v1/user/info', async (reqs, res, next) => {
     try {
-        console.log('用户信息查询请求体:', reqs.body);
-        console.log('请求头:', reqs.headers);
+        // console.log('用户信息查询请求体:', reqs.body);
+        // console.log('请求头:', reqs.headers);
         
         // 检查是否有用户ID
         if (!reqs.body.id) {

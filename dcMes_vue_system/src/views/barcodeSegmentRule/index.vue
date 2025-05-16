@@ -66,13 +66,13 @@
         </el-table-column>
         <el-table-column label="操作" width="260" align="center">
           <template slot-scope="{row}">
-            <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码段规则编辑')">
+            <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码生成规则编辑')">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button type="text" size="small" @click="handleBindMaterial(row)" v-if="$checkPermission('条码段规则绑定物料')">
+            <el-button type="text" size="small" @click="handleBindMaterial(row)" v-if="$checkPermission('条码生成规则绑定物料')">
               <i class="el-icon-link"></i> 绑定物料
             </el-button>
-            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码段规则删除')">
+            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码生成规则删除')">
               <i class="el-icon-delete"></i> 删除
             </el-button>
           </template>

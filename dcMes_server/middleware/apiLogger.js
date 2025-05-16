@@ -29,8 +29,8 @@ const apiLogger = (serviceName) => {
     const authHeader = req.headers.authorization || "";
 
     // 添加详细的调试信息
-    console.log(`[${serviceName}] 完整请求头:`, req.headers);
-    console.log(`[${serviceName}] Authorization头:`, authHeader);
+    // console.log(`[${serviceName}] 完整请求头:`, req.headers);
+    // console.log(`[${serviceName}] Authorization头:`, authHeader);
 
     // 正确提取token，确保移除"Bearer "前缀
     const token = authHeader.startsWith("Bearer ")
@@ -46,7 +46,7 @@ const apiLogger = (serviceName) => {
     const isPublicRoute =
       req.path.includes("/public") ||
       req.path.includes("/health") ||
-      req.path.includes("/ping");
+      req.path.includes("/ping") ;
     // 设备对接的接口不需要验证路由
     const isDeviceRoute =
       req.path.includes("/machine-scan-components") ||

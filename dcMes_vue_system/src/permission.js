@@ -30,41 +30,53 @@ router.beforeEach((to, from, next) => {
       NProgress.done()
     } else {
       const hasGetRouters = store.getters.addRoutes
-      console.log('hasGetRouters: ', hasGetRouters);
+      // console.log('hasGetRouters: ', hasGetRouters); // 可以保留或移除日志
       //是否已经获取用户信息
-      const hasGetUserInfo = store.getters.name
-      console.log('hasGetUserInfo: ', hasGetUserInfo);
-      if (hasGetRouters.length == 0) {
-        console.log('无数据，进行获取');
-        // if (!hasGetRouters.length) {
+      // const hasGetUserInfo = store.getters.name // 如果未使用，可以移除
+      // console.log('hasGetUserInfo: ', hasGetUserInfo); // 可以保留或移除日志
+      if (hasGetRouters.length == 0) { // 动态路由未加载
+        // console.log('无数据，进行获取');
         isRelogin.show = true
         // 判断当前用户是否已拉取完user_info信息
         store.dispatch('user/getInfo').then(() => {
           isRelogin.show = false
           store.dispatch('GenerateRoutes').then(async accessRoutes => {
             // 根据roles权限生成可访问的路由表
-            console.log('accessRoutes: ',accessRoutes);
+            // console.log('accessRoutes: ',accessRoutes);
             if (accessRoutes.length > 0) {
               router.addRoutes(accessRoutes) // 动态添加可访问路由表
-              console.log('router: ', router);
+              // console.log('router: ', router);
               next({
                 ...to,
                 replace: true
-              }) // hack方法 确保addRoutes已完成
+              }) // hack方法 确保addRoutes已完成,会再次进入beforeEach
             } else {
-              next()
+              // 没有生成可访问的动态路由
+              if (to.path === '/' || whiteList.indexOf(to.path) !== -1) {
+                next() // 如果是首页或白名单页面，则正常访问
+              } else {
+                // console.log('无权限动态路由，重定向到首页');
+                next({ path: '/', replace: true }) // 其他情况，重定向到首页
+              }
             }
           })
         }).catch(err => {
           store.dispatch('user/logout').then(() => {
             Message.error(err)
             next({
-              path: '/'
+              path: '/' // 发生错误，重定向到首页
             })
           })
         })
-      } else {
-        next()
+      } else { // 动态路由已加载
+        // 检查目标路由是否存在于已加载的路由中
+        // to.matched 在此时应该是准确的，因为动态路由已添加完成，并且我们不是在 addRoutes 后的立即重定向中
+        if (to.matched.length === 0 && to.path !== '/') {
+          // console.log('目标路由不存在，重定向到首页');
+          next({ path: '/', replace: true });
+        } else {
+          next(); // 正常放行
+        }
       }
     }
   } else {
@@ -77,11 +89,6 @@ router.beforeEach((to, from, next) => {
       NProgress.done()
     }
   }
-
-  // 输出路由信息，检查meta.noCache是否正确设置
-  console.log('路由跳转:', to.path, 'meta:', to.meta, 'name:', to.name)
-
-  next()
 })
 
 router.afterEach((to) => {

@@ -112,7 +112,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="hasEditPermission">
+          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -159,7 +159,7 @@
             <el-form
               :model="batchForm"
               label-width="100px"
-              v-if="hasEditPermission"
+              v-if="$checkPermission('扫码编辑配置')"
             >
               <el-form-item label="产品数量">
                 <div class="batch-size-control">

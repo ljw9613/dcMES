@@ -53,7 +53,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="使用范围" width="100" v-if="hasEditPermission">
+                <el-table-column label="使用范围" width="100" v-if="$checkPermission('条码规则全局设置')">
                     <template slot-scope="{row}">
                         <el-tag :type="row.isGlobal ? 'warning' : ''">
                             {{ row.isGlobal ? '全局' : '普通' }}
