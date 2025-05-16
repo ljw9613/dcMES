@@ -130,13 +130,13 @@
             {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
           </el-button>
 
-          <el-button
+          <!-- <el-button
             type="warning"
             style="margin-left: 10px"
             @click="showAddToPalletDialog"
           >
             指定托盘入托
-          </el-button>
+          </el-button> -->
         </el-form-item>
       </el-form>
     </el-card>

@@ -55,7 +55,9 @@
           <div class="native-info-descriptions">
             <div class="info-entry">
               <span class="info-label">产线:</span>
-              <span class="info-value">{{ palletInfo.productLineName || "未设置" }}</span>
+              <span class="info-value">{{
+                palletInfo.productLineName || "未设置"
+              }}</span>
             </div>
             <div class="info-entry">
               <span class="info-label">物料信息:</span>
@@ -63,11 +65,15 @@
             </div>
             <div class="info-entry">
               <span class="info-label">订单信息:</span>
-              <span class="info-value">{{ palletInfo.saleOrderNo || "未设置" }}</span>
+              <span class="info-value">{{
+                palletInfo.saleOrderNo || "未设置"
+              }}</span>
             </div>
             <div class="info-entry">
               <span class="info-label">工单信息:</span>
-              <span class="info-value">{{ palletInfo.workOrderNo || "未设置" }}</span>
+              <span class="info-value">{{
+                palletInfo.workOrderNo || "未设置"
+              }}</span>
             </div>
           </div>
 
@@ -141,7 +147,10 @@
               v-if="subMaterials.length > 0"
               class="sub-materials-status-list"
             >
-              <el-form label-position="top" class="sub-material-form-flex-container">
+              <el-form
+                label-position="top"
+                class="sub-material-form-flex-container"
+              >
                 <el-form-item
                   v-for="(subMaterial, index) in subMaterials"
                   :key="subMaterial._id"
@@ -190,7 +199,7 @@
             </div>
           </div>
 
-            <!-- 进度条 -->
+          <!-- 进度条 -->
           <div class="barcode-scan-section">
             <el-progress
               :percentage="progressPercentage"
@@ -834,7 +843,7 @@ export default {
                   ) {
                     isValidRule = false;
                   }
-                break;
+                  break;
                 case "substring":
                   const subValue = currentValueForValidation.substring(
                     validationRule.params.start,
@@ -989,6 +998,34 @@ export default {
         return;
       }
 
+      //查询当前条码是否有解绑记录
+
+      //查询是否有过托盘解绑记录
+      const palletUnbindResponse = await getData(
+        "material_palletizing_unbind_log",
+        {
+          query: {
+            unbindBarcode: cleanValue,
+          },
+          select: {
+            palletCode: 1,
+          },
+          sort: {
+            _id: -1,
+          },
+          limit: 1,
+        }
+      );
+      //如果解绑记录存在，并且解绑记录的托盘编码不等于当前托盘编码，则提示错误
+      if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0 && palletUnbindResponse.data[0].palletCode != this.palletInfo.palletCode) {
+        //如果解绑记录存在，并且解绑记录的托盘编码不等于当前托盘编码，则提示错误
+        let palletUnbindData = palletUnbindResponse.data[0];
+        this.$message.error(
+          `当前条码${barcode}存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`
+        );
+        return;
+      }
+
       if (this.palletInfo.status === "STACKED") {
         this.$message.warning("该托盘已组托完成，不能继续添加");
         this.unifiedScanInput = "";
@@ -1000,13 +1037,13 @@ export default {
       const validationResult = await this.validateBarcode(barcode);
 
       if (!validationResult.isValid || !validationResult.materialCode) {
-            this.$message.error(
+        this.$message.error(
           validationResult.message || "条码验证失败或未匹配到物料"
         );
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
-            return;
-          }
+        return;
+      }
 
       const matchedMaterialCode = validationResult.materialCode;
       let successfullyMatched = false;
@@ -1021,7 +1058,7 @@ export default {
           this.$message.warning(`主物料条码 ${barcode} 已在托盘列表中。`);
           this.unifiedScanInput = "";
           this.focusUnifiedInput();
-                return;
+          return;
         }
         this.mainMaterialScanState.scannedBarcode = barcode;
         this.mainMaterialScanState.validated = true;
@@ -1128,8 +1165,8 @@ export default {
           // 重置扫描状态以便下一轮
           this.resetAllScanStates();
           this.focusUnifiedInput();
-            return;
-          }
+          return;
+        }
 
         // 模拟包装箱检测逻辑 (需要更完善的规则)
         // 假设如果主条码以 "BOX" 开头，则认为是包装箱
@@ -1142,17 +1179,17 @@ export default {
             spinner: "el-icon-loading",
             background: "rgba(0, 0, 0, 0.7)",
           });
-            const res = await addBarcodeToPallet({
-              palletCode: this.palletInfo.palletCode,
+          const res = await addBarcodeToPallet({
+            palletCode: this.palletInfo.palletCode,
             mainBarcode: mainBarcodeToSubmit,
             boxBarcode: isBox ? mainBarcodeToSubmit : null, // 如果是箱子，boxBarcode 和 mainBarcode 一样
             isBox: isBox,
-              userId: this.$store.state.user.id,
+            userId: this.$store.state.user.id,
             componentScans: componentScans,
-            });
+          });
           loading.close();
 
-            if (res.code === 200) {
+          if (res.code === 200) {
             this.$message.success(
               `条码 ${mainBarcodeToSubmit} 及子物料关联成功` +
                 (res.data.addedCount
@@ -1162,25 +1199,25 @@ export default {
 
             // 刷新整个托盘信息，包括已扫描列表和子物料需求（如果工单更新）
             // validatePalletCode 会重置扫描状态
-              await this.validatePalletCode();
+            await this.validatePalletCode();
             // this.resetAllScanStates(); // validatePalletCode 内部会调用 resetForm，已经包含重置
             this.focusUnifiedInput(); // validatePalletCode 内部也会聚焦
 
             if (this.palletInfo && this.palletInfo.status === "STACKED") {
-                this.$message({
+              this.$message({
                 message: "托盘已组托完成!",
-                  type: "success",
-                  duration: 3000,
-                });
-              }
-            } else {
+                type: "success",
+                duration: 3000,
+              });
+            }
+          } else {
             this.$message.error(res.message || "提交失败");
             // 提交失败，是否需要重置部分扫描状态让用户重试？
             // 或者保留当前状态让用户修正？当前选择保留。
             this.resetAllScanStates(); // 清空所有扫描状态以便重新扫描
             this.focusUnifiedInput(); // 聚焦到输入框
-            }
-          } catch (error) {
+          }
+        } catch (error) {
           loading && loading.close();
           console.error("提交失败:", error);
           this.$message.error("提交失败: " + error.message);
@@ -1335,24 +1372,24 @@ export default {
   .native-info-descriptions {
     display: grid;
     grid-template-columns: repeat(2, 1fr); /* 两列等宽 */
-    border: 1px solid #EBEEF5; /* 外层边框，参考Element UI边框颜色 */
+    border: 1px solid #ebeef5; /* 外层边框，参考Element UI边框颜色 */
     border-radius: 4px;
     margin: 15px 0; /* 与原info-descriptions的margin一致 */
   }
 
   .info-entry {
     padding: 12px 10px; /* 内边距，参考el-descriptions-item的中等大小 */
-    line-height: 1.5; 
-    border-bottom: 1px solid #EBEEF5; /* 默认每个条目都有下边框 */
+    line-height: 1.5;
+    border-bottom: 1px solid #ebeef5; /* 默认每个条目都有下边框 */
   }
 
   /* 第一列的条目添加右边框 */
   .info-entry:nth-child(odd) {
-    border-right: 1px solid #EBEEF5;
+    border-right: 1px solid #ebeef5;
   }
 
   /* 移除最后一行的下边框 (假设总是4个条目，即两行) */
-  .native-info-descriptions .info-entry:nth-last-child(-n+2) {
+  .native-info-descriptions .info-entry:nth-last-child(-n + 2) {
     border-bottom: none;
   }
   /* 如果最后一行的列数少于总列数，且希望该行最后一个单元格没有右边框，则需要更复杂的nth-child逻辑或JS辅助 */
@@ -1360,7 +1397,6 @@ export default {
   /* .native-info-descriptions .info-entry:nth-child(even):nth-last-child(-n+2) {
     border-right: none;
   } */
-
 
   .info-label {
     color: #909399; /* Element UI Descriptions Label 颜色 */

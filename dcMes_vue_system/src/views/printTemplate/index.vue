@@ -184,6 +184,11 @@
             {{ formatDate(scope.row.createAt) }}
           </template>
         </el-table-column>
+        <el-table-column label="更新时间" width="180">
+          <template slot-scope="scope">
+            {{ formatDate(scope.row.updateAt) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
             <el-button

@@ -1,5 +1,5 @@
 const ApiLog = require("../model/system/apiLog");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const config = require("../libs/config");
 
 /**
@@ -14,7 +14,7 @@ const apiLogger = (serviceName) => {
     let responseBody = null;
 
     // 覆盖res.json方法以捕获响应内容
-    res.json = function(data) {
+    res.json = function (data) {
       responseBody = data;
       return originalJson.call(this, data);
     };
@@ -24,43 +24,59 @@ const apiLogger = (serviceName) => {
     let userName = null;
     let realName = null;
     let roleId = null;
-    
+
     // 获取授权头
-    const authHeader = req.headers.authorization || '';
-    
+    const authHeader = req.headers.authorization || "";
+
     // 添加详细的调试信息
     console.log(`[${serviceName}] 完整请求头:`, req.headers);
     console.log(`[${serviceName}] Authorization头:`, authHeader);
-    
+
     // 正确提取token，确保移除"Bearer "前缀
-    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
-    
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : authHeader;
+
     console.log(`[${serviceName}] 提取的token:`, token);
     console.log(`[${serviceName}] token长度:`, token.length);
-    
+
     // 检查请求路径是否为登录路由或不需要验证的路由
-    const isLoginRoute = req.path.includes("/login") || req.path.includes("/auth") || req.path.includes("/api/v1/user/info");
-    const isPublicRoute = req.path.includes("/public") || req.path.includes("/health") || req.path.includes("/ping");
-    
+    const isLoginRoute =
+      req.path.includes("/login") || req.path.includes("/auth");
+    const isPublicRoute =
+      req.path.includes("/public") ||
+      req.path.includes("/health") ||
+      req.path.includes("/ping");
+    // 设备对接的接口不需要验证路由
+    const isDeviceRoute =
+      req.path.includes("/machine-scan-components") ||
+      req.path.includes("/initialize-machine-barcode");
+
     if (token && token.length > 0) {
       try {
         console.log(`[${serviceName}] 正在验证token...`);
         console.log(`[${serviceName}] 使用密钥:`, config.secretOrPrivateKey);
-        
+
         // 验证token并解析用户信息
         const decoded = jwt.verify(token, config.secretOrPrivateKey);
-        
+
         console.log(`[${serviceName}] Token解析成功:`, decoded);
-        
+
         userId = decoded._id;
         userName = decoded.userName;
         realName = decoded.realName;
         roleId = decoded.roleId;
+
+        // 将用户信息附加到req对象，以便后续中间件或路由处理器使用
+        req.userId = userId;
+        req.userName = userName;
+        req.realName = realName;
+        req.roleId = roleId;
       } catch (err) {
         console.error(`[${serviceName}] Token验证失败:`, err.message);
-        
+
         // 如果不是登录或公开路由，则返回401错误
-        if (!isLoginRoute && !isPublicRoute) {
+        if (!isLoginRoute && !isPublicRoute && !isDeviceRoute) {
           // 记录验证失败日志
           try {
             const logEntry = new ApiLog({
@@ -71,31 +87,35 @@ const apiLogger = (serviceName) => {
               requestQuery: req.query,
               requestBody: req.body,
               responseStatus: 401,
-              responseBody: { success: false, message: "Token验证失败，请重新登录", code: 401 },
+              responseBody: {
+                success: false,
+                message: "Token验证失败，请重新登录",
+                code: 401,
+              },
               success: false,
               executionTime: Date.now() - startTime,
               errorMessage: err.message,
               userIp: req.ip || req.connection.remoteAddress,
-              timestamp: new Date()
+              timestamp: new Date(),
             });
-            
+
             await logEntry.save();
           } catch (logErr) {
             console.error(`[${serviceName}] 记录API日志时出错:`, logErr);
           }
-          
+
           // 返回401错误，通知前端重新登录
           return res.status(401).json({
             success: false,
             message: "Token验证失败，请重新登录",
-            code: 401
+            code: 401,
           });
         }
       }
-    } else if (!isLoginRoute && !isPublicRoute) {
+    } else if (!isLoginRoute && !isPublicRoute && !isDeviceRoute) {
       // 如果非公开路由且没有提供token，返回401错误
       console.error(`[${serviceName}] 未提供Token`);
-      
+
       // 记录未提供Token的日志
       try {
         const logEntry = new ApiLog({
@@ -106,24 +126,28 @@ const apiLogger = (serviceName) => {
           requestQuery: req.query,
           requestBody: req.body,
           responseStatus: 401,
-          responseBody: { success: false, message: "未提供授权Token，请登录", code: 401 },
+          responseBody: {
+            success: false,
+            message: "未提供授权Token，请登录",
+            code: 401,
+          },
           success: false,
           executionTime: Date.now() - startTime,
           errorMessage: "未提供授权Token",
           userIp: req.ip || req.connection.remoteAddress,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
-        
+
         await logEntry.save();
       } catch (logErr) {
         console.error(`[${serviceName}] 记录API日志时出错:`, logErr);
       }
-      
+
       // 返回401错误
       return res.status(401).json({
         success: false,
         message: "未提供授权Token，请登录",
-        code: 401
+        code: 401,
       });
     }
 
@@ -148,15 +172,18 @@ const apiLogger = (serviceName) => {
           requestBody: req.body,
           responseStatus: res.statusCode,
           responseBody: responseBody,
-          success: res.statusCode < 400 && (responseBody?.success !== false),
+          success: res.statusCode < 400 && responseBody?.success !== false,
           executionTime: executionTime,
-          errorMessage: responseBody?.message && !responseBody?.success ? responseBody.message : null,
+          errorMessage:
+            responseBody?.message && !responseBody?.success
+              ? responseBody.message
+              : null,
           userId: userId,
           userName: userName,
           realName: realName,
           roleId: roleId,
           userIp: req.ip || req.connection.remoteAddress,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
 
         // 异步保存日志，不阻塞响应
@@ -170,4 +197,4 @@ const apiLogger = (serviceName) => {
   };
 };
 
-module.exports = apiLogger; 
+module.exports = apiLogger;

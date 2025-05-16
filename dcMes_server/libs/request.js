@@ -120,6 +120,18 @@ module.exports = function (router, biaoMing, schemaModel) {
     })
     .put(loggerMiddleware, async (req, res, next) => {
       try {
+        // 确保 req.body.update 对象存在
+        if (!req.body.update) {
+          req.body.update = {};
+        }
+
+        // 从 req 对象中获取 userName apiLogger 中间件添加）
+        // 并将其赋值给 req.body.update.updateBy
+        if (req.userId) {
+          req.body.update.updateBy = req.userName;
+        }
+
+        req.body.update.updateAt = new Date();
         var updateQuery = schemaModel.updateMany(
           req.body.query,
           req.body.update
@@ -131,6 +143,7 @@ module.exports = function (router, biaoMing, schemaModel) {
           data: result,
         });
       } catch (e) {
+        console.error('Update operation error:', e); // 添加更详细的错误日志
         res.status(500).send(e);
       }
     });

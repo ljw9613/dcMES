@@ -56,7 +56,7 @@ router.post('/api/v1/user/login', async (req, res, next) => {
                     tokenPayload,
                     config.secretOrPrivateKey,
                     {
-                        expiresIn: "1 days"
+                        expiresIn: "30 days"
                     }
                 );
                 
