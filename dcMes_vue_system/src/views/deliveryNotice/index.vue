@@ -308,7 +308,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" fixed="right" width="250">
+        <el-table-column label="操作" fixed="right" width="280">
           <template slot-scope="scope">
             <el-button
               type="text"
@@ -337,6 +337,55 @@
               v-if="$checkPermission('发货通知单打印')"
               @click="handlePrint(scope.row)"
               >打印</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单搜索')"
+              @click="fetchData"
+              >搜索</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单高级搜索')"
+              @click="showAdvanced = !showAdvanced"
+              >高级搜索</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单重置')"
+              @click="resetForm"
+              >重置</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单同步订单')"
+              @click="handleSync"
+              >同步订单</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单模版预览')"
+              @click="handlePrint(scope.row)"
+              >模版预览</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单浏览器打印')"
+              @click="handlePrint(scope.row)"
+              >浏览器打印</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('发货通知单静默打印')"
+              @click="handlePrint(scope.row)"
+              >静默打印</el-button
             >
           </template>
         </el-table-column>

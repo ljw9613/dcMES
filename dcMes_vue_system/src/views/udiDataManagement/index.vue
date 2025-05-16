@@ -198,19 +198,13 @@
           {{ formatDate(scope.row.createAt) }}
         </template>
       </el-table-column>
-      <!-- <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" width="180" fixed="right">
         <template slot-scope="scope">
-          <el-button size="mini" type="primary" @click="handleDetail(scope.row)"
-            >详情</el-button
-          >
-          <el-button
-            size="mini"
-            type="success"
-            @click="handleExportSingle(scope.row)"
-            >导出</el-button
-          >
+          <el-button v-if="$checkPermission('SN-SFTP条码列表查询')" type="text" size="small" @click="handleSnSftpQuery(scope.row)">查询</el-button>
+          <el-button v-if="$checkPermission('SN-SFTP条码列表重置')" type="text" size="small" @click="handleSnSftpReset(scope.row)">重置</el-button>
+          <el-button v-if="$checkPermission('SN-SFTP条码列表导出数据')" type="text" size="small" @click="handleSnSftpExport(scope.row)">导出数据</el-button>
         </template>
-      </el-table-column> -->
+      </el-table-column>
     </el-table>
 
     <!-- 分页 -->

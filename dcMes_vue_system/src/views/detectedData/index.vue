@@ -167,7 +167,30 @@
                         {{ formatDate(scope.row.createTime) }}
                     </template>
                 </el-table-column>
-
+                <el-table-column label="检测操作" fixed="right" width="280">
+                    <template slot-scope="scope">
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('检测数据查询')"
+                          @click="search">查询</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('检测数据重置')"
+                          @click="resetForm">重置</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('检测数据按物料导出')"
+                          @click="handleExportByMaterial">按物料导出</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('检测数据导出数据')"
+                          @click="handleExport">导出数据</el-button>
+                    </template>
+                </el-table-column>
             </template>
         </base-table>
 

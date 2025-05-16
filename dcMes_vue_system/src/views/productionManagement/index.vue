@@ -173,6 +173,22 @@
                           size="small"
                           v-if="$checkPermission('生产订单同步')"
                           @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产订单查询')"
+                          @click="handleView(scope.row)">查询</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产订单重置')"
+                          @click="handleReset(scope.row)">重置</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产订单导出')"
+                          @click="handleExport(scope.row)">导出</el-button>
+                      
                     </template>
                 </el-table-column>
             </template>

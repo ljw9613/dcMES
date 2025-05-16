@@ -262,15 +262,13 @@
                     </template>
                 </el-table-column> -->
 
-        <!-- <el-table-column label="操作" fixed="right" width="200">
-                    <template slot-scope="scope">
-                        <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
-                        <el-button type="text" size="small" @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
-                        <el-button type="text" size="small" @click="handleSingleMainExport(scope.row)">
-                            导出条码数据
-                        </el-button>
-                    </template>
-                </el-table-column> -->
+        <el-table-column label="操作" fixed="right" width="220">
+          <template slot-scope="scope">
+            <el-button v-if="$checkPermission('条码抽检作废')" type="text" size="small" @click="handleVoid(scope.row)">作废</el-button>
+            <el-button v-if="$checkPermission('条码抽检查看详情')" type="text" size="small" @click="handleDetail(scope.row)">查看详情</el-button>
+            <el-button v-if="$checkPermission('条码抽检扫码二维码')" type="text" size="small" @click="handleScanQRCode(scope.row)">扫码二维码</el-button>
+          </template>
+        </el-table-column>
       </template>
     </base-table>
 
@@ -2064,6 +2062,15 @@ export default {
         SCRAP: "已报废",
       };
       return statusMap[status] || status;
+    },
+    handleVoid(row) {
+      this.$message.info('条码抽检作废功能待实现');
+    },
+    handleDetail(row) {
+      this.$message.info('条码抽检查看详情功能待实现');
+    },
+    handleScanQRCode(row) {
+      this.$message.info('条码抽检扫码二维码功能待实现');
     },
   },
   created() {

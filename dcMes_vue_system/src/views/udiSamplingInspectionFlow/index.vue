@@ -266,6 +266,18 @@
             >
               详情
             </el-button>
+            <el-button
+              v-if="$checkPermission('UDI抽检扫码二维码')"
+              type="text"
+              size="mini"
+              @click="handleScanQRCode(scope.row)"
+            >扫码二维码</el-button>
+            <el-button
+              v-if="$checkPermission('UDI抽检条码抽检')"
+              type="text"
+              size="mini"
+              @click="handleBarcodeSampling(scope.row)"
+            >抽检</el-button>
           </template>
         </el-table-column>
       </template>
@@ -3154,6 +3166,12 @@ export default {
         SCRAP: "已报废",
       };
       return statusMap[status] || status;
+    },
+    handleScanQRCode(row) {
+      this.$message.info('UDI抽检扫码二维码功能待实现');
+    },
+    handleBarcodeSampling(row) {
+      this.$message.info('UDI抽检条码抽检功能待实现');
     },
   },
   created() {

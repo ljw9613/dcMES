@@ -159,6 +159,36 @@
                         {{ formatDate(scope.row.FCreateDate) }}
                     </template>
                 </el-table-column>
+
+                <el-table-column label="操作" fixed="right" width="280">
+                    <template slot-scope="scope">
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('仓库信息搜索')"
+                          @click="search">搜索</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('仓库信息高级搜索')"
+                          @click="toggleAdvanced">高级搜索</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('仓库信息重置')"
+                          @click="resetForm">重置</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('仓库信息同步仓库')"
+                          @click="handleSync">同步仓库</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('仓库信息查看仓位')"
+                          @click="showFlexDetails(scope.row)">查看仓位</el-button>
+                    </template>
+                </el-table-column>
             </template>
         </base-table>
 

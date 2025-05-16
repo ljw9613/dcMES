@@ -260,11 +260,25 @@
           <template slot-scope="scope">
             <el-button
               type="text"
+              size="small"
+              v-if="$checkPermission('生产入库单查询')"
+              @click="search">查询</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产入库单重置')"
+              @click="resetForm">重置</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产入库单扫描单据入库')"
+              @click="handlePalletBarcodeOpen">扫描单据入库</el-button>
+            <el-button
+              type="text"
               style="color: red"
               v-if="hasDeletePermission"
               @click="handleDelete(scope.row)"
-              >删除</el-button
-            >
+              >删除</el-button>
             <el-button type="text" v-if="hasAsyncStockPermission" @click="handleSync(scope.row)">同步金蝶云</el-button>
           </template>
         </el-table-column>

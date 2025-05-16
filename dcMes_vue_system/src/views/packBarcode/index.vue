@@ -124,6 +124,18 @@
             >
               作废
             </el-button>
+            <el-button
+              v-if="$checkPermission('装箱条码查询')"
+              type="text"
+              size="small"
+              @click="search"
+            >查询</el-button>
+            <el-button
+              v-if="$checkPermission('装箱条码重置')"
+              type="text"
+              size="small"
+              @click="resetForm"
+            >重置</el-button>
           </template>
         </el-table-column>
       </el-table>

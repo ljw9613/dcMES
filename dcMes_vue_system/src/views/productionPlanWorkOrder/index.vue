@@ -406,8 +406,32 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template slot-scope="scope">
+            <el-button 
+              type="text" 
+              size="small"
+              v-if="$checkPermission('生产计划查询')"
+              @click="search"
+            >查询</el-button>
+            <el-button 
+              type="text" 
+              size="small"
+              v-if="$checkPermission('生产计划重置')"
+              @click="resetForm"
+            >重置</el-button>
+            <el-button 
+              type="text" 
+              size="small"
+              v-if="$checkPermission('生产计划导出数据')"
+              @click="exportData"
+            >导出数据</el-button>
+            <el-button 
+              type="text" 
+              size="small"
+              v-if="$checkPermission('生产计划新增工单')"
+              @click="handleAdd"
+            >新增工单</el-button>
             <el-button type="text" size="small" @click="handleEdit(scope.row)">
               <i class="el-icon-edit"></i> 编辑
             </el-button>

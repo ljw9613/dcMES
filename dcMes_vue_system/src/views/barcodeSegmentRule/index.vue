@@ -75,6 +75,10 @@
             <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码生成规则删除')">
               <i class="el-icon-delete"></i> 删除
             </el-button>
+            <el-button v-if="$checkPermission('条码生成规则查询')" type="text" size="small" @click="handleRuleQuery(row)">查询</el-button>
+            <el-button v-if="$checkPermission('条码生成规则重置')" type="text" size="small" @click="handleRuleReset(row)">重置</el-button>
+            <el-button v-if="$checkPermission('条码生成规则新增')" type="text" size="small" @click="handleRuleAdd(row)">新增</el-button>
+            <el-button v-if="$checkPermission('条码生成规则批量删除')" type="text" size="small" @click="handleRuleBatchDelete(row)">批量删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -1271,7 +1275,20 @@ export default {
           this.$message.error('解除绑定失败');
         }
       }
-    }
+    },
+
+    handleRuleQuery(row) {
+      this.$message.info('条码生成规则查询功能待实现');
+    },
+    handleRuleReset(row) {
+      this.$message.info('条码生成规则重置功能待实现');
+    },
+    handleRuleAdd(row) {
+      this.$message.info('条码生成规则新增功能待实现');
+    },
+    handleRuleBatchDelete(row) {
+      this.$message.info('条码生成规则批量删除功能待实现');
+    },
   }
 }
 </script>
