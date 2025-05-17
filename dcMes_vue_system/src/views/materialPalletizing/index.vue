@@ -428,6 +428,30 @@
           <template slot-scope="scope">
             <el-button
               type="text"
+              size="small"
+              v-if="$checkPermission('托盘单据查询')"
+              @click="search"
+            >查询</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('托盘单据重置')"
+              @click="resetForm"
+            >重置</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('托盘单据导出条码明细')"
+              @click="handleExport"
+            >导出条码明细</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('托盘单据托盘抽检复位')"
+              @click="handleInspectionReset(scope.row)"
+            >托盘抽检复位</el-button>
+            <el-button
+              type="text"
               style="color: red"
               v-if="$checkPermission('托盘单据初始化单据')"
               @click="handleAllDelete(scope.row)"
@@ -471,13 +495,6 @@
               v-if="$checkPermission('托盘单据拆分托盘')"
               @click="handleSplitPallet(scope.row)"
               >拆分托盘</el-button
-            >
-            <el-button
-              type="text"
-              style="color: #67c23a"
-              v-if="$checkPermission('托盘单据抽检复位')"
-              @click="handleInspectionReset(scope.row)"
-              >抽检复位</el-button
             >
           </template>
         </el-table-column>

@@ -192,7 +192,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" fixed="right" width="250">
+                <el-table-column label="操作" fixed="right" width="280">
                     <template slot-scope="scope">
                         <el-button
                           type="text"
@@ -214,6 +214,36 @@
                           size="small"
                           v-if="$checkPermission('生产领料单打印')"
                           @click="handlePrint(scope.row)">打印</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产资料查询')"
+                          @click="fetchData">查询</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产资料重置')"
+                          @click="resetForm">重置</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产资料同步订单')"
+                          @click="handleSync">同步订单</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产资料模版预览')"
+                          @click="handlePrint(scope.row)">模版预览</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产资料浏览器打印')"
+                          @click="handlePrint(scope.row)">浏览器打印</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产资料静默打印')"
+                          @click="handlePrint(scope.row)">静默打印</el-button>
                     </template>
                 </el-table-column>
             </template>

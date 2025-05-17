@@ -65,8 +65,13 @@
                         {{ formatDate(scope.row.createAt) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" align="center">
+                <el-table-column label="操作" width="400" align="center">
                     <template slot-scope="{row}">
+                        <el-button v-if="$checkPermission('条码规则全局设置')" type="text" size="small" @click="handleGlobalSetting(row)">全局设置</el-button>
+                        <el-button v-if="$checkPermission('条码匹配规则查询')" type="text" size="small" @click="handleRuleQuery(row)">查询</el-button>
+                        <el-button v-if="$checkPermission('条码匹配规则重置')" type="text" size="small" @click="handleRuleReset(row)">重置</el-button>
+                        <el-button v-if="$checkPermission('条码匹配规则新增规则')" type="text" size="small" @click="handleRuleAdd(row)">新增规则</el-button>
+                        <el-button v-if="$checkPermission('条码匹配规则批量删除')" type="text" size="small" @click="handleRuleBatchDelete(row)">批量删除</el-button>
                         <el-button type="text" size="small" @click="handleView(row)" v-if="$checkPermission('条码匹配规则查看物料列表')">
                             <i class="el-icon-view"></i> 查看物料列表
                         </el-button>
@@ -1004,7 +1009,23 @@ export default {
             config.steps.forEach((step, idx) => {
                 step.order = idx + 1;
             });
-        }
+        },
+
+        handleGlobalSetting(row) {
+          this.$message.info('全局设置功能待实现');
+        },
+        handleRuleQuery(row) {
+          this.$message.info('规则查询功能待实现');
+        },
+        handleRuleReset(row) {
+          this.$message.info('规则重置功能待实现');
+        },
+        handleRuleAdd(row) {
+          this.$message.info('新增规则功能待实现');
+        },
+        handleRuleBatchDelete(row) {
+          this.$message.info('批量删除功能待实现');
+        },
     }
 }
 </script>

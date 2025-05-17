@@ -189,32 +189,21 @@
             {{ formatDate(scope.row.updateAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="600" fixed="right">
           <template slot-scope="scope">
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('打印模版编辑')"
-              @click="handleEdit(scope.row)">
-              <i class="el-icon-edit"></i> 编辑
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('打印模版打印')"
-              @click="handlePrint(scope.row)"
-            >
-              <i class="el-icon-printer"></i> 打印
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              class="delete-btn"
-              v-if="$checkPermission('打印模版删除')"
-              @click="handleDelete(scope.row)"
-            >
-              <i class="el-icon-delete"></i> 删除
-            </el-button>
+            <el-button v-if="$checkPermission('打印模版查询')" type="text" size="small" @click="handleQuery(scope.row)">查询</el-button>
+            <el-button v-if="$checkPermission('打印模版高级搜索')" type="text" size="small" @click="handleAdvancedSearch(scope.row)">高级搜索</el-button>
+            <el-button v-if="$checkPermission('打印模版重置')" type="text" size="small" @click="handleReset(scope.row)">重置</el-button>
+            <el-button v-if="$checkPermission('打印模版导出数据')" type="text" size="small" @click="handleExport(scope.row)">导出数据</el-button>
+            <el-button v-if="$checkPermission('打印模版新增模版')" type="text" size="small" @click="handleAddTemplate(scope.row)">新增模版</el-button>
+            <el-button v-if="$checkPermission('打印模版批量删除')" type="text" size="small" @click="handleBatchDeleteTemplate(scope.row)">批量删除</el-button>
+            <el-button v-if="$checkPermission('打印模版ZRMES打印模版')" type="text" size="small" @click="handleZRPrint(scope.row)">ZRMES打印模版</el-button>
+            <el-button v-if="$checkPermission('打印模版模版预览')" type="text" size="small" @click="handlePreview(scope.row)">模版预览</el-button>
+            <el-button v-if="$checkPermission('打印模版浏览器打印')" type="text" size="small" @click="handleBrowserPrint(scope.row)">浏览器打印</el-button>
+            <el-button v-if="$checkPermission('打印模版默认打印')" type="text" size="small" @click="handleDefaultPrint(scope.row)">默认打印</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('打印模版编辑')" @click="handleEdit(scope.row)"><i class="el-icon-edit"></i> 编辑</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('打印模版打印')" @click="handlePrint(scope.row)"><i class="el-icon-printer"></i> 打印</el-button>
+            <el-button type="text" size="small" class="delete-btn" v-if="$checkPermission('打印模版删除')" @click="handleDelete(scope.row)"><i class="el-icon-delete"></i> 删除</el-button>
           </template>
         </el-table-column>
       </template>
@@ -835,6 +824,28 @@ export default {
         console.error('权限检查出错:', error);
         return true; // 出错时默认显示按钮
       }
+    },
+
+    handleQuery(row) {
+      this.$message.info('查询功能待实现');
+    },
+    handleAdvancedSearch(row) {
+      this.$message.info('高级搜索功能待实现');
+    },
+    handleReset(row) {
+      this.$message.info('重置功能待实现');
+    },
+    handleExport(row) {
+      this.$message.info('导出数据功能待实现');
+    },
+    handleAddTemplate(row) {
+      this.$message.info('新增模版功能待实现');
+    },
+    handleBatchDeleteTemplate(row) {
+      this.$message.info('批量删除功能待实现');
+    },
+    handleZRPrint(row) {
+      this.$message.info('ZRMES打印模版功能待实现');
     },
   },
   created() {

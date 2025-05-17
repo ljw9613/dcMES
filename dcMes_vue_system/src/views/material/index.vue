@@ -176,6 +176,26 @@
                           size="small"
                           v-if="$checkPermission('物料信息同步')"
                           @click="handleOneSync(scope.row)">同步</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息搜索')"
+                          @click="handleViewFlowChart(scope.row)">搜索</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息重置')"
+                          @click="handleBarcodeRule(scope.row)">重置</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息导出')"
+                          @click="handleEanEdit(scope.row)">导出</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('物料信息同步物料')"
+                          @click="handleOneSync(scope.row)">同步物料</el-button>
                     </template>
                 </el-table-column>
             </template>

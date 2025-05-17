@@ -375,6 +375,30 @@
           <template slot-scope="scope">
             <el-button
               type="text"
+              size="small"
+              v-if="$checkPermission('生产出库单查询')"
+              @click="search"
+            >查询</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产出库单重置')"
+              @click="resetForm"
+            >重置</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产出库单新增')"
+              @click="handleAdd"
+            >新增</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产出库单导出数据')"
+              @click="handleExport"
+            >导出数据</el-button>
+            <el-button
+              type="text"
               style="color: orange"
               v-if="scope.row.status !== 'COMPLETED' && $checkPermission('生产出库单修改应出库数量')"
               @click="handleUpdateNumber(scope.row)"

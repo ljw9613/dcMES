@@ -206,8 +206,32 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="220">
+        <el-table-column label="操作" fixed="right" width="300">
           <template slot-scope="scope">
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺查询')"
+              @click="search"
+            >查询</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺重置')"
+              @click="resetForm"
+            >重置</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺导出数据')"
+              @click="handleExport"
+            >导出数据</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('生产工艺新增工艺')"
+              @click="handleAdd"
+            >新增工艺</el-button>
             <el-button
               type="text"
               size="small"

@@ -216,12 +216,54 @@
         </div>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
-          <el-button type="primary" @click="openBarcodeSearch"
-            >成品追溯</el-button
-          >
-          <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
+          <el-button
+            v-if="$checkPermission('成品初始化')"
+            type="primary"
+            @click="handleBatchInit"
+          >成品初始化</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录查询')"
+            type="primary"
+            @click="search"
+          >查询</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录高级搜索')"
+            @click="toggleAdvanced"
+          >高级搜索</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录重置')"
+            @click="resetForm"
+          >重置</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录成品追溯')"
+            type="primary"
+            @click="openBarcodeSearch"
+          >成品追溯</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录导出数据表')"
+            type="primary"
+            @click="handleAllExcel"
+          >导出数据表</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录批量导出数据')"
+            type="primary"
+            @click="handleAllExport"
+          >批量导出数据</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录批量修复异常节点')"
+            type="primary"
+            @click="handleBatchAutoFixInconsistentProcessNodes"
+          >批量修复异常节点</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录批量修复流程进度')"
+            type="primary"
+            @click="handleBatchFixFlowProgress"
+          >批量修复流程进度</el-button>
+          <el-button
+            v-if="$checkPermission('条码记录解绑')"
+            type="primary"
+            @click="handleBatchUnbind"
+          >解绑</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -389,7 +431,7 @@
                     </template>
                 </el-table-column> -->
 
-        <el-table-column label="操作" fixed="right" width="200">
+        <el-table-column label="操作" fixed="right" width="260">
           <template slot-scope="scope">
             <el-button type="text" size="small" v-if="$checkPermission('条码记录查看')" @click="handleView(scope.row)"
               >查看</el-button
@@ -425,6 +467,13 @@
             >
               导出条码数据
             </el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录查看')" @click="handleView(scope.row)">查看</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录更新流程节点')" @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录修复异常节点')" @click="handleAutoFixInconsistentProcessNodes(scope.row)">修复异常节点</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录修复流程进度')" @click="handleFixFlowProgress(scope.row)">修复流程进度</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录导出条码数据')" @click="handleSingleMainExport(scope.row)">导出条码数据</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('成品初始化')" @click="handleInit(scope.row)">成品初始化</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录解绑')" @click="handleUnbind(scope.row)">解绑</el-button>
           </template>
         </el-table-column>
       </template>
@@ -3225,6 +3274,12 @@ export default {
       } finally {
         this.replaceLoading = false;
       }
+    },
+    handleBatchInit() {
+      this.$message.info('批量成品初始化功能待实现');
+    },
+    handleBatchUnbind() {
+      this.$message.info('批量解绑功能待实现');
     },
   },
   created() {

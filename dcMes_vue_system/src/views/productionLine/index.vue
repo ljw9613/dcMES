@@ -95,8 +95,29 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" width="250" fixed="right">
+                <el-table-column label="操作" width="350" fixed="right">
                     <template slot-scope="scope">
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产产线查询')"
+                          @click="search">
+                            查询
+                        </el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产产线重置')"
+                          @click="resetForm">
+                            重置
+                        </el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('生产产线新增产线')"
+                          @click="handleAdd">
+                            新增产线
+                        </el-button>
                         <el-button
                           type="text"
                           size="small"

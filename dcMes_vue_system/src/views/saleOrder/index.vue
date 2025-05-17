@@ -255,6 +255,41 @@
                           size="small"
                           v-if="$checkPermission('销售订单客户信息')"
                           @click="handleCustInfo(scope.row)">客户信息</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单搜索')"
+                          @click="handlePrint(scope.row)">搜索</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单高级搜索')"
+                          @click="handlePrint(scope.row)">高级搜索</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单重置')"
+                          @click="handlePrint(scope.row)">重置</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单同步订单')"
+                          @click="handlePrint(scope.row)">同步订单</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单模版预览')"
+                          @click="handlePrint(scope.row)">模版预览</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单浏览器打印')"
+                          @click="handlePrint(scope.row)">浏览器打印</el-button>
+                        <el-button
+                          type="text"
+                          size="small"
+                          v-if="$checkPermission('销售订单静默打印')"
+                          @click="handlePrint(scope.row)">静默打印</el-button>
                     </template>
                 </el-table-column>
             </template>
