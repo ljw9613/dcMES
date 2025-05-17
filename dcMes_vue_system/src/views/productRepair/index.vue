@@ -339,7 +339,6 @@
               style="color: green"
               v-if="
                 scope.row.status == 'PENDING_REVIEW' &&
-                hasMaintenanceAudit &&
                 $checkPermission('产品维修审核')
               "
             >
