@@ -21,6 +21,15 @@
         </div>
       </div>
       
+      <div class="operation-buttons" v-if="$checkPermission('托盘校验请输入入托盘单据编号')">
+        <el-button 
+          type="text"
+          size="small"
+          @click="handlePalletInput">
+          <i class="el-icon-document"></i>请输入入托盘单据编号
+        </el-button>
+      </div>
+      
       <div class="input-wrapper">
         <el-input ref="palletInput" v-model="palletCode" placeholder="请扫描托盘单据编号" class="barcode-input"
           @keyup.enter.native="handlePalletCodeInput" @focus="handleFocus">
@@ -631,6 +640,18 @@ export default {
       }
     },
 
+    // 托盘校验按钮点击处理
+    handlePalletInput() {
+      this.$message({
+        type: 'info',
+        message: '请在下方输入托盘单据编号',
+        duration: 3000
+      })
+      
+      // 聚焦到托盘输入框
+      this.focusInput()
+    },
+
     handleSizeChange(val) {
       this.pageSize = val;
       this.currentPage = 1;
@@ -945,5 +966,21 @@ export default {
 .completed-pallet-tag {
   margin-right: 5px;
   margin-bottom: 5px;
+}
+
+.operation-buttons {
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.operation-buttons .el-button {
+  color: #409EFF;
+  font-size: 14px;
+  padding: 8px 15px;
+}
+
+.operation-buttons .el-button i {
+  margin-right: 5px;
+  font-size: 16px;
 }
 </style> 

@@ -129,6 +129,46 @@
             >
               保存设置
             </el-button>
+            <el-button
+              v-if="$checkPermission('生产线扫手动/自动')"
+              type="text"
+              size="small"
+              @click="handleAutoInitChange(!autoInit)"
+            >
+              手动/自动
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产线扫产品型号')"
+              type="text"
+              size="small"
+              @click="handleProductSelect"
+            >
+              产品型号
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产线扫产品工序')"
+              type="text"
+              size="small"
+              @click="handleProcessSelect"
+            >
+              产品工序
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产线扫产线编码')"
+              type="text"
+              size="small"
+              @click="handleLineSelect"
+            >
+              产线编码
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产线扫保存设置')"
+              type="text"
+              size="small"
+              @click="handleSave"
+            >
+              保存设置
+            </el-button>
           </div>
         </el-form>
       </el-card>
@@ -2429,6 +2469,25 @@ export default {
         return 0;
       }
     },
+    
+    // 产品型号选择处理
+    handleProductSelect() {
+      // 打开产品型号选择弹窗或跳转到选择页面
+      this.$message.info('产品型号选择功能');
+    },
+    
+    // 产品工序选择处理
+    handleProcessSelect() {
+      // 打开产品工序选择弹窗或跳转到选择页面
+      this.$message.info('产品工序选择功能');
+    },
+    
+    // 产线编码选择处理
+    handleLineSelect() {
+      // 打开产线编码选择弹窗或跳转到选择页面
+      this.$message.info('产线编码选择功能');
+    },
+    
     clearInput() {
       this.unifiedScanInput = "";
       this.focusInput();

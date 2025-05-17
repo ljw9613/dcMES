@@ -17,6 +17,33 @@
             @clear="focusInput"
           ></el-input>
         </div>
+        
+        <!-- 操作按钮 -->
+        <div class="operation-buttons">
+          <el-button 
+            v-if="$checkPermission('简单扫码请扫描条码')"
+            type="text"
+            size="small"
+            @click="handleClearScan">
+            <i class="el-icon-delete"></i>请扫描条码
+          </el-button>
+          
+          <el-button 
+            v-if="$checkPermission('简单扫码选择打印模板-模板预览-取消')"
+            type="text"
+            size="small"
+            @click="handleTemplateSelect">
+            <i class="el-icon-document"></i> 选择打印模板-模板预览-取消
+          </el-button>
+          
+          <el-button 
+            v-if="$checkPermission('简单扫码静默打印')"
+            type="text"
+            size="small"
+            @click="handleSilentPrint">
+            <i class="el-icon-printer"></i> 静默打印
+          </el-button>
+        </div>
 
         <!-- 打印区域 -->
         <div class="section-header">
@@ -139,6 +166,43 @@ export default {
         this.$refs.hirInput.handlePrints2();
       });
     },
+    
+    // 清除扫描记录
+    handleClearScan() {
+      this.scanRecords = [];
+      this.scanInput = "";
+      this.focusInput();
+      this.$message.success("扫描记录已清除");
+    },
+    
+    // 处理模板选择
+    handleTemplateSelect() {
+      // 打开模板选择面板
+      if (this.$refs.hirInput) {
+        this.$refs.hirInput.showTemplateDialog();
+        this.$message.info("请选择打印模板");
+      } else {
+        this.$message.warning("打印组件未初始化");
+      }
+    },
+    
+    // 处理静默打印
+    handleSilentPrint() {
+      if (!this.$refs.hirInput.selectedTemplate) {
+        this.$message.warning("请先选择打印模板");
+        return;
+      }
+      
+      if (this.scanRecords.length === 0) {
+        this.$message.warning("没有可打印的扫描记录");
+        return;
+      }
+      
+      this.$nextTick(() => {
+        this.$refs.hirInput.handlePrints2();
+        this.$message.success("已发送打印指令");
+      });
+    }
   },
 };
 </script>
@@ -180,5 +244,22 @@ export default {
 
 .scan-result-section {
   margin-top: 20px;
+}
+
+.operation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.operation-buttons .el-button {
+  color: #409EFF;
+  font-size: 13px;
+}
+
+.operation-buttons .el-button i {
+  margin-right: 5px;
+  font-size: 14px;
 }
 </style>

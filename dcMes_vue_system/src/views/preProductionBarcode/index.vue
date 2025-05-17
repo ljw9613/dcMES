@@ -200,18 +200,50 @@
             {{ formatDate(scope.row.createAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" align="center">
+        <el-table-column label="操作" width="400" align="center">
           <template slot-scope="{ row }">
-            <!-- <el-button
-              v-if="row.status === 'PENDING'"
+            <el-button
+              v-if="$checkPermission('生产条码搜索')"
               type="text"
               size="small"
-              @click="handleVoid(row)"
+              @click="search"
             >
-              作废
-            </el-button> -->
+              搜索
+            </el-button>
             <el-button
-              v-if="row.status === 'PENDING' && $checkPermission('预生产条码暂停')"
+              v-if="$checkPermission('生产条码重置')"
+              type="text"
+              size="small"
+              @click="resetForm"
+            >
+              重置
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产条码批量生成')"
+              type="text"
+              size="small"
+              @click="handleGenerate"
+            >
+              批量生成
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产条码导出数据')"
+              type="text"
+              size="small"
+              @click="handleExport"
+            >
+              导出数据
+            </el-button>
+            <el-button
+              v-if="$checkPermission('生产条码批量打印')"
+              type="text"
+              size="small"
+              @click="handleBatchPrint"
+            >
+              批量打印
+            </el-button>
+            <el-button
+              v-if="row.status === 'PENDING' && $checkPermission('生产条码暂停')"
               type="text"
               size="small"
               @click="handleSuspend(row)"
@@ -219,14 +251,19 @@
               暂停
             </el-button>
             <el-button
-              v-if="row.status === 'SUSPENDED' && $checkPermission('预生产条码恢复')"
+              v-if="row.status === 'SUSPENDED' && $checkPermission('生产条码恢复')"
               type="text"
               size="small"
               @click="handleResume(row)"
             >
               恢复
             </el-button>
-            <el-button type="text" size="small" @click="handlePrint(row)" v-if="$checkPermission('预生产条码打印')">
+            <el-button 
+              type="text" 
+              size="small" 
+              @click="handlePrint(row)" 
+              v-if="$checkPermission('生产条码打印')"
+            >
               打印
             </el-button>
           </template>

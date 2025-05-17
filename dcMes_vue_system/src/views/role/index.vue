@@ -12,6 +12,7 @@
         icon="el-icon-plus"
         type="primary"
         @click="handleFilter"
+        v-if="$checkPermission('角色管理添加角色')"
       >添加角色
       </el-button
       >
@@ -72,6 +73,7 @@
             style="color: blue"
             type="text"
             @click="handleEdit(row)"
+            v-if="$checkPermission('角色管理编辑')"
           >编辑
           </el-button
           >
@@ -80,6 +82,7 @@
             style="color: red"
             type="text"
             @click="handleDelete(row)"
+            v-if="$checkPermission('角色管理删除')"
           >删除
           </el-button
           >
