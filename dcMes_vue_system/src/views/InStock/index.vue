@@ -22,10 +22,30 @@
                     </el-form-item>
 
                     <el-form-item class="search-buttons">
-                        <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
-                        <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
-                        <el-button type="warning" icon="el-icon-download" @click="handleSync">同步数据</el-button>
-                        <el-button type="text" @click="showAdvanced = !showAdvanced">
+                        <el-button 
+                            type="primary" 
+                            icon="el-icon-search" 
+                            @click="handleSearch"
+                            v-if="$checkPermission('生产入库单查询')">
+                            查询
+                        </el-button>
+                        <el-button 
+                            icon="el-icon-refresh" 
+                            @click="handleReset"
+                            v-if="$checkPermission('生产入库单重置')">
+                            重置
+                        </el-button>
+                        <el-button 
+                            type="warning" 
+                            icon="el-icon-download" 
+                            @click="handleSync"
+                            v-if="$checkPermission('生产入库单同步数据')">
+                            同步数据
+                        </el-button>
+                        <el-button 
+                            type="text" 
+                            @click="showAdvanced = !showAdvanced"
+                            v-if="$checkPermission('生产入库单高级搜索')">
                             {{ showAdvanced ? '收起' : '展开' }}高级搜索
                             <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                         </el-button>
@@ -167,14 +187,7 @@
                     <template slot-scope="scope">
                         <el-button type="text" size="small" v-if="$checkPermission('生产入库单同步')" @click="handleOneSync(scope.row)">同步</el-button>
                         <el-button type="text" size="small" v-if="$checkPermission('生产入库单打印')" @click="handlePrint(scope.row)">打印</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单查询')" @click="handleSearch">查询</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单高级搜索')" @click="showAdvanced = !showAdvanced">高级搜索</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单重置')" @click="handleReset">重置</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单同步订单')" @click="handleSyncOrder(scope.row)">同步订单</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单模版预览')" @click="handlePrint(scope.row)">模版预览</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单浏览器打印')" @click="handlePrint(scope.row)">浏览器打印</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('生产入库单静默打印')" @click="handlePrint(scope.row)">静默打印</el-button>
-                    </template>
+                       </template>
                 </el-table-column>
             </template>
         </base-table>

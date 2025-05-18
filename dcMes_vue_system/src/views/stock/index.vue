@@ -4,7 +4,8 @@
         <el-card class="filter-container">
             <div slot="header" class="clearfix">
                 <span>筛选搜索</span>
-                <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced">
+                <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced"
+                    v-if="$checkPermission('仓库信息高级搜索')">
                     {{ showAdvanced ? '收起' : '展开' }}高级搜索
                 </el-button>
             </div>
@@ -76,10 +77,24 @@
                 </div>
 
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询搜索</el-button>
-                    <el-button @click="resetForm">重置</el-button>
+                    <el-button 
+                      type="primary" 
+                      @click="search"
+                      v-if="$checkPermission('仓库信息搜索')">
+                      查询搜索
+                    </el-button>
+                    <el-button 
+                      @click="resetForm"
+                      v-if="$checkPermission('仓库信息重置')">
+                      重置
+                    </el-button>
                     <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
-                    <el-button type="warning" @click="handleSync">同步订单</el-button>
+                    <el-button 
+                      type="warning" 
+                      @click="handleSync"
+                      v-if="$checkPermission('仓库信息同步订单')">
+                      同步订单
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -162,26 +177,6 @@
 
                 <el-table-column label="操作" fixed="right" width="280">
                     <template slot-scope="scope">
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('仓库信息搜索')"
-                          @click="search">搜索</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('仓库信息高级搜索')"
-                          @click="toggleAdvanced">高级搜索</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('仓库信息重置')"
-                          @click="resetForm">重置</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('仓库信息同步仓库')"
-                          @click="handleSync">同步仓库</el-button>
                         <el-button
                           type="text"
                           size="small"

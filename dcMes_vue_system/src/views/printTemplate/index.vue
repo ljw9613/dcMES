@@ -7,6 +7,7 @@
           style="float: right; padding: 3px 0"
           type="text"
           @click="toggleAdvanced"
+          v-if="$checkPermission('打印模板高级搜索')"
         >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
@@ -99,10 +100,10 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
-          <el-button type="success" @click="exportData">导出数据</el-button>
-          <el-button type="primary" icon="el-icon-plus" @click="handleAdd"
+          <el-button type="primary" @click="search" v-if="$checkPermission('打印模板查询')">查询搜索</el-button>
+          <el-button @click="resetForm" v-if="$checkPermission('打印模板重置')">重置</el-button>
+          <el-button type="success" @click="exportData" v-if="$checkPermission('打印模板导出数据')">导出数据</el-button>
+          <el-button type="primary" icon="el-icon-plus" @click="handleAdd" v-if="$checkPermission('打印模板新增模版')"
             >新增模板</el-button
           >
           <el-button
@@ -110,10 +111,11 @@
             icon="el-icon-delete"
             :disabled="!selection.length"
             @click="handleBatchDelete"
+            v-if="$checkPermission('打印模板批量删除')"
           >
             批量删除
           </el-button>
-          <el-button @click="dayinForm">ZRMES打印模板</el-button>
+          <el-button @click="dayinForm" v-if="$checkPermission('打印模板ZRMES打印模版')">ZRMES打印模板</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -189,18 +191,8 @@
             {{ formatDate(scope.row.updateAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="600" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="$checkPermission('打印模版查询')" type="text" size="small" @click="handleQuery(scope.row)">查询</el-button>
-            <el-button v-if="$checkPermission('打印模版高级搜索')" type="text" size="small" @click="handleAdvancedSearch(scope.row)">高级搜索</el-button>
-            <el-button v-if="$checkPermission('打印模版重置')" type="text" size="small" @click="handleReset(scope.row)">重置</el-button>
-            <el-button v-if="$checkPermission('打印模版导出数据')" type="text" size="small" @click="handleExport(scope.row)">导出数据</el-button>
-            <el-button v-if="$checkPermission('打印模版新增模版')" type="text" size="small" @click="handleAddTemplate(scope.row)">新增模版</el-button>
-            <el-button v-if="$checkPermission('打印模版批量删除')" type="text" size="small" @click="handleBatchDeleteTemplate(scope.row)">批量删除</el-button>
-            <el-button v-if="$checkPermission('打印模版ZRMES打印模版')" type="text" size="small" @click="handleZRPrint(scope.row)">ZRMES打印模版</el-button>
-            <el-button v-if="$checkPermission('打印模版模版预览')" type="text" size="small" @click="handlePreview(scope.row)">模版预览</el-button>
-            <el-button v-if="$checkPermission('打印模版浏览器打印')" type="text" size="small" @click="handleBrowserPrint(scope.row)">浏览器打印</el-button>
-            <el-button v-if="$checkPermission('打印模版默认打印')" type="text" size="small" @click="handleDefaultPrint(scope.row)">默认打印</el-button>
             <el-button type="text" size="small" v-if="$checkPermission('打印模版编辑')" @click="handleEdit(scope.row)"><i class="el-icon-edit"></i> 编辑</el-button>
             <el-button type="text" size="small" v-if="$checkPermission('打印模版打印')" @click="handlePrint(scope.row)"><i class="el-icon-printer"></i> 打印</el-button>
             <el-button type="text" size="small" class="delete-btn" v-if="$checkPermission('打印模版删除')" @click="handleDelete(scope.row)"><i class="el-icon-delete"></i> 删除</el-button>

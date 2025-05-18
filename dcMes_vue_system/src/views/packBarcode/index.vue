@@ -52,13 +52,19 @@
           </el-col>
         </el-row>
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button 
+            type="primary" 
+            @click="search"
+            v-if="$checkPermission('装箱条码查询')">查询搜索</el-button>
+          <el-button 
+            @click="resetForm"
+            v-if="$checkPermission('装箱条码重置')">重置</el-button>
           <el-button
             type="danger"
             icon="el-icon-delete"
             :disabled="!selection.length"
             @click="handleBatchVoid"
+            v-if="$checkPermission('装箱条码批量作废')"
             >批量作废</el-button
           >
         </el-form-item>
@@ -112,30 +118,6 @@
         <el-table-column label="创建时间" width="160">
           <template slot-scope="scope">
             {{ formatDate(scope.row.createAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" align="center">
-          <template slot-scope="{ row }">
-            <el-button
-              v-if="row.status === 'PENDING' && $checkPermission('装箱条码作废')"
-              type="text"
-              size="small"
-              @click="handleVoid(row)"
-            >
-              作废
-            </el-button>
-            <el-button
-              v-if="$checkPermission('装箱条码查询')"
-              type="text"
-              size="small"
-              @click="search"
-            >查询</el-button>
-            <el-button
-              v-if="$checkPermission('装箱条码重置')"
-              type="text"
-              size="small"
-              @click="resetForm"
-            >重置</el-button>
           </template>
         </el-table-column>
       </el-table>

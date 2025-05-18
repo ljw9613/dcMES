@@ -27,11 +27,11 @@
           </el-col>
         </el-row>
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
-          <el-button type="primary" icon="el-icon-plus" @click="handleCreate">新增规则</el-button>
+          <el-button type="primary" @click="search" v-if="$checkPermission('条码生成规则查询')">查询搜索</el-button>
+          <el-button @click="resetForm" v-if="$checkPermission('条码生成规则重置')">重置</el-button>
+          <el-button type="primary" icon="el-icon-plus" @click="handleCreate" v-if="$checkPermission('条码生成规则新增规则')">新增规则</el-button>
           <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
-            @click="handleBatchDelete">批量删除</el-button>
+            @click="handleBatchDelete" v-if="$checkPermission('条码生成规则批量删除')">批量删除</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -75,11 +75,7 @@
             <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码生成规则删除')">
               <i class="el-icon-delete"></i> 删除
             </el-button>
-            <el-button v-if="$checkPermission('条码生成规则查询')" type="text" size="small" @click="handleRuleQuery(row)">查询</el-button>
-            <el-button v-if="$checkPermission('条码生成规则重置')" type="text" size="small" @click="handleRuleReset(row)">重置</el-button>
-            <el-button v-if="$checkPermission('条码生成规则新增')" type="text" size="small" @click="handleRuleAdd(row)">新增</el-button>
-            <el-button v-if="$checkPermission('条码生成规则批量删除')" type="text" size="small" @click="handleRuleBatchDelete(row)">批量删除</el-button>
-          </template>
+           </template>
         </el-table-column>
       </el-table>
 

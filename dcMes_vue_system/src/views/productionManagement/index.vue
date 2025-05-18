@@ -3,7 +3,8 @@
         <el-card class="filter-container">
             <div slot="header" class="clearfix">
                 <span>筛选搜索</span>
-                <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced">
+                <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced"
+                    v-if="$checkPermission('生产管理高级搜索')">
                     {{ showAdvanced ? '收起' : '展开' }}高级搜索
                 </el-button>
             </div>
@@ -68,10 +69,29 @@
                 </el-row>
 
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询搜索</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="success" @click="exportData">导出数据</el-button>
-                    <el-button type="warning" @click="handleSync">同步订单</el-button>
+                    <el-button 
+                      type="primary" 
+                      @click="search"
+                      v-if="$checkPermission('生产管理搜索')">
+                      查询搜索
+                    </el-button>
+                    <el-button 
+                      @click="resetForm"
+                      v-if="$checkPermission('生产管理重置')">
+                      重置
+                    </el-button>
+                    <el-button 
+                      type="success" 
+                      @click="exportData"
+                      v-if="$checkPermission('生产管理导出')">
+                      导出数据
+                    </el-button>
+                    <el-button 
+                      type="warning" 
+                      @click="handleSync"
+                      v-if="$checkPermission('生产管理同步')">
+                      同步数据
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -166,31 +186,7 @@
                         {{ formatDate(scope.row.FPlanFinishDate) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" fixed="right" width="100">
-                    <template slot-scope="scope">
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('生产订单同步')"
-                          @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('生产订单查询')"
-                          @click="handleView(scope.row)">查询</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('生产订单重置')"
-                          @click="handleReset(scope.row)">重置</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('生产订单导出')"
-                          @click="handleExport(scope.row)">导出</el-button>
-                      
-                    </template>
-                </el-table-column>
+                
             </template>
         </base-table>
 

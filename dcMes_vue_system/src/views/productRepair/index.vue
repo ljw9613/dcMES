@@ -118,139 +118,49 @@
           </template>
         </el-row>
 
-        <el-row>
-          <el-form-item>
-            <el-button 
-              type="primary" 
-              icon="el-icon-search"
-              @click="search"
-              v-if="$checkPermission('产品维修查看')">
-              查询搜索
-            </el-button>
+        <el-form-item>
+          <el-button type="primary" @click="search" v-if="$checkPermission('产品维修搜索')">查询搜索</el-button>
+          <el-button @click="resetForm" v-if="$checkPermission('产品维修重置')">重置</el-button>
+          <el-button
+            type="primary"
+            icon="el-icon-plus"
+            @click="handleAdd('main')"
+            v-if="$checkPermission('产品维修新增成品维修')"
+            >新增成品维修</el-button
+          >
+          <el-button
+            type="primary"
+            icon="el-icon-plus"
+            @click="handleAdd('auxiliary')"
             
-            <el-button 
-              @click="resetForm"
-              v-if="$checkPermission('产品维修重置')">
-              重置
-            </el-button>
-            
-            <el-button
-              type="primary"
-              icon="el-icon-plus"
-              @click="handleAdd('main')"
-              v-if="$checkPermission('成品维修')"
-            >
-              新增成品维修
-            </el-button>
-            
-            <el-button
-              type="primary"
-              icon="el-icon-plus"
-              @click="handleAdd('auxiliary')"
-              v-if="$checkPermission('组件维修')"
-            >
-              新增组件维修
-            </el-button>
-            
-            <el-button
-              type="danger"
-              icon="el-icon-delete"
-              :disabled="!selection.length"
-              v-if="$checkPermission('产品维修作废')"
-              @click="handleBatchVoid"
-            >
-              批量作废
-            </el-button>
-            
-            <el-button
-              type="success"
-              icon="el-icon-check"
-              :disabled="!selection.length"
-              v-if="$checkPermission('产品维修审核')"
-              @click="handleBatchReview"
-            >
-              批量审核
-            </el-button>
-            
-            <el-button
-              type="success"
-              icon="el-icon-download"
-              @click="handleExport"
-              :loading="exportLoading"
-              v-if="$checkPermission('产品维修导出数据')"
-            >
-              <i class="el-icon-download"></i>
-              {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
-            </el-button>
-            
-            <el-button
-              type="warning"
-              icon="el-icon-view"
-              @click="handleViewSelected"
-              :disabled="selection.length !== 1"
-              v-if="$checkPermission('产品维修查看')"
-            >
-              查看
-            </el-button>
-            
-            <el-button
-              type="info"
-              icon="el-icon-view"
-              @click="handleViewProductDetailsSelected"
-              :disabled="selection.length !== 1"
-              v-if="$checkPermission('产品维修查看产品详情')"
-            >
-              查看产品详情
-            </el-button>
-            
-            <el-button
-              type="primary"
-              icon="el-icon-edit"
-              @click="handleEditSelected"
-              :disabled="selection.length !== 1"
-              v-if="$checkPermission('产品维修修改')"
-            >
-              修改
-            </el-button>
-            
-            <el-button
-              type="danger"
-              icon="el-icon-delete"
-              @click="handleVoidSelected"
-              :disabled="selection.length !== 1"
-              v-if="$checkPermission('产品维修作废')"
-            >
-              作废
-            </el-button>
-
-            <el-button
-              type="warning"
-              icon="el-icon-refresh-right"
-              @click="resetForm"
-              v-if="$checkPermission('产品维修重置')"
-            >
-              重置
-            </el-button>
-            
-            <el-button
-              type="primary"
-              icon="el-icon-plus"
-              @click="handleAddComponentRecord"
-              v-if="$checkPermission('产品维修新增组件维修记录')"
-            >
-              新增组件维修记录
-            </el-button>
-
-            <el-button
-              type="primary"
-              icon="el-icon-plus"
-              @click="handleAddRepairRecord"
-              v-if="$checkPermission('产品维修新增维修记录')"
-            >
-              新增维修记录
-            </el-button>
-          </el-form-item>
-        </el-row>
+            >新增组件维修</el-button
+          >
+          <el-button
+            type="danger"
+            icon="el-icon-delete"
+            :disabled="!selection.length"
+           
+            @click="handleBatchVoid"
+            >批量作废</el-button
+          >
+          <el-button
+            type="success"
+          
+            icon="el-icon-check"
+            :disabled="!selection.length"
+            @click="handleBatchReview"
+            >批量审核</el-button
+          >
+          <el-button
+            type="success"
+            icon="el-icon-download"
+            @click="handleExport"
+            :loading="exportLoading"
+          >
+            <i class="el-icon-download"></i>
+            {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
+          </el-button>
+        </el-form-item>
       </el-form>
     </el-card>
 
@@ -418,7 +328,7 @@
               size="small"
               @click="handleViewProductDetails(scope.row)"
               style="color: blue"
-              v-if="$checkPermission('产品维修查看产品详情')"
+       
             >
               <i class="el-icon-view"></i> 查看产品详情
             </el-button>
@@ -429,6 +339,7 @@
               style="color: green"
               v-if="
                 scope.row.status == 'PENDING_REVIEW' &&
+                hasMaintenanceAudit &&
                 $checkPermission('产品维修审核')
               "
             >
@@ -1641,27 +1552,14 @@ export default {
       return statusMap[status] || status;
     },
 
-        getProductStatusType(status) {      
-          const typeMap = {        
-            NORMAL: "success",        
-            REPAIRING: "warning",        
-            SCRAP: "danger",      };      
-            return typeMap[status] || "info";    
-          },        
-          // 编辑记录按钮处理    
-          // handleEditRecord() {      
-          // if (this.selection.length === 0) {        
-          // this.$message.warning("请至少选择一条记录进行编辑");        
-          // return;      
-          // }            
-          // if (this.selection.length > 1) {        
-          // this.$message.warning("一次只能编辑一条记录，请只选择一条");        
-          // return;      
-          // }            
-          // this.handleEdit(this.selection[0]);    
-          // },
-
-    
+    getProductStatusType(status) {
+      const typeMap = {
+        NORMAL: "success",
+        REPAIRING: "warning",
+        SCRAP: "danger",
+      };
+      return typeMap[status] || "info";
+    },
   },
   created() {
     this.fetchData();

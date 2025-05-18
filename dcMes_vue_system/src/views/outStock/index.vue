@@ -24,10 +24,10 @@
                     </el-col>
                     <el-col :xs="24" :sm="12" :md="8" :lg="6">
                         <div class="search-buttons">
-                            <el-button type="primary" icon="el-icon-search" @click="fetchData">查询</el-button>
-                            <el-button icon="el-icon-refresh" @click="resetForm">重置</el-button>
-                            <el-button type="warning" icon="el-icon-refresh-right" @click="handleSync">同步</el-button>
-                            <el-button type="text" @click="showAdvanced = !showAdvanced">
+                            <el-button type="primary" icon="el-icon-search" @click="fetchData" v-if="$checkPermission('销售出库单查询')">查询</el-button>
+                            <el-button icon="el-icon-refresh" @click="resetForm" v-if="$checkPermission('销售出库单重置')">重置</el-button>
+                            <el-button type="warning" icon="el-icon-refresh-right" @click="handleSync" v-if="$checkPermission('销售出库单同步订单')">同步</el-button>
+                            <el-button type="text" @click="showAdvanced = !showAdvanced" v-if="$checkPermission('销售出库单高级搜索')">
                                 {{ showAdvanced ? '收起' : '展开' }}
                                 <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                             </el-button>
@@ -276,14 +276,7 @@
                         <el-button type="text" size="small" v-if="$checkPermission('销售出库单拓展数据')" @click="handleExt(scope.row)">拓展数据</el-button>
                         <!-- <el-button type="text" size="small" @click="handleLogistics(scope.row)">物流信息</el-button> -->
                         <el-button type="text" size="small" v-if="$checkPermission('销售出库单打印')" @click="handlePrint(scope.row)">打印</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单查询')" @click="fetchData">查询</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单高级搜索')" @click="showAdvanced = !showAdvanced">高级搜索</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单重置')" @click="resetForm">重置</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单同步订单')" @click="handleSync">同步订单</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单模版预览')" @click="handlePrint(scope.row)">模版预览</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单浏览器打印')" @click="handlePrint(scope.row)">浏览器打印</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('销售出库单静默打印')" @click="handlePrint(scope.row)">静默打印</el-button>
-                    </template>
+                        </template>
                 </el-table-column>
             </template>
         </base-table>

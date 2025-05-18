@@ -81,16 +81,24 @@
             ></el-date-picker>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="search" icon="el-icon-search"
+            <el-button 
+              type="primary" 
+              @click="search" 
+              icon="el-icon-search"
+              v-if="$checkPermission('SN-SFTP条码列表查询')"
               >搜索</el-button
             >
-            <el-button @click="resetForm" icon="el-icon-refresh"
+            <el-button 
+              @click="resetForm" 
+              icon="el-icon-refresh"
+              v-if="$checkPermission('SN-SFTP条码列表重置')"
               >重置</el-button
             >
             <el-button
               type="success"
               @click="handleAllExcel"
               icon="el-icon-download"
+              v-if="$checkPermission('SN-SFTP条码列表导出数据')"
               >导出数据</el-button
             >
             <el-button
@@ -196,13 +204,6 @@
       <el-table-column label="生产日期" min-width="150" show-overflow-tooltip>
         <template slot-scope="scope">
           {{ formatDate(scope.row.createAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
-        <template slot-scope="scope">
-          <el-button v-if="$checkPermission('SN-SFTP条码列表查询')" type="text" size="small" @click="handleSnSftpQuery(scope.row)">查询</el-button>
-          <el-button v-if="$checkPermission('SN-SFTP条码列表重置')" type="text" size="small" @click="handleSnSftpReset(scope.row)">重置</el-button>
-          <el-button v-if="$checkPermission('SN-SFTP条码列表导出数据')" type="text" size="small" @click="handleSnSftpExport(scope.row)">导出数据</el-button>
         </template>
       </el-table-column>
     </el-table>

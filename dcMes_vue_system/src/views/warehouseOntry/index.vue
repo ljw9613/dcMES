@@ -171,13 +171,19 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button 
+            type="primary" 
+            @click="search"
+            v-if="$checkPermission('生产出库单查询')">查询搜索</el-button>
+          <el-button 
+            @click="resetForm"
+            v-if="$checkPermission('生产出库单重置')">重置</el-button>
           <!-- 扫码出库 -->
           <el-button
             type="primary"
             @click="handlePalletBarcodeOpen"
             :loading="scanLoading"
+            v-if="$checkPermission('生产出库单新增')"
             >新增</el-button
           >
           <!-- 导出按钮 -->
@@ -185,6 +191,7 @@
             type="success"
             @click="handleExport"
             :loading="exportLoading"
+            v-if="$checkPermission('生产出库单导出数据')"
             >导出数据</el-button
           >
         </el-form-item>
@@ -373,30 +380,6 @@
 
         <el-table-column label="操作" align="center" width="200">
           <template slot-scope="scope">
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产出库单查询')"
-              @click="search"
-            >查询</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产出库单重置')"
-              @click="resetForm"
-            >重置</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产出库单新增')"
-              @click="handleAdd"
-            >新增</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产出库单导出数据')"
-              @click="handleExport"
-            >导出数据</el-button>
             <el-button
               type="text"
               style="color: orange"

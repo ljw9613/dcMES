@@ -22,11 +22,11 @@
                     </el-col>
                 </el-row>
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询搜索</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="primary" icon="el-icon-plus" @click="handleCreate">新增规则</el-button>
+                    <el-button type="primary" @click="search" v-if="$checkPermission('条码匹配规则查询')">查询搜索</el-button>
+                    <el-button @click="resetForm" v-if="$checkPermission('条码匹配规则重置')">重置</el-button>
+                    <el-button type="primary" icon="el-icon-plus" @click="handleCreate" v-if="$checkPermission('条码匹配规则新增规则')">新增规则</el-button>
                     <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
-                        @click="handleBatchDelete">批量删除</el-button>
+                        @click="handleBatchDelete" v-if="$checkPermission('条码匹配规则批量删除')">批量删除</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -67,11 +67,6 @@
                 </el-table-column>
                 <el-table-column label="操作" width="400" align="center">
                     <template slot-scope="{row}">
-                        <el-button v-if="$checkPermission('条码规则全局设置')" type="text" size="small" @click="handleGlobalSetting(row)">全局设置</el-button>
-                        <el-button v-if="$checkPermission('条码匹配规则查询')" type="text" size="small" @click="handleRuleQuery(row)">查询</el-button>
-                        <el-button v-if="$checkPermission('条码匹配规则重置')" type="text" size="small" @click="handleRuleReset(row)">重置</el-button>
-                        <el-button v-if="$checkPermission('条码匹配规则新增规则')" type="text" size="small" @click="handleRuleAdd(row)">新增规则</el-button>
-                        <el-button v-if="$checkPermission('条码匹配规则批量删除')" type="text" size="small" @click="handleRuleBatchDelete(row)">批量删除</el-button>
                         <el-button type="text" size="small" @click="handleView(row)" v-if="$checkPermission('条码匹配规则查看物料列表')">
                             <i class="el-icon-view"></i> 查看物料列表
                         </el-button>

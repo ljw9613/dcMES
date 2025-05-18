@@ -132,10 +132,22 @@
                 </el-row> -->
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
-          <el-button type="success" @click="exportData">导出数据</el-button>
-          <el-button type="primary" icon="el-icon-plus" @click="handleAdd"
+          <el-button 
+            type="primary" 
+            @click="search"
+            v-if="$checkPermission('设备信息查询')">查询搜索</el-button>
+          <el-button 
+            @click="resetForm"
+            v-if="$checkPermission('设备信息重置')">重置</el-button>
+          <el-button 
+            type="success" 
+            @click="exportData"
+            v-if="$checkPermission('设备信息导出数据')">导出数据</el-button>
+          <el-button 
+            type="primary" 
+            icon="el-icon-plus" 
+            @click="handleAdd"
+            v-if="$checkPermission('设备信息新增设备')"
             >新增设备</el-button
           >
           <el-button
@@ -143,6 +155,7 @@
             icon="el-icon-delete"
             :disabled="!selection.length"
             @click="handleBatchDelete"
+            v-if="$checkPermission('设备信息批量删除')"
           >
             批量删除
           </el-button>
@@ -266,46 +279,6 @@
 
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('设备信息查询')"
-              @click="search"
-            >
-              <i class="el-icon-search"></i> 查询
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('设备信息重置')"
-              @click="resetForm"
-            >
-              <i class="el-icon-refresh"></i> 重置
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('设备信息导出数据')"
-              @click="exportData"
-            >
-              <i class="el-icon-download"></i> 导出数据
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('设备信息新增设备')"
-              @click="handleAdd"
-            >
-              <i class="el-icon-plus"></i> 新增设备
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('设备信息批量删除')"
-              @click="handleBatchDelete"
-            >
-              <i class="el-icon-delete"></i> 批量删除
-            </el-button>
             <el-button
               type="text"
               size="small"

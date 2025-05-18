@@ -119,12 +119,24 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button 
+            type="primary"
+            @click="search"
+            v-if="$checkPermission('托盘单据查询')"
+          >
+            查询搜索
+          </el-button>
+          <el-button
+            @click="resetForm"
+            v-if="$checkPermission('托盘单据重置')"
+          >
+            重置
+          </el-button>
           <el-button
             type="primary"
             @click="handleExport"
             :loading="exportLoading"
+            v-if="$checkPermission('托盘单据导出条码明细')"
           >
             <i class="el-icon-download"></i>
             {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
@@ -426,24 +438,6 @@
         </el-table-column>
         <el-table-column label="操作" align="center" width="240">
           <template slot-scope="scope">
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('托盘单据查询')"
-              @click="search"
-            >查询</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('托盘单据重置')"
-              @click="resetForm"
-            >重置</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('托盘单据导出条码明细')"
-              @click="handleExport"
-            >导出条码明细</el-button>
             <el-button
               type="text"
               size="small"

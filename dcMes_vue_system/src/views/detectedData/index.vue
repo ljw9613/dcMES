@@ -101,12 +101,21 @@
                 </el-row>
 
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询搜索</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="primary" @click="handleExportByMaterial" :loading="exportLoading">
-                        <i class="el-icon-download"></i>
-                        {{ exportLoading ? `正在导出(${exportProgress}%)` : '按物料导出' }}
-                    </el-button>
+                    <el-button 
+                        type="primary" 
+                        @click="search"
+                        v-if="$checkPermission('检测数据查询')">查询搜索</el-button>
+                    <el-button 
+                        @click="resetForm"
+                        v-if="$checkPermission('检测数据重置')">重置</el-button>
+                    <el-button 
+                        type="primary" 
+                        @click="handleExportByMaterial" 
+                        :loading="exportLoading"
+                        v-if="$checkPermission('检测数据按物料导出')">
+                            <i class="el-icon-download"></i>
+                            {{ exportLoading ? `正在导出(${exportProgress}%)` : '按物料导出' }}
+                        </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -115,7 +124,11 @@
             <div class="screen_content">
                 <div class="screen_content_first">
                     <i class="el-icon-tickets">检测数据列表</i>
-                    <el-button type="primary" @click="handleExport" :loading="exportLoading">
+                    <el-button 
+                        type="primary" 
+                        @click="handleExport" 
+                        :loading="exportLoading"
+                        v-if="$checkPermission('检测数据导出数据')">
                         <i class="el-icon-download"></i>
                         {{ exportLoading ? `正在导出(${exportProgress}%)` : '导出数据' }}
                     </el-button>
@@ -167,30 +180,7 @@
                         {{ formatDate(scope.row.createTime) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="检测操作" fixed="right" width="280">
-                    <template slot-scope="scope">
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('检测数据查询')"
-                          @click="search">查询</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('检测数据重置')"
-                          @click="resetForm">重置</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('检测数据按物料导出')"
-                          @click="handleExportByMaterial">按物料导出</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('检测数据导出数据')"
-                          @click="handleExport">导出数据</el-button>
-                    </template>
-                </el-table-column>
+               
             </template>
         </base-table>
 

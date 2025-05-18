@@ -87,10 +87,29 @@
                 </div>
 
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询搜索</el-button>
-                    <el-button @click="resetForm">重置</el-button>
-                    <el-button type="success" @click="exportData">导出数据</el-button>
-                    <el-button type="warning" @click="handleSync">同步物料</el-button>
+                    <el-button 
+                        type="primary" 
+                        @click="search"
+                        v-if="$checkPermission('物料管理搜索')">
+                        查询搜索
+                    </el-button>
+                    <el-button 
+                        @click="resetForm"
+                        v-if="$checkPermission('物料管理重置')">
+                        重置
+                    </el-button>
+                    <el-button 
+                        type="success" 
+                        @click="exportData"
+                        v-if="$checkPermission('物料管理导出')">
+                        导出数据
+                    </el-button>
+                    <el-button 
+                        type="warning" 
+                        @click="handleSync"
+                        v-if="$checkPermission('物料管理同步物料')">
+                        同步物料
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -176,26 +195,6 @@
                           size="small"
                           v-if="$checkPermission('物料信息同步')"
                           @click="handleOneSync(scope.row)">同步</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('物料信息搜索')"
-                          @click="handleViewFlowChart(scope.row)">搜索</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('物料信息重置')"
-                          @click="handleBarcodeRule(scope.row)">重置</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('物料信息导出')"
-                          @click="handleEanEdit(scope.row)">导出</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('物料信息同步物料')"
-                          @click="handleOneSync(scope.row)">同步物料</el-button>
                     </template>
                 </el-table-column>
             </template>

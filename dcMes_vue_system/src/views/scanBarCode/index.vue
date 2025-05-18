@@ -10,10 +10,11 @@
           >
           <el-switch
             v-model="autoInit"
-            active-text="自动"
+            active
             inactive-text="手动"
             class="print-switch"
             @change="handleAutoInitChange"
+            v-if="$checkPermission('生产线扫自动/手动')"
           >
           </el-switch>
         </div>
@@ -1547,7 +1548,7 @@ export default {
           const parts = cleanValue.split("-");
           if (parts.length >= 4) {
             const dateStr = parts[2]; // 获取第三段日期字符串
-            
+
             // 判断日期是否小于20250201
             if (dateStr && dateStr.length === 8 && dateStr < "20250201") {
               this.unifiedScanInput = "";
@@ -2469,25 +2470,25 @@ export default {
         return 0;
       }
     },
-    
+
     // 产品型号选择处理
     handleProductSelect() {
       // 打开产品型号选择弹窗或跳转到选择页面
       this.$message.info('产品型号选择功能');
     },
-    
+
     // 产品工序选择处理
     handleProcessSelect() {
       // 打开产品工序选择弹窗或跳转到选择页面
       this.$message.info('产品工序选择功能');
     },
-    
+
     // 产线编码选择处理
     handleLineSelect() {
       // 打开产线编码选择弹窗或跳转到选择页面
       this.$message.info('产线编码选择功能');
     },
-    
+
     clearInput() {
       this.unifiedScanInput = "";
       this.focusInput();
