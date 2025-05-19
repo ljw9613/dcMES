@@ -19,7 +19,7 @@
     </div>
     <el-table
       v-loading="listLoading"
-      :data="list"
+      :data="paginatedData"
       :header-cell-style="variables()"
       :tree-props="{ children: 'children' }"
       border
@@ -89,6 +89,21 @@
         </template>
       </el-table-column>
     </el-table>
+    
+    <!-- 分页组件 -->
+    <div class="block">
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="currentPage"
+        :page-sizes="[5, 10, 20, 50]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+      >
+      </el-pagination>
+    </div>
+    
     <!-- 弹窗start -->
     <roleDialog
       ref="roleDialogRef"
@@ -121,7 +136,28 @@ export default {
       add: true,
       temp: [],
       postlist: {},
+      // 分页相关
+      currentPage: 1,
+      pageSize: 10,
+      total: 0,
     };
+  },
+  computed: {
+    // 倒序排列并分页处理的数据
+    paginatedData() {
+      // 按更新时间字段降序排序
+      const sortedList = [...this.list].sort((a, b) => {
+        // 如果updateAt存在则按它排序
+        if (a.updateAt && b.updateAt) {
+          return new Date(b.updateAt) - new Date(a.updateAt);
+        }
+        return 0; // 如果没有updateAt字段则保持原顺序
+      });
+      
+      const startIndex = (this.currentPage - 1) * this.pageSize;
+      const endIndex = startIndex + this.pageSize;
+      return sortedList.slice(startIndex, endIndex);
+    }
   },
   created() {
     this.fetchData();
@@ -141,6 +177,7 @@ export default {
         query: {},
       });
       this.list = response;
+      this.total = this.list.length;
       console.log(this.list);
       this.listLoading = false;
     },
@@ -303,12 +340,11 @@ export default {
 
       // 转换后的地址为 blob:http://xxx/7bf54338-74bb-47b9-9a7f-7a7093c716b5
     },
-    //end
     //分页--初始页currentPage、初始每页数据数pagesize和数据data
-    handleSizeChange: function (size) {
-      this.pagesize = size; //每页下拉显示数据
+    handleSizeChange(size) {
+      this.pageSize = size; //每页下拉显示数据
     },
-    handleCurrentChange: function (currentPage) {
+    handleCurrentChange(currentPage) {
       this.currentPage = currentPage; //点击第几页
     },
   },
