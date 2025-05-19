@@ -15,6 +15,16 @@
       <div class="scan-tip">请将条码对准扫描枪，或在输入框中输入条码后按下Enter键</div>
     </div>
 
+    <div class="operation-buttons">
+      <el-button 
+        type="primary" 
+        @click="handleScan"
+        v-if="$checkPermission('产线校验请扫描条码或手动输入-查询')"
+        icon="el-icon-camera">
+        手动输入查询
+      </el-button>
+    </div>
+
     <div v-if="isLoading" class="loading-container">
       <div v-loading="true" element-loading-text="正在查询条码信息..."></div>
     </div>
@@ -244,6 +254,25 @@ export default {
         this.barcode = '' // 清空输入框
         this.focusInput() // 重新聚焦
       }
+    },
+
+    // 条码扫描处理
+    handleScan() {
+      // 这里可以调用产线验证的API，目前只是作为示例
+      this.$message({
+        message: '开始产线验证流程，请扫描二维码',
+        type: 'info',
+        duration: 2000
+      });
+      this.barcode = ''; // 清空当前输入
+      this.focusInput(); // 聚焦输入框，准备扫描
+      
+      // 可以在这里添加额外的验证逻辑
+      // 例如切换到产线验证模式，或者调用特定的API
+      
+      // 示例：可以在组件上设置一个标志，表示当前是在产线验证模式
+      // this.verificationMode = 'productionLine';
+      // 然后在checkBarcode方法中判断当前模式，调用不同的处理逻辑
     }
   },
 
@@ -403,6 +432,17 @@ export default {
 .error-container {
   max-width: 800px;
   margin: 24px auto;
+}
+
+.operation-buttons {
+  max-width: 800px;
+  margin: 20px auto;
+  text-align: center;
+}
+
+.operation-buttons .el-button {
+  padding: 12px 20px;
+  font-size: 16px;
 }
 
 /* 适配移动设备 */

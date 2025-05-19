@@ -129,6 +129,46 @@
             >
               保存设置
             </el-button>
+            <el-button
+              v-if="$checkPermission('打包装箱手动/自动')"
+              type="text"
+              size="small"
+              @click="handleAutoMode"
+            >
+              手动/自动
+            </el-button>
+            <el-button
+              v-if="$checkPermission('打包装箱产品型号')"
+              type="text"
+              size="small"
+              @click="handleProductSelect"
+            >
+              产品型号
+            </el-button>
+            <el-button
+              v-if="$checkPermission('打包装箱产品工序')"
+              type="text"
+              size="small"
+              @click="handleProcessSelect"
+            >
+              产品工序
+            </el-button>
+            <el-button
+              v-if="$checkPermission('打包装箱产线编码')"
+              type="text"
+              size="small"
+              @click="handleLineSelect"
+            >
+              产线编码
+            </el-button>
+            <el-button
+              v-if="$checkPermission('打包装箱保存设置')"
+              type="text"
+              size="small"
+              @click="handleSaveSettings"
+            >
+              保存设置
+            </el-button>
           </div>
         </el-form>
       </el-card>
@@ -2888,6 +2928,30 @@ export default {
         console.error("日期格式化错误:", error);
         return "";
       }
+    },
+    // 打包装箱手动/自动处理
+    handleAutoMode() {
+      this.$message.info('打包装箱手动/自动模式切换');
+    },
+    
+    // 打包装箱产品型号处理
+    handleProductSelect() {
+      this.$message.info('打包装箱产品型号选择');
+    },
+    
+    // 打包装箱产品工序处理
+    handleProcessSelect() {
+      this.$message.info('打包装箱产品工序选择');
+    },
+    
+    // 打包装箱产线编码处理
+    handleLineSelect() {
+      this.$message.info('打包装箱产线编码选择');
+    },
+    
+    // 打包装箱保存设置处理
+    handleSaveSettings() {
+      this.$message.info('打包装箱保存设置');
     },
   },
   async created() {

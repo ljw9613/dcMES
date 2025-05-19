@@ -26,6 +26,15 @@
       </div>
 
       <div class="header-actions">
+        <div class="operation-buttons">
+          <el-button 
+            v-if="$checkPermission('产线大屏请输入产线信息搜索')"
+            type="text"
+            size="small"
+            @click="handleLineSearch">
+            <i class="el-icon-search"></i> 请输入产线信息搜索
+          </el-button>
+        </div>
         <div class="real-time-info">
           <div class="date-time">
             <div class="current-date">{{ currentDate }}</div>
@@ -1075,6 +1084,23 @@ export default {
       if (efficiency >= 80) return 'efficiency-medium';
       return 'efficiency-low';
     },
+
+    
+    
+    // 产线搜索处理
+    handleLineSearch() {
+      this.$message({
+        type: 'info',
+        message: '请在产线选择框中输入产线信息进行搜索',
+        duration: 3000
+      });
+      
+      // 聚焦到产线选择器
+      const lineSelector = document.querySelector('.line-selector input');
+      if (lineSelector) {
+        lineSelector.focus();
+      }
+    },
   },
   computed: {
     machinesGroups() {
@@ -1213,6 +1239,10 @@ export default {
 .header-actions {
   display: flex;
   align-items: center;
+}
+
+.operation-buttons {
+  margin-right: 20px;
 }
 
 .real-time-info {

@@ -46,19 +46,27 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <div class="search-buttons">
-              <el-button type="primary" icon="el-icon-search" @click="fetchData"
-                >查询</el-button
-              >
-              <el-button icon="el-icon-refresh" @click="resetForm"
-                >重置</el-button
-              >
+              <el-button 
+                type="primary" 
+                icon="el-icon-search" 
+                @click="fetchData"
+                v-if="$checkPermission('发货通知单查询')"
+                >查询</el-button>
+              <el-button 
+                icon="el-icon-refresh" 
+                @click="resetForm"
+                v-if="$checkPermission('发货通知单重置')"
+                >重置</el-button>
               <el-button
                 type="warning"
                 icon="el-icon-refresh-right"
                 @click="handleSync"
-                >同步</el-button
-              >
-              <el-button type="text" @click="showAdvanced = !showAdvanced">
+                v-if="$checkPermission('发货通知单同步订单')"
+                >同步</el-button>
+              <el-button 
+                type="text" 
+                @click="showAdvanced = !showAdvanced"
+                v-if="$checkPermission('发货通知单高级搜索')">
                 {{ showAdvanced ? "收起" : "展开" }}
                 <i
                   :class="
@@ -337,55 +345,6 @@
               v-if="$checkPermission('发货通知单打印')"
               @click="handlePrint(scope.row)"
               >打印</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单搜索')"
-              @click="fetchData"
-              >搜索</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单高级搜索')"
-              @click="showAdvanced = !showAdvanced"
-              >高级搜索</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单重置')"
-              @click="resetForm"
-              >重置</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单同步订单')"
-              @click="handleSync"
-              >同步订单</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单模版预览')"
-              @click="handlePrint(scope.row)"
-              >模版预览</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单浏览器打印')"
-              @click="handlePrint(scope.row)"
-              >浏览器打印</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('发货通知单静默打印')"
-              @click="handlePrint(scope.row)"
-              >静默打印</el-button
             >
           </template>
         </el-table-column>

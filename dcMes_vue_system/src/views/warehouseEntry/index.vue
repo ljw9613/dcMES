@@ -144,11 +144,19 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button 
+              type="primary" 
+              @click="search"
+              v-if="$checkPermission('生产入库单查询')">查询搜索</el-button>
+          <el-button 
+              @click="resetForm"
+              v-if="$checkPermission('生产入库单重置')">重置</el-button>
           <!-- 扫码入库 -->
-          <el-button type="primary" @click="handlePalletBarcodeOpen"
-            :loading="scanDialogLoading">扫描单据入库</el-button
+          <el-button 
+              type="primary" 
+              @click="handlePalletBarcodeOpen"
+              :loading="scanDialogLoading"
+              v-if="$checkPermission('生产入库单扫描单据入库')">扫描单据入库</el-button
           >
         </el-form-item>
       </el-form>

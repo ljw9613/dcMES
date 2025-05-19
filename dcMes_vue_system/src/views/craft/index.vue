@@ -8,6 +8,7 @@
           style="float: right; padding: 3px 0"
           type="text"
           @click="toggleAdvanced"
+          v-if="$checkPermission('生产工艺高级搜索')"
         >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
@@ -144,9 +145,10 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
-          <el-button type="success" @click="handleExport">导出数据</el-button>
+          <el-button type="primary" @click="search" v-if="$checkPermission('生产工艺查询')">查询搜索</el-button>
+          <el-button @click="resetForm" v-if="$checkPermission('生产工艺重置')">重置</el-button>
+          <el-button type="success" @click="handleExport" v-if="$checkPermission('生产工艺导出数据')">导出数据</el-button>
+          
         </el-form-item>
       </el-form>
     </el-card>
@@ -155,7 +157,7 @@
     <div class="screen1">
       <div class="screen_content_first">
         <i class="el-icon-tickets">工艺管理列表</i>
-        <el-button type="primary" @click="handleAdd">新增工艺</el-button>
+        <el-button type="primary" @click="handleAdd" v-if="$checkPermission('生产工艺新增工艺')">新增工艺</el-button>
       </div>
     </div>
 
@@ -208,30 +210,7 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="300">
           <template slot-scope="scope">
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产工艺查询')"
-              @click="search"
-            >查询</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产工艺重置')"
-              @click="resetForm"
-            >重置</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产工艺导出数据')"
-              @click="handleExport"
-            >导出数据</el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('生产工艺新增工艺')"
-              @click="handleAdd"
-            >新增工艺</el-button>
+      
             <el-button
               type="text"
               size="small"

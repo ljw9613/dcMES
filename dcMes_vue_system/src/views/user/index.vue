@@ -18,6 +18,7 @@
               type="primary"
               icon="el-icon-upload2"
               @click="handleImport"
+              v-if="$checkPermission('用户列表导入用户')"
             >
               导入用户
             </el-button>
@@ -26,6 +27,7 @@
               type="success"
               icon="el-icon-download"
               @click="handleExport"
+              v-if="$checkPermission('用户列表导出用户')"
             >
               导出用户
             </el-button>
@@ -52,6 +54,7 @@
               style="margin-left: 10px"
               type="primary"
               @click="Search()"
+              v-if="$checkPermission('用户列表搜索')"
               >查询搜索
             </el-button>
           </div>
@@ -90,6 +93,7 @@
               icon="el-icon-plus"
               type="primary"
               @click="AddFilter"
+              v-if="$checkPermission('用户列表添加管理员')"
               >添加管理人员
             </el-button>
             <el-button
@@ -97,6 +101,7 @@
               icon="el-icon-printer"
               type="success"
               @click="showBatchQRCode"
+              v-if="$checkPermission('用户列表批量打印二维码')"
             >
               批量打印二维码
             </el-button>
@@ -168,7 +173,7 @@
 
       <el-table-column align="center" label="登录二维码" min-width="100">
         <template slot-scope="scope">
-          <el-button type="primary" size="mini" @click="showQRCode(scope.row)">
+          <el-button type="primary" size="mini" @click="showQRCode(scope.row)" v-if="$checkPermission('用户列表查看二维码')">
             查看二维码
           </el-button>
         </template>
@@ -181,6 +186,7 @@
             type="primary"
             @click="handleEdit(row)"
             style="margin-right: 8px"
+            v-if="$checkPermission('用户列表编辑')"
           >
             编辑
           </el-button>
@@ -189,11 +195,12 @@
             type="danger"
             @click="handleDelete(row)"
             style="margin-right: 8px"
+            v-if="$checkPermission('用户列表删除')"
           >
             删除
           </el-button>
           <el-button
-            v-if="!row.status"
+            v-if="!row.status && $checkPermission('用户列表上线')"
             size="mini"
             type="success"
             @click="handisshow(row)"
@@ -201,7 +208,7 @@
           >
             上线
           </el-button>
-          <el-button v-else size="mini" type="danger" @click="handisshow(row)">
+          <el-button v-else-if="row.status && $checkPermission('用户列表下线')" size="mini" type="danger" @click="handisshow(row)">
             下线
           </el-button>
         </template>

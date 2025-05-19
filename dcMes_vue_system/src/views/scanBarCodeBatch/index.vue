@@ -17,6 +17,50 @@
           >
           </el-switch>
         </div>
+        
+        <!-- 添加操作按钮区域 -->
+        <div class="operation-buttons">
+          <el-button 
+            v-if="$checkPermission('打包托盘手动自动')"
+            type="text"
+            size="small"
+            @click="handleModeToggle">
+            <i class="el-icon-refresh"></i> 手动/自动
+          </el-button>
+          
+          <el-button 
+            v-if="$checkPermission('打包托盘产品型号')"
+            type="text"
+            size="small"
+            @click="handleProductModel">
+            <i class="el-icon-goods"></i> 产品型号
+          </el-button>
+          
+          <el-button 
+            v-if="$checkPermission('打包托盘产品工序')"
+            type="text"
+            size="small"
+            @click="handleProductProcess">
+            <i class="el-icon-s-operation"></i> 产品工序
+          </el-button>
+          
+          <el-button 
+            v-if="$checkPermission('打包托盘产线编码')"
+            type="text"
+            size="small"
+            @click="handleLineCode">
+            <i class="el-icon-c-scale-to-original"></i> 产线编码
+          </el-button>
+          
+          <el-button 
+            v-if="$checkPermission('打包托盘保存设置')"
+            type="text"
+            size="small"
+            @click="handleSaveSettings">
+            <i class="el-icon-s-tools"></i> 保存设置
+          </el-button>
+        </div>
+        
         <el-form :model="formData" label-width="100px">
           <!-- 产品型号 -->
           <div class="form-section">
@@ -740,6 +784,69 @@ export default {
         window.location.reload();
       }
     },
+    
+    // 手动/自动模式切换处理
+    handleModeToggle() {
+      this.autoInit = !this.autoInit;
+      this.autoInitMode = this.autoInit;
+      this.$message.success(`已${this.autoInit ? "开启" : "关闭"}自动初始化模式`);
+      
+      if (this.autoInit) {
+        window.location.reload();
+      }
+    },
+    
+    // 产品型号处理
+    handleProductModel() {
+      if (!this.mainMaterialName || !this.mainMaterialCode) {
+        this.$message.warning('当前没有设置产品型号');
+        return;
+      }
+      
+      this.$message({
+        type: 'info',
+        message: `当前产品型号：${this.mainMaterialCode} - ${this.mainMaterialName}`,
+        duration: 3000
+      });
+    },
+    
+    // 产品工序处理
+    handleProductProcess() {
+      if (!this.processName) {
+        this.$message.warning('当前没有设置产品工序');
+        return;
+      }
+      
+      this.$message({
+        type: 'info',
+        message: `当前产品工序：${this.processName}`,
+        duration: 3000
+      });
+    },
+    
+    // 产线编码处理
+    handleLineCode() {
+      if (!this.productLineId || !this.productLineName) {
+        this.$message.warning('当前没有设置产线');
+        return;
+      }
+      
+      this.$message({
+        type: 'info',
+        message: `当前产线：${this.productLineName}`,
+        duration: 3000
+      });
+    },
+    
+    // 保存设置处理
+    handleSaveSettings() {
+      if (this.mainMaterialId && this.processStepId) {
+        this.$message.warning('已经设置好了产品和工序');
+      } else {
+        this.handleSave();
+      }
+    },
+
     async getAutoInitConfig() {
       try {
         this.processStepId = "";
@@ -3073,15 +3180,7 @@ export default {
   background-color: #66b1ff;
 }
 
-.collapse-btn i {
-  color: white;
-  font-size: 20px;
-}
-
-.init-card {
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
+.collapse-btn i {  color: white;  font-size: 20px;}.operation-buttons {  display: flex;  flex-wrap: wrap;  margin: 10px 0 15px;  gap: 8px;}.operation-buttons .el-button {  color: #409EFF;  font-size: 13px;}.operation-buttons .el-button i {  margin-right: 4px;}.init-card {  border-radius: 8px;  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);}
 
 .form-section {
   margin-bottom: 20px;

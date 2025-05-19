@@ -53,13 +53,27 @@
                 </div>
 
                 <div class="screen_content_second_one">
-                    <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
-                    <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
-                    <el-button type="warning" icon="el-icon-refresh" @click="handleSync">同步数据</el-button>
-                    <el-button type="text" @click="toggleAdvanced">
-                        {{ showAdvanced ? '收起' : '展开' }}
-                        <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
-                    </el-button>
+                    <el-button 
+                        type="primary" 
+                        icon="el-icon-search" 
+                        @click="handleSearch"
+                        v-if="$checkPermission('采购申请单查询')">查询</el-button>
+                    <el-button 
+                        icon="el-icon-refresh" 
+                        @click="handleReset"
+                        v-if="$checkPermission('采购申请单重置')">重置</el-button>
+                    <el-button 
+                        type="warning" 
+                        icon="el-icon-refresh" 
+                        @click="handleSync"
+                        v-if="$checkPermission('采购申请单同步订单')">同步数据</el-button>
+                    <el-button 
+                        type="text" 
+                        @click="toggleAdvanced"
+                        v-if="$checkPermission('采购申请单高级搜索')">
+                            {{ showAdvanced ? '收起' : '展开' }}
+                            <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
+                        </el-button>
                 </div>
             </el-form>
         </div>
@@ -199,14 +213,7 @@
                         <el-button type="text" size="small" v-if="$checkPermission('采购申请单拓展数据')" @click="handleExt(scope.row)">拓展数据</el-button>
                         <el-button type="text" size="small" v-if="$checkPermission('采购申请单物料明细')" @click="showMaterialDetail(scope.row)">物料明细</el-button>
                         <el-button type="text" size="small" v-if="$checkPermission('采购申请单打印')" @click="handlePrint(scope.row)">打印</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单查询')" @click="handleSearch">查询</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单高级搜索')" @click="toggleAdvanced">高级搜索</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单重置')" @click="handleReset">重置</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单同步订单')" @click="handleSync">同步订单</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单模版预览')" @click="handlePrint(scope.row)">模版预览</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单浏览器打印')" @click="handlePrint(scope.row)">浏览器打印</el-button>
-                        <el-button type="text" size="small" v-if="$checkPermission('采购申请单静默打印')" @click="handlePrint(scope.row)">静默打印</el-button>
-                    </template>
+                       </template>
                 </el-table-column>
             </template>
         </base-table>

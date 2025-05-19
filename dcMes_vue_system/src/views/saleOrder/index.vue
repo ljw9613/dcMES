@@ -4,7 +4,11 @@
         <el-card class="filter-container">
             <div slot="header" class="clearfix">
                 <span>筛选搜索</span>
-                <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced">
+                <el-button 
+                    style="float: right; padding: 3px 0" 
+                    type="text" 
+                    @click="toggleAdvanced"
+                    v-if="$checkPermission('销售订单高级搜索')">
                     {{ showAdvanced ? '收起' : '展开' }}高级搜索
                 </el-button>
             </div>
@@ -87,10 +91,24 @@
                 </el-row>
 
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询搜索</el-button>
-                    <el-button @click="resetForm">重置</el-button>
+                    <el-button 
+                      type="primary" 
+                      @click="search"
+                      v-if="$checkPermission('销售订单搜索')">
+                      查询搜索
+                    </el-button>
+                    <el-button 
+                      @click="resetForm"
+                      v-if="$checkPermission('销售订单重置')">
+                      重置
+                    </el-button>
                     <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
-                    <el-button type="warning" @click="handleSync">同步订单</el-button>
+                    <el-button 
+                      type="warning" 
+                      @click="handleSync"
+                      v-if="$checkPermission('销售订单同步订单')">
+                      同步订单
+                    </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -255,41 +273,6 @@
                           size="small"
                           v-if="$checkPermission('销售订单客户信息')"
                           @click="handleCustInfo(scope.row)">客户信息</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单搜索')"
-                          @click="handlePrint(scope.row)">搜索</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单高级搜索')"
-                          @click="handlePrint(scope.row)">高级搜索</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单重置')"
-                          @click="handlePrint(scope.row)">重置</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单同步订单')"
-                          @click="handlePrint(scope.row)">同步订单</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单模版预览')"
-                          @click="handlePrint(scope.row)">模版预览</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单浏览器打印')"
-                          @click="handlePrint(scope.row)">浏览器打印</el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          v-if="$checkPermission('销售订单静默打印')"
-                          @click="handlePrint(scope.row)">静默打印</el-button>
                     </template>
                 </el-table-column>
             </template>

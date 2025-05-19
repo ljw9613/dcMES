@@ -53,6 +53,16 @@
           <el-button slot="append" type="primary" @click="handleScan">验证</el-button>
         </el-input>
       </div>
+      
+      <div class="operation-buttons">
+        <el-button 
+          v-if="$checkPermission('自定义扫码请输入完整的API地址此-请求方法-请扫描或输入条码-验证')"
+          type="text"
+          size="small"
+          @click="handleScanValidation">
+          请输入完整的API地址 此-请求方法-请扫描或输入条码-验证
+        </el-button>
+      </div>
     </div>
 
     <!-- 结果展示 -->
@@ -120,6 +130,24 @@ export default {
         localStorage.removeItem('scanApiMethod')
         this.$message.success('配置已清除')
       }).catch(() => {})
+    },
+
+    handleScanValidation() {
+      // 显示API配置提示
+      if (!this.apiConfig.url) {
+        this.$message.info('请先在上方配置完整的API地址')
+        this.showSettings = true
+        return
+      }
+      
+      this.$message({
+        message: '请使用指定的请求方法扫描或手动输入条码进行验证',
+        type: 'info',
+        duration: 3000
+      })
+      
+      // 聚焦到扫码输入框
+      this.$refs.scanInput.focus()
     },
 
     async handleScan() {
@@ -298,6 +326,21 @@ export default {
 .result-details pre {
   margin: 0;
   color: #333;
+}
+
+.operation-buttons {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.operation-buttons .el-button {
+  font-size: 14px;
+  margin: 10px 0;
+  color: #409EFF;
+}
+
+.operation-buttons .el-button:hover {
+  color: #66b1ff;
 }
 
 /* Element UI 组件样式覆盖 */

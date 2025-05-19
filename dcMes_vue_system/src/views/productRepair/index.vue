@@ -119,33 +119,33 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button type="primary" @click="search" v-if="$checkPermission('产品维修搜索')">查询搜索</el-button>
+          <el-button @click="resetForm" v-if="$checkPermission('产品维修重置')">重置</el-button>
           <el-button
             type="primary"
             icon="el-icon-plus"
             @click="handleAdd('main')"
-            v-if="$checkPermission('成品维修')"
+            v-if="$checkPermission('产品维修新增成品维修')"
             >新增成品维修</el-button
           >
           <el-button
             type="primary"
             icon="el-icon-plus"
             @click="handleAdd('auxiliary')"
-            v-if="$checkPermission('组件维修')"
+            
             >新增组件维修</el-button
           >
           <el-button
             type="danger"
             icon="el-icon-delete"
             :disabled="!selection.length"
-            v-if="$checkPermission('产品维修作废')"
+           
             @click="handleBatchVoid"
             >批量作废</el-button
           >
           <el-button
             type="success"
-            v-if="$checkPermission('产品维修审核')"
+          
             icon="el-icon-check"
             :disabled="!selection.length"
             @click="handleBatchReview"
@@ -328,7 +328,7 @@
               size="small"
               @click="handleViewProductDetails(scope.row)"
               style="color: blue"
-              v-if="$checkPermission('产品维修查看产品详情')"
+       
             >
               <i class="el-icon-view"></i> 查看产品详情
             </el-button>
@@ -339,6 +339,7 @@
               style="color: green"
               v-if="
                 scope.row.status == 'PENDING_REVIEW' &&
+                hasMaintenanceAudit &&
                 $checkPermission('产品维修审核')
               "
             >
