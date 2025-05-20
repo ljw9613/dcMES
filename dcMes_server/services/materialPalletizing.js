@@ -853,11 +853,7 @@ class MaterialPalletizingService {
     }
   }
 
-  static async unbindPalletBarcode(
-    palletCode,
-    userId,
-    reason = "托盘整体解绑"
-  ) {
+  static async unbindPalletBarcode(palletCode, userId, reason = "托盘整体解绑") {
     try {
       const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
@@ -917,20 +913,13 @@ class MaterialPalletizingService {
           palletBarcode.barcode,
           pallet.processStepId,
           userId,
-          "托盘解绑", // 添加解绑原因
-          true, // 解绑后续工序
-          true // 标记为来自托盘解绑调用
+          "托盘解绑",
+          true,
+          true
         );
       }
 
-      // 减少工单产出量 - 解绑托盘中所有条码减少相应产出量
-      if (pallet.productionPlanWorkOrderId && pallet.barcodeCount > 0) {
-        await materialProcessFlowService.updateWorkOrderQuantity(
-          pallet.productionPlanWorkOrderId.toString(),
-          "output",
-          -pallet.barcodeCount // 负数表示减少产出量
-        );
-      }
+      // 移除工单产出量扣减代码，因为 unbindProcessComponents 已经处理了这个逻辑
 
       // 2. 清空托盘条码列表和箱记录
       pallet.palletBarcodes = [];
@@ -945,16 +934,14 @@ class MaterialPalletizingService {
 
       // 检查原托盘状态，如果是组托完成(STACKED)状态，则更新为维修中状态
       if (pallet.status === "STACKED") {
-        pallet.repairStatus = "REPAIRING"; // 设置为维修中状态
-        console.log(
-          `托盘 ${palletCode} 整体解绑，从组托完成状态更新为维修中状态`
-        );
+        pallet.repairStatus = "REPAIRING";
+        console.log(`托盘 ${palletCode} 整体解绑，从组托完成状态更新为维修中状态`);
       }
 
       // 无论维修状态如何，都将组托状态重置为组托中
-      pallet.status = "STACKING"; // 解绑后重置为组托中状态
+      pallet.status = "STACKING";
 
-      // 清理所有工单信息(全部解绑后所有工单数量都为0)
+      // 清理所有工单信息
       pallet.workOrders = [];
 
       pallet.updateAt = new Date();

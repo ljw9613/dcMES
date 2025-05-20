@@ -62,11 +62,12 @@
             <div style="width: 120px">日期范围:</div>
             <el-date-picker
               v-model="dateRange"
-              type="daterange"
+              type="datetimerange"
               range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              value-format="yyyy-MM-dd"
+              start-placeholder="开始日期时间"
+              end-placeholder="结束日期时间"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              :default-time="['00:00:00', '23:59:59']"
               @change="handleFilter"
             >
             </el-date-picker>

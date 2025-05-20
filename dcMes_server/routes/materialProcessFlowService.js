@@ -1140,4 +1140,104 @@ router.post("/api/v1/replace-component", async (req, res) => {
   }
 });
 
+/**
+ * 销售订单成品流程导出接口
+ * 一次性导出指定销售订单的所有成品流程记录
+ * GET /api/v1/export-by-sale-order?saleOrderNo=xxx
+ */
+router.get("/api/v1/export-by-sale-order", async (req, res) => {
+  try {
+    const { saleOrderNo, page = 1, pageSize = 100 } = req.query;
+    if (!saleOrderNo) {
+      return res.status(400).json({
+        code: 400,
+        success: false,
+        message: "缺少必要参数: saleOrderNo"
+      });
+    }
+    console.log("saleOrderNo===", saleOrderNo);
+    
+    // 查询所有工单
+    const workOrders = await require("../model/project/productionPlanWorkOrder").find({ saleOrderNo });
+    console.log("workOrders===", workOrders);
+    if (!workOrders.length) {
+      return res.json({ code: 200, success: true, data: [], total: 0 });
+    }
+    
+    const workOrderIds = workOrders.map(w => w._id);
+    const MaterialProcessFlow = require("../model/project/materialProcessFlow");
+    
+    // 获取总记录数
+    const totalCount = await MaterialProcessFlow.countDocuments({
+      productionPlanWorkOrderId: { $in: workOrderIds }
+    });
+    
+    // 计算分页参数
+    const skip = (page - 1) * pageSize;
+    
+    // 查询当前页数据
+    const flows = await MaterialProcessFlow.find({
+      productionPlanWorkOrderId: { $in: workOrderIds }
+    })
+    .populate("productionPlanWorkOrderId")
+    .populate("processNodes.processStepId") // 添加工序信息的关联查询
+    .skip(skip)
+    .limit(parseInt(pageSize));
+    
+    // 处理当前页数据
+    const results = flows.map(item => {
+      // 获取外箱节点信息
+      const packingBoxNode = (item.processNodes || []).find(n => n.isPackingBox);
+      
+      // 获取所有工序节点信息
+      const processNodes = (item.processNodes || []).map(node => ({
+        processStepName: node.processStepId?.name || '',
+        processStepCode: node.processStepId?.code || '',
+        status: node.status || '',
+        startTime: node.startTime || '',
+        endTime: node.endTime || '',
+        operator: node.operator || '',
+        materialCode: node.materialCode || '',
+        barcode: node.barcode || ''
+      }));
+
+      return {
+        WORK_ORDER: item.productionPlanWorkOrderId?.custPO || '',
+        UDI: item.barcode || '',
+        MASTER_CARTON_UDI: packingBoxNode?.barcode || '',
+        PART_NO: packingBoxNode?.materialCode || '',
+        QR_COED: packingBoxNode?.barcode || '',
+        SN_NO: item.snNo || '',
+        STATION: item.station || '',
+        RESULT: item.result || '',
+        TEST_TIME: item.testTime || '',
+        EMPNAME: item.empName || '',
+        PROCESS_NODES: processNodes, // 添加工序节点信息
+        CREATE_TIME: item.createTime || '',
+        UPDATE_TIME: item.updateTime || '',
+        STATUS: item.status || '',
+        MATERIAL_CODE: item.materialCode || '',
+        MATERIAL_NAME: item.materialName || ''
+      };
+    });
+    
+    res.json({
+      code: 200,
+      success: true,
+      data: results,
+      total: totalCount,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      hasMore: skip + results.length < totalCount
+    });
+  } catch (error) {
+    console.error('导出失败:', error);
+    res.status(500).json({
+      code: 500,
+      success: false,
+      message: error.message || '导出失败'
+    });
+  }
+});
+
 module.exports = router;

@@ -2246,6 +2246,10 @@ export default {
                     "," +
                     printData.quantity;
 
+                  //追觅产品名称颜色字段
+                  printData.FCustMaterialNameColor =
+                    printData.FCustMaterialName + "-" + printData.FColor;
+
                   this.printData = printData;
                   this.$nextTick(() => {
                     this.$refs.hirInput.handlePrints2();
@@ -2613,7 +2617,11 @@ export default {
           // 按月查询
           createAt: {
             $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // 当月第一天
-            $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), // 下个月第一天
+            $lt: new Date(
+              new Date().getFullYear(),
+              new Date().getMonth() + 1,
+              1
+            ), // 下个月第一天
           },
         },
         sort: { serialNumber: -1 },
@@ -2931,27 +2939,27 @@ export default {
     },
     // 打包装箱手动/自动处理
     handleAutoMode() {
-      this.$message.info('打包装箱手动/自动模式切换');
+      this.$message.info("打包装箱手动/自动模式切换");
     },
-    
+
     // 打包装箱产品型号处理
     handleProductSelect() {
-      this.$message.info('打包装箱产品型号选择');
+      this.$message.info("打包装箱产品型号选择");
     },
-    
+
     // 打包装箱产品工序处理
     handleProcessSelect() {
-      this.$message.info('打包装箱产品工序选择');
+      this.$message.info("打包装箱产品工序选择");
     },
-    
+
     // 打包装箱产线编码处理
     handleLineSelect() {
-      this.$message.info('打包装箱产线编码选择');
+      this.$message.info("打包装箱产线编码选择");
     },
-    
+
     // 打包装箱保存设置处理
     handleSaveSettings() {
-      this.$message.info('打包装箱保存设置');
+      this.$message.info("打包装箱保存设置");
     },
   },
   async created() {

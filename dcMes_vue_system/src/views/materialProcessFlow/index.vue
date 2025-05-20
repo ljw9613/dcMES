@@ -214,13 +214,20 @@
             </el-col>
           </el-row>
         </div>
-
+        
         <el-form-item>
           <el-button type="primary" @click="search" v-if="$checkPermission('条码记录查询')">查询搜索</el-button>
           <el-button @click="resetForm" v-if="$checkPermission('条码记录重置')">重置</el-button>
           <el-button type="primary" @click="openBarcodeSearch" v-if="$checkPermission('条码记录成品追溯')"
             >成品追溯</el-button
           >
+          <el-button
+            type="primary"
+            @click="openSaleOrderExportDialog"
+            v-if="$checkPermission('销售订单导出')"
+          >
+            销售订单导出
+          </el-button>
           <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
         </el-form-item>
       </el-form>
@@ -1118,6 +1125,39 @@
         </el-button>
       </div>
     </el-dialog>
+
+    <el-dialog
+      title="销售订单导出"
+      :visible.sync="saleOrderExportDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <el-form>
+        <el-form-item label="销售订单">
+          <zr-select
+            v-model="selectedSaleOrderNo"
+            collection="k3_SAL_SaleOrder"
+            :search-fields="['FBillNo']"
+            label-key="FBillNo"
+            value-key="FBillNo"
+            sub-key="FBillNo"
+            :multiple="false"
+            placeholder="请输入销售单号"
+            clearable
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="saleOrderExportDialogVisible = false">取 消</el-button>
+        <el-button
+          type="primary"
+          :loading="saleOrderExportLoading"
+          @click="confirmSaleOrderExport"
+          :disabled="!selectedSaleOrderNo"
+        >确 定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -1132,6 +1172,7 @@ import {
   fixFlowProgress,
   replaceComponent, // 添加新的API引入
   initializeProduct, // 添加新的API引入
+  exportBySaleOrder
 } from "@/api/materialProcessFlowService";
 import XLSX from "xlsx";
 import JSZip from "jszip";
@@ -1224,6 +1265,9 @@ export default {
         validationMessage: "",
       },
       replaceLoading: false,
+      saleOrderExportDialogVisible: false,
+      saleOrderExportLoading: false,
+      selectedSaleOrderNo: "",
     };
   },
   computed: {
@@ -3224,6 +3268,139 @@ export default {
         this.$message.error("物料替换失败: " + error.message);
       } finally {
         this.replaceLoading = false;
+      }
+    },
+    openSaleOrderExportDialog() {
+      this.saleOrderExportDialogVisible = true;
+      this.selectedSaleOrderNo = '';
+    },
+    async confirmSaleOrderExport() {
+      if (!this.selectedSaleOrderNo) {
+        this.$message.warning('请选择销售订单');
+        return;
+      }
+      this.saleOrderExportLoading = true;
+      try {
+        // 显示加载提示
+        const loading = this.$loading({
+          lock: true,
+          text: '开始导出数据，请稍候...',
+          spinner: 'el-icon-loading',
+          background: 'rgba(0, 0, 0, 0.7)'
+        });
+        
+        let allData = [];
+        let currentPage = 1;
+        const pageSize = 100;
+        let hasMore = true;
+        let total = 0;
+        
+        // 循环获取所有数据
+        while (hasMore) {
+          loading.text = `正在获取第 ${currentPage} 批数据...`;
+          
+          const res = await exportBySaleOrder({
+            saleOrderNo: this.selectedSaleOrderNo,
+            page: currentPage,
+            pageSize
+          });
+          
+          if (res.code !== 200) throw new Error(res.message || '接口异常');
+          
+          const { data, hasMore: more, total: totalCount } = res;
+          allData = allData.concat(data || []);
+          total = totalCount;
+          
+          // 更新进度提示
+          loading.text = `已获取 ${allData.length}/${total} 条数据`;
+          
+          hasMore = more;
+          currentPage++;
+        }
+        
+        // 导出Excel
+        if (allData.length > 0) {
+          loading.text = '正在生成Excel文件...';
+          
+          // 字段顺序与表头
+          const headers = [
+            'WORK_ORDER(PO号)', 'UDI', 'MASTER_CARTON_UDI（外箱UDI）', 'PART_NO(部件编码)',
+            'QR_COED（条码）', 'SN_NO（客户物料编码）', 'STATION（工序描述）',
+            'RESULT（绑定结果）', 'TEST_TIME（操作时间）', 'EMPNAME（操作人）'
+          ];
+          
+          // 字段映射
+          const data = allData.map(item => ({
+            'WORK_ORDER(PO号)': item.WORK_ORDER,
+            'UDI': item.UDI,
+            'MASTER_CARTON_UDI（外箱UDI）': item.MASTER_CARTON_UDI,
+            'PART_NO(部件编码)': item.PART_NO,
+            'QR_COED（条码）': item.QR_COED,
+            'SN_NO（客户物料编码）': item.SN_NO,
+            'STATION（工序描述）': item.STATION,
+            'RESULT（绑定结果）': item.RESULT,
+            'TEST_TIME（操作时间）': item.TEST_TIME,
+            'EMPNAME（操作人）': item.EMPNAME
+          }));
+
+          // 创建工作簿
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.json_to_sheet(data);
+
+          // 设置列宽
+          const colWidths = [
+            { wch: 15 }, // WORK_ORDER
+            { wch: 20 }, // UDI
+            { wch: 20 }, // MASTER_CARTON_UDI
+            { wch: 15 }, // PART_NO
+            { wch: 20 }, // QR_COED
+            { wch: 20 }, // SN_NO
+            { wch: 20 }, // STATION
+            { wch: 15 }, // RESULT
+            { wch: 20 }, // TEST_TIME
+            { wch: 15 }  // EMPNAME
+          ];
+          ws['!cols'] = colWidths;
+
+          // 设置表头样式
+          const range = XLSX.utils.decode_range(ws['!ref']);
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const address = XLSX.utils.encode_cell({ r: 0, c: C });
+            if (!ws[address]) continue;
+            ws[address].s = {
+              font: { bold: true },
+              alignment: { horizontal: 'center' },
+              fill: { fgColor: { rgb: 'f5f7fa' } }
+            };
+          }
+
+          // 将工作表添加到工作簿
+          XLSX.utils.book_append_sheet(wb, ws, '成品流程记录');
+
+          // 生成Excel文件并下载
+          loading.text = '正在下载文件...';
+          const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([excelBuffer], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          });
+          
+          // 生成文件名
+          const fileName = `销售订单${this.selectedSaleOrderNo}成品流程记录_${new Date().toLocaleDateString()}.xlsx`;
+          
+          // 下载文件
+          FileSaver.saveAs(blob, fileName);
+          
+          this.$message.success('导出成功');
+          this.saleOrderExportDialogVisible = false;
+        } else {
+          this.$message.warning('没有可导出的数据');
+        }
+      } catch (error) {
+        console.error('导出失败:', error);
+        this.$message.error(error.message || '导出失败');
+      } finally {
+        this.saleOrderExportLoading = false;
+        this.$loading().close();
       }
     },
   },
