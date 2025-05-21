@@ -244,12 +244,36 @@ export default {
       })
     },
 
+    // 添加角色标题重复校验方法
+    async checkRoleNameExists(name, excludeId = null) {
+      try {
+        const query = { name };
+        if (excludeId) {
+          query._id = { $ne: excludeId }; // 排除当前编辑的角色
+        }
+        
+        const { data } = await getData("role", { query });
+        return data && data.length > 0;
+      } catch (error) {
+        console.error('检查角色名称失败:', error);
+        return false;
+      }
+    },
+
+    // 修改 createData 方法
     async createData() {
       if (!this.postList.name) {
         this.$message.warning("角色名称不能为空");
         return;
       } else if (!this.postList.label) {
         this.$message.warning("角色标识不能为空");
+        return;
+      }
+
+      // 检查角色名称是否重复
+      const exists = await this.checkRoleNameExists(this.postList.name);
+      if (exists) {
+        this.$message.error("角色名称已存在，请更换其他名称");
         return;
       }
 
@@ -308,12 +332,20 @@ export default {
       }
     },
 
-    editData() {
+    // 修改 editData 方法
+    async editData() {
       if (!this.postList.name) {
         this.$message.warning("角色名称不能为空");
         return;
       } else if (!this.postList.label) {
         this.$message.warning("角色标识不能为空");
+        return;
+      }
+
+      // 检查角色名称是否重复（排除当前角色）
+      const exists = await this.checkRoleNameExists(this.postList.name, this._id);
+      if (exists) {
+        this.$message.error("角色名称已存在，请更换其他名称");
         return;
       }
 

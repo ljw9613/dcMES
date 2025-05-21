@@ -443,10 +443,20 @@ export default {
       // 处理日期范围
       if (this.dateRange && this.dateRange.length === 2) {
         const [startDate, endDate] = this.dateRange;
-        query.timestamp = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate + " 23:59:59"),
-        };
+        if (startDate && endDate) {
+          query.timestamp = {
+            $gte: new Date(startDate).toISOString(),
+            $lte: new Date(endDate).toISOString()
+          };
+        } else if (startDate) {
+          query.timestamp = {
+            $gte: new Date(startDate).toISOString()
+          };
+        } else if (endDate) {
+          query.timestamp = {
+            $lte: new Date(endDate).toISOString()
+          };
+        }
       }
 
       return query;

@@ -89,7 +89,7 @@ class MaterialPalletizingService {
       let pallet = await MaterialPalletizing.findOne({
         productLineId: lineId,
         materialId: materialId, // 确保托盘是装同种物料的
-        // saleOrderId: currentProductionPlan.saleOrderId, // 如果严格按当前工单的销售订单，混装其他销售订单的同工单产品会受限
+        saleOrderId: currentProductionPlan.saleOrderId, // 如果严格按当前工单的销售订单，混装其他销售订单的同工单产品会受限
         status: "STACKING",
         repairStatus: { $ne: "REPAIRING" },
         // 新增：如果一个托盘可以混装不同工单，那么在查找时，不能再用 saleOrderId 或 workOrderNo 作为严格的筛选条件
@@ -170,7 +170,13 @@ class MaterialPalletizingService {
         if (!pallet.workOrders) pallet.workOrders = []; // 防御空数组
         
         let existingWorkOrderInPallet = pallet.workOrders.find(
-          (wo) => wo.productionPlanWorkOrderId && wo.productionPlanWorkOrderId.toString() === currentProductionPlan._id.toString()
+          (wo) => {
+            // 增加防御性检查
+            if (!wo || !wo.productionPlanWorkOrderId || !currentProductionPlan || !currentProductionPlan._id) {
+              return false;
+            }
+            return wo.productionPlanWorkOrderId.toString() === currentProductionPlan._id.toString();
+          }
         );
 
         if (!existingWorkOrderInPallet) {
@@ -305,11 +311,18 @@ class MaterialPalletizingService {
           });
           const totalBarcodesForMainSaleOrder = mainSaleOrderPallets.reduce(
               (sum, p) => sum + (p.palletBarcodes.filter(pb => {
-                  // 如果 palletBarcodes 中的条码也记录了 saleOrderId，则可以更精确
-                  // 否则，就只能假设一个托盘内的所有条码都服务于托盘的主 saleOrderId
-                  const wo = p.workOrders.find(order => order.productionPlanWorkOrderId.toString() === pb.productionPlanWorkOrderId.toString());
+                  // 增加防御性检查
+                  if (!p.workOrders || !pb || !pb.productionPlanWorkOrderId || !pallet || !pallet.saleOrderId) {
+                    return false;
+                  }
+                  const wo = p.workOrders.find(order => {
+                    if (!order || !order.productionPlanWorkOrderId) {
+                      return false;
+                    }
+                    return order.productionPlanWorkOrderId.toString() === pb.productionPlanWorkOrderId.toString();
+                  });
                   return wo && wo.saleOrderId && wo.saleOrderId.toString() === pallet.saleOrderId.toString();
-              }).length), // 或者简单用 p.barcodeCount 如果一个托盘只服务一个SO
+              }).length),
               0
           );
            // 获取主销售订单的 planQuantity

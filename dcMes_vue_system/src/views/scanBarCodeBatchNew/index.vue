@@ -129,46 +129,6 @@
             >
               保存设置
             </el-button>
-            <el-button
-              v-if="$checkPermission('打包托盘手动/自动')"
-              type="text"
-              size="small"
-              @click="handleAutoMode"
-            >
-              手动/自动
-            </el-button>
-            <el-button
-              v-if="$checkPermission('打包托盘产品型号')"
-              type="text"
-              size="small"
-              @click="handleProductSelect"
-            >
-              产品型号
-            </el-button>
-            <el-button
-              v-if="$checkPermission('打包托盘产品工序')"
-              type="text"
-              size="small"
-              @click="handleProcessSelect"
-            >
-              产品工序
-            </el-button>
-            <el-button
-              v-if="$checkPermission('打包托盘产线编码')"
-              type="text"
-              size="small"
-              @click="handleLineSelect"
-            >
-              产线编码
-            </el-button>
-            <el-button
-              v-if="$checkPermission('打包托盘保存设置')"
-              type="text"
-              size="small"
-              @click="handleSaveSettings"
-            >
-              保存设置
-            </el-button>
           </div>
         </el-form>
       </el-card>
@@ -1621,14 +1581,14 @@ export default {
           },
           limit: 1,
         });
-        if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
-          let palletUnbindData = palletUnbindResponse.data[0];
-          this.$message.error(`该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`);
-          this.popupType = "ng";
-          this.showPopup = true;
-          tone(tmyw);
-          return;
-        }
+        // if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
+        //   let palletUnbindData = palletUnbindResponse.data[0];
+        //   this.$message.error(`该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`);
+        //   this.popupType = "ng";
+        //   this.showPopup = true;
+        //   tone(tmyw);
+        //   return;
+        // }
         //是否为升级条码
         const preProductionResponse = await getData("preProductionBarcode", {
           query: {
@@ -1840,128 +1800,145 @@ export default {
             }
           });
 
-          // 调用保存接口
-          let res = await handlePalletBarcode({
-            lineId: this.productLineId,
-            lineName: this.productLineName,
-            processStepId: this.processStepId,
-            materialId: this.mainMaterialId,
-            materialCode: this.mainMaterialCode,
-            materialName: this.mainMaterialName,
-            materialSpec: this.mainMaterialSpec,
-            mainBarcode: this.scanForm.mainBarcode,
-            boxBarcode: null, // 在这个新的流程中，不直接处理包装箱条码的概念，所以设为null
-            totalQuantity: this.batchForm.batchSize,
-            userId: this.$store.state.user.id,
-            componentScans,
+          // 添加loading效果
+          const loading = this.$loading({
+            lock: true,
+            text: '正在处理条码数据...',
+            spinner: 'el-icon-loading',
+            background: 'rgba(0, 0, 0, 0.7)'
           });
 
-          if (res.code === 200) {
-            //更新当前托盘编码
-            this.palletForm.palletCode = res.data.palletCode;
-            this.palletForm.productionOrderId = res.data.productionOrderId;
-            this.palletForm.workOrderNo = res.data.workOrderNo;
-            this.palletForm.saleOrderId = res.data.saleOrderId;
-            this.palletForm.saleOrderNo = res.data.saleOrderNo;
-            this.palletForm.totalQuantity = res.data.totalQuantity;
-            this.batchForm.batchSize = res.data.totalQuantity;
-
-            let materialPalletizingPrintData = await getData(
-              "material_palletizing",
-              {
-                query: { _id: res.data._id },
-                populate: JSON.stringify([
-                  { path: "productLineId", select: "lineCode" },
-                  { path: "productionOrderId", select: "FWorkShopID_FName" },
-                ]),
-              }
-            );
-            let printData = materialPalletizingPrintData.data[0];
-            printData.createAt = this.formatDate(printData.createAt);
-            printData.workshop =
-              (printData.productionOrderId &&
-                printData.productionOrderId.FWorkShopID_FName) ||
-              "未记录生产车间";
-            printData.qrcode = `${printData.palletCode}#${
-              printData.saleOrderNo
-            }#${printData.materialCode}#${printData.totalQuantity}#${
-              (printData.productLineId && printData.productLineId.lineCode) ||
-              "未记录生产线"
-            }`;
-            printData.palletBarcodes = printData.palletBarcodes.map((item) => {
-              item.scanTime = this.formatDate(item.scanTime);
-              return item;
+          try {
+            // 调用保存接口
+            let res = await handlePalletBarcode({
+              lineId: this.productLineId,
+              lineName: this.productLineName,
+              processStepId: this.processStepId,
+              materialId: this.mainMaterialId,
+              materialCode: this.mainMaterialCode,
+              materialName: this.mainMaterialName,
+              materialSpec: this.mainMaterialSpec,
+              mainBarcode: this.scanForm.mainBarcode,
+              boxBarcode: null, // 在这个新的流程中，不直接处理包装箱条码的概念，所以设为null
+              totalQuantity: this.batchForm.batchSize,
+              userId: this.$store.state.user.id,
+              componentScans,
             });
-            this.printData = printData;
 
-            this.scannedList = printData.palletBarcodes.map(item => ({
-                barcode: item.barcode,
-                scanTime: item.scanTime, 
-                type: item.barcodeType,
-                boxBarcode: item.boxBarcode
-            }));
+            if (res.code === 200) {
+              //更新当前托盘编码
+              this.palletForm.palletCode = res.data.palletCode;
+              this.palletForm.productionOrderId = res.data.productionOrderId;
+              this.palletForm.workOrderNo = res.data.workOrderNo;
+              this.palletForm.saleOrderId = res.data.saleOrderId;
+              this.palletForm.saleOrderNo = res.data.saleOrderNo;
+              this.palletForm.totalQuantity = res.data.totalQuantity;
+              this.batchForm.batchSize = res.data.totalQuantity;
 
-            if (res.data.status == "STACKED") {
-              this.$nextTick(() => {
-                this.$refs.hirInput.handlePrints2();
+              let materialPalletizingPrintData = await getData(
+                "material_palletizing",
+                {
+                  query: { _id: res.data._id },
+                  populate: JSON.stringify([
+                    { path: "productLineId", select: "lineCode" },
+                    { path: "productionOrderId", select: "FWorkShopID_FName" },
+                  ]),
+                }
+              );
+              let printData = materialPalletizingPrintData.data[0];
+              printData.createAt = this.formatDate(printData.createAt);
+              printData.workshop =
+                (printData.productionOrderId &&
+                  printData.productionOrderId.FWorkShopID_FName) ||
+                "未记录生产车间";
+              printData.qrcode = `${printData.palletCode}#${
+                printData.saleOrderNo
+              }#${printData.materialCode}#${printData.totalQuantity}#${
+                (printData.productLineId && printData.productLineId.lineCode) ||
+                "未记录生产线"
+              }`;
+              printData.palletBarcodes = printData.palletBarcodes.map((item) => {
+                item.scanTime = this.formatDate(item.scanTime);
+                return item;
               });
-              this.palletForm.palletCode = "";
-              this.scannedList = [];
-              for (const material of this.processMaterials) {
-                if (material.isBatch && this.scanForm.barcodes[material._id]) {
-                  const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                  const usageKey = `${cacheKey}_usage`;
-                  const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
-                  const newUsage = currentUsage + 1;
-                  localStorage.setItem(usageKey, newUsage.toString());
-                  if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
-                    localStorage.removeItem(cacheKey);
-                    localStorage.removeItem(usageKey);
-                    this.$set(this.scanForm.barcodes, material._id, "");
-                    this.$set(this.validateStatus, material._id, false);
-                  }
-                }
-              }
-              this.scanForm.mainBarcode = "";
-              this.$set(this.validateStatus, "mainBarcode", false);
-            } else {
-              for (const material of this.processMaterials) {
-                if (material.isBatch && this.scanForm.barcodes[material._id]) {
-                  const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-                  const usageKey = `${cacheKey}_usage`;
-                  const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
-                  const newUsage = currentUsage + 1;
-                  localStorage.setItem(usageKey, newUsage.toString());
-                  if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
-                    localStorage.removeItem(cacheKey);
-                    localStorage.removeItem(usageKey);
-                    this.$set(this.scanForm.barcodes, material._id, "");
-                    this.$set(this.validateStatus, material._id, false);
-                  }
-                }
-              }
-              this.resetScanForm();
-            }
+              this.printData = printData;
 
-            tone(smcg);
-            this.popupType = "ok";
-            this.showPopup = true;
-            this.$message.success("条码扫描成功");
-            // resetScanForm 在 STACKED 和非 STACKED 分支中都已调用或部分调用，这里可能不需要再次调用
-            // this.resetScanForm(); 
-          } else {
-            this.$message.error(res.message);
+              this.scannedList = printData.palletBarcodes.map(item => ({
+                  barcode: item.barcode,
+                  scanTime: item.scanTime, 
+                  type: item.barcodeType,
+                  boxBarcode: item.boxBarcode
+              }));
+
+              if (res.data.status == "STACKED") {
+                this.$nextTick(() => {
+                  this.$refs.hirInput.handlePrints2();
+                });
+                this.palletForm.palletCode = "";
+                this.scannedList = [];
+                for (const material of this.processMaterials) {
+                  if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                    const usageKey = `${cacheKey}_usage`;
+                    const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+                    const newUsage = currentUsage + 1;
+                    localStorage.setItem(usageKey, newUsage.toString());
+                    if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                      localStorage.removeItem(cacheKey);
+                      localStorage.removeItem(usageKey);
+                      this.$set(this.scanForm.barcodes, material._id, "");
+                      this.$set(this.validateStatus, material._id, false);
+                    }
+                  }
+                }
+                this.scanForm.mainBarcode = "";
+                this.$set(this.validateStatus, "mainBarcode", false);
+              } else {
+                for (const material of this.processMaterials) {
+                  if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                    const usageKey = `${cacheKey}_usage`;
+                    const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+                    const newUsage = currentUsage + 1;
+                    localStorage.setItem(usageKey, newUsage.toString());
+                    if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                      localStorage.removeItem(cacheKey);
+                      localStorage.removeItem(usageKey);
+                      this.$set(this.scanForm.barcodes, material._id, "");
+                      this.$set(this.validateStatus, material._id, false);
+                    }
+                  }
+                }
+                this.resetScanForm();
+              }
+
+              tone(smcg);
+              this.popupType = "ok";
+              this.showPopup = true;
+              this.$message.success("条码扫描成功");
+            } else {
+              this.$message.error(res.message);
+              this.popupType = "ng";
+              this.showPopup = true;
+              if (res.message == "该工序节点已完成或处于异常状态") {
+                tone(cfbd);
+              } else if (res.message == "未查询到生产工单") {
+                tone(cxwgd);
+              } else {
+                tone(tmyw);
+              }
+              this.resetScanForm(); // 确保在错误时重置
+              return;
+            }
+          } catch (error) {
+            console.error("扫描处理失败:", error);
+            this.$message.error(error.message || "扫描处理失败");
             this.popupType = "ng";
             this.showPopup = true;
-            if (res.message == "该工序节点已完成或处于异常状态") {
-              tone(cfbd);
-            } else if (res.message == "未查询到生产工单") {
-              tone(cxwgd);
-            } else {
-              tone(tmyw);
-            }
-            this.resetScanForm(); // 确保在错误时重置
-            return;
+            tone(tmyw);
+          } finally {
+            // 关闭loading效果
+            loading.close();
           }
         }
       } catch (error) {
@@ -1970,8 +1947,6 @@ export default {
         this.popupType = "ng";
         this.showPopup = true;
         tone(tmyw);
-        // 可以在这里也调用 resetScanForm() 如果需要的话
-        // this.resetScanForm();
       } finally {
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();

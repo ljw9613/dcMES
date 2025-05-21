@@ -18,48 +18,6 @@
           </el-switch>
         </div>
         
-        <!-- 添加操作按钮区域 -->
-        <div class="operation-buttons">
-          <el-button 
-            v-if="$checkPermission('打包托盘手动自动')"
-            type="text"
-            size="small"
-            @click="handleModeToggle">
-            <i class="el-icon-refresh"></i> 手动/自动
-          </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘产品型号')"
-            type="text"
-            size="small"
-            @click="handleProductModel">
-            <i class="el-icon-goods"></i> 产品型号
-          </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘产品工序')"
-            type="text"
-            size="small"
-            @click="handleProductProcess">
-            <i class="el-icon-s-operation"></i> 产品工序
-          </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘产线编码')"
-            type="text"
-            size="small"
-            @click="handleLineCode">
-            <i class="el-icon-c-scale-to-original"></i> 产线编码
-          </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘保存设置')"
-            type="text"
-            size="small"
-            @click="handleSaveSettings">
-            <i class="el-icon-s-tools"></i> 保存设置
-          </el-button>
-        </div>
         
         <el-form :model="formData" label-width="100px">
           <!-- 产品型号 -->

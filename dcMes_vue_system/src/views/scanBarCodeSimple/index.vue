@@ -159,7 +159,7 @@ export default {
     preparePrintData(record) {
       console.log(record,'record');
       this.printData = {
-        printBarcode: record,
+        printBarcode: record.code,
       };
       console.log(this.printData, "this.printData");
       this.$nextTick(() => {

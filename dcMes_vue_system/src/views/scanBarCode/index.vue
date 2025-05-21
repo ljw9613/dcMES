@@ -130,46 +130,6 @@
             >
               保存设置
             </el-button>
-            <el-button
-              v-if="$checkPermission('生产线扫手动/自动')"
-              type="text"
-              size="small"
-              @click="handleAutoInitChange(!autoInit)"
-            >
-              手动/自动
-            </el-button>
-            <el-button
-              v-if="$checkPermission('生产线扫产品型号')"
-              type="text"
-              size="small"
-              @click="handleProductSelect"
-            >
-              产品型号
-            </el-button>
-            <el-button
-              v-if="$checkPermission('生产线扫产品工序')"
-              type="text"
-              size="small"
-              @click="handleProcessSelect"
-            >
-              产品工序
-            </el-button>
-            <el-button
-              v-if="$checkPermission('生产线扫产线编码')"
-              type="text"
-              size="small"
-              @click="handleLineSelect"
-            >
-              产线编码
-            </el-button>
-            <el-button
-              v-if="$checkPermission('生产线扫保存设置')"
-              type="text"
-              size="small"
-              @click="handleSave"
-            >
-              保存设置
-            </el-button>
           </div>
         </el-form>
       </el-card>
