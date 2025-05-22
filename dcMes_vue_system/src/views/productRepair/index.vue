@@ -132,7 +132,7 @@
             type="primary"
             icon="el-icon-plus"
             @click="handleAdd('auxiliary')"
-            
+            v-if="$checkPermission('产品维修新增组件维修')"
             >新增组件维修</el-button
           >
           <el-button

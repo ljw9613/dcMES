@@ -2010,6 +2010,10 @@ class MaterialProcessFlowService {
         return null;
       }
 
+      if (!workOrder.createBy) {
+        workOrder.createBy = workOrder.updateBy;
+      }
+
       // 计算进度百分比
       workOrder.progress =
         type === "output"
@@ -2042,15 +2046,16 @@ class MaterialProcessFlowService {
         await this.completeAllRelatedWorkOrders(workOrder._id);
 
         //自动开启下一个工单计划
-        const nextWorkOrders = await ProductionPlanWorkOrder.find({
-          productionLineId: workOrder.productionLineId,
-          materialId: workOrder.materialId,
-          status: "PENDING",
-        }).sort({ planStartTime: 1 });
-        if (nextWorkOrders.length > 0) {
-          nextWorkOrders[0].status = "IN_PROGRESS";
-          await nextWorkOrders[0].save();
-        }
+        // const nextWorkOrders = await ProductionPlanWorkOrder.find({
+        //   productionLineId: workOrder.productionLineId,
+        //   materialId: workOrder.materialId,
+        //   status: "PENDING",
+        // }).sort({ planStartTime: 1 });
+        // if (nextWorkOrders.length > 0) {
+        //   nextWorkOrders[0].status = "IN_PROGRESS";
+        //   nextWorkOrders[0].createBy = workOrder.createBy; // 添加 createBy 字段
+        //   await nextWorkOrders[0].save();
+        // }
       }
 
       await workOrder.save();

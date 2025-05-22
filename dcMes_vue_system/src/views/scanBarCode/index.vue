@@ -14,7 +14,6 @@
             inactive-text="手动"
             class="print-switch"
             @change="handleAutoInitChange"
-            v-if="$checkPermission('生产线扫自动/手动')"
           >
           </el-switch>
         </div>

@@ -1,5 +1,15 @@
 <template>
   <div class="pallet-assembly-container">
+    <!-- 添加打印组件 -->
+    <hir-input
+      ref="hirInput"
+      :default-template="localPrintTemplate"
+      @template-change="handleTemplateChange"
+      :show-preview="true"
+      :show-browser-print="true"
+      :show-silent-print="true"
+      :printData="printData"
+    />
     <el-card class="main-card">
       <div slot="header" class="card-header">
         <span>托盘组装操作</span>
@@ -313,9 +323,13 @@ import {
   addBarcodeToPallet,
   handleForceCompletePallet,
 } from "@/api/materialPalletizing";
+import hirInput from "@/components/hirInput";
 
 export default {
   name: "PalletAssembly",
+  components: {
+    hirInput,
+  },
   data() {
     return {
       palletForm: {
@@ -329,7 +343,9 @@ export default {
       currentProcessStep: null,
       subMaterials: [],
       formLabelWidth: "120px",
-
+      craftHasPackingProcess: false,
+      boxBarcode: "",
+      isBoxBarcode: false,
       // 新增统一扫描相关
       unifiedScanInput: "",
       mainMaterialScanState: {
@@ -341,6 +357,8 @@ export default {
         // 如果主条码也需要像 scanBarCodeBatchNew 那样有特定的显示标签，可以在这里加
       },
       materialBarcodeRules: [], // 新增：用于存储条码规则
+      printData: {}, // 打印数据
+      localPrintTemplate: null, // 打印模板
     };
   },
   computed: {
@@ -528,6 +546,29 @@ export default {
               scannedBarcode: "",
               validated: !(pm.scanOperation !== false),
             }));
+        }
+
+        // 检查当前工艺是否包含装箱工序
+        this.craftHasPackingProcess = false; // 默认重置
+        try {
+          const processStepDetailsResponse = await getData("processStep", {
+            query: { craftId: craft._id },
+          });
+          if (
+            processStepDetailsResponse.data &&
+            processStepDetailsResponse.data.length > 0
+          ) {
+            this.craftHasPackingProcess = processStepDetailsResponse.data.some(
+              (step) => step.processType === "E"
+            );
+            console.log(
+              "当前工艺是否包含装箱工序 (craftHasPackingProcess):",
+              this.craftHasPackingProcess
+            );
+          }
+        } catch (error) {
+          console.error("检查工艺是否包含装箱工序失败:", error);
+          // 此处保持 craftHasPackingProcess 为 false，校验将不会因此失败
         }
 
         if (this.subMaterials.length > 0) {
@@ -985,7 +1026,7 @@ export default {
      * 处理统一扫描
      */
     async handleUnifiedScan() {
-      const barcode = this.unifiedScanInput.trim();
+      let barcode = this.unifiedScanInput.trim();
       if (!barcode) {
         this.$message.warning("请输入或扫描条码");
         return;
@@ -995,6 +1036,14 @@ export default {
         this.$message.warning("请先验证托盘编号");
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
+        return;
+      }
+
+      //当打印模板未选择时提醒
+      if (!this.$refs.hirInput.selectedTemplate) {
+        this.unifiedScanInput = "";
+        this.focusUnifiedInput();
+        this.$message.warning("请先选择打印模板");
         return;
       }
 
@@ -1017,11 +1066,15 @@ export default {
         }
       );
       //如果解绑记录存在，并且解绑记录的托盘编码不等于当前托盘编码，则提示错误
-      if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0 && palletUnbindResponse.data[0].palletCode != this.palletInfo.palletCode) {
+      if (
+        palletUnbindResponse.data &&
+        palletUnbindResponse.data.length > 0 &&
+        palletUnbindResponse.data[0].palletCode != this.palletInfo.palletCode
+      ) {
         //如果解绑记录存在，并且解绑记录的托盘编码不等于当前托盘编码，则提示错误
         let palletUnbindData = palletUnbindResponse.data[0];
         this.$message.error(
-          `当前条码${barcode}存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`
+          `当前条码${barcode}应该入托盘到${palletUnbindData.palletCode}`
         );
         return;
       }
@@ -1031,6 +1084,39 @@ export default {
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
         return;
+      }
+
+      //检查该条码是否为包装箱条码
+      const boxResponse = await getData("material_process_flow", {
+        query: {
+          processNodes: {
+            $elemMatch: {
+              barcode: barcode,
+              isPackingBox: true,
+            },
+          },
+        },
+      });
+      const isBoxBarcode = boxResponse.data && boxResponse.data.length > 0;
+
+      if (this.craftHasPackingProcess && isBoxBarcode) {
+        this.isBoxBarcode = true;
+        this.boxBarcode = JSON.parse(JSON.stringify(barcode));
+        barcode = boxResponse.data[0].barcode;
+      } else {
+        this.isBoxBarcode = false;
+        this.boxBarcode = "";
+      }
+
+      // 新增前置校验：如果当前工艺包含装箱工序，则必须扫描包装箱条码
+      if (this.craftHasPackingProcess && !isBoxBarcode) {
+        this.$message.error("当前工艺包含装箱工序，必须扫描包装箱条码。");
+        this.popupType = "ng";
+        this.showPopup = true;
+        tone(tmyw);
+        this.unifiedScanInput = ""; // 清空输入框
+        this.$refs.scanInput.focus(); // 重新聚焦
+        return; // 终止处理
       }
 
       // 调用新的 validateBarcode 方法
@@ -1060,6 +1146,7 @@ export default {
           this.focusUnifiedInput();
           return;
         }
+
         this.mainMaterialScanState.scannedBarcode = barcode;
         this.mainMaterialScanState.validated = true;
         this.$message.success(
@@ -1170,7 +1257,7 @@ export default {
 
         // 模拟包装箱检测逻辑 (需要更完善的规则)
         // 假设如果主条码以 "BOX" 开头，则认为是包装箱
-        const isBox = mainBarcodeToSubmit.startsWith("BOX"); // 非常简化的示例
+        // const isBox = mainBarcodeToSubmit.startsWith("BOX"); // 非常简化的示例
 
         try {
           const loading = this.$loading({
@@ -1179,14 +1266,41 @@ export default {
             spinner: "el-icon-loading",
             background: "rgba(0, 0, 0, 0.7)",
           });
-          const res = await addBarcodeToPallet({
-            palletCode: this.palletInfo.palletCode,
-            mainBarcode: mainBarcodeToSubmit,
-            boxBarcode: isBox ? mainBarcodeToSubmit : null, // 如果是箱子，boxBarcode 和 mainBarcode 一样
-            isBox: isBox,
-            userId: this.$store.state.user.id,
-            componentScans: componentScans,
-          });
+          let res = null;
+          if (this.isBoxBarcode && this.boxBarcode) {
+            // 获取所有的物料条码
+            const boxResponse = await getData("material_process_flow", {
+              query: {
+                processNodes: {
+                  $elemMatch: {
+                    barcode: this.boxBarcode,
+                    isPackingBox: true,
+                  },
+                },
+              },
+            });
+            //循环请求入库
+            for (const box of boxResponse.data) {
+              res = await addBarcodeToPallet({
+                palletCode: this.palletInfo.palletCode,
+                mainBarcode: box.barcode,
+                boxBarcode: this.boxBarcode,
+                isBox: this.isBoxBarcode,
+                userId: this.$store.state.user.id,
+                componentScans: componentScans,
+              });
+            }
+          } else {
+            res = await addBarcodeToPallet({
+              palletCode: this.palletInfo.palletCode,
+              mainBarcode: mainBarcodeToSubmit,
+              boxBarcode: this.boxBarcode, // 如果是箱子，boxBarcode 和 mainBarcode 一样
+              isBox: this.isBoxBarcode,
+              userId: this.$store.state.user.id,
+              componentScans: componentScans,
+            });
+          }
+
           loading.close();
 
           if (res.code === 200) {
@@ -1209,6 +1323,7 @@ export default {
                 type: "success",
                 duration: 3000,
               });
+              this.handlePalletComplete(res.data._id);
             }
           } else {
             this.$message.error(res.message || "提交失败");
@@ -1324,6 +1439,102 @@ export default {
             scanTime: barcodeItem.scanTime || new Date(),
           });
         }
+      }
+    },
+
+    // 处理模板变更
+    handleTemplateChange(template) {
+      if (!template) return;
+      try {
+        // 保存完整的模板对象到本地存储
+        this.localPrintTemplate = template;
+        this.$message.success("打印模板已保存到本地");
+      } catch (error) {
+        console.error("保存打印模板失败:", error);
+        this.$message.error("保存打印模板失败");
+      }
+    },
+
+    // 准备打印数据
+    async preparePrintData(palletData) {
+      try {
+        let printData = { ...palletData };
+
+        // 格式化日期
+        printData.createAt = this.formatDate(printData.createAt);
+
+        // 设置车间信息
+        printData.workshop =
+          (printData.productionOrderId &&
+            printData.productionOrderId.FWorkShopID_FName) ||
+          "未记录生产车间";
+
+        // 设置二维码数据
+        printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${
+          printData.materialCode
+        }#${printData.totalQuantity}#${
+          (printData.productLineId && printData.productLineId.lineCode) ||
+          "未记录生产线"
+        }`;
+
+        // 格式化托盘条码列表
+        if (Array.isArray(printData.palletBarcodes)) {
+          printData.palletBarcodes = printData.palletBarcodes.map((item) => {
+            item.scanTime = this.formatDate(item.scanTime);
+            return item;
+          });
+        } else {
+          printData.palletBarcodes = [];
+        }
+
+        // 处理多工单托盘的情况
+        if (
+          Array.isArray(printData.workOrders) &&
+          printData.workOrders.length > 1
+        ) {
+          printData.workOrderNo = printData.workOrders
+            .map((item) => item.workOrderNo)
+            .join(",");
+        }
+
+        // 处理尾数托盘标记
+        printData.isLastPallet = printData.isLastPallet ? "尾数托盘" : "";
+
+        return printData;
+      } catch (error) {
+        console.error("准备打印数据失败:", error);
+        throw error;
+      }
+    },
+
+    // 修改组托完成后的处理逻辑
+    async handlePalletComplete(palletizingId) {
+      try {
+        // 获取最新的托盘数据
+        const palletResponse = await getData("material_palletizing", {
+          query: { _id: palletizingId },
+          populate: JSON.stringify([
+            { path: "productLineId", select: "lineCode" },
+            { path: "productionOrderId", select: "FWorkShopID_FName" },
+          ]),
+        });
+
+        if (palletResponse.data && palletResponse.data[0]) {
+          // 准备打印数据
+          this.printData = await this.preparePrintData(palletResponse.data[0]);
+
+          // 调用打印组件进行打印
+          this.$nextTick(() => {
+            if (this.$refs.hirInput) {
+              this.$refs.hirInput.handlePrints2();
+            }
+          });
+        }
+
+        // ... existing code ...
+      } catch (error) {
+        console.error("组托完成处理失败:", error);
+        this.$message.error("组托完成处理失败");
       }
     },
   },

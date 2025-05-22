@@ -104,7 +104,7 @@
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
           <el-button @click="resetForm">重置</el-button>
-          <el-button type="primary" @click="handleScan" v-if="$checkPermission('UID抽检扫描二维码')">扫码二维码</el-button>
+          <el-button type="primary" @click="handleScan" v-if="$checkPermission('UDI抽检扫描二维码')">扫码二维码</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -267,12 +267,12 @@
               详情
             </el-button>
   
-            <el-button
+            <!-- <el-button
               v-if="$checkPermission('UDI抽检条码抽检')"
               type="text"
               size="mini"
               @click="handleBarcodeSampling(scope.row)"
-            >抽检</el-button>
+            >抽检</el-button> -->
           </template>
         </el-table-column>
       </template>
@@ -3162,12 +3162,7 @@ export default {
       };
       return statusMap[status] || status;
     },
-    handleScanQRCode(row) {
-      this.$message.info('UDI抽检扫码二维码功能待实现');
-    },
-    handleBarcodeSampling(row) {
-      this.$message.info('UDI抽检条码抽检功能待实现');
-    },
+
   },
   created() {
     this.fetchData();
