@@ -17,27 +17,27 @@
             @clear="focusInput"
           ></el-input>
         </div>
-        
+
         <!-- 操作按钮 -->
         <div class="operation-buttons">
-          <el-button 
-            v-if="$checkPermission('简单扫码请扫描条码')"
+          <el-button
+
             type="text"
             size="small"
             @click="handleClearScan">
             <i class="el-icon-delete"></i>请扫描条码
           </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('简单扫码选择打印模板-模板预览-取消')"
+
+          <el-button
+
             type="text"
             size="small"
             @click="handleTemplateSelect">
             <i class="el-icon-document"></i> 选择打印模板-模板预览-取消
           </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('简单扫码静默打印')"
+
+          <el-button
+
             type="text"
             size="small"
             @click="handleSilentPrint">
@@ -166,7 +166,7 @@ export default {
         this.$refs.hirInput.handlePrints2();
       });
     },
-    
+
     // 清除扫描记录
     handleClearScan() {
       this.scanRecords = [];
@@ -174,7 +174,7 @@ export default {
       this.focusInput();
       this.$message.success("扫描记录已清除");
     },
-    
+
     // 处理模板选择
     handleTemplateSelect() {
       // 打开模板选择面板
@@ -185,19 +185,19 @@ export default {
         this.$message.warning("打印组件未初始化");
       }
     },
-    
+
     // 处理静默打印
     handleSilentPrint() {
       if (!this.$refs.hirInput.selectedTemplate) {
         this.$message.warning("请先选择打印模板");
         return;
       }
-      
+
       if (this.scanRecords.length === 0) {
         this.$message.warning("没有可打印的扫描记录");
         return;
       }
-      
+
       this.$nextTick(() => {
         this.$refs.hirInput.handlePrints2();
         this.$message.success("已发送打印指令");

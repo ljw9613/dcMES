@@ -22,8 +22,8 @@
                     </el-col>
                 </el-row>
                 <el-form-item>
-                    <el-button type="primary" @click="search" v-if="$checkPermission('条码匹配规则查询')">查询搜索</el-button>
-                    <el-button @click="resetForm" v-if="$checkPermission('条码匹配规则重置')">重置</el-button>
+                    <el-button type="primary" @click="search" >查询搜索</el-button>
+                    <el-button @click="resetForm" >重置</el-button>
                     <el-button type="primary" icon="el-icon-plus" @click="handleCreate" v-if="$checkPermission('条码匹配规则新增规则')">新增规则</el-button>
                     <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
                         @click="handleBatchDelete" v-if="$checkPermission('条码匹配规则批量删除')">批量删除</el-button>
@@ -53,7 +53,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="使用范围" width="100" v-if="$checkPermission('条码规则全局设置')">
+                <el-table-column label="使用范围" width="100" >
                     <template slot-scope="{row}">
                         <el-tag :type="row.isGlobal ? 'warning' : ''">
                             {{ row.isGlobal ? '全局' : '普通' }}
@@ -67,13 +67,13 @@
                 </el-table-column>
                 <el-table-column label="操作" width="400" align="center">
                     <template slot-scope="{row}">
-                        <el-button type="text" size="small" @click="handleView(row)" v-if="$checkPermission('条码匹配规则查看物料列表')">
+                        <el-button type="text" size="small" @click="handleView(row)">
                             <i class="el-icon-view"></i> 查看物料列表
                         </el-button>
-                        <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码匹配规则编辑')">
+                        <el-button type="text" size="small" @click="handleEdit(row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码匹配规则删除')">
+                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
                     </template>

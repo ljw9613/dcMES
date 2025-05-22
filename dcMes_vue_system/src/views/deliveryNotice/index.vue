@@ -46,16 +46,16 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <div class="search-buttons">
-              <el-button 
-                type="primary" 
-                icon="el-icon-search" 
+              <el-button
+                type="primary"
+                icon="el-icon-search"
                 @click="fetchData"
-                v-if="$checkPermission('发货通知单查询')"
+
                 >查询</el-button>
-              <el-button 
-                icon="el-icon-refresh" 
+              <el-button
+                icon="el-icon-refresh"
                 @click="resetForm"
-                v-if="$checkPermission('发货通知单重置')"
+
                 >重置</el-button>
               <el-button
                 type="warning"
@@ -63,10 +63,10 @@
                 @click="handleSync"
                 v-if="$checkPermission('发货通知单同步订单')"
                 >同步</el-button>
-              <el-button 
-                type="text" 
+              <el-button
+                type="text"
                 @click="showAdvanced = !showAdvanced"
-                v-if="$checkPermission('发货通知单高级搜索')">
+                >
                 {{ showAdvanced ? "收起" : "展开" }}
                 <i
                   :class="

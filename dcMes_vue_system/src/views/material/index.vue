@@ -87,25 +87,25 @@
                 </div>
 
                 <el-form-item>
-                    <el-button 
-                        type="primary" 
+                    <el-button
+                        type="primary"
                         @click="search"
-                        v-if="$checkPermission('物料管理搜索')">
+                        >
                         查询搜索
                     </el-button>
-                    <el-button 
+                    <el-button
                         @click="resetForm"
-                        v-if="$checkPermission('物料管理重置')">
+                        >
                         重置
                     </el-button>
-                    <el-button 
-                        type="success" 
+                    <el-button
+                        type="success"
                         @click="exportData"
                         v-if="$checkPermission('物料管理导出')">
                         导出数据
                     </el-button>
-                    <el-button 
-                        type="warning" 
+                    <el-button
+                        type="warning"
                         @click="handleSync"
                         v-if="$checkPermission('物料管理同步物料')">
                         同步物料

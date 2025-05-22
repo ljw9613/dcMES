@@ -14,7 +14,7 @@
             inactive-text="手动"
             class="print-switch"
             @change="handleAutoInitChange"
-            v-if="$checkPermission('生产线扫自动/手动')"
+
           >
           </el-switch>
         </div>
@@ -113,7 +113,7 @@
           </div>
 
           <!-- 按钮部分 -->
-              <div class="button-group"  v-if="$checkPermission('扫码编辑配置')">
+              <div class="button-group"  >
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -131,7 +131,7 @@
               保存设置
             </el-button>
             <el-button
-              v-if="$checkPermission('生产线扫手动/自动')"
+
               type="text"
               size="small"
               @click="handleAutoInitChange(!autoInit)"
@@ -139,7 +139,7 @@
               手动/自动
             </el-button>
             <el-button
-              v-if="$checkPermission('生产线扫产品型号')"
+
               type="text"
               size="small"
               @click="handleProductSelect"
@@ -147,7 +147,7 @@
               产品型号
             </el-button>
             <el-button
-              v-if="$checkPermission('生产线扫产品工序')"
+
               type="text"
               size="small"
               @click="handleProcessSelect"
@@ -155,15 +155,15 @@
               产品工序
             </el-button>
             <el-button
-              v-if="$checkPermission('生产线扫产线编码')"
+
               type="text"
               size="small"
               @click="handleLineSelect"
             >
               产线编码
-            </el-button>
+            </el-button>scanBarCodeConver
             <el-button
-              v-if="$checkPermission('生产线扫保存设置')"
+
               type="text"
               size="small"
               @click="handleSave"

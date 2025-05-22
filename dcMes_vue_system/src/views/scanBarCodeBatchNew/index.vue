@@ -112,7 +112,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
+          <div class="button-group" >
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -130,7 +130,7 @@
               保存设置
             </el-button>
             <el-button
-              v-if="$checkPermission('打包托盘手动/自动')"
+
               type="text"
               size="small"
               @click="handleAutoMode"
@@ -138,7 +138,7 @@
               手动/自动
             </el-button>
             <el-button
-              v-if="$checkPermission('打包托盘产品型号')"
+
               type="text"
               size="small"
               @click="handleProductSelect"
@@ -146,7 +146,7 @@
               产品型号
             </el-button>
             <el-button
-              v-if="$checkPermission('打包托盘产品工序')"
+
               type="text"
               size="small"
               @click="handleProcessSelect"
@@ -154,7 +154,7 @@
               产品工序
             </el-button>
             <el-button
-              v-if="$checkPermission('打包托盘产线编码')"
+
               type="text"
               size="small"
               @click="handleLineSelect"
@@ -162,7 +162,7 @@
               产线编码
             </el-button>
             <el-button
-              v-if="$checkPermission('打包托盘保存设置')"
+
               type="text"
               size="small"
               @click="handleSaveSettings"
@@ -236,7 +236,7 @@
             <el-form
               :model="batchForm"
               label-width="100px"
-              v-if="$checkPermission('扫码编辑配置')"
+
             >
               <el-form-item label="产品数量">
                 <div class="batch-size-control">
@@ -1896,7 +1896,7 @@ export default {
 
             this.scannedList = printData.palletBarcodes.map(item => ({
                 barcode: item.barcode,
-                scanTime: item.scanTime, 
+                scanTime: item.scanTime,
                 type: item.barcodeType,
                 boxBarcode: item.boxBarcode
             }));
@@ -1948,7 +1948,7 @@ export default {
             this.showPopup = true;
             this.$message.success("条码扫描成功");
             // resetScanForm 在 STACKED 和非 STACKED 分支中都已调用或部分调用，这里可能不需要再次调用
-            // this.resetScanForm(); 
+            // this.resetScanForm();
           } else {
             this.$message.error(res.message);
             this.popupType = "ng";
@@ -2814,27 +2814,27 @@ export default {
       const currentCount = this.batchUsageCount[materialId] || 0;
       return `${currentCount}/${material.batchQuantity || '∞'}`;
     },
-    
+
     // 打包托盘手动/自动处理
     handleAutoMode() {
       this.$message.info('打包托盘手动/自动模式切换');
     },
-    
+
     // 打包托盘产品型号处理
     handleProductSelect() {
       this.$message.info('打包托盘产品型号选择');
     },
-    
+
     // 打包托盘产品工序处理
     handleProcessSelect() {
       this.$message.info('打包托盘产品工序选择');
     },
-    
+
     // 打包托盘产线编码处理
     handleLineSelect() {
       this.$message.info('打包托盘产线编码选择');
     },
-    
+
     // 打包托盘保存设置处理
     handleSaveSettings() {
       this.$message.info('打包托盘保存设置');
@@ -2893,7 +2893,7 @@ export default {
 
     // 初始化批次数量
     this.initBatchSize();
-    
+
     // 初始化批次物料使用次数
     if (this.processMaterials) {
       for (const material of this.processMaterials) {

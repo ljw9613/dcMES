@@ -33,10 +33,10 @@
                 </el-row>
 
                 <el-form-item>
-                    <el-button type="primary" @click="search" v-if="$checkPermission('生产产线查询')">查询搜索</el-button>
-                    <el-button @click="resetForm" v-if="$checkPermission('生产产线重置')">重置</el-button>
+                    <el-button type="primary" @click="search" >查询搜索</el-button>
+                    <el-button @click="resetForm" >重置</el-button>
                     <el-button type="primary" icon="el-icon-plus" @click="handleAdd" v-if="$checkPermission('生产产线新增产线')">新增产线</el-button>
-                    <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
+                    <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length" v-if="$checkPermission('生产产线批量删除')"
                         @click="handleBatchDelete">批量删除</el-button>
                 </el-form-item>
             </el-form>
@@ -100,14 +100,14 @@
                         <el-button
                           type="text"
                           size="small"
-                          v-if="$checkPermission('生产产线设备刷新')"
+
                           @click="handleRefresh(scope.row)">
                             <i class="el-icon-refresh"></i> 设备刷新
                         </el-button>
                         <el-button
                           type="text"
                           size="small"
-                          v-if="$checkPermission('生产产线编辑')"
+
                           @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
@@ -115,7 +115,7 @@
                           type="text"
                           size="small"
                           class="delete-btn"
-                          v-if="$checkPermission('生产产线删除')"
+
                           @click="handleDelete(scope.row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>

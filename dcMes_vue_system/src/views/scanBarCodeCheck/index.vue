@@ -16,10 +16,10 @@
     </div>
 
     <div class="operation-buttons">
-      <el-button 
-        type="primary" 
+      <el-button
+        type="primary"
         @click="handleScan"
-        v-if="$checkPermission('产线校验请扫描条码或手动输入-查询')"
+
         icon="el-icon-camera">
         手动输入查询
       </el-button>
@@ -266,10 +266,10 @@ export default {
       });
       this.barcode = ''; // 清空当前输入
       this.focusInput(); // 聚焦输入框，准备扫描
-      
+
       // 可以在这里添加额外的验证逻辑
       // 例如切换到产线验证模式，或者调用特定的API
-      
+
       // 示例：可以在组件上设置一个标志，表示当前是在产线验证模式
       // this.verificationMode = 'productionLine';
       // 然后在checkBarcode方法中判断当前模式，调用不同的处理逻辑

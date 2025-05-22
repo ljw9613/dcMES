@@ -7,7 +7,7 @@
           style="float: right; padding: 3px 0"
           type="text"
           @click="toggleAdvanced"
-          v-if="$checkPermission('打印模板高级搜索')"
+
         >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
@@ -100,9 +100,9 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('打印模板查询')">查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('打印模板重置')">重置</el-button>
-          <el-button type="success" @click="exportData" v-if="$checkPermission('打印模板导出数据')">导出数据</el-button>
+          <el-button type="primary" @click="search" >查询搜索</el-button>
+          <el-button @click="resetForm" >重置</el-button>
+          <el-button type="success" @click="exportData" >导出数据</el-button>
           <el-button type="primary" icon="el-icon-plus" @click="handleAdd" v-if="$checkPermission('打印模板新增模版')"
             >新增模板</el-button
           >
@@ -115,7 +115,7 @@
           >
             批量删除
           </el-button>
-          <el-button @click="dayinForm" v-if="$checkPermission('打印模板ZRMES打印模版')">ZRMES打印模板</el-button>
+          <el-button @click="dayinForm" >ZRMES打印模板</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -193,9 +193,9 @@
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" v-if="$checkPermission('打印模版编辑')" @click="handleEdit(scope.row)"><i class="el-icon-edit"></i> 编辑</el-button>
-            <el-button type="text" size="small" v-if="$checkPermission('打印模版打印')" @click="handlePrint(scope.row)"><i class="el-icon-printer"></i> 打印</el-button>
-            <el-button type="text" size="small" class="delete-btn" v-if="$checkPermission('打印模版删除')" @click="handleDelete(scope.row)"><i class="el-icon-delete"></i> 删除</el-button>
+            <el-button type="text" size="small" @click="handleEdit(scope.row)"><i class="el-icon-edit"></i> 编辑</el-button>
+            <el-button type="text" size="small"  @click="handlePrint(scope.row)"><i class="el-icon-printer"></i> 打印</el-button>
+            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)"><i class="el-icon-delete"></i> 删除</el-button>
           </template>
         </el-table-column>
       </template>

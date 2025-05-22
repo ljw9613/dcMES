@@ -17,50 +17,50 @@
           >
           </el-switch>
         </div>
-        
+
         <!-- 添加操作按钮区域 -->
         <div class="operation-buttons">
-          <el-button 
-            v-if="$checkPermission('打包托盘手动自动')"
+          <el-button
+
             type="text"
             size="small"
             @click="handleModeToggle">
             <i class="el-icon-refresh"></i> 手动/自动
           </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘产品型号')"
+
+          <el-button
+
             type="text"
             size="small"
             @click="handleProductModel">
             <i class="el-icon-goods"></i> 产品型号
           </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘产品工序')"
+
+          <el-button
+
             type="text"
             size="small"
             @click="handleProductProcess">
             <i class="el-icon-s-operation"></i> 产品工序
           </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘产线编码')"
+
+          <el-button
+
             type="text"
             size="small"
             @click="handleLineCode">
             <i class="el-icon-c-scale-to-original"></i> 产线编码
           </el-button>
-          
-          <el-button 
-            v-if="$checkPermission('打包托盘保存设置')"
+
+          <el-button
+
             type="text"
             size="small"
             @click="handleSaveSettings">
             <i class="el-icon-s-tools"></i> 保存设置
           </el-button>
         </div>
-        
+
         <el-form :model="formData" label-width="100px">
           <!-- 产品型号 -->
           <div class="form-section">
@@ -156,7 +156,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
+          <div class="button-group" >
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -203,7 +203,7 @@
             <el-form
               :model="batchForm"
               label-width="100px"
-              v-if="$checkPermission('扫码编辑配置')"
+
             >
               <el-form-item label="产品数量">
                 <div class="batch-size-control">
@@ -784,60 +784,60 @@ export default {
         window.location.reload();
       }
     },
-    
+
     // 手动/自动模式切换处理
     handleModeToggle() {
       this.autoInit = !this.autoInit;
       this.autoInitMode = this.autoInit;
       this.$message.success(`已${this.autoInit ? "开启" : "关闭"}自动初始化模式`);
-      
+
       if (this.autoInit) {
         window.location.reload();
       }
     },
-    
+
     // 产品型号处理
     handleProductModel() {
       if (!this.mainMaterialName || !this.mainMaterialCode) {
         this.$message.warning('当前没有设置产品型号');
         return;
       }
-      
+
       this.$message({
         type: 'info',
         message: `当前产品型号：${this.mainMaterialCode} - ${this.mainMaterialName}`,
         duration: 3000
       });
     },
-    
+
     // 产品工序处理
     handleProductProcess() {
       if (!this.processName) {
         this.$message.warning('当前没有设置产品工序');
         return;
       }
-      
+
       this.$message({
         type: 'info',
         message: `当前产品工序：${this.processName}`,
         duration: 3000
       });
     },
-    
+
     // 产线编码处理
     handleLineCode() {
       if (!this.productLineId || !this.productLineName) {
         this.$message.warning('当前没有设置产线');
         return;
       }
-      
+
       this.$message({
         type: 'info',
         message: `当前产线：${this.productLineName}`,
         duration: 3000
       });
     },
-    
+
     // 保存设置处理
     handleSaveSettings() {
       if (this.mainMaterialId && this.processStepId) {

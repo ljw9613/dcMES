@@ -47,19 +47,19 @@
                     </el-col>
                 </el-row>
                 <div class="operation-buttons">
-                    <el-button 
-                        type="primary" 
+                    <el-button
+                        type="primary"
                         @click="fetchData"
-                        v-if="$checkPermission('生产领料查询')">
+                        >
                         查询
                     </el-button>
-                    <el-button 
+                    <el-button
                         @click="resetForm"
-                        v-if="$checkPermission('生产领料重置')">
+                        >
                         重置
                     </el-button>
-                    <el-button 
-                        type="warning" 
+                    <el-button
+                        type="warning"
                         @click="handleSync"
                         v-if="$checkPermission('生产领料同步订单')">
                         同步订单

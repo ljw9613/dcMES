@@ -119,16 +119,16 @@
         </el-row>
 
         <el-form-item>
-          <el-button 
+          <el-button
             type="primary"
             @click="search"
-            v-if="$checkPermission('托盘单据查询')"
+
           >
             查询搜索
           </el-button>
           <el-button
             @click="resetForm"
-            v-if="$checkPermission('托盘单据重置')"
+
           >
             重置
           </el-button>
@@ -136,7 +136,7 @@
             type="primary"
             @click="handleExport"
             :loading="exportLoading"
-            v-if="$checkPermission('托盘单据导出条码明细')"
+
           >
             <i class="el-icon-download"></i>
             {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
@@ -441,20 +441,20 @@
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('托盘单据托盘抽检复位')"
+
               @click="handleInspectionReset(scope.row)"
             >托盘抽检复位</el-button>
             <el-button
               type="text"
               style="color: red"
-              v-if="$checkPermission('托盘单据初始化单据')"
+
               @click="handleAllDelete(scope.row)"
               >初始化单据</el-button
             >
             <el-button
               type="text"
               style="color: red"
-              v-if="$checkPermission('托盘单据删除单据')"
+
               @click="Delete(scope.row)"
               >删除单据</el-button
             >
@@ -466,27 +466,27 @@
             >
               强制完成
             </el-button>
-            <el-button type="text" v-if="$checkPermission('托盘单据打印单据')" @click="handlePrint(scope.row)"
+            <el-button type="text"  @click="handlePrint(scope.row)"
               >打印单据</el-button
             >
             <el-button
               type="text"
               style="color: orange"
-              v-if="$checkPermission('托盘单据解绑记录查看')"
+
               @click="showHistory(scope.row)"
               >解绑记录</el-button
             >
             <el-button
               type="text"
               style="color: #409eff"
-              v-if="$checkPermission('托盘单据详情查看')"
+
               @click="showDetail(scope.row)"
               >查看详情</el-button
             >
             <el-button
               type="text"
               style="color: #67c23a"
-              v-if="$checkPermission('托盘单据拆分托盘')"
+
               @click="handleSplitPallet(scope.row)"
               >拆分托盘</el-button
             >
@@ -1498,7 +1498,7 @@ export default {
 
                   if (singlePalletRes.data && singlePalletRes.data.length > 0) {
                     const freshDetailData = singlePalletRes.data[0];
-                    
+
                     // 保存当前条码列表的分页状态
                     const oldCurrentPage = this.detailCurrentPage;
                     const oldPageSize = this.detailPageSize;
@@ -1809,7 +1809,7 @@ export default {
           req.skip += req.limit;
         }
 
-        
+
         const totalItems = result.length;
 
         // 准备 Excel 数据

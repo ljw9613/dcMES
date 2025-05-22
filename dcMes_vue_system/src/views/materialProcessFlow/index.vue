@@ -216,9 +216,9 @@
         </div>
 
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('条码记录查询')">查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('条码记录重置')">重置</el-button>
-          <el-button type="primary" @click="openBarcodeSearch" v-if="$checkPermission('条码记录成品追溯')"
+          <el-button type="primary" @click="search" >查询搜索</el-button>
+          <el-button @click="resetForm" >重置</el-button>
+          <el-button type="primary" @click="openBarcodeSearch"
             >成品追溯</el-button
           >
           <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
@@ -232,7 +232,7 @@
         <div class="screen_content_first">
           <i class="el-icon-tickets">产品条码生产流程列表</i>
           <div>
-            <el-button type="primary" @click="handleAllExcel" v-if="$checkPermission('条码记录导出数据表')"
+            <el-button type="primary" @click="handleAllExcel"
               >导出数据表</el-button
             >
             <el-button type="primary" @click="handleAllExport" v-if="$checkPermission('条码记录批量导出数据')"
@@ -391,20 +391,20 @@
 
         <el-table-column label="操作" fixed="right" width="200">
           <template slot-scope="scope">
-            <el-button type="text" size="small" v-if="$checkPermission('条码记录查看')" @click="handleView(scope.row)"
+            <el-button type="text" size="small"  @click="handleView(scope.row)"
               >查看</el-button
             >
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('条码记录更新流程节点')"
+
               @click="handleUpdateFlowNodes(scope.row)"
               >更新流程节点</el-button
             >
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('条码记录修复异常节点')"
+
               @click="handleAutoFixInconsistentProcessNodes(scope.row)"
             >
               修复异常节点
@@ -412,7 +412,7 @@
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('条码记录修复流程进度')"
+
               @click="handleFixFlowProgress(scope.row)"
             >
               修复流程进度
@@ -420,7 +420,7 @@
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('条码记录导出条码数据')"
+
               @click="handleSingleMainExport(scope.row)"
             >
               导出条码数据
@@ -991,7 +991,7 @@
                 <el-button
                   type="text"
                   style="color: red"
-                  v-if="$checkPermission('成品初始化')"
+
                   @click="handleInit(scope.row)"
                   >成品初始化</el-button
                 >

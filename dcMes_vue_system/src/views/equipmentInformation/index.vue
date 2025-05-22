@@ -132,20 +132,20 @@
                 </el-row> -->
 
         <el-form-item>
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             @click="search"
-            v-if="$checkPermission('设备信息查询')">查询搜索</el-button>
-          <el-button 
+            >查询搜索</el-button>
+          <el-button
             @click="resetForm"
-            v-if="$checkPermission('设备信息重置')">重置</el-button>
-          <el-button 
-            type="success" 
+           >重置</el-button>
+          <el-button
+            type="success"
             @click="exportData"
-            v-if="$checkPermission('设备信息导出数据')">导出数据</el-button>
-          <el-button 
-            type="primary" 
-            icon="el-icon-plus" 
+            >导出数据</el-button>
+          <el-button
+            type="primary"
+            icon="el-icon-plus"
             @click="handleAdd"
             v-if="$checkPermission('设备信息新增设备')"
             >新增设备</el-button

@@ -89,7 +89,7 @@
           </el-col>
         </el-row>
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('生产条码搜索')">查询搜索</el-button>
+          <el-button type="primary" @click="search" >查询搜索</el-button>
           <el-button @click="resetForm" v-if="$checkPermission('生产条码重置')">重置</el-button>
           <el-button type="primary" icon="el-icon-plus" @click="handleGenerate" v-if="$checkPermission('生产条码批量生成')">批量生成</el-button>
           <el-button

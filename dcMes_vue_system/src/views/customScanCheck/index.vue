@@ -13,7 +13,7 @@
           </el-button>
         </div>
       </div>
-      
+
       <div v-show="showSettings" class="settings-content">
         <el-form :model="apiConfig" label-position="top">
           <el-form-item label="请求地址">
@@ -53,10 +53,10 @@
           <el-button slot="append" type="primary" @click="handleScan">验证</el-button>
         </el-input>
       </div>
-      
+
       <div class="operation-buttons">
-        <el-button 
-          v-if="$checkPermission('自定义扫码请输入完整的API地址此-请求方法-请扫描或输入条码-验证')"
+        <el-button
+
           type="text"
           size="small"
           @click="handleScanValidation">
@@ -95,7 +95,7 @@ export default {
       isLoading: false
     }
   },
-  
+
   watch: {
     // 监听 apiConfig 变化并保存到本地存储
     'apiConfig.url': {
@@ -139,13 +139,13 @@ export default {
         this.showSettings = true
         return
       }
-      
+
       this.$message({
         message: '请使用指定的请求方法扫描或手动输入条码进行验证',
         type: 'info',
         duration: 3000
       })
-      
+
       // 聚焦到扫码输入框
       this.$refs.scanInput.focus()
     },
@@ -229,7 +229,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
   h2 {
     font-size: 16px;
     margin: 0;
@@ -265,7 +265,7 @@ export default {
   transform: translateX(-50%);
   width: 3px;
   height: 100%;
-  background: linear-gradient(to bottom, 
+  background: linear-gradient(to bottom,
     transparent 0%,
     #409EFF 50%,
     transparent 100%);
@@ -387,4 +387,4 @@ export default {
   white-space: nowrap;
   z-index: 1000;
 }
-</style> 
+</style>

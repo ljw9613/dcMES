@@ -27,8 +27,8 @@
 
       <div class="header-actions">
         <div class="operation-buttons">
-          <el-button 
-            v-if="$checkPermission('产线大屏请输入产线信息搜索')"
+          <el-button
+
             type="text"
             size="small"
             @click="handleLineSearch">
@@ -1085,8 +1085,8 @@ export default {
       return 'efficiency-low';
     },
 
-    
-    
+
+
     // 产线搜索处理
     handleLineSearch() {
       this.$message({
@@ -1094,7 +1094,7 @@ export default {
         message: '请在产线选择框中输入产线信息进行搜索',
         duration: 3000
       });
-      
+
       // 聚焦到产线选择器
       const lineSelector = document.querySelector('.line-selector input');
       if (lineSelector) {

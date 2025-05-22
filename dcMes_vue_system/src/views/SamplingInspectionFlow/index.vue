@@ -78,8 +78,8 @@
 
         <el-form-item>
           <el-button type="primary" @click="search" >查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('条码抽检重置')">重置</el-button>
-          <el-button type="primary" @click="handleScan" v-if="$checkPermission('条码抽检扫描二维码')">扫码二维码</el-button>
+          <el-button @click="resetForm" >重置</el-button>
+          <el-button type="primary" @click="handleScan" v-if="$checkPermission('条码抽检扫码二维码')">扫码二维码</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -90,16 +90,16 @@
         <div class="screen_content_first">
           <i class="el-icon-tickets">抽检记录表</i>
           <div>
-            <el-button 
-              type="primary" 
+            <el-button
+              type="primary"
               @click="handleAllExcel"
-              v-if="$checkPermission('条码抽检导出数据表')">
+             >
               导出数据表
             </el-button>
-            <el-button 
-              type="primary" 
+            <el-button
+              type="primary"
               @click="handleAllExport"
-              v-if="$checkPermission('条码抽检批量导出数据表')">
+              >
               批量导出数据
             </el-button>
           </div>
@@ -262,26 +262,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" align="center">
-          <template slot-scope="scope">
-         
-            <el-button 
-              type="text" 
-              size="small" 
-              class="delete-btn" 
-              @click="handleVoid(scope.row)"
-              v-if="$checkPermission('条码抽检作废')">
-              <i class="el-icon-delete"></i> 作废
-            </el-button>
-          </template>
-        </el-table-column>
+       
 
         <!-- <el-table-column label="完成进度" width="200">
                     <template slot-scope="scope">
                         <el-progress :percentage="scope.row.progress || 0"></el-progress>
                     </template>
                 </el-table-column> -->
-      
+
       </template>
     </base-table>
 
@@ -1833,7 +1821,7 @@ export default {
 
         if (result.code === 200 && result.data.length > 0) {
           this.currentFlowData = result.data[0];
-          
+
           // 检查产品状态是否为报废
           if (this.currentFlowData.productStatus === "SCRAP") {
             this.$message.error("该产品已报废，不可进行抽检");
@@ -1844,8 +1832,8 @@ export default {
 
           // 保存流程状态信息
           this.flowStatus = this.currentFlowData.status;
-          
-          
+
+
           // 查找最后一个完成的节点
           if (
             this.currentFlowData.processNodes &&
@@ -1885,7 +1873,7 @@ export default {
 
         if (flowresult.code === 200 && flowresult.data.length > 0) {
           const flowData = flowresult.data[0];
-          
+
           // 检查产品状态是否为报废
           if (flowData.productStatus === "SCRAP") {
             this.$message.error("该产品已报废，不可进行抽检");
@@ -2076,9 +2064,7 @@ export default {
       };
       return statusMap[status] || status;
     },
-    handleVoid(row) {
-      this.$message.info('条码抽检作废功能待实现');
-    },
+        // 已删除作废功能
     handleDetail(row) {
       this.$message.info('条码抽检查看详情功能待实现');
     },
