@@ -4,11 +4,11 @@
         <el-card class="filter-container">
             <div slot="header" class="clearfix">
                 <span>筛选搜索</span>
-                <el-button 
-                    style="float: right; padding: 3px 0" 
-                    type="text" 
+                <el-button
+                    style="float: right; padding: 3px 0"
+                    type="text"
                     @click="toggleAdvanced"
-                    v-if="$checkPermission('销售订单高级搜索')">
+                    >
                     {{ showAdvanced ? '收起' : '展开' }}高级搜索
                 </el-button>
             </div>
@@ -91,20 +91,20 @@
                 </el-row>
 
                 <el-form-item>
-                    <el-button 
-                      type="primary" 
+                    <el-button
+                      type="primary"
                       @click="search"
-                      v-if="$checkPermission('销售订单搜索')">
+                      >
                       查询搜索
                     </el-button>
-                    <el-button 
+                    <el-button
                       @click="resetForm"
-                      v-if="$checkPermission('销售订单重置')">
+                      >
                       重置
                     </el-button>
                     <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
-                    <el-button 
-                      type="warning" 
+                    <el-button
+                      type="warning"
                       @click="handleSync"
                       v-if="$checkPermission('销售订单同步订单')">
                       同步订单

@@ -119,8 +119,8 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('产品维修搜索')">查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('产品维修重置')">重置</el-button>
+          <el-button type="primary" @click="search" >查询搜索</el-button>
+          <el-button @click="resetForm" >重置</el-button>
           <el-button
             type="primary"
             icon="el-icon-plus"
@@ -139,16 +139,17 @@
             type="danger"
             icon="el-icon-delete"
             :disabled="!selection.length"
-           
+            v-if="$checkPermission('产品维修批量作废')"
             @click="handleBatchVoid"
             >批量作废</el-button
           >
           <el-button
             type="success"
-          
+
             icon="el-icon-check"
             :disabled="!selection.length"
             @click="handleBatchReview"
+            v-if="$checkPermission('产品维修批量审核')"
             >批量审核</el-button
           >
           <el-button
@@ -319,7 +320,7 @@
               size="small"
               @click="handleView(scope.row)"
               style="color: #409eff"
-              v-if="$checkPermission('产品维修查看')"
+
             >
               <i class="el-icon-view"></i> 查看
             </el-button>
@@ -328,7 +329,7 @@
               size="small"
               @click="handleViewProductDetails(scope.row)"
               style="color: blue"
-       
+
             >
               <i class="el-icon-view"></i> 查看产品详情
             </el-button>

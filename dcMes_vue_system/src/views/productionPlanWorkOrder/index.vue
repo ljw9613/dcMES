@@ -186,15 +186,16 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('生产计划查询')">查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('生产计划重置')">重置</el-button>
-          <el-button type="success" @click="exportData" v-if="$checkPermission('生产计划导出数据')">导出数据</el-button>
+          <el-button type="primary" @click="search" >查询搜索</el-button>
+          <el-button @click="resetForm" >重置</el-button>
+          <el-button type="success" @click="exportData" >导出数据</el-button>
           <el-button type="primary" icon="el-icon-plus" @click="handleAdd" v-if="$checkPermission('生产计划新增工单')">新增工单</el-button>
           <el-button
             type="danger"
             icon="el-icon-delete"
             :disabled="!selection.length"
             @click="handleBatchDelete"
+            v-if="$checkPermission('生产计划批量删除')"
           >
             批量删除
           </el-button>
@@ -732,7 +733,7 @@ export default {
 
         // 清空数据缓存，确保获取最新数据
         this.clearQuantityCache();
-        
+
         const result = await getData("production_plan_work_order", req);
         this.tableList = result.data;
         this.total = result.countnum;
@@ -916,7 +917,7 @@ export default {
         const result = await getData("production_plan_work_order", {
           query: { _id: row._id }
         });
-        
+
         if (result.data && result.data.length > 0) {
           this.dialogStatus = "edit";
           this.dataForm = JSON.parse(JSON.stringify(result.data[0]));
@@ -958,7 +959,7 @@ export default {
             query: { _id: formData._id },
             update: formData,
           });
-          
+
           // 清除该行的数据缓存，确保下次获取最新数据
           this.clearQuantityCache(formData._id);
           this.$message.success("更新成功");

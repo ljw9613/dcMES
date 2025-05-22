@@ -5,7 +5,7 @@
             <div slot="header" class="clearfix">
                 <span>筛选搜索</span>
                 <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced"
-                    v-if="$checkPermission('仓库信息高级搜索')">
+                   >
                     {{ showAdvanced ? '收起' : '展开' }}高级搜索
                 </el-button>
             </div>
@@ -77,20 +77,20 @@
                 </div>
 
                 <el-form-item>
-                    <el-button 
-                      type="primary" 
+                    <el-button
+                      type="primary"
                       @click="search"
-                      v-if="$checkPermission('仓库信息搜索')">
+                      >
                       查询搜索
                     </el-button>
-                    <el-button 
+                    <el-button
                       @click="resetForm"
-                      v-if="$checkPermission('仓库信息重置')">
+                      >
                       重置
                     </el-button>
                     <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
-                    <el-button 
-                      type="warning" 
+                    <el-button
+                      type="warning"
                       @click="handleSync"
                       v-if="$checkPermission('仓库信息同步订单')">
                       同步订单
@@ -302,14 +302,14 @@ export default {
         // 格式化仓位明细数据
         formatFlexDetails() {
             if (!this.currentFlexDetails || !this.currentFlexDetails.length) return [];
-            
+
             return this.currentFlexDetails.map(flex => {
                 const flexName = this.getFlexName(flex.FlexId);
                 const flexNumber = flex.FlexId && flex.FlexId.Number ? flex.FlexId.Number : '';
-                const details = flex.StockFlexDetail && flex.StockFlexDetail.map(detail => 
+                const details = flex.StockFlexDetail && flex.StockFlexDetail.map(detail =>
                     this.getFlexName(detail.FlexEntryId)
                 ).filter(Boolean).join(', ') || '';
-                
+
                 return {
                     flexNumber,
                     flexName,

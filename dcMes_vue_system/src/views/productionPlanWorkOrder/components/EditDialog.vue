@@ -332,8 +332,9 @@
         </el-button>
         <el-button
           type="info"
-          v-if="form.status === 'IN_PROGRESS'"
+          v-if="form.status === 'IN_PROGRESS'&& $checkPermission('生产计划一键生产')"
           @click="handleOneKeyProduction"
+
         >
           一键生产
         </el-button>
@@ -349,7 +350,7 @@
           type="warning"
           @click="handlePauseProduction"
           :disabled="form.status !== 'IN_PROGRESS'"
-          v-if="form.status === 'IN_PROGRESS'"
+          v-if="form.status === 'IN_PROGRESS'&& $checkPermission('生产计划暂停生产')"
         >
           暂停生产
         </el-button>
@@ -725,12 +726,12 @@ export default {
     handleClose() {
       this.$emit("update:visible", false);
       this.$refs.form && this.$refs.form.resetFields();
-      
+
       // 重置所有数据，确保完全清除之前的表单内容
       this.totalPlanProductionQuantity = 0;
       this.totalOutputQuantity = 0;
       this.totalRemainingQuantity = 0;
-      
+
       // 重置表单数据为默认值
       this.form = {
         workOrderNo: "",
@@ -760,11 +761,11 @@ export default {
         custMaterialName: "",
         custMaterialNameEn: "",
       };
-      
+
       // 清除补单相关数据
       this.isSupplement = false;
       this.supplementData = [];
-      
+
       // 确保工作表数据也被清除
       this.workTableData = [];
     },
@@ -785,7 +786,7 @@ export default {
           this.submitLoading = true;
           try {
             const formData = { ...this.form };
-            
+
             // 添加创建人和修改人信息
             if (this.dialogStatus === 'create') {
               formData.createBy = this.$store.getters.name;
@@ -793,7 +794,7 @@ export default {
             } else {
               formData.updateBy = this.$store.getters.name;
             }
-            
+
             this.$emit("submit", formData);
             this.handleClose();
           } catch (error) {
@@ -911,7 +912,7 @@ export default {
           }
         }).then(({ value }) => {
           const supplementQuantity = Number(value);
-          
+
           // 创建补单数据
           const supplementForm = {
             ...this.form,

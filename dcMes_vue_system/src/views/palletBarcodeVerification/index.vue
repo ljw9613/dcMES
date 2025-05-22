@@ -10,26 +10,26 @@
       <div v-if="completedPallets.length > 0" class="completed-pallets-container">
         <div class="completed-pallets-header">已完成托盘</div>
         <div class="completed-pallets-list">
-          <el-tag 
-            v-for="(pallet, index) in completedPallets" 
-            :key="index" 
-            type="success" 
+          <el-tag
+            v-for="(pallet, index) in completedPallets"
+            :key="index"
+            type="success"
             effect="plain"
             class="completed-pallet-tag">
             {{ pallet.palletCode }} ({{ pallet.verifiedBarcodes }}/{{ pallet.totalBarcodes }})
           </el-tag>
         </div>
       </div>
-      
-      <div class="operation-buttons" v-if="$checkPermission('托盘校验请输入入托盘单据编号')">
-        <el-button 
+
+      <div class="operation-buttons" >
+        <el-button
           type="text"
           size="small"
           @click="handlePalletInput">
           <i class="el-icon-document"></i>请输入入托盘单据编号
         </el-button>
       </div>
-      
+
       <div class="input-wrapper">
         <el-input ref="palletInput" v-model="palletCode" placeholder="请扫描托盘单据编号" class="barcode-input"
           @keyup.enter.native="handlePalletCodeInput" @focus="handleFocus">
@@ -78,9 +78,9 @@
               </div>
             </div>
           </div>
-          
-          <el-progress 
-            :percentage="computeProgress" 
+
+          <el-progress
+            :percentage="computeProgress"
             :status="palletInfo.verifiedBarcodes === palletInfo.totalBarcodes ? 'success' : ''"
             style="margin-top: 20px;">
           </el-progress>
@@ -186,10 +186,10 @@
                 </span>
               </div>
             </div>
-            <el-table 
-              :data="paginatedBarcodes" 
-              style="width: 100%" 
-              size="small" 
+            <el-table
+              :data="paginatedBarcodes"
+              style="width: 100%"
+              size="small"
               :row-key="row => row.barcode"
               height="calc(100vh - 200px)">
               <el-table-column prop="barcode" label="条码" width="180"></el-table-column>
@@ -214,7 +214,7 @@
                 </template>
               </el-table-column>
             </el-table>
-            
+
             <!-- 添加分页控件 -->
             <div style="text-align: right; margin-top: 12px;">
               <el-pagination
@@ -275,7 +275,7 @@ export default {
         remainingBarcodes: 0,
         barcodes: []
       },
-      
+
       // 条码相关
       barcode: '',
       scanResult: null,
@@ -284,14 +284,14 @@ export default {
       errorMessage: '',
       showPopup: false,
       popupType: '',
-      
+
       // 分页相关
       currentPage: 1,
       pageSize: 10,
-      
+
       // 条码筛选
       barcodeFilter: 'all',
-      
+
       // 已完成托盘记录
       completedPallets: [],
     }
@@ -397,7 +397,7 @@ export default {
     getRowKey(row) {
       return row.nodeId
     },
-    
+
     // 格式化日期
     formatDate(date) {
       if (!date) return '暂无数据';
@@ -441,12 +441,12 @@ export default {
         this.$message.warning('请输入托盘单据编号')
         return
       }
-      
+
       // 如果输入包含#，则截取第一段数据
       if (this.palletCode.includes('#')) {
         this.palletCode = this.palletCode.split('#')[0]
       }
-      
+
       this.loadPalletData()
     },
 
@@ -469,19 +469,19 @@ export default {
           },
           limit: 1
         }
-        
+
         const response = await getData("material_palletizing", req)
-        
+
         if (response && response.data && response.data.length > 0) {
           const palletData = response.data[0]
-          
+
           // 提取托盘条码数据
           const palletBarcodes = palletData.palletBarcodes || []
           const boxItems = palletData.boxItems || []
-          
+
           // 合并所有条码
           let allBarcodes = []
-          
+
           // 处理直接添加到托盘的条码
           if (palletBarcodes && palletBarcodes.length > 0) {
             allBarcodes = palletBarcodes.map(item => ({
@@ -491,10 +491,10 @@ export default {
               status: null
             }))
           }
-          
+
           // 处理箱中的条码 (如果需要)
           // 这部分取决于您的数据结构，如果箱条码也需要校验，则添加此逻辑
-          
+
           // 更新托盘信息
           this.palletInfo = {
             palletCode: palletData.palletCode,
@@ -506,7 +506,7 @@ export default {
             remainingBarcodes: allBarcodes.length,
             barcodes: allBarcodes
           }
-          
+
           this.palletLoaded = true
           this.$message.success('托盘数据加载成功')
           this.showPopup = true
@@ -542,7 +542,7 @@ export default {
 
       // 在前端校验条码是否在托盘中
       const barcodeInPallet = this.palletInfo.barcodes.find(item => item.barcode === this.barcode)
-      
+
       if (!barcodeInPallet) {
         this.errorMessage = '该条码不存在于当前托盘中'
         this.$message.error(this.errorMessage)
@@ -564,7 +564,7 @@ export default {
 
         if (response.success && response.code === 200) {
           this.scanResult = response.data
-          
+
           // 更新托盘中的条码状态
           const index = this.palletInfo.barcodes.findIndex(item => item.barcode === this.barcode)
           if (index !== -1) {
@@ -573,7 +573,7 @@ export default {
               this.palletInfo.verifiedBarcodes++
               this.palletInfo.remainingBarcodes--
             }
-            
+
             // 更新条码状态
             this.$set(this.palletInfo.barcodes, index, {
               ...this.palletInfo.barcodes[index],
@@ -589,7 +589,7 @@ export default {
             this.showPopup = true
             this.popupType = 'ok'
             tone(lcywc)
-            
+
             // 记录已完成的托盘
             this.completedPallets.push({
               palletCode: this.palletInfo.palletCode,
@@ -598,12 +598,12 @@ export default {
               verifiedBarcodes: this.palletInfo.verifiedBarcodes,
               completedTime: new Date()
             })
-            
+
             // 限制显示的托盘数量，只保留最近的10个
             if (this.completedPallets.length > 10) {
               this.completedPallets = this.completedPallets.slice(-10)
             }
-            
+
             // 延迟一点时间后自动重置到托盘扫描页面
             setTimeout(() => {
               this.resetPallet()
@@ -647,7 +647,7 @@ export default {
         message: '请在下方输入托盘单据编号',
         duration: 3000
       })
-      
+
       // 聚焦到托盘输入框
       this.focusInput()
     },
@@ -861,7 +861,7 @@ export default {
   font-size: 13px;
 }
 
-.barcode-list-card /deep/ .el-table td, 
+.barcode-list-card /deep/ .el-table td,
 .barcode-list-card /deep/ .el-table th {
   padding: 6px 0;
 }
@@ -891,11 +891,11 @@ export default {
   .layout-container {
     flex-direction: column;
   }
-  
+
   .left-column, .right-column {
     width: 100%;
   }
-  
+
   .barcode-list-card /deep/ .el-table {
     height: 500px !important;
   }
@@ -983,4 +983,4 @@ export default {
   margin-right: 5px;
   font-size: 16px;
 }
-</style> 
+</style>

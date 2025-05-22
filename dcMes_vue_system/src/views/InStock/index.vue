@@ -22,30 +22,30 @@
                     </el-form-item>
 
                     <el-form-item class="search-buttons">
-                        <el-button 
-                            type="primary" 
-                            icon="el-icon-search" 
+                        <el-button
+                            type="primary"
+                            icon="el-icon-search"
                             @click="handleSearch"
-                            v-if="$checkPermission('生产入库单查询')">
+                            >
                             查询
                         </el-button>
-                        <el-button 
-                            icon="el-icon-refresh" 
+                        <el-button
+                            icon="el-icon-refresh"
                             @click="handleReset"
-                            v-if="$checkPermission('生产入库单重置')">
+                            >
                             重置
                         </el-button>
-                        <el-button 
-                            type="warning" 
-                            icon="el-icon-download" 
+                        <el-button
+                            type="warning"
+                            icon="el-icon-download"
                             @click="handleSync"
                             v-if="$checkPermission('生产入库单同步数据')">
                             同步数据
                         </el-button>
-                        <el-button 
-                            type="text" 
+                        <el-button
+                            type="text"
                             @click="showAdvanced = !showAdvanced"
-                            v-if="$checkPermission('生产入库单高级搜索')">
+                            >
                             {{ showAdvanced ? '收起' : '展开' }}高级搜索
                             <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                         </el-button>

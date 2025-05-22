@@ -50,27 +50,27 @@
                 </div>
 
                 <div class="screen_content_second_one">
-                    <el-button 
-                        type="primary" 
+                    <el-button
+                        type="primary"
                         @click="fetchData"
-                        v-if="$checkPermission('采购订单查询')">
+                        >
                         查询
                     </el-button>
-                    <el-button 
+                    <el-button
                         @click="resetForm"
-                        v-if="$checkPermission('采购订单重置')">
+                        >
                         重置
                     </el-button>
-                    <el-button 
-                        type="warning" 
+                    <el-button
+                        type="warning"
                         @click="handleSync"
                         v-if="$checkPermission('采购订单同步数据')">
                         同步数据
                     </el-button>
-                    <el-button 
-                        type="text" 
+                    <el-button
+                        type="text"
                         @click="showAdvanced = !showAdvanced"
-                        v-if="$checkPermission('采购订单高级搜索')">
+                        >
                         {{ showAdvanced ? '收起' : '展开' }}
                         <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                     </el-button>
@@ -105,7 +105,7 @@
                         <el-table :data="props.row.FPOOrderEntry || []" border style="width: 100%">
                             <!-- 添加销售订单号列 -->
                             <el-table-column label="销售订单号" prop="DEMANDBILLNO" min-width="120" />
-                            
+
                             <!-- 物料信息 -->
                             <el-table-column label="物料编码" min-width="120">
                                 <template slot-scope="scope">
@@ -536,11 +536,11 @@ export default {
             }
 
             if (this.searchForm.DEMANDBILLNO) {
-                req.query.$and.push({ 
-                    'FPOOrderEntry.DEMANDBILLNO': { 
-                        $regex: this.searchForm.DEMANDBILLNO.trim(), 
-                        $options: 'i' 
-                    } 
+                req.query.$and.push({
+                    'FPOOrderEntry.DEMANDBILLNO': {
+                        $regex: this.searchForm.DEMANDBILLNO.trim(),
+                        $options: 'i'
+                    }
                 });
             }
 
@@ -861,7 +861,7 @@ export default {
                 try {
                     let req = this.buildSyncRequest();
                     const response = await syncPUR_PurchaseOrder(req);
-                    
+
                     if (response.code === 200) {
                         this.syncDialogVisible = false;
                         loading.close();

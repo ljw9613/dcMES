@@ -114,7 +114,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
+          <div class="button-group" >
             <el-button
               type="danger"
               @click="handleCancelSave"

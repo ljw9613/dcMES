@@ -52,13 +52,13 @@
           </el-col>
         </el-row>
         <el-form-item>
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             @click="search"
-            v-if="$checkPermission('装箱条码查询')">查询搜索</el-button>
-          <el-button 
+           >查询搜索</el-button>
+          <el-button
             @click="resetForm"
-            v-if="$checkPermission('装箱条码重置')">重置</el-button>
+            >重置</el-button>
           <el-button
             type="danger"
             icon="el-icon-delete"

@@ -27,8 +27,8 @@
           </el-col>
         </el-row>
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('条码生成规则查询')">查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('条码生成规则重置')">重置</el-button>
+          <el-button type="primary" @click="search" >查询搜索</el-button>
+          <el-button @click="resetForm" >重置</el-button>
           <el-button type="primary" icon="el-icon-plus" @click="handleCreate" v-if="$checkPermission('条码生成规则新增规则')">新增规则</el-button>
           <el-button type="danger" icon="el-icon-delete" :disabled="!selection.length"
             @click="handleBatchDelete" v-if="$checkPermission('条码生成规则批量删除')">批量删除</el-button>
@@ -66,13 +66,13 @@
         </el-table-column>
         <el-table-column label="操作" width="260" align="center">
           <template slot-scope="{row}">
-            <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码生成规则编辑')">
+            <el-button type="text" size="small" @click="handleEdit(row)">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button type="text" size="small" @click="handleBindMaterial(row)" v-if="$checkPermission('条码生成规则绑定物料')">
+            <el-button type="text" size="small" @click="handleBindMaterial(row)">
               <i class="el-icon-link"></i> 绑定物料
             </el-button>
-            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码生成规则删除')">
+            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
               <i class="el-icon-delete"></i> 删除
             </el-button>
            </template>

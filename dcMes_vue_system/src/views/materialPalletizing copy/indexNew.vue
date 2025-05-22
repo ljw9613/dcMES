@@ -272,7 +272,7 @@
             <div v-else>
               {{ scope.row.workOrderNo || "未关联工单" }}
             </div>
-            
+
             <!-- 尾数托盘标识 -->
             <el-tag v-if="scope.row.isLastPallet" type="warning" size="mini" style="margin-top: 5px;">
               尾数托盘
@@ -640,6 +640,7 @@
                 <el-button
                   type="text"
                   style="color: red"
+                  v-if="$checkPermission('托盘组托详情-解绑条码')"
                   @click="
                     handleDelete(detailData.palletCode, boxScope.row.boxBarcode)
                   "
@@ -1529,19 +1530,19 @@ export default {
     // 获取条码对应的工单号
     getBarcodeWorkOrderNo(barcodeItem) {
       if (!barcodeItem || !barcodeItem.productionPlanWorkOrderId) return null;
-      
+
       // 如果有工单数组，从中查找匹配的工单
       if (this.detailData.workOrders && this.detailData.workOrders.length) {
         const workOrder = this.detailData.workOrders.find(
-          wo => wo.productionPlanWorkOrderId && 
+          wo => wo.productionPlanWorkOrderId &&
                wo.productionPlanWorkOrderId === barcodeItem.productionPlanWorkOrderId
         );
-        
+
         if (workOrder) {
           return workOrder.workOrderNo;
         }
       }
-      
+
       // 向后兼容：使用旧字段
       return this.detailData.workOrderNo;
     },

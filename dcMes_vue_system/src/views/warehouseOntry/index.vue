@@ -171,13 +171,13 @@
         </el-row>
 
         <el-form-item>
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             @click="search"
-            v-if="$checkPermission('生产出库单查询')">查询搜索</el-button>
-          <el-button 
+            >查询搜索</el-button>
+          <el-button
             @click="resetForm"
-            v-if="$checkPermission('生产出库单重置')">重置</el-button>
+            >重置</el-button>
           <!-- 扫码出库 -->
           <el-button
             type="primary"
@@ -383,18 +383,13 @@
             <el-button
               type="text"
               style="color: orange"
-              v-if="scope.row.status !== 'COMPLETED' && $checkPermission('生产出库单修改应出库数量')"
               @click="handleUpdateNumber(scope.row)"
               >修改应出库数量</el-button
             >
             <el-button
               type="text"
               style="color: green"
-              v-if="
-                scope.row.outboundQuantity > scope.row.outNumber &&
-                scope.row.status === 'IN_PROGRESS' &&
-                $checkPermission('生产出库单继续出库')
-              "
+
               @click="handleChuKu(scope.row)"
               :loading="scanLoading"
             >
@@ -413,14 +408,13 @@
             <el-button
               type="text"
               style="color: red"
-              v-if="$checkPermission('生产出库单删除')"
               @click="handleDelete(scope.row)"
               >删除</el-button
             >
             <el-button
               type="text"
               style="color: blue"
-              v-if="$checkPermission('生产出库单导出')"
+
               @click="handleSingleExport(scope.row)"
               >导出</el-button
             >

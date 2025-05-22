@@ -24,10 +24,10 @@
                     </el-col>
                     <el-col :xs="24" :sm="12" :md="8" :lg="6">
                         <div class="search-buttons">
-                            <el-button type="primary" icon="el-icon-search" @click="fetchData" v-if="$checkPermission('销售出库单查询')">查询</el-button>
-                            <el-button icon="el-icon-refresh" @click="resetForm" v-if="$checkPermission('销售出库单重置')">重置</el-button>
+                            <el-button type="primary" icon="el-icon-search" @click="fetchData" >查询</el-button>
+                            <el-button icon="el-icon-refresh" @click="resetForm" >重置</el-button>
                             <el-button type="warning" icon="el-icon-refresh-right" @click="handleSync" v-if="$checkPermission('销售出库单同步订单')">同步</el-button>
-                            <el-button type="text" @click="showAdvanced = !showAdvanced" v-if="$checkPermission('销售出库单高级搜索')">
+                            <el-button type="text" @click="showAdvanced = !showAdvanced" >
                                 {{ showAdvanced ? '收起' : '展开' }}
                                 <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                             </el-button>

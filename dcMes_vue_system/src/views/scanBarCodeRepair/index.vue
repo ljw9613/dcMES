@@ -151,10 +151,10 @@
                   placeholder="请输入工单号"
                   :disabled="!!mainMaterialId && !!processStepId"
                 />
-                <el-button 
-                  v-if="formData.workProductionPlanWorkOrderId && !mainMaterialId" 
-                  type="text" 
-                  icon="el-icon-delete" 
+                <el-button
+                  v-if="formData.workProductionPlanWorkOrderId && !mainMaterialId"
+                  type="text"
+                  icon="el-icon-delete"
                   @click="clearWorkOrder"
                   title="清空工单选择"
                 ></el-button>
@@ -163,7 +163,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" v-if="$checkPermission('扫码编辑配置')">
+          <div class="button-group" >
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -930,7 +930,7 @@ export default {
         localStorage.setItem("lineNum", item.lineNum);
         localStorage.setItem("productLineName", item.lineName);
         localStorage.setItem("productLineId", item._id);
-        
+
         // 更新工单查询参数
         this.updateWorkOrderQueryParams();
       }
@@ -1038,12 +1038,12 @@ export default {
     // 保存按钮处理
     async handleSave() {
       const missingFields = [];
-      
+
       if (!this.formData.productModel) missingFields.push('产品型号');
       if (!this.formData.processStep) missingFields.push('工序');
       if (!this.formData.productLine) missingFields.push('产线');
       if (!this.formData.workProductionPlanWorkOrderId) missingFields.push('维修工单');
-      
+
       if (missingFields.length > 0) {
         this.$notify({
           title: '缺少必填项',
@@ -1051,11 +1051,11 @@ export default {
           type: 'error',
           duration: 3000
         });
-        
+
         // 特别强调工单必填
         if (missingFields.includes('维修工单')) {
           this.$message.error("必须选择维修工单才能保存设置");
-          
+
           // 突出显示工单选择区域
           const workOrderFormItem = document.querySelector('.el-form-item[required]');
           if (workOrderFormItem) {
@@ -1084,7 +1084,7 @@ export default {
         this.mainMaterialId = this.formData.productModel;
         this.processStepId = this.formData.processStep;
         this.productLineId = this.formData.productLine;
-        
+
         // 保存工单信息到缓存
         this.workProductionPlanWorkOrderId = this.formData.workProductionPlanWorkOrderId;
         this.workProductionPlanWorkOrderNo = this.formData.workProductionPlanWorkOrderNo;
@@ -1633,12 +1633,12 @@ export default {
         this.formData.productLine = this.productLineId;
         this.formData.lineName = this.productLineName;
       }
-      
+
       // 添加工单信息的填充
       if (this.workProductionPlanWorkOrderId && this.workProductionPlanWorkOrderNo) {
         this.formData.workProductionPlanWorkOrderId = this.workProductionPlanWorkOrderId;
         this.formData.workProductionPlanWorkOrderNo = this.workProductionPlanWorkOrderNo;
-        
+
         // 如果已经有工单但没有物料ID，尝试从工单获取物料ID
         if (!this.formData.productModel && this.workProductionPlanWorkOrderId) {
           try {
@@ -1651,7 +1651,7 @@ export default {
           }
         }
       }
-      
+
       // 更新工单查询参数
       this.updateWorkOrderQueryParams();
     },
@@ -1720,7 +1720,7 @@ export default {
           const parts = cleanValue.split("-");
           if (parts.length >= 4) {
             const dateStr = parts[2]; // 获取第三段日期字符串
-            
+
             // 判断日期是否小于20250201
             if (dateStr && dateStr.length === 8 && dateStr < "20250201") {
               this.unifiedScanInput = "";
@@ -2206,7 +2206,7 @@ export default {
         const lineName = this.formData.lineName;
         const workProductionPlanWorkOrderId = this.formData.workProductionPlanWorkOrderId;
         const workProductionPlanWorkOrderNo = this.formData.workProductionPlanWorkOrderNo;
-        
+
         this.formData = {
           productModel: "",
           productLine: productLine, // 保留产线信息
@@ -2355,7 +2355,7 @@ export default {
           if (this.firstStep && this.workOrderInfo.workOrderNo !== "") {
             this.getWorkOrderInfo();
           }
-          
+
           // 在转化模式下自动打印
           if (this.enableConversion) {
             let mainBarcode = JSON.parse(JSON.stringify(this.scanForm.mainBarcode));
@@ -2458,7 +2458,7 @@ export default {
               this.$refs.hirInput.handlePrints2();
             });
           }
-          
+
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
             tone(bdcg);
@@ -2896,15 +2896,15 @@ export default {
       this.formData.workProductionPlanWorkOrderNo = "";
       this.workProductionPlanWorkOrderId = "";
       this.workProductionPlanWorkOrderNo = "";
-      
+
       // 更新工单查询参数
       this.updateWorkOrderQueryParams();
-      
+
       this.$message.success("已清空工单选择");
     },
     updateWorkOrderQueryParams() {
       // 构建查询参数对象
-      const queryParams = { 
+      const queryParams = {
         query: {
           // 只显示进行中的工单
           status: { $in: ["PENDING", "IN_PROGRESS"] }

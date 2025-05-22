@@ -53,24 +53,24 @@
                 </div>
 
                 <div class="screen_content_second_one">
-                    <el-button 
-                        type="primary" 
-                        icon="el-icon-search" 
+                    <el-button
+                        type="primary"
+                        icon="el-icon-search"
                         @click="handleSearch"
-                        v-if="$checkPermission('采购申请单查询')">查询</el-button>
-                    <el-button 
-                        icon="el-icon-refresh" 
+                       >查询</el-button>
+                    <el-button
+                        icon="el-icon-refresh"
                         @click="handleReset"
-                        v-if="$checkPermission('采购申请单重置')">重置</el-button>
-                    <el-button 
-                        type="warning" 
-                        icon="el-icon-refresh" 
+                        >重置</el-button>
+                    <el-button
+                        type="warning"
+                        icon="el-icon-refresh"
                         @click="handleSync"
                         v-if="$checkPermission('采购申请单同步订单')">同步数据</el-button>
-                    <el-button 
-                        type="text" 
+                    <el-button
+                        type="text"
                         @click="toggleAdvanced"
-                        v-if="$checkPermission('采购申请单高级搜索')">
+                        >
                             {{ showAdvanced ? '收起' : '展开' }}
                             <i :class="showAdvanced ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                         </el-button>

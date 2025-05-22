@@ -144,16 +144,16 @@
         </el-row>
 
         <el-form-item>
-          <el-button 
-              type="primary" 
+          <el-button
+              type="primary"
               @click="search"
-              v-if="$checkPermission('生产入库单查询')">查询搜索</el-button>
-          <el-button 
+              >查询搜索</el-button>
+          <el-button
               @click="resetForm"
-              v-if="$checkPermission('生产入库单重置')">重置</el-button>
+              >重置</el-button>
           <!-- 扫码入库 -->
-          <el-button 
-              type="primary" 
+          <el-button
+              type="primary"
               @click="handlePalletBarcodeOpen"
               :loading="scanDialogLoading"
               v-if="$checkPermission('生产入库单扫描单据入库')">扫描单据入库</el-button
@@ -269,11 +269,10 @@
             <el-button
               type="text"
               style="color: red"
-              v-if="$checkPermission('生产入库单删除')"
               @click="handleDelete(scope.row)"
               >删除</el-button
             >
-            <el-button type="text" v-if="$checkPermission('生产入库单同步金蝶云')" @click="handleSync(scope.row)">同步金蝶云</el-button>
+            <el-button type="text"  @click="handleSync(scope.row)">同步金蝶云</el-button>
           </template>
         </el-table-column>
       </template>

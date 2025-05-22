@@ -8,7 +8,7 @@
           style="float: right; padding: 3px 0"
           type="text"
           @click="toggleAdvanced"
-          v-if="$checkPermission('生产工艺高级搜索')"
+
         >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
@@ -145,10 +145,10 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" v-if="$checkPermission('生产工艺查询')">查询搜索</el-button>
-          <el-button @click="resetForm" v-if="$checkPermission('生产工艺重置')">重置</el-button>
-          <el-button type="success" @click="handleExport" v-if="$checkPermission('生产工艺导出数据')">导出数据</el-button>
-          
+          <el-button type="primary" @click="search" >查询搜索</el-button>
+          <el-button @click="resetForm" >重置</el-button>
+          <el-button type="success" @click="handleExport" >导出数据</el-button>
+
         </el-form-item>
       </el-form>
     </el-card>
@@ -210,35 +210,35 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="300">
           <template slot-scope="scope">
-      
+
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('生产工艺编辑')"
+
               @click="handleEdit(scope.row)"
             >编辑</el-button>
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('生产工艺删除')"
+
               @click="handleDelete(scope.row)"
             >删除</el-button>
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('生产工艺导出')"
+
               @click="handleExportSingle(scope.row)"
             >导出</el-button>
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('生产工艺导出BOM')"
+
               @click="handleExportBOM(scope.row)"
             >导出BOM</el-button>
             <el-button
               type="text"
               size="small"
-              v-if="$checkPermission('生产工艺复制')"
+
               @click="handleCopy(scope.row)"
             >复制</el-button>
           </template>
