@@ -1005,7 +1005,7 @@ export default {
         "material_palletizing_unbind_log",
         {
           query: {
-            unbindBarcode: cleanValue,
+            unbindBarcode: barcode,
           },
           select: {
             palletCode: 1,

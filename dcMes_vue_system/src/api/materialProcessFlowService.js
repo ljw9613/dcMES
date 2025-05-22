@@ -96,3 +96,12 @@ export function initializeProduct(data) {
     })
 }
 
+// 销售订单成品流程导出接口
+export function exportBySaleOrder(params) {
+    return request({
+        url: `/export-by-sale-order`,
+        method: 'get',
+        params
+    })
+}
+

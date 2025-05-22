@@ -59,20 +59,31 @@ class MaterialPalletizingService {
       });
 
       if (!materialProcessFlow) {
-        throw new Error(`条码 ${mainBarcode} 在系统中不存在 (物料流程记录未找到)`);
+        throw new Error(
+          `条码 ${mainBarcode} 在系统中不存在 (物料流程记录未找到)`
+        );
       }
 
       // 3. 获取产品条码自身关联的工单ID
-      const productOriginalWorkOrderId = materialProcessFlow.productionPlanWorkOrderId;
+      const productOriginalWorkOrderId =
+        materialProcessFlow.productionPlanWorkOrderId;
       if (!productOriginalWorkOrderId) {
         throw new Error(`条码 ${mainBarcode} 在物料流程中未关联生产计划工单ID`);
       }
 
       // 4. 关键校验：产品条码的工单 与 产线当前工单 是否一致？
-      if (productOriginalWorkOrderId.toString() !== currentProductionPlan._id.toString()) {
+      if (
+        productOriginalWorkOrderId.toString() !==
+        currentProductionPlan._id.toString()
+      ) {
         // 可以选择也查询 productOriginalWorkOrderId 对应的工单号，用于更友好的提示
-        const productOriginalPlanDetails = await productionPlanWorkOrder.findById(productOriginalWorkOrderId).select('workOrderNo').lean();
-        const productOriginalWorkOrderNo = productOriginalPlanDetails ? productOriginalPlanDetails.workOrderNo : '未知工单';
+        const productOriginalPlanDetails = await productionPlanWorkOrder
+          .findById(productOriginalWorkOrderId)
+          .select("workOrderNo")
+          .lean();
+        const productOriginalWorkOrderNo = productOriginalPlanDetails
+          ? productOriginalPlanDetails.workOrderNo
+          : "未知工单";
         throw new Error(
           `条码 ${mainBarcode} (所属工单: ${productOriginalWorkOrderNo}) 与产线当前生产工单 (工单号: ${currentProductionPlan.workOrderNo}) 不一致，无法组盘。`
         );
@@ -89,7 +100,7 @@ class MaterialPalletizingService {
       let pallet = await MaterialPalletizing.findOne({
         productLineId: lineId,
         materialId: materialId, // 确保托盘是装同种物料的
-        // saleOrderId: currentProductionPlan.saleOrderId, // 如果严格按当前工单的销售订单，混装其他销售订单的同工单产品会受限
+        saleOrderId: currentProductionPlan.saleOrderId, // 如果严格按当前工单的销售订单，混装其他销售订单的同工单产品会受限
         status: "STACKING",
         repairStatus: { $ne: "REPAIRING" },
         // 新增：如果一个托盘可以混装不同工单，那么在查找时，不能再用 saleOrderId 或 workOrderNo 作为严格的筛选条件
@@ -100,14 +111,14 @@ class MaterialPalletizingService {
       // 计算当前销售订单下所有托盘的条码总数 - 这个逻辑也需要调整，如果混装，是按哪个销售订单算？
       // 如果托盘可以混装来自不同销售订单（但工单一致，或工单也混装）的产品，此处的 totalExistingBarcodes 计算会复杂
       const existingPalletsForSaleOrder = await MaterialPalletizing.find({
-          saleOrderId: currentProductionPlan.saleOrderId, // 仍按当前工单的销售订单计算，这可能限制了真正的混装
-          materialId: materialId,
+        saleOrderId: currentProductionPlan.saleOrderId, // 仍按当前工单的销售订单计算，这可能限制了真正的混装
+        materialId: materialId,
       });
-      const totalExistingBarcodesForSaleOrder = existingPalletsForSaleOrder.reduce(
+      const totalExistingBarcodesForSaleOrder =
+        existingPalletsForSaleOrder.reduce(
           (sum, p) => sum + p.totalQuantity, // p.totalQuantity 指的是托盘容量
           0
-      );
-
+        );
 
       if (!pallet) {
         // 创建新托盘
@@ -120,20 +131,31 @@ class MaterialPalletizingService {
           typeof newPalletTotalQuantity === "number" &&
           typeof currentProductionPlan.planQuantity === "number"
         ) {
-          if (newPalletTotalQuantity > currentProductionPlan.planQuantity - totalExistingBarcodesForSaleOrder) {
-            newPalletTotalQuantity = currentProductionPlan.planQuantity - totalExistingBarcodesForSaleOrder;
+          if (
+            newPalletTotalQuantity >
+            currentProductionPlan.planQuantity -
+              totalExistingBarcodesForSaleOrder
+          ) {
+            newPalletTotalQuantity =
+              currentProductionPlan.planQuantity -
+              totalExistingBarcodesForSaleOrder;
             if (newPalletTotalQuantity <= 0) {
-              throw new Error(`销售订单 ${currentProductionPlan.saleOrderNo} 数量已达到上限，无法创建新托盘`);
+              throw new Error(
+                `销售订单 ${currentProductionPlan.saleOrderNo} 数量已达到上限，无法创建新托盘`
+              );
             }
           }
         }
-        const isLastPallet = (newPalletTotalQuantity + totalExistingBarcodesForSaleOrder) >= currentProductionPlan.planQuantity;
+        const isLastPallet =
+          newPalletTotalQuantity + totalExistingBarcodesForSaleOrder >=
+          currentProductionPlan.planQuantity;
 
         pallet = new MaterialPalletizing({
           palletCode,
           saleOrderId: currentProductionPlan.saleOrderId, // 新托盘的主销售订单先关联当前工单的
           saleOrderNo: currentProductionPlan.saleOrderNo,
-          workOrders: [ // 初始化时，只包含当前校验通过的工单
+          workOrders: [
+            // 初始化时，只包含当前校验通过的工单
             {
               productionOrderId: currentProductionPlan.productionOrderId,
               productionOrderNo: currentProductionPlan.productionOrderNo,
@@ -168,10 +190,22 @@ class MaterialPalletizingService {
       } else {
         // 托盘已存在，检查当前工单 (currentProductionPlan) 是否已在 pallet.workOrders 中
         if (!pallet.workOrders) pallet.workOrders = []; // 防御空数组
-        
-        let existingWorkOrderInPallet = pallet.workOrders.find(
-          (wo) => wo.productionPlanWorkOrderId && wo.productionPlanWorkOrderId.toString() === currentProductionPlan._id.toString()
-        );
+
+        let existingWorkOrderInPallet = pallet.workOrders.find((wo) => {
+          // 增加防御性检查
+          if (
+            !wo ||
+            !wo.productionPlanWorkOrderId ||
+            !currentProductionPlan ||
+            !currentProductionPlan._id
+          ) {
+            return false;
+          }
+          return (
+            wo.productionPlanWorkOrderId.toString() ===
+            currentProductionPlan._id.toString()
+          );
+        });
 
         if (!existingWorkOrderInPallet) {
           // 如果不存在，添加新工单信息到 workOrders (因为允许混装)
@@ -183,21 +217,33 @@ class MaterialPalletizingService {
             quantity: 0, // 初始数量为0
           });
         }
-        
+
         // 验证当前托盘中添加新条码是否会超出托盘自身容量 pallet.totalQuantity
         if (pallet.barcodeCount + 1 > pallet.totalQuantity) {
           // 如果托盘是针对特定销售订单创建的，并且有 planQuantity，这里的调整逻辑可能保持不变
           // 但如果托盘是通用的混装托盘，其 totalQuantity 可能在创建时固定，或者有其他调整规则
           // 暂时保留之前的调整逻辑，但需注意其对混装场景的适用性
-          const remainingCapacityForSaleOrder = currentProductionPlan.planQuantity - (totalExistingBarcodesForSaleOrder - (existingWorkOrderInPallet ? existingWorkOrderInPallet.quantity : 0) ); // 此处计算复杂
-          if (pallet.barcodeCount + 1 > remainingCapacityForSaleOrder && pallet.totalQuantity < remainingCapacityForSaleOrder) {
-               // 尝试调整托盘容量，但这个逻辑在混装时很复杂，可能需要简化或移除
-               // pallet.totalQuantity = remainingCapacityForSaleOrder;
-               // pallet.isLastPallet = ...
-               // console.warn("托盘容量可能需要根据混装逻辑重新审视调整方式");
-               throw new Error(`托盘 ${pallet.palletCode} 条码数量已达到上限 (${pallet.totalQuantity})，且无法根据当前销售订单 ${currentProductionPlan.saleOrderNo} 自动扩容。`);
+          const remainingCapacityForSaleOrder =
+            currentProductionPlan.planQuantity -
+            (totalExistingBarcodesForSaleOrder -
+              (existingWorkOrderInPallet
+                ? existingWorkOrderInPallet.quantity
+                : 0)); // 此处计算复杂
+          if (
+            pallet.barcodeCount + 1 > remainingCapacityForSaleOrder &&
+            pallet.totalQuantity < remainingCapacityForSaleOrder
+          ) {
+            // 尝试调整托盘容量，但这个逻辑在混装时很复杂，可能需要简化或移除
+            // pallet.totalQuantity = remainingCapacityForSaleOrder;
+            // pallet.isLastPallet = ...
+            // console.warn("托盘容量可能需要根据混装逻辑重新审视调整方式");
+            throw new Error(
+              `托盘 ${pallet.palletCode} 条码数量已达到上限 (${pallet.totalQuantity})，且无法根据当前销售订单 ${currentProductionPlan.saleOrderNo} 自动扩容。`
+            );
           } else if (pallet.barcodeCount + 1 > pallet.totalQuantity) {
-               throw new Error(`托盘 ${pallet.palletCode} 条码数量已达到容量上限 ${pallet.totalQuantity}`);
+            throw new Error(
+              `托盘 ${pallet.palletCode} 条码数量已达到容量上限 ${pallet.totalQuantity}`
+            );
           }
         }
       }
@@ -207,7 +253,9 @@ class MaterialPalletizingService {
         (item) => item.barcode === mainBarcode
       );
       if (existingBarcodeInPallet) {
-        throw new Error(`重复扫码: 条码 ${mainBarcode} 已在托盘 ${pallet.palletCode} 中`);
+        throw new Error(
+          `重复扫码: 条码 ${mainBarcode} 已在托盘 ${pallet.palletCode} 中`
+        );
       }
 
       // 准备新的托盘条码记录 (使用校验通过的工单信息，即 currentProductionPlan)
@@ -217,15 +265,19 @@ class MaterialPalletizingService {
         barcodeType: "MAIN",
         scanTime: new Date(),
         productionPlanWorkOrderId: currentProductionPlan._id, // 确认使用 currentProductionPlan
-        workOrderNo: currentProductionPlan.workOrderNo,       // 确认使用 currentProductionPlan
+        workOrderNo: currentProductionPlan.workOrderNo, // 确认使用 currentProductionPlan
       };
 
       // 更新 pallet.workOrders 中对应工单 (currentProductionPlan) 的数量
       const workOrderIndexInPallet = pallet.workOrders.findIndex(
-        (wo) => wo.productionPlanWorkOrderId && wo.productionPlanWorkOrderId.toString() === currentProductionPlan._id.toString()
+        (wo) =>
+          wo.productionPlanWorkOrderId &&
+          wo.productionPlanWorkOrderId.toString() ===
+            currentProductionPlan._id.toString()
       );
       if (workOrderIndexInPallet !== -1) {
-        pallet.workOrders[workOrderIndexInPallet].quantity = (pallet.workOrders[workOrderIndexInPallet].quantity || 0) + 1;
+        pallet.workOrders[workOrderIndexInPallet].quantity =
+          (pallet.workOrders[workOrderIndexInPallet].quantity || 0) + 1;
       } else {
         //理论上在前面检查 existingWorkOrderInPallet 时已经添加了，但作为防御
         pallet.workOrders.push({
@@ -235,48 +287,76 @@ class MaterialPalletizingService {
           productionPlanWorkOrderId: currentProductionPlan._id,
           quantity: 1,
         });
-        console.warn(`Defensive code: Added work order ${currentProductionPlan.workOrderNo} to pallet ${pallet.palletCode} again.`);
+        console.warn(
+          `Defensive code: Added work order ${currentProductionPlan.workOrderNo} to pallet ${pallet.palletCode} again.`
+        );
       }
-      
+
       // 处理箱条码 (boxBarcode)
       if (boxBarcode) {
-          // ... (箱条码逻辑)
-          // 同样，箱内条码的 productionPlanWorkOrderId 和 workOrderNo 也应使用 currentProductionPlan 的信息
-          const boxItem = pallet.boxItems.find(item => item.boxBarcode === boxBarcode);
-          // ... (省略部分原有校验，这里的 currentTotalBarcodes 全局校验在混装场景下意义不大)
+        // ... (箱条码逻辑)
 
-          if (boxItem) {
-              if (pallet.boxCount + currentTotalBarcodes > pallet.totalQuantity) { // 全局校验意义不大
-                throw new Error(`此箱条码数量将超出单据总数量限制 ${pallet.totalQuantity}`);
-              }
-              if (!boxItem.boxBarcodes) boxItem.boxBarcodes = [];
-              const boxPalletBarcode = { /* ...同 newPalletBarcode，使用 currentProductionPlan ... */ 
-                  materialProcessFlowId: materialProcessFlow._id,
-                  barcode: mainBarcode, barcodeType: "MAIN", scanTime: new Date(),
-                  productionPlanWorkOrderId: currentProductionPlan._id,
-                  workOrderNo: currentProductionPlan.workOrderNo,
-              };
-              boxItem.boxBarcodes.push(boxPalletBarcode);
-              boxItem.quantity = boxItem.boxBarcodes.length;
-          } else {
-              if (currentTotalBarcodes > pallet.totalQuantity) { // 全局校验意义不大
-                throw new Error(`此箱条码数量将超出单据总数量限制 ${pallet.totalQuantity}`);
-              }
-              const boxPalletBarcode = { /* ...同 newPalletBarcode，使用 currentProductionPlan ... */
-                  materialProcessFlowId: materialProcessFlow._id,
-                  barcode: mainBarcode, barcodeType: "MAIN", scanTime: new Date(),
-                  productionPlanWorkOrderId: currentProductionPlan._id,
-                  workOrderNo: currentProductionPlan.workOrderNo,
-              };
-              pallet.boxItems.push({
-                  boxBarcode: boxBarcode,
-                  boxBarcodes: [boxPalletBarcode],
-                  quantity: 1,
-                  scanTime: new Date(),
-                  // 可选：记录此箱子条码是属于哪个工单的
-                  productionPlanWorkOrderId: currentProductionPlan._id 
-              });
+        // 同样，箱内条码的 productionPlanWorkOrderId 和 workOrderNo 也应使用 currentProductionPlan 的信息
+        const boxItem = pallet.boxItems.find(
+          (item) => item.boxBarcode === boxBarcode
+        );
+        // ... (省略部分原有校验，这里的 currentTotalBarcodes 全局校验在混装场景下意义不大)
+
+        // 计算当前托盘已有的条码总数（不包括即将添加的新条码）
+        const currentTotalBarcodes = MaterialProcessFlow.find({
+          processNodes: {
+            $elemMatch: {
+              barcode: boxBarcode,
+              status: "COMPLETED",
+              isPackingBox: true,
+            },
+          },
+        }).countDocuments();
+
+        if (boxItem) {
+          if (pallet.boxCount + currentTotalBarcodes > pallet.totalQuantity) {
+            // 全局校验意义不大
+            throw new Error(
+              `此箱条码数量将超出单据总数量限制 ${pallet.totalQuantity}`
+            );
           }
+          if (!boxItem.boxBarcodes) boxItem.boxBarcodes = [];
+          const boxPalletBarcode = {
+            /* ...同 newPalletBarcode，使用 currentProductionPlan ... */
+            materialProcessFlowId: materialProcessFlow._id,
+            barcode: mainBarcode,
+            barcodeType: "MAIN",
+            scanTime: new Date(),
+            productionPlanWorkOrderId: currentProductionPlan._id,
+            workOrderNo: currentProductionPlan.workOrderNo,
+          };
+          boxItem.boxBarcodes.push(boxPalletBarcode);
+          boxItem.quantity = boxItem.boxBarcodes.length;
+        } else {
+          if (currentTotalBarcodes > pallet.totalQuantity) {
+            // 全局校验意义不大
+            throw new Error(
+              `此箱条码数量将超出单据总数量限制 ${pallet.totalQuantity}`
+            );
+          }
+          const boxPalletBarcode = {
+            /* ...同 newPalletBarcode，使用 currentProductionPlan ... */
+            materialProcessFlowId: materialProcessFlow._id,
+            barcode: mainBarcode,
+            barcodeType: "MAIN",
+            scanTime: new Date(),
+            productionPlanWorkOrderId: currentProductionPlan._id,
+            workOrderNo: currentProductionPlan.workOrderNo,
+          };
+          pallet.boxItems.push({
+            boxBarcode: boxBarcode,
+            boxBarcodes: [boxPalletBarcode],
+            quantity: 1,
+            scanTime: new Date(),
+            // 可选：记录此箱子条码是属于哪个工单的
+            productionPlanWorkOrderId: currentProductionPlan._id,
+          });
+        }
       }
 
       pallet.palletBarcodes.push(newPalletBarcode);
@@ -284,7 +364,6 @@ class MaterialPalletizingService {
       pallet.boxCount = pallet.boxItems.length;
       pallet.updateAt = new Date();
       pallet.updateBy = userId;
-
 
       // 检查是否达到总数量要求
       if (pallet.barcodeCount === pallet.totalQuantity) {
@@ -297,28 +376,61 @@ class MaterialPalletizingService {
       // 尾数托盘的判断逻辑，在混装多销售订单产品时会变得复杂
       // 如果 isLastPallet 严格与某个特定销售订单的 planQuantity 关联，那么混装时需要明确
       // 暂时保持原逻辑，但指出其在混装场景下的局限性
-      if (!pallet.isLastPallet && pallet.saleOrderId && pallet.saleOrderNo) { // 确保托盘有关联的主销售订单
-          // 重新获取与托盘主销售订单相关的 totalExistingBarcodes
-          const mainSaleOrderPallets = await MaterialPalletizing.find({
-              saleOrderId: pallet.saleOrderId, // 使用托盘当前关联的主 saleOrderId
-              materialId: pallet.materialId,
-          });
-          const totalBarcodesForMainSaleOrder = mainSaleOrderPallets.reduce(
-              (sum, p) => sum + (p.palletBarcodes.filter(pb => {
-                  // 如果 palletBarcodes 中的条码也记录了 saleOrderId，则可以更精确
-                  // 否则，就只能假设一个托盘内的所有条码都服务于托盘的主 saleOrderId
-                  const wo = p.workOrders.find(order => order.productionPlanWorkOrderId.toString() === pb.productionPlanWorkOrderId.toString());
-                  return wo && wo.saleOrderId && wo.saleOrderId.toString() === pallet.saleOrderId.toString();
-              }).length), // 或者简单用 p.barcodeCount 如果一个托盘只服务一个SO
-              0
-          );
-           // 获取主销售订单的 planQuantity
-          const mainSaleOrderPlan = await productionPlanWorkOrder.findOne({saleOrderId: pallet.saleOrderId, materialId: pallet.materialId, status: "IN_PROGRESS" /*或其他相关状态*/}).select('planQuantity').lean();
-          if (mainSaleOrderPlan && typeof mainSaleOrderPlan.planQuantity === 'number') {
-               pallet.isLastPallet = totalBarcodesForMainSaleOrder >= mainSaleOrderPlan.planQuantity;
-          }
+      if (!pallet.isLastPallet && pallet.saleOrderId && pallet.saleOrderNo) {
+        // 确保托盘有关联的主销售订单
+        // 重新获取与托盘主销售订单相关的 totalExistingBarcodes
+        const mainSaleOrderPallets = await MaterialPalletizing.find({
+          saleOrderId: pallet.saleOrderId, // 使用托盘当前关联的主 saleOrderId
+          materialId: pallet.materialId,
+        });
+        const totalBarcodesForMainSaleOrder = mainSaleOrderPallets.reduce(
+          (sum, p) =>
+            sum +
+            p.palletBarcodes.filter((pb) => {
+              // 增加防御性检查
+              if (
+                !p.workOrders ||
+                !pb ||
+                !pb.productionPlanWorkOrderId ||
+                !pallet ||
+                !pallet.saleOrderId
+              ) {
+                return false;
+              }
+              const wo = p.workOrders.find((order) => {
+                if (!order || !order.productionPlanWorkOrderId) {
+                  return false;
+                }
+                return (
+                  order.productionPlanWorkOrderId.toString() ===
+                  pb.productionPlanWorkOrderId.toString()
+                );
+              });
+              return (
+                wo &&
+                wo.saleOrderId &&
+                wo.saleOrderId.toString() === pallet.saleOrderId.toString()
+              );
+            }).length,
+          0
+        );
+        // 获取主销售订单的 planQuantity
+        const mainSaleOrderPlan = await productionPlanWorkOrder
+          .findOne({
+            saleOrderId: pallet.saleOrderId,
+            materialId: pallet.materialId,
+            status: "IN_PROGRESS" /*或其他相关状态*/,
+          })
+          .select("planQuantity")
+          .lean();
+        if (
+          mainSaleOrderPlan &&
+          typeof mainSaleOrderPlan.planQuantity === "number"
+        ) {
+          pallet.isLastPallet =
+            totalBarcodesForMainSaleOrder >= mainSaleOrderPlan.planQuantity;
+        }
       }
-
 
       await materialProcessFlowService.scanBatchDocument(
         mainBarcode,
@@ -332,7 +444,6 @@ class MaterialPalletizingService {
 
       await pallet.save();
       return pallet;
-
     } catch (error) {
       console.error("处理托盘条码失败:", error);
       throw error;
@@ -555,7 +666,7 @@ class MaterialPalletizingService {
       throw error;
     }
   }
-  
+
   /**
    * 清理托盘中数量为0的工单信息
    * @param {Object} pallet - 托盘对象
@@ -634,13 +745,18 @@ class MaterialPalletizingService {
 
         // 当解绑箱条码时，扣减箱内每个产品条码对应工单的数量
         if (pallet.workOrders && pallet.workOrders.length > 0) {
-          boxItem.boxBarcodes.forEach(productInBox => {
+          boxItem.boxBarcodes.forEach((productInBox) => {
             if (productInBox.productionPlanWorkOrderId) {
               const workOrderIndex = pallet.workOrders.findIndex(
-                wo => wo.productionPlanWorkOrderId &&
-                       wo.productionPlanWorkOrderId.toString() === productInBox.productionPlanWorkOrderId.toString()
+                (wo) =>
+                  wo.productionPlanWorkOrderId &&
+                  wo.productionPlanWorkOrderId.toString() ===
+                    productInBox.productionPlanWorkOrderId.toString()
               );
-              if (workOrderIndex !== -1 && pallet.workOrders[workOrderIndex].quantity > 0) {
+              if (
+                workOrderIndex !== -1 &&
+                pallet.workOrders[workOrderIndex].quantity > 0
+              ) {
                 pallet.workOrders[workOrderIndex].quantity -= 1;
               }
             }
@@ -917,20 +1033,13 @@ class MaterialPalletizingService {
           palletBarcode.barcode,
           pallet.processStepId,
           userId,
-          "托盘解绑", // 添加解绑原因
-          true, // 解绑后续工序
-          true // 标记为来自托盘解绑调用
+          "托盘解绑",
+          true,
+          true
         );
       }
 
-      // 减少工单产出量 - 解绑托盘中所有条码减少相应产出量
-      if (pallet.productionPlanWorkOrderId && pallet.barcodeCount > 0) {
-        await materialProcessFlowService.updateWorkOrderQuantity(
-          pallet.productionPlanWorkOrderId.toString(),
-          "output",
-          -pallet.barcodeCount // 负数表示减少产出量
-        );
-      }
+      // 移除工单产出量扣减代码，因为 unbindProcessComponents 已经处理了这个逻辑
 
       // 2. 清空托盘条码列表和箱记录
       pallet.palletBarcodes = [];
@@ -945,16 +1054,16 @@ class MaterialPalletizingService {
 
       // 检查原托盘状态，如果是组托完成(STACKED)状态，则更新为维修中状态
       if (pallet.status === "STACKED") {
-        pallet.repairStatus = "REPAIRING"; // 设置为维修中状态
+        pallet.repairStatus = "REPAIRING";
         console.log(
           `托盘 ${palletCode} 整体解绑，从组托完成状态更新为维修中状态`
         );
       }
 
       // 无论维修状态如何，都将组托状态重置为组托中
-      pallet.status = "STACKING"; // 解绑后重置为组托中状态
+      pallet.status = "STACKING";
 
-      // 清理所有工单信息(全部解绑后所有工单数量都为0)
+      // 清理所有工单信息
       pallet.workOrders = [];
 
       pallet.updateAt = new Date();

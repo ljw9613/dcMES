@@ -1382,12 +1382,21 @@ export default {
     },
 
     getCompletedBarcodes(entryItem) {
-      if (!entryItem || !entryItem.palletId) {
+      if (!entryItem) {
         return [];
       }
+      
+      // 处理新数据结构
       if (entryItem.palletBarcodes && entryItem.palletBarcodes.length > 0) {
         return entryItem.palletBarcodes;
       }
+      
+      // 处理旧数据结构
+      if (entryItem.palletId && entryItem.palletId.palletBarcodes && entryItem.palletId.palletBarcodes.length > 0) {
+        return entryItem.palletId.palletBarcodes;
+      }
+      
+      return [];
     },
 
     // 处理整托出库
