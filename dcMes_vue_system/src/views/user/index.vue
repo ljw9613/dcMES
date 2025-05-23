@@ -186,7 +186,7 @@
             type="primary"
             @click="handleEdit(row)"
             style="margin-right: 8px"
-            
+            v-if="$checkPermission('用户列表编辑')"
           >
             编辑
           </el-button>
@@ -195,12 +195,12 @@
             type="danger"
             @click="handleDelete(row)"
             style="margin-right: 8px"
-         
+            v-if="$checkPermission('用户列表删除')"
           >
             删除
           </el-button>
           <el-button
-            v-if="!row.status "
+            v-if="!row.status && $checkPermission('用户列表上线')"
             size="mini"
             type="success"
             @click="handisshow(row)"
@@ -208,7 +208,8 @@
           >
             上线
           </el-button>
-          <el-button v-else-if="row.status " size="mini" type="danger" @click="handisshow(row)">
+          <el-button v-else-if="row.status && $checkPermission('用户列表下线')" size="mini" type="danger" @click="handisshow(row)"
+          >
             下线
           </el-button>
         </template>
