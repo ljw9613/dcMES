@@ -18,7 +18,6 @@
           </el-switch>
         </div>
 
-
         <el-form :model="formData" label-width="100px">
           <!-- 产品型号 -->
           <div class="form-section">
@@ -114,7 +113,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" >
+          <div class="button-group" v-if="$checkPermission('产线编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -158,11 +157,7 @@
                 {{ isCollapsed ? "展开" : "收起" }}
               </el-button>
             </div>
-            <el-form
-              :model="batchForm"
-              label-width="100px"
-
-            >
+            <el-form :model="batchForm" label-width="100px">
               <el-form-item label="产品数量">
                 <div class="batch-size-control">
                   <el-input-number
@@ -747,7 +742,9 @@ export default {
     handleModeToggle() {
       this.autoInit = !this.autoInit;
       this.autoInitMode = this.autoInit;
-      this.$message.success(`已${this.autoInit ? "开启" : "关闭"}自动初始化模式`);
+      this.$message.success(
+        `已${this.autoInit ? "开启" : "关闭"}自动初始化模式`
+      );
 
       if (this.autoInit) {
         window.location.reload();
@@ -757,49 +754,49 @@ export default {
     // 产品型号处理
     handleProductModel() {
       if (!this.mainMaterialName || !this.mainMaterialCode) {
-        this.$message.warning('当前没有设置产品型号');
+        this.$message.warning("当前没有设置产品型号");
         return;
       }
 
       this.$message({
-        type: 'info',
+        type: "info",
         message: `当前产品型号：${this.mainMaterialCode} - ${this.mainMaterialName}`,
-        duration: 3000
+        duration: 3000,
       });
     },
 
     // 产品工序处理
     handleProductProcess() {
       if (!this.processName) {
-        this.$message.warning('当前没有设置产品工序');
+        this.$message.warning("当前没有设置产品工序");
         return;
       }
 
       this.$message({
-        type: 'info',
+        type: "info",
         message: `当前产品工序：${this.processName}`,
-        duration: 3000
+        duration: 3000,
       });
     },
 
     // 产线编码处理
     handleLineCode() {
       if (!this.productLineId || !this.productLineName) {
-        this.$message.warning('当前没有设置产线');
+        this.$message.warning("当前没有设置产线");
         return;
       }
 
       this.$message({
-        type: 'info',
+        type: "info",
         message: `当前产线：${this.productLineName}`,
-        duration: 3000
+        duration: 3000,
       });
     },
 
     // 保存设置处理
     handleSaveSettings() {
       if (this.mainMaterialId && this.processStepId) {
-        this.$message.warning('已经设置好了产品和工序');
+        this.$message.warning("已经设置好了产品和工序");
       } else {
         this.handleSave();
       }
@@ -1127,14 +1124,28 @@ export default {
 
         // 新增：检查当前工艺是否包含装箱工序
         this.craftHasPackingProcess = false; // 默认重置
-        if (this.craftInfo && this.craftInfo.processSteps && this.craftInfo.processSteps.length > 0) {
+        if (
+          this.craftInfo &&
+          this.craftInfo.processSteps &&
+          this.craftInfo.processSteps.length > 0
+        ) {
           try {
             const processStepDetailsResponse = await getData("processStep", {
               query: { _id: { $in: this.craftInfo.processSteps } },
             });
-            if (processStepDetailsResponse.code === 200 && processStepDetailsResponse.data && processStepDetailsResponse.data.length > 0) {
-              this.craftHasPackingProcess = processStepDetailsResponse.data.some(step => step.processType === 'E');
-              console.log("当前工艺是否包含装箱工序 (craftHasPackingProcess):", this.craftHasPackingProcess);
+            if (
+              processStepDetailsResponse.code === 200 &&
+              processStepDetailsResponse.data &&
+              processStepDetailsResponse.data.length > 0
+            ) {
+              this.craftHasPackingProcess =
+                processStepDetailsResponse.data.some(
+                  (step) => step.processType === "E"
+                );
+              console.log(
+                "当前工艺是否包含装箱工序 (craftHasPackingProcess):",
+                this.craftHasPackingProcess
+              );
             }
           } catch (error) {
             console.error("检查工艺是否包含装箱工序失败:", error);
@@ -2652,6 +2663,10 @@ export default {
     // 新增取消批次数量设置方法
     async handleCancelBatchSize() {
       try {
+        if (!this.$checkPermission("产线编辑配置")) {
+          this.$message.warning("无修改产线编辑配置权限");
+          return;
+        }
         await this.$confirm("确认取消当前批次数量设置？", "提示", {
           confirmButtonText: "确定",
           cancelButtonText: "取消",
@@ -3138,7 +3153,27 @@ export default {
   background-color: #66b1ff;
 }
 
-.collapse-btn i {  color: white;  font-size: 20px;}.operation-buttons {  display: flex;  flex-wrap: wrap;  margin: 10px 0 15px;  gap: 8px;}.operation-buttons .el-button {  color: #409EFF;  font-size: 13px;}.operation-buttons .el-button i {  margin-right: 4px;}.init-card {  border-radius: 8px;  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);}
+.collapse-btn i {
+  color: white;
+  font-size: 20px;
+}
+.operation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 10px 0 15px;
+  gap: 8px;
+}
+.operation-buttons .el-button {
+  color: #409eff;
+  font-size: 13px;
+}
+.operation-buttons .el-button i {
+  margin-right: 4px;
+}
+.init-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
 
 .form-section {
   margin-bottom: 20px;

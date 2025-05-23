@@ -85,20 +85,17 @@
               type="primary" 
               @click="search" 
               icon="el-icon-search"
-              v-if="$checkPermission('SN-SFTP条码列表查询')"
               >搜索</el-button
             >
             <el-button 
               @click="resetForm" 
               icon="el-icon-refresh"
-              v-if="$checkPermission('SN-SFTP条码列表重置')"
               >重置</el-button
             >
             <el-button
               type="success"
               @click="handleAllExcel"
               icon="el-icon-download"
-              v-if="$checkPermission('SN-SFTP条码列表导出数据')"
               >导出数据</el-button
             >
             <el-button

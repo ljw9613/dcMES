@@ -114,7 +114,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" >
+          <div class="button-group" v-if="$checkPermission('产线编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"

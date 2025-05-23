@@ -737,7 +737,12 @@ export default {
         this.$message.warning("请输入托盘编号");
         return;
       }
-      const tempPalletCodeForValidation = this.palletForm.palletCode.trim(); // 先保存，再重置
+      
+      let tempPalletCodeForValidation = this.palletForm.palletCode.trim(); // 先保存，再重置
+
+      // 解析条码信息
+      let [palletCode, saleOrderNo, materialCode, quantity, lineCode] =
+        tempPalletCodeForValidation.split("#");
 
       // 重置所有扫描状态和信息
       this.resetForm(); // resetForm 会重置 unifiedScanInput, mainMaterialScanState, subMaterials
@@ -745,7 +750,7 @@ export default {
 
       try {
         const res = await getData("material_palletizing", {
-          query: { palletCode: tempPalletCodeForValidation }, // 使用保存的托盘号
+          query: { palletCode: palletCode }, // 使用保存的托盘号
           populate: JSON.stringify([
             { path: "productLineId" },
             { path: "materialId" },
@@ -754,7 +759,7 @@ export default {
 
         if (res.data && res.data.length > 0) {
           this.palletInfo = res.data[0];
-          this.palletForm.palletCode = tempPalletCodeForValidation; // 成功后，将有效的托盘号重新填入输入框
+          this.palletForm.palletCode = palletCode; // 成功后，将有效的托盘号重新填入输入框
 
           if (this.palletInfo.status === "STACKED") {
             this.$message.warning("该托盘已组托完成，不能继续添加条码");
