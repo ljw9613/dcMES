@@ -69,22 +69,23 @@
               <!-- <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单号" clearable></el-input> -->
               <zr-select
                 v-model="searchForm.saleOrderNo"
-                collection="warehouse_ontry"
-                :search-fields="['saleOrderNo']"
-                label-key="saleOrderNo"
-                value-key="saleOrderNo"
+                collection="k3_SAL_SaleOrder"
+                :search-fields="['FBillNo']"
+                label-key="FBillNo"
+                value-key="FBillNo"
+                sub-key="FBillNo"
                 :multiple="false"
-                placeholder="请输入销售订单号"
+                placeholder="请输入销售单号"
                 clearable
                 style="width: 100%"
               >
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
-                      <span class="option-label">{{ item.saleOrderNo }}</span>
-                      <!-- <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.entryNo }}
-                                            </el-tag> -->
+                      <span class="option-label">{{ item.FBillNo }}</span>
+                      <el-tag size="mini" type="info" class="option-tag">
+                        {{ item.FBillNo }} - {{ item.FSaleOrgId }}
+                      </el-tag>
                     </div>
                   </div>
                 </template>
@@ -171,13 +172,8 @@
         </el-row>
 
         <el-form-item>
-          <el-button
-            type="primary"
-            @click="search"
-            >查询搜索</el-button>
-          <el-button
-            @click="resetForm"
-            >重置</el-button>
+          <el-button type="primary" @click="search">查询搜索</el-button>
+          <el-button @click="resetForm">重置</el-button>
           <!-- 扫码出库 -->
           <el-button
             type="primary"
@@ -389,7 +385,6 @@
             <el-button
               type="text"
               style="color: green"
-
               @click="handleChuKu(scope.row)"
               :loading="scanLoading"
             >
@@ -414,7 +409,6 @@
             <el-button
               type="text"
               style="color: blue"
-
               @click="handleSingleExport(scope.row)"
               >导出</el-button
             >
@@ -605,7 +599,11 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
-import { syncWarehouseOn, scanPalletOn, deleteWarehouseEntry } from "@/api/warehouse/entry";
+import {
+  syncWarehouseOn,
+  scanPalletOn,
+  deleteWarehouseEntry,
+} from "@/api/warehouse/entry";
 import ScanDialog from "./components/ScanDialog.vue";
 import { query } from "quill";
 
@@ -1055,36 +1053,41 @@ export default {
           cancelButtonText: "取消",
           type: "warning",
         }
-      ).then(async () => {
-        try {
-          // 使用新的API删除出库单并恢复条码状态
-          const response = await deleteWarehouseEntry({
-            entryId: row._id
-          });
+      )
+        .then(async () => {
+          try {
+            // 使用新的API删除出库单并恢复条码状态
+            const response = await deleteWarehouseEntry({
+              entryId: row._id,
+            });
 
-          if (response.code === 200) {
-            this.$message.success("删除成功，已恢复相关条码状态");
+            if (response.code === 200) {
+              this.$message.success("删除成功，已恢复相关条码状态");
 
-            // 可以显示详细信息
-            if (response.data && response.data.processResults) {
-              const totalPallets = response.data.processResults.length;
-              const totalBarcodes = response.data.processResults.reduce(
-                (sum, item) => sum + (item.barcodesRestored || 0), 0
-              );
-              console.log(`成功处理 ${totalPallets} 个托盘，恢复了 ${totalBarcodes} 个条码的状态`);
+              // 可以显示详细信息
+              if (response.data && response.data.processResults) {
+                const totalPallets = response.data.processResults.length;
+                const totalBarcodes = response.data.processResults.reduce(
+                  (sum, item) => sum + (item.barcodesRestored || 0),
+                  0
+                );
+                console.log(
+                  `成功处理 ${totalPallets} 个托盘，恢复了 ${totalBarcodes} 个条码的状态`
+                );
+              }
+
+              this.fetchData(); // 刷新数据
+            } else {
+              this.$message.error(response.message || "删除失败");
             }
-
-            this.fetchData(); // 刷新数据
-          } else {
-            this.$message.error(response.message || "删除失败");
+          } catch (error) {
+            console.error("删除失败:", error);
+            this.$message.error("删除失败: " + (error.message || "未知错误"));
           }
-        } catch (error) {
-          console.error("删除失败:", error);
-          this.$message.error("删除失败: " + (error.message || "未知错误"));
-        }
-      }).catch(() => {
-        this.$message.info("已取消删除");
-      });
+        })
+        .catch(() => {
+          this.$message.info("已取消删除");
+        });
     },
 
     // 删除托盘
@@ -1385,17 +1388,21 @@ export default {
       if (!entryItem) {
         return [];
       }
-      
+
       // 处理新数据结构
       if (entryItem.palletBarcodes && entryItem.palletBarcodes.length > 0) {
         return entryItem.palletBarcodes;
       }
-      
+
       // 处理旧数据结构
-      if (entryItem.palletId && entryItem.palletId.palletBarcodes && entryItem.palletId.palletBarcodes.length > 0) {
+      if (
+        entryItem.palletId &&
+        entryItem.palletId.palletBarcodes &&
+        entryItem.palletId.palletBarcodes.length > 0
+      ) {
         return entryItem.palletId.palletBarcodes;
       }
-      
+
       return [];
     },
 
