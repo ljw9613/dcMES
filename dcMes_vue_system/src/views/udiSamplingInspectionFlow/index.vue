@@ -104,7 +104,7 @@
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
           <el-button @click="resetForm">重置</el-button>
-          <el-button type="primary" @click="handleScan" v-if="$checkPermission('UID抽检扫描二维码')">扫码二维码</el-button>
+          <el-button type="primary" @click="handleScan" v-if="$checkPermission('UDI抽检扫描二维码')">扫码二维码</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -3156,7 +3156,6 @@ export default {
       };
       return statusMap[status] || status;
     },
-        // 抽检功能已删除
   },
   created() {
     this.fetchData();

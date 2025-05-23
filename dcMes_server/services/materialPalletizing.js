@@ -507,6 +507,14 @@ class MaterialPalletizingService {
         throw new Error("未找到对应的产线计划");
       }
 
+      // 计算当前销售订单下所有托盘的条码总数
+      const existingPallets = await MaterialPalletizing.find({
+        saleOrderId: pallet.saleOrderId,
+        materialId: pallet.materialId
+      });
+      
+      const totalExistingBarcodes = existingPallets.reduce((sum, p) => sum + p.barcodeCount, 0);
+
       // 验证当前托盘中添加新条码是否会超出托盘总数量
       if (pallet.barcodeCount + 1 > pallet.totalQuantity) {
         throw new Error(`托盘条码数量已达到上限 ${pallet.totalQuantity}`);
@@ -649,7 +657,7 @@ class MaterialPalletizingService {
       //对应主条码的工序完成触发
       await materialProcessFlowService.scanBatchDocument(
         mainBarcode,
-        processStepId,
+        pallet.processStepId,
         pallet.palletCode,
         componentScans,
         userId,
@@ -700,7 +708,7 @@ class MaterialPalletizingService {
   ) {
     try {
       console.log(
-        `开始解绑托盘条码: ${palletCode}, 条码: ${barcode}, fromProcessUnbind: ${fromProcessUnbind}`
+        `开始解绑托盘条码: ${palletCode}, 条码: ${barcode}, fromProcessUnbind: ${fromProcessUnbind},userId: ${userId}`
       );
 
       const pallet = await MaterialPalletizing.findOne({ palletCode });
@@ -745,22 +753,66 @@ class MaterialPalletizingService {
 
         // 当解绑箱条码时，扣减箱内每个产品条码对应工单的数量
         if (pallet.workOrders && pallet.workOrders.length > 0) {
-          boxItem.boxBarcodes.forEach((productInBox) => {
-            if (productInBox.productionPlanWorkOrderId) {
-              const workOrderIndex = pallet.workOrders.findIndex(
-                (wo) =>
-                  wo.productionPlanWorkOrderId &&
-                  wo.productionPlanWorkOrderId.toString() ===
-                    productInBox.productionPlanWorkOrderId.toString()
-              );
-              if (
-                workOrderIndex !== -1 &&
-                pallet.workOrders[workOrderIndex].quantity > 0
-              ) {
-                pallet.workOrders[workOrderIndex].quantity -= 1;
-              }
+          console.log('解绑前的工单数量:', JSON.stringify(pallet.workOrders, null, 2));
+          
+          // 创建一个 Map 来跟踪每个工单需要减少的数量
+          const workOrderQuantityMap = new Map();
+          
+          boxItem.boxBarcodes.forEach((boxBarcode) => {
+            // 在 palletBarcodes 中查找对应的条码记录
+            const palletBarcode = pallet.palletBarcodes.find(
+              pb => pb.barcode === boxBarcode.barcode
+            );
+            
+            if (palletBarcode && palletBarcode.productionPlanWorkOrderId) {
+              const workOrderId = palletBarcode.productionPlanWorkOrderId.toString();
+              const currentCount = workOrderQuantityMap.get(workOrderId) || 0;
+              workOrderQuantityMap.set(workOrderId, currentCount + 1);
+              console.log(`工单 ${workOrderId} 需要减少的数量: ${currentCount + 1}`);
             }
           });
+
+          console.log('需要减少的工单数量映射:', Object.fromEntries(workOrderQuantityMap));
+
+          // 更新工单数量
+          const updatedWorkOrders = pallet.workOrders.map(workOrder => {
+            if (workOrder.productionPlanWorkOrderId) {
+              const workOrderId = workOrder.productionPlanWorkOrderId.toString();
+              const quantityToReduce = workOrderQuantityMap.get(workOrderId) || 0;
+              console.log(`工单 ${workOrderId} 当前数量: ${workOrder.quantity}, 需要减少: ${quantityToReduce}`);
+              
+              if (quantityToReduce > 0) {
+                const newQuantity = Math.max(0, workOrder.quantity - quantityToReduce);
+                console.log(`工单 ${workOrderId} 更新后数量: ${newQuantity}`);
+                return {
+                  ...workOrder.toObject ? workOrder.toObject() : workOrder,
+                  quantity: newQuantity
+                };
+              }
+            }
+            return workOrder.toObject ? workOrder.toObject() : workOrder;
+          }).filter(wo => wo.quantity > 0);
+
+          console.log('更新后的工单数量:', JSON.stringify(updatedWorkOrders, null, 2));
+
+          // 使用 $set 操作符更新整个 workOrders 数组
+          const updateResult = await MaterialPalletizing.updateOne(
+            { _id: pallet._id },
+            { 
+              $set: { 
+                workOrders: updatedWorkOrders,
+                updateAt: new Date(),
+                updateBy: userId
+              }
+            }
+          );
+
+          console.log('数据库更新结果:', updateResult);
+
+          // 更新内存中的 pallet 对象
+          pallet.workOrders = updatedWorkOrders;
+
+          console.log(`解绑箱条码 ${barcode} 后，工单数量更新为:`, JSON.stringify(updatedWorkOrders, null, 2));
         }
 
         // 解绑整个箱子
@@ -792,14 +844,6 @@ class MaterialPalletizingService {
           );
         }
 
-        // 减少工单产出量 - 解绑箱中每个条码减少一个产出量
-        // if (pallet.productionPlanWorkOrderId) {
-        //   await materialProcessFlowService.updateWorkOrderQuantity(
-        //     pallet.productionPlanWorkOrderId.toString(),
-        //     "output",
-        //     -boxItem.boxBarcodes.length // 负数表示减少产出量
-        //   );
-        // }
 
         // 2. 从托盘条码列表中移除箱内所有条码
         pallet.palletBarcodes = pallet.palletBarcodes.filter(
@@ -886,14 +930,6 @@ class MaterialPalletizingService {
           );
         }
 
-        // 减少工单产出量 - 解绑单个条码减少一个产出量
-        // if (pallet.productionPlanWorkOrderId) {
-        //   await materialProcessFlowService.updateWorkOrderQuantity(
-        //     pallet.productionPlanWorkOrderId.toString(),
-        //     "output",
-        //     -1 // 负数表示减少产出量
-        //   );
-        // }
 
         // 找到条码对应的工单记录并减少计数
         const palletBarcode = pallet.palletBarcodes.find(

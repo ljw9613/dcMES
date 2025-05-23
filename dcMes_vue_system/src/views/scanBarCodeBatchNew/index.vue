@@ -112,7 +112,7 @@
           </div>
 
           <!-- 按钮部分 -->
-          <div class="button-group" >
+          <div class="button-group" v-if="$checkPermission('产线编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -190,48 +190,48 @@
               </el-button>
             </div>
             <div class="actions-container">
-              <el-button type="text" @click="handleClearCache" icon="el-icon-delete">
+              <el-button
+                type="text"
+                @click="handleClearCache"
+                icon="el-icon-delete"
+              >
                 清除批次物料缓存
               </el-button>
-            <el-form
-              :model="batchForm"
-              label-width="100px"
-
-            >
-              <el-form-item label="产品数量">
-                <div class="batch-size-control">
-                  <el-input-number
-                    size="mini"
-                    v-model="batchForm.batchSize"
-                    :min="1"
-                    :max="999"
-                    @change="handleBatchSizeChange"
-                    :disabled="batchSizeLocked"
-                  >
-                  </el-input-number>
-                  <template v-if="!batchSizeLocked">
-                    <el-button
-                      type="text"
+              <el-form :model="batchForm" label-width="100px">
+                <el-form-item label="产品数量">
+                  <div class="batch-size-control">
+                    <el-input-number
                       size="mini"
-                      @click="handleSaveBatchSize"
-                      icon="el-icon-check"
+                      v-model="batchForm.batchSize"
+                      :min="1"
+                      :max="999"
+                      @change="handleBatchSizeChange"
+                      :disabled="batchSizeLocked"
                     >
-                      保存
-                    </el-button>
-                  </template>
-                  <template v-else>
-                    <el-button
-                      type="text"
-                      style="color: red"
-                      @click="handleCancelBatchSize"
-                      icon="el-icon-close"
-                    >
-                      取消
-                    </el-button>
-                  </template>
-                </div>
-              </el-form-item>
-            </el-form>
+                    </el-input-number>
+                    <template v-if="!batchSizeLocked">
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleSaveBatchSize"
+                        icon="el-icon-check"
+                      >
+                        保存
+                      </el-button>
+                    </template>
+                    <template v-else>
+                      <el-button
+                        type="text"
+                        style="color: red"
+                        @click="handleCancelBatchSize"
+                        icon="el-icon-close"
+                      >
+                        取消
+                      </el-button>
+                    </template>
+                  </div>
+                </el-form-item>
+              </el-form>
             </div>
           </div>
 
@@ -284,7 +284,10 @@
                 <i class="el-icon-box"></i>
                 <span>物料匹配扫描</span>
               </div>
-              <el-tooltip content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除" placement="top">
+              <el-tooltip
+                content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除"
+                placement="top"
+              >
                 <el-tag type="info" size="small">批次物料缓存已启用</el-tag>
               </el-tooltip>
             </div>
@@ -1033,17 +1036,34 @@ export default {
 
         // 新增：检查当前工艺是否包含装箱工序
         this.craftHasPackingProcess = false; // 默认重置
-        if (this.craftInfo && this.craftInfo.processSteps && this.craftInfo.processSteps.length > 0) {
+        if (
+          this.craftInfo &&
+          this.craftInfo.processSteps &&
+          this.craftInfo.processSteps.length > 0
+        ) {
           try {
             const processStepDetailsResponse = await getData("processStep", {
               query: { _id: { $in: this.craftInfo.processSteps } },
             });
-            if (processStepDetailsResponse.code === 200 && processStepDetailsResponse.data && processStepDetailsResponse.data.length > 0) {
-              this.craftHasPackingProcess = processStepDetailsResponse.data.some(step => step.processType === 'E');
-              console.log("当前工艺 (scanBarCodeBatchNew) 是否包含装箱工序 (craftHasPackingProcess):", this.craftHasPackingProcess);
+            if (
+              processStepDetailsResponse.code === 200 &&
+              processStepDetailsResponse.data &&
+              processStepDetailsResponse.data.length > 0
+            ) {
+              this.craftHasPackingProcess =
+                processStepDetailsResponse.data.some(
+                  (step) => step.processType === "E"
+                );
+              console.log(
+                "当前工艺 (scanBarCodeBatchNew) 是否包含装箱工序 (craftHasPackingProcess):",
+                this.craftHasPackingProcess
+              );
             }
           } catch (error) {
-            console.error("检查工艺是否包含装箱工序失败 (scanBarCodeBatchNew):", error);
+            console.error(
+              "检查工艺是否包含装箱工序失败 (scanBarCodeBatchNew):",
+              error
+            );
           }
         }
 
@@ -1080,7 +1100,11 @@ export default {
               // 清除所有批次物料缓存
               const keys = Object.keys(localStorage);
               keys.forEach((key) => {
-                if (key.startsWith(`batch_${this.mainMaterialId}_${this.processStepId}`)) {
+                if (
+                  key.startsWith(
+                    `batch_${this.mainMaterialId}_${this.processStepId}`
+                  )
+                ) {
                   console.log(`清除批次物料缓存: ${key}`);
                   localStorage.removeItem(key);
                   localStorage.removeItem(`${key}_usage`);
@@ -1503,7 +1527,10 @@ export default {
 
           // 只有当设置了batchQuantity且已超过限制时才清除缓存
           // 其他情况保留批次物料缓存
-          if (!material.batchQuantity || (cachedBarcode && currentUsage < material.batchQuantity)) {
+          if (
+            !material.batchQuantity ||
+            (cachedBarcode && currentUsage < material.batchQuantity)
+          ) {
             newBarcodes[material._id] = cachedBarcode;
             this.$set(this.validateStatus, material._id, !!cachedBarcode);
           } else {
@@ -1557,7 +1584,8 @@ export default {
             },
             limit: 1, // 只需要知道是否存在
           });
-          const isScannedBoxBarcode = boxCheckResponse.data && boxCheckResponse.data.length > 0;
+          const isScannedBoxBarcode =
+            boxCheckResponse.data && boxCheckResponse.data.length > 0;
           if (!isScannedBoxBarcode) {
             this.$message.error("当前工艺包含装箱工序，必须扫描包装箱条码。");
             this.popupType = "ng";
@@ -1569,18 +1597,21 @@ export default {
         }
 
         //查询是否有过托盘解绑记录
-        const palletUnbindResponse = await getData("material_palletizing_unbind_log", {
-          query: {
-            unbindBarcode: cleanValue,
-          },
-          select: {
-            palletCode: 1,
-          },
-          sort:{
-            _id: -1,
-          },
-          limit: 1,
-        });
+        const palletUnbindResponse = await getData(
+          "material_palletizing_unbind_log",
+          {
+            query: {
+              unbindBarcode: cleanValue,
+            },
+            select: {
+              palletCode: 1,
+            },
+            sort: {
+              _id: -1,
+            },
+            limit: 1,
+          }
+        );
         // if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
         //   let palletUnbindData = palletUnbindResponse.data[0];
         //   this.$message.error(`该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`);
@@ -1711,16 +1742,25 @@ export default {
               // 如果扫描的是新的批次条码
               if (cachedBarcode !== cleanValue) {
                 // 查询批次条码使用次数
-                const count = await this.queryBatchUsageCount(cleanValue, material._id);
+                const count = await this.queryBatchUsageCount(
+                  cleanValue,
+                  material._id
+                );
 
                 // 如果设置了使用次数限制且已达到限制
-                if (material.batchQuantity && count >= material.batchQuantity && material.batchQuantity > 0) {
-                  this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
+                if (
+                  material.batchQuantity &&
+                  count >= material.batchQuantity &&
+                  material.batchQuantity > 0
+                ) {
+                  this.$message.warning(
+                    `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
+                  );
                   this.popupType = "ng";
                   this.showPopup = true;
-                    tone(tmyw);
-                    return;
-                  }
+                  tone(tmyw);
+                  return;
+                }
 
                 // 更新缓存和使用次数
                 localStorage.setItem(cacheKey, cleanValue);
@@ -1728,15 +1768,23 @@ export default {
                 this.$set(this.batchUsageCount, material._id, count);
               } else {
                 // 使用现有批次条码
-                const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+                const currentUsage = parseInt(
+                  localStorage.getItem(usageKey) || "0"
+                );
 
                 // 只有当达到使用限制时才清除
-                if (material.batchQuantity && currentUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                if (
+                  material.batchQuantity &&
+                  currentUsage >= material.batchQuantity &&
+                  material.batchQuantity > 0
+                ) {
                   localStorage.removeItem(cacheKey);
                   localStorage.removeItem(usageKey);
                   this.$set(this.scanForm.barcodes, material._id, "");
                   this.$set(this.validateStatus, material._id, false);
-                  this.$message.warning(`批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`);
+                  this.$message.warning(
+                    `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
+                  );
                   this.popupType = "ng";
                   this.showPopup = true;
                   tone(tmyw);
@@ -1803,9 +1851,9 @@ export default {
           // 添加loading效果
           const loading = this.$loading({
             lock: true,
-            text: '正在处理条码数据...',
-            spinner: 'el-icon-loading',
-            background: 'rgba(0, 0, 0, 0.7)'
+            text: "正在处理条码数据...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.7)",
           });
 
           try {
@@ -1857,17 +1905,19 @@ export default {
                 (printData.productLineId && printData.productLineId.lineCode) ||
                 "未记录生产线"
               }`;
-              printData.palletBarcodes = printData.palletBarcodes.map((item) => {
-                item.scanTime = this.formatDate(item.scanTime);
-                return item;
-              });
+              printData.palletBarcodes = printData.palletBarcodes.map(
+                (item) => {
+                  item.scanTime = this.formatDate(item.scanTime);
+                  return item;
+                }
+              );
               this.printData = printData;
 
-              this.scannedList = printData.palletBarcodes.map(item => ({
-                  barcode: item.barcode,
-                  scanTime: item.scanTime,
-                  type: item.barcodeType,
-                  boxBarcode: item.boxBarcode
+              this.scannedList = printData.palletBarcodes.map((item) => ({
+                barcode: item.barcode,
+                scanTime: item.scanTime,
+                type: item.barcodeType,
+                boxBarcode: item.boxBarcode,
               }));
 
               if (res.data.status == "STACKED") {
@@ -1877,13 +1927,22 @@ export default {
                 this.palletForm.palletCode = "";
                 this.scannedList = [];
                 for (const material of this.processMaterials) {
-                  if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                  if (
+                    material.isBatch &&
+                    this.scanForm.barcodes[material._id]
+                  ) {
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                     const usageKey = `${cacheKey}_usage`;
-                    const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+                    const currentUsage = parseInt(
+                      localStorage.getItem(usageKey) || "0"
+                    );
                     const newUsage = currentUsage + 1;
                     localStorage.setItem(usageKey, newUsage.toString());
-                    if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                    if (
+                      material.batchQuantity &&
+                      newUsage >= material.batchQuantity &&
+                      material.batchQuantity > 0
+                    ) {
                       localStorage.removeItem(cacheKey);
                       localStorage.removeItem(usageKey);
                       this.$set(this.scanForm.barcodes, material._id, "");
@@ -1895,13 +1954,22 @@ export default {
                 this.$set(this.validateStatus, "mainBarcode", false);
               } else {
                 for (const material of this.processMaterials) {
-                  if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                  if (
+                    material.isBatch &&
+                    this.scanForm.barcodes[material._id]
+                  ) {
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                     const usageKey = `${cacheKey}_usage`;
-                    const currentUsage = parseInt(localStorage.getItem(usageKey) || "0");
+                    const currentUsage = parseInt(
+                      localStorage.getItem(usageKey) || "0"
+                    );
                     const newUsage = currentUsage + 1;
                     localStorage.setItem(usageKey, newUsage.toString());
-                    if (material.batchQuantity && newUsage >= material.batchQuantity && material.batchQuantity > 0) {
+                    if (
+                      material.batchQuantity &&
+                      newUsage >= material.batchQuantity &&
+                      material.batchQuantity > 0
+                    ) {
                       localStorage.removeItem(cacheKey);
                       localStorage.removeItem(usageKey);
                       this.$set(this.scanForm.barcodes, material._id, "");
@@ -2327,7 +2395,9 @@ export default {
         let count = 0;
         keys.forEach((key) => {
           // 只清除当前工序和物料的批次缓存
-          if (key.startsWith(`batch_${this.mainMaterialId}_${this.processStepId}`)) {
+          if (
+            key.startsWith(`batch_${this.mainMaterialId}_${this.processStepId}`)
+          ) {
             localStorage.removeItem(key);
             localStorage.removeItem(`${key}_usage`);
             count++;
@@ -2549,6 +2619,10 @@ export default {
     // 新增取消批次数量设置方法
     async handleCancelBatchSize() {
       try {
+        if (!this.$checkPermission("产线编辑配置")) {
+          this.$message.warning("无修改产线编辑配置权限");
+          return;
+        }
         await this.$confirm("确认取消当前批次数量设置？", "提示", {
           confirmButtonText: "确定",
           cancelButtonText: "取消",
@@ -2787,32 +2861,32 @@ export default {
       if (!material || !material.isBatch) return "";
 
       const currentCount = this.batchUsageCount[materialId] || 0;
-      return `${currentCount}/${material.batchQuantity || '∞'}`;
+      return `${currentCount}/${material.batchQuantity || "∞"}`;
     },
 
     // 打包托盘手动/自动处理
     handleAutoMode() {
-      this.$message.info('打包托盘手动/自动模式切换');
+      this.$message.info("打包托盘手动/自动模式切换");
     },
 
     // 打包托盘产品型号处理
     handleProductSelect() {
-      this.$message.info('打包托盘产品型号选择');
+      this.$message.info("打包托盘产品型号选择");
     },
 
     // 打包托盘产品工序处理
     handleProcessSelect() {
-      this.$message.info('打包托盘产品工序选择');
+      this.$message.info("打包托盘产品工序选择");
     },
 
     // 打包托盘产线编码处理
     handleLineSelect() {
-      this.$message.info('打包托盘产线编码选择');
+      this.$message.info("打包托盘产线编码选择");
     },
 
     // 打包托盘保存设置处理
     handleSaveSettings() {
-      this.$message.info('打包托盘保存设置');
+      this.$message.info("打包托盘保存设置");
     },
   },
   async created() {
@@ -2877,9 +2951,15 @@ export default {
           const cachedBarcode = localStorage.getItem(cacheKey);
 
           if (cachedBarcode) {
-            const count = await this.queryBatchUsageCount(cachedBarcode, material.materialId);
+            const count = await this.queryBatchUsageCount(
+              cachedBarcode,
+              material.materialId
+            );
             // 如果count等于批次用量，则清除缓存
-            if (count === material.batchQuantity && material.batchQuantity > 0) {
+            if (
+              count === material.batchQuantity &&
+              material.batchQuantity > 0
+            ) {
               this.$message.warning("批次条码使用次数已达到上限");
               this.popupType = "ng";
               this.showPopup = true;

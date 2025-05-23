@@ -8,7 +8,6 @@
           style="float: right; padding: 3px 0"
           type="text"
           @click="toggleAdvanced"
-
         >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
@@ -145,10 +144,9 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" >查询搜索</el-button>
-          <el-button @click="resetForm" >重置</el-button>
-          <el-button type="success" @click="handleExport" >导出数据</el-button>
-
+          <el-button type="primary" @click="search">查询搜索</el-button>
+          <el-button @click="resetForm">重置</el-button>
+          <el-button type="success" @click="handleExport">导出数据</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -157,7 +155,12 @@
     <div class="screen1">
       <div class="screen_content_first">
         <i class="el-icon-tickets">工艺管理列表</i>
-        <el-button type="primary" @click="handleAdd" v-if="$checkPermission('生产工艺新增工艺')">新增工艺</el-button>
+        <el-button
+          type="primary"
+          @click="handleAdd"
+          v-if="$checkPermission('生产工艺新增工艺')"
+          >新增工艺</el-button
+        >
       </div>
     </div>
 
@@ -210,37 +213,41 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="300">
           <template slot-scope="scope">
-
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('生产工艺编辑工艺')"
               @click="handleEdit(scope.row)"
-            >编辑</el-button>
+              >编辑</el-button
+            >
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('生产工艺删除工艺')"
               @click="handleDelete(scope.row)"
-            >删除</el-button>
+              >删除</el-button
+            >
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('生产工艺导出工艺')"
               @click="handleExportSingle(scope.row)"
-            >导出</el-button>
+              >导出</el-button
+            >
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('生产工艺导出BOM')"
               @click="handleExportBOM(scope.row)"
-            >导出BOM</el-button>
+              >导出BOM</el-button
+            >
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('生产工艺复制工艺')"
               @click="handleCopy(scope.row)"
-            >复制</el-button>
+              >复制</el-button
+            >
           </template>
         </el-table-column>
       </template>
@@ -657,7 +664,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12" v-show="processForm.processType === 'G'">
-            <el-form-item label="打印模版">  <!-- 移除required属性 -->
+            <el-form-item label="打印模版">
+              <!-- 移除required属性 -->
               <zr-select
                 v-model="processForm.printTemplateId"
                 collection="printTemplate"
@@ -1852,7 +1860,10 @@ export default {
           businessType
         );
 
-        console.log("工序类型变更后新生成的编码:", this.processForm.processCode);
+        console.log(
+          "工序类型变更后新生成的编码:",
+          this.processForm.processCode
+        );
       } catch (error) {
         console.error("生成工序编码失败:", error);
         // 发生错误时，仍然生成一个基本的编码（使用时间戳作为序列号以避免冲突）
@@ -1867,13 +1878,13 @@ export default {
       }
 
       // 当工序类型为打印工序(G)时，清空物料数据
-      if (value === 'G') {
+      if (value === "G") {
         // 清空界面上的物料表格数据
         this.materialTableData.tableList = [];
         this.materialTableData.total = 0;
 
         // 如果是编辑状态且工序ID存在，则删除数据库中关联的物料数据
-        if (this.processOperationType === 'edit' && this.tempProcessId) {
+        if (this.processOperationType === "edit" && this.tempProcessId) {
           try {
             await removeData("processMaterials", {
               query: { processStepId: this.tempProcessId },
@@ -1982,7 +1993,6 @@ export default {
         return;
       }
 
-
       this.tempProcessId = row._id;
       this.processForm = JSON.parse(JSON.stringify(row));
       // 确保工序的业务类型与工艺保持一致
@@ -1997,7 +2007,6 @@ export default {
         this.processOperationType = "edit"; // 设置为编辑操作
         this.processDialogVisible = true;
       });
-
 
       // 获取设备详情
       this.fetchDeviceDetails()
@@ -2071,7 +2080,10 @@ export default {
             // 处理打印模板ID，仅当工序类型为G(打印工序)时保留，否则删除该字段
             if (formData.processType !== "G") {
               delete formData.printTemplateId;
-            } else if (!formData.printTemplateId || formData.printTemplateId === '') {
+            } else if (
+              !formData.printTemplateId ||
+              formData.printTemplateId === ""
+            ) {
               // 如果是打印工序但未选择打印模板，给出提示
               this.$message.warning("打印工序必须选择打印模版");
               return;
@@ -2190,7 +2202,6 @@ export default {
 
             // 重新排序所有工序
             await this.reorderProcessSteps();
-
           } catch (error) {
             console.error("操作失败:", error);
             this.$message.error("操作失败: " + error.message);
@@ -2204,7 +2215,7 @@ export default {
     // ================ 物料相关方法 ================
     async fetchMaterialData() {
       // 如果是打印工序，不加载物料数据
-      if (this.processForm.processType === 'G') {
+      if (this.processForm.processType === "G") {
         this.materialTableData.tableList = [];
         this.materialTableData.total = 0;
         return;
@@ -2245,8 +2256,8 @@ export default {
 
     handleAddMaterial() {
       // 检查工序类型是否为 G (打印工序)
-      if (this.processForm.processType === 'G') {
-        this.$message.warning('打印工序不需要添加物料');
+      if (this.processForm.processType === "G") {
+        this.$message.warning("打印工序不需要添加物料");
         return;
       }
 

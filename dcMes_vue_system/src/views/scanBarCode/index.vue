@@ -14,7 +14,6 @@
             inactive-text="手动"
             class="print-switch"
             @change="handleAutoInitChange"
-
           >
           </el-switch>
         </div>
@@ -113,7 +112,7 @@
           </div>
 
           <!-- 按钮部分 -->
-              <div class="button-group"  >
+          <div class="button-group" v-if="$checkPermission('产线编辑配置')">
             <el-button
               type="danger"
               @click="handleCancelSave"
@@ -2434,19 +2433,19 @@ export default {
     // 产品型号选择处理
     handleProductSelect() {
       // 打开产品型号选择弹窗或跳转到选择页面
-      this.$message.info('产品型号选择功能');
+      this.$message.info("产品型号选择功能");
     },
 
     // 产品工序选择处理
     handleProcessSelect() {
       // 打开产品工序选择弹窗或跳转到选择页面
-      this.$message.info('产品工序选择功能');
+      this.$message.info("产品工序选择功能");
     },
 
     // 产线编码选择处理
     handleLineSelect() {
       // 打开产线编码选择弹窗或跳转到选择页面
-      this.$message.info('产线编码选择功能');
+      this.$message.info("产线编码选择功能");
     },
 
     clearInput() {

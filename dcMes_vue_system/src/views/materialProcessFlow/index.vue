@@ -202,13 +202,22 @@
 
         <div v-show="showAdvanced">
           <el-row :gutter="20">
-            <el-col :span="6">
+            <el-col :span="12">
               <el-form-item label="完成进度">
                 <el-input-number
-                  v-model="searchForm.progress"
+                  v-model="searchForm.minProgress"
                   :min="0"
                   :max="100"
-                  placeholder="完成进度"
+                  placeholder="最小进度"
+                  style="width: 130px;"
+                ></el-input-number>
+                <span style="margin: 0 10px;">至</span>
+                <el-input-number
+                  v-model="searchForm.maxProgress"
+                  :min="0"
+                  :max="100"
+                  placeholder="最大进度"
+                  style="width: 130px;"
                 ></el-input-number>
               </el-form-item>
             </el-col>
@@ -1199,10 +1208,11 @@ export default {
         status: "",
         productStatus: "",
         dateRange: [],
-        progress: "",
+        minProgress: null,
+        maxProgress: null,
         workOrderNo: "",
-        productionPlanWorkOrderId: "", // 添加生产计划工单ID字段
-        palletCode: "", // 添加托盘编号字段
+        productionPlanWorkOrderId: "",
+        palletCode: "",
       },
       tableList: [],
       total: 0,
@@ -2032,6 +2042,20 @@ export default {
         }
       }
 
+      // 处理进度范围查询
+      if (this.searchForm.minProgress !== null || this.searchForm.maxProgress !== null) {
+        const progressQuery = {};
+        if (this.searchForm.minProgress !== null) {
+          progressQuery.$gte = this.searchForm.minProgress;
+        }
+        if (this.searchForm.maxProgress !== null) {
+          progressQuery.$lte = this.searchForm.maxProgress;
+        }
+        if (Object.keys(progressQuery).length > 0) {
+          req.query.$and.push({ progress: progressQuery });
+        }
+      }
+
       if (!req.query.$and.length) {
         delete req.query.$and;
       }
@@ -2054,10 +2078,11 @@ export default {
         status: "",
         productStatus: "",
         dateRange: [],
-        progress: "",
+        minProgress: null,
+        maxProgress: null,
         workOrderNo: "",
-        productionPlanWorkOrderId: "", // 确保重置生产计划工单ID字段
-        palletCode: "", // 重置托盘编号字段
+        productionPlanWorkOrderId: "",
+        palletCode: "",
       };
       this.currentPage = 1;
       this.fetchData();
@@ -4167,5 +4192,55 @@ export default {
 
 .replace-form {
   margin-top: 20px;
+}
+
+.progress-range-item {
+  .progress-range-container {
+    display: flex;
+    align-items: center;
+    background: #f5f7fa;
+    border-radius: 4px;
+    padding: 0 10px;
+    height: 40px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: #eef1f6;
+    }
+
+    .progress-input {
+      flex: 1;
+      
+      :deep(.el-input__inner) {
+        background: transparent;
+        border: none;
+        text-align: center;
+        height: 40px;
+        line-height: 40px;
+        font-size: 14px;
+        color: #606266;
+
+        &::placeholder {
+          color: #c0c4cc;
+        }
+
+        &:hover, &:focus {
+          background: transparent;
+        }
+      }
+    }
+
+    .progress-separator {
+      padding: 0 10px;
+      color: #909399;
+      font-size: 14px;
+    }
+
+    .progress-unit {
+      color: #909399;
+      font-size: 14px;
+      margin-left: 5px;
+    }
+  }
 }
 </style>
