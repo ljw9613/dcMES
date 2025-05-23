@@ -18,7 +18,7 @@
         </zr-select>
         <el-button v-if="showPreview" type="primary" @click="handlePreview">模板预览</el-button>
         <el-button v-if="showBrowserPrint" type="primary" @click="handlePrints">浏览器打印</el-button>
-        <el-button v-if="showSilentPrint" type="primary" @click="handlePrints2">静默打印</el-button>
+        <el-button v-if="showSilentPrint && $checkPermission('静默打印')" type="primary" @click="handlePrints2">静默打印</el-button>
         <!-- 添加弹窗包裹 -->
         <el-dialog title="打印预览" append-to-body :visible.sync="dialogVisible" width="240mm" :before-close="handleClose">
             <div>

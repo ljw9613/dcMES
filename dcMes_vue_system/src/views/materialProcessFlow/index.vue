@@ -204,21 +204,19 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="完成进度">
-                <el-input-number
+                <el-input
                   v-model="searchForm.minProgress"
-                  :min="0"
-                  :max="100"
                   placeholder="最小进度"
                   style="width: 130px;"
-                ></el-input-number>
+                  @input="validateNumber('minProgress')"
+                ></el-input>
                 <span style="margin: 0 10px;">至</span>
-                <el-input-number
+                <el-input
                   v-model="searchForm.maxProgress"
-                  :min="0"
-                  :max="100"
                   placeholder="最大进度"
                   style="width: 130px;"
-                ></el-input-number>
+                  @input="validateNumber('maxProgress')"
+                ></el-input>
               </el-form-item>
             </el-col>
           </el-row>
@@ -1208,8 +1206,8 @@ export default {
         status: "",
         productStatus: "",
         dateRange: [],
-        minProgress: null,
-        maxProgress: null,
+        minProgress: "",
+        maxProgress: "",
         workOrderNo: "",
         productionPlanWorkOrderId: "",
         palletCode: "",
@@ -2043,13 +2041,13 @@ export default {
       }
 
       // 处理进度范围查询
-      if (this.searchForm.minProgress !== null || this.searchForm.maxProgress !== null) {
+      if (this.searchForm.minProgress !== "" || this.searchForm.maxProgress !== "") {
         const progressQuery = {};
-        if (this.searchForm.minProgress !== null) {
-          progressQuery.$gte = this.searchForm.minProgress;
+        if (this.searchForm.minProgress !== "") {
+          progressQuery.$gte = Number(this.searchForm.minProgress);
         }
-        if (this.searchForm.maxProgress !== null) {
-          progressQuery.$lte = this.searchForm.maxProgress;
+        if (this.searchForm.maxProgress !== "") {
+          progressQuery.$lte = Number(this.searchForm.maxProgress);
         }
         if (Object.keys(progressQuery).length > 0) {
           req.query.$and.push({ progress: progressQuery });
@@ -2078,8 +2076,8 @@ export default {
         status: "",
         productStatus: "",
         dateRange: [],
-        minProgress: null,
-        maxProgress: null,
+        minProgress: "",
+        maxProgress: "",
         workOrderNo: "",
         productionPlanWorkOrderId: "",
         palletCode: "",
@@ -3427,6 +3425,16 @@ export default {
       } finally {
         this.saleOrderExportLoading = false;
         this.$loading().close();
+      }
+    },
+    // 添加数字校验方法
+    validateNumber(field) {
+      // 移除非数字字符
+      this.searchForm[field] = this.searchForm[field].replace(/[^\d]/g, '');
+      
+      // 如果输入的数字大于100，则限制为100
+      if (this.searchForm[field] && Number(this.searchForm[field]) > 100) {
+        this.searchForm[field] = '100';
       }
     },
   },

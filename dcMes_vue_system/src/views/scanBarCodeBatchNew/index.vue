@@ -1927,10 +1927,7 @@ export default {
                 this.palletForm.palletCode = "";
                 this.scannedList = [];
                 for (const material of this.processMaterials) {
-                  if (
-                    material.isBatch &&
-                    this.scanForm.barcodes[material._id]
-                  ) {
+                  if (material.isBatch && this.scanForm.barcodes[material._id]) {
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                     const usageKey = `${cacheKey}_usage`;
                     const currentUsage = parseInt(
@@ -1948,6 +1945,10 @@ export default {
                       this.$set(this.scanForm.barcodes, material._id, "");
                       this.$set(this.validateStatus, material._id, false);
                     }
+                  } else if (!material.isBatch) {
+                    // 清空非批次物料的输入框
+                    this.$set(this.scanForm.barcodes, material._id, "");
+                    this.$set(this.validateStatus, material._id, false);
                   }
                 }
                 this.scanForm.mainBarcode = "";

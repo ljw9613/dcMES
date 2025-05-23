@@ -358,7 +358,6 @@ export default {
       },
       materialBarcodeRules: [], // 新增：用于存储条码规则
       printData: {}, // 打印数据
-      localPrintTemplate: null, // 打印模板
     };
   },
   computed: {
@@ -384,6 +383,25 @@ export default {
       if (this.progressPercentage >= 100) return "success";
       if (this.progressPercentage >= 80) return "warning";
       return "";
+    },
+    // 添加打印模版本地缓存的计算属性
+    localPrintTemplate: {
+      get() {
+        try {
+          const savedTemplate = localStorage.getItem("printTemplate_palletAssembly");
+          return savedTemplate ? JSON.parse(savedTemplate) : null;
+        } catch (error) {
+          console.error("解析缓存模板失败:", error);
+          return null;
+        }
+      },
+      set(value) {
+        try {
+          localStorage.setItem("printTemplate_palletAssembly", JSON.stringify(value));
+        } catch (error) {
+          console.error("保存模板到缓存失败:", error);
+        }
+      },
     },
   },
   methods: {
@@ -1548,6 +1566,17 @@ export default {
     this.$nextTick(() => {
       const palletCodeInput = this.$refs.palletForm.$el.querySelector("input");
       palletCodeInput && palletCodeInput.focus();
+
+      // 加载本地缓存的打印模板
+      const savedTemplate = this.localPrintTemplate;
+      if (savedTemplate) {
+        this.$nextTick(() => {
+          if (this.$refs.hirInput) {
+            // 传递完整的模板对象给子组件
+            this.$refs.hirInput.handleTemplateChange(savedTemplate);
+          }
+        });
+      }
     });
   },
 };

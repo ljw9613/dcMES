@@ -69,22 +69,23 @@
               <!-- <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单号" clearable></el-input> -->
               <zr-select
                 v-model="searchForm.saleOrderNo"
-                collection="warehouse_entry"
-                :search-fields="['saleOrderNo']"
-                label-key="saleOrderNo"
-                value-key="saleOrderNo"
+                collection="k3_SAL_SaleOrder"
+                :search-fields="['FBillNo']"
+                label-key="FBillNo"
+                value-key="FBillNo"
+                sub-key="FBillNo"
                 :multiple="false"
-                placeholder="请输入销售订单号"
+                placeholder="请输入销售单号"
                 clearable
                 style="width: 100%"
               >
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
-                      <span class="option-label">{{ item.saleOrderNo }}</span>
-                      <!-- <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.entryNo }}
-                                            </el-tag> -->
+                      <span class="option-label">{{ item.FBillNo }}</span>
+                      <el-tag size="mini" type="info" class="option-tag">
+                        {{ item.FBillNo }} - {{ item.FSaleOrgId }}
+                      </el-tag>
                     </div>
                   </div>
                 </template>
