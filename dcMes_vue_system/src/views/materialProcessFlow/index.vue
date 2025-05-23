@@ -411,14 +411,14 @@
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('条码记录更新流程节点')"
               @click="handleUpdateFlowNodes(scope.row)"
               >更新流程节点</el-button
             >
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('条码记录修复异常节点')"
               @click="handleAutoFixInconsistentProcessNodes(scope.row)"
             >
               修复异常节点
@@ -426,7 +426,7 @@
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('条码记录修复异常节点')"
               @click="handleFixFlowProgress(scope.row)"
             >
               修复流程进度
@@ -434,7 +434,6 @@
             <el-button
               type="text"
               size="small"
-
               @click="handleSingleMainExport(scope.row)"
             >
               导出条码数据
