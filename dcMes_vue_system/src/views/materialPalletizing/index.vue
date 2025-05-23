@@ -441,27 +441,27 @@
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('托盘单据抽检复位')"
               @click="handleInspectionReset(scope.row)"
             >托盘抽检复位</el-button>
             <el-button
               type="text"
               style="color: red"
-
+              v-if="$checkPermission('托盘单据初始化托盘')"
               @click="handleAllDelete(scope.row)"
               >初始化单据</el-button
             >
             <el-button
               type="text"
               style="color: red"
-
+              v-if="$checkPermission('托盘单据删除单据')"
               @click="Delete(scope.row)"
               >删除单据</el-button
             >
             <el-button
               type="text"
               style="color: #e6a23c"
-              v-if="scope.row.status === 'STACKING' && $checkPermission('托盘单据强制完成')"
+              v-if="$checkPermission('托盘单据强制完成')"
               @click="handleForceComplete(scope.row)"
             >
               强制完成
@@ -486,7 +486,7 @@
             <el-button
               type="text"
               style="color: #67c23a"
-
+            v-if="$checkPermission('托盘单据拆分托盘')"
               @click="handleSplitPallet(scope.row)"
               >拆分托盘</el-button
             >

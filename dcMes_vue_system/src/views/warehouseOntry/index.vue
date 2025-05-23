@@ -380,6 +380,7 @@
               type="text"
               style="color: orange"
               @click="handleUpdateNumber(scope.row)"
+              v-if="$checkPermission('生产出库单修改应出库数量')"
               >修改应出库数量</el-button
             >
             <el-button
@@ -404,6 +405,7 @@
               type="text"
               style="color: red"
               @click="handleDelete(scope.row)"
+              v-if="$checkPermission('生产出库单删除')"
               >删除</el-button
             >
             <el-button

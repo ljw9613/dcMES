@@ -325,8 +325,9 @@
       <template v-if="dialogStatus === 'edit'">
         <el-button
           type="success"
-          v-if="form.status === 'PAUSED'"
+          v-if="form.status === 'PAUSED' && $checkPermission('生产计划补工单')"
           @click="handleOtherProduction"
+
         >
           补工单
         </el-button>
@@ -342,7 +343,7 @@
           type="success"
           @click="handleStartProduction"
           :disabled="!canStart"
-          v-if="form.status === 'PENDING' || form.status === 'PAUSED'"
+          v-if="form.status === 'PENDING' || form.status === 'PAUSED' && $checkPermission('生产计划开始生产') "
         >
           开始生产
         </el-button>
@@ -357,7 +358,7 @@
         <el-button
           type="danger"
           @click="handleCancelProduction"
-          v-if="form.status === 'PENDING'"
+          v-if="form.status === 'PENDING' && $checkPermission('生产计划工单作废')"
         >
           工单作废
         </el-button>

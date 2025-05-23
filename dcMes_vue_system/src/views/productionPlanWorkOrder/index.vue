@@ -407,7 +407,8 @@
 
         <el-table-column label="操作" width="300" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleEdit(scope.row)">
+            <el-button type="text" size="small" @click="handleEdit(scope.row)"
+            v-if="$checkPermission('生产计划编辑')">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
             <el-button
@@ -415,7 +416,7 @@
               size="small"
               class="delete-btn"
               @click="handleDelete(scope.row)"
-            >
+            v-if="$checkPermission('生产计划删除')">
               <i class="el-icon-delete"></i> 删除
             </el-button>
           </template>

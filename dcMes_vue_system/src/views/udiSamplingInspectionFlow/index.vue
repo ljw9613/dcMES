@@ -266,13 +266,6 @@
             >
               详情
             </el-button>
-  
-            <!-- <el-button
-              v-if="$checkPermission('UDI抽检条码抽检')"
-              type="text"
-              size="mini"
-              @click="handleBarcodeSampling(scope.row)"
-            >抽检</el-button> -->
           </template>
         </el-table-column>
       </template>
@@ -682,6 +675,7 @@
         </div>
       </div>
     </el-dialog>
+
 
     <!-- 摄像头对话框 -->
     <el-dialog
@@ -2696,7 +2690,7 @@ export default {
 
           // 添加流程状态到当前详情中
           this.$set(this.currentDetail, "flowStatus", flowData.status);
-          
+
           // 添加产品状态到当前详情中
           this.$set(this.currentDetail, "productStatus", flowData.productStatus);
 
@@ -2788,7 +2782,64 @@ export default {
     },
 
     // 处理作废操作
-        // 作废和详情方法已删除
+    async handleVoid(row, callback) {
+      try {
+        const { value: reason } = await this.$prompt(
+          "请输入作废原因",
+          "作废确认",
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputType: "textarea",
+            inputValidator: (value) => {
+              if (!value) {
+                return "作废原因不能为空";
+              }
+              return true;
+            },
+          }
+        );
+
+        const requpdateData = {
+          samplingStatus: "VOIDED",
+          voidReason: reason,
+          voidTime: new Date(),
+          voidOperator: this.$store.state.user.name,
+          updateBy: this.$store.state.user.id,
+        };
+
+        const result = await updateData("udi_sampling_inspection_flow", {
+          query: { _id: row._id },
+          update: requpdateData,
+        });
+
+        if (result.code === 200) {
+          this.$message.success("作废成功");
+          this.fetchData();
+          // 如果有回调函数，执行回调
+          if (typeof callback === "function") {
+            callback();
+          }
+        } else {
+          throw new Error(result.msg || "作废失败");
+        }
+      } catch (error) {
+        if (error !== "cancel") {
+          console.error("作废失败:", error);
+          this.$message.error("作废失败: " + error.message);
+        }
+        throw error;
+      }
+    },
+
+    // 查看详情
+    handleDetail(row) {
+      this.currentDetail = row;
+      this.detailDialogVisible = true;
+
+      // 获取流程状态和最后完成节点信息
+      this.getFlowStatusForDetail(row.barcode);
+    },
 
     // 打开摄像头对话框
     openCameraDialog() {

@@ -271,9 +271,12 @@
               type="text"
               style="color: red"
               @click="handleDelete(scope.row)"
+              v-if="$checkPermission('生产入库单删除')"
               >删除</el-button
             >
-            <el-button type="text"  @click="handleSync(scope.row)">同步金蝶云</el-button>
+            <el-button type="text"  @click="handleSync(scope.row)"
+                       v-if="$checkPermission('生产入库单同步金蝶云')"
+            >同步金蝶云</el-button>
           </template>
         </el-table-column>
       </template>

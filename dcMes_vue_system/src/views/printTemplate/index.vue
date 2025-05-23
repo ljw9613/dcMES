@@ -193,7 +193,7 @@
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleEdit(scope.row)"><i class="el-icon-edit"></i> 编辑</el-button>
+            <el-button type="text" size="small" @click="handleEdit(scope.row)"><i class="el-icon-edit" v-if="$checkPermission('打印模版编辑')"></i> 编辑</el-button>
             <el-button type="text" size="small"  @click="handlePrint(scope.row)"><i class="el-icon-printer"></i> 打印</el-button>
             <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)"><i class="el-icon-delete"></i> 删除</el-button>
           </template>

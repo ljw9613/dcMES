@@ -54,7 +54,7 @@
               style="margin-left: 10px"
               type="primary"
               @click="Search()"
-              v-if="$checkPermission('用户列表搜索')"
+             
               >查询搜索
             </el-button>
           </div>
@@ -208,7 +208,8 @@
           >
             上线
           </el-button>
-          <el-button v-else-if="row.status && $checkPermission('用户列表下线')" size="mini" type="danger" @click="handisshow(row)">
+          <el-button v-else-if="row.status && $checkPermission('用户列表下线')" size="mini" type="danger" @click="handisshow(row)"
+          >
             下线
           </el-button>
         </template>
