@@ -384,6 +384,7 @@
               type="text"
               style="color: orange"
               @click="handleUpdateNumber(scope.row)"
+              v-if="$checkPermission('生产出库单修改应出库数量')"
               >修改应出库数量</el-button
             >
             <el-button
@@ -409,6 +410,7 @@
               type="text"
               style="color: red"
               @click="handleDelete(scope.row)"
+              v-if="$checkPermission('生产出库单删除')"
               >删除</el-button
             >
             <el-button
@@ -1385,17 +1387,17 @@ export default {
       if (!entryItem) {
         return [];
       }
-      
+
       // 处理新数据结构
       if (entryItem.palletBarcodes && entryItem.palletBarcodes.length > 0) {
         return entryItem.palletBarcodes;
       }
-      
+
       // 处理旧数据结构
       if (entryItem.palletId && entryItem.palletId.palletBarcodes && entryItem.palletId.palletBarcodes.length > 0) {
         return entryItem.palletId.palletBarcodes;
       }
-      
+
       return [];
     },
 

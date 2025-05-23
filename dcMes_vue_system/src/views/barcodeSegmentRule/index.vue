@@ -66,13 +66,16 @@
         </el-table-column>
         <el-table-column label="操作" width="260" align="center">
           <template slot-scope="{row}">
-            <el-button type="text" size="small" @click="handleEdit(row)">
+            <el-button type="text" size="small" @click="handleEdit(row)"
+                       v-if="$checkPermission('条码生成规则编辑')">
               <i class="el-icon-edit"></i> 编辑
             </el-button>
-            <el-button type="text" size="small" @click="handleBindMaterial(row)">
+            <el-button type="text" size="small" @click="handleBindMaterial(row)"
+                       v-if="$checkPermission('条码生成规则绑定物料')">
               <i class="el-icon-link"></i> 绑定物料
             </el-button>
-            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)">
+            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)"
+                       v-if="$checkPermission('条码生成规则删除')">
               <i class="el-icon-delete"></i> 删除
             </el-button>
            </template>
@@ -499,7 +502,8 @@
             <el-table-column label="创建人" prop="creator" width="120" />
             <el-table-column label="操作" width="120" align="center">
               <template slot-scope="{row}">
-                <el-button type="text" @click="unbindMaterial(row)" class="delete-btn">
+                <el-button type="text" @click="unbindMaterial(row)" class="delete-btn"
+                           v-if="$checkPermission('条码生成规则绑定物料-解除绑定')">
                   解除绑定
                 </el-button>
               </template>
@@ -508,7 +512,7 @@
         </el-card>
 
         <!-- 新增物料绑定 -->
-        <el-card class="add-material-card">
+        <el-card class="add-material-card"  v-if="$checkPermission('条码生成规则绑定物料-新增物料绑定')">
           <div slot="header">
             <span>新增物料绑定</span>
           </div>

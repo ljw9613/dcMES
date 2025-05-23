@@ -107,7 +107,7 @@
                         <el-button
                           type="text"
                           size="small"
-
+                      v-if="$checkPermission('生产产线编辑')"
                           @click="handleEdit(scope.row)">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
@@ -115,7 +115,7 @@
                           type="text"
                           size="small"
                           class="delete-btn"
-
+                  v-if="$checkPermission('生产产线删除')"
                           @click="handleDelete(scope.row)">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>

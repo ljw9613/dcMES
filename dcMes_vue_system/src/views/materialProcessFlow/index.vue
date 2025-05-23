@@ -214,11 +214,12 @@
             </el-col>
           </el-row>
         </div>
-        
+
         <el-form-item>
           <el-button type="primary" @click="search" >查询搜索</el-button>
           <el-button @click="resetForm" >重置</el-button>
           <el-button type="primary" @click="openBarcodeSearch"
+                     v-if="$checkPermission('条码记录成品追溯')"
             >成品追溯</el-button
           >
           <el-button
@@ -404,7 +405,7 @@
             <el-button
               type="text"
               size="small"
-
+              v-if="$checkPermission('条码记录更新流程节点')"
               @click="handleUpdateFlowNodes(scope.row)"
               >更新流程节点</el-button
             >
@@ -3288,47 +3289,47 @@ export default {
           spinner: 'el-icon-loading',
           background: 'rgba(0, 0, 0, 0.7)'
         });
-        
+
         let allData = [];
         let currentPage = 1;
         const pageSize = 100;
         let hasMore = true;
         let total = 0;
-        
+
         // 循环获取所有数据
         while (hasMore) {
           loading.text = `正在获取第 ${currentPage} 批数据...`;
-          
+
           const res = await exportBySaleOrder({
             saleOrderNo: this.selectedSaleOrderNo,
             page: currentPage,
             pageSize
           });
-          
+
           if (res.code !== 200) throw new Error(res.message || '接口异常');
-          
+
           const { data, hasMore: more, total: totalCount } = res;
           allData = allData.concat(data || []);
           total = totalCount;
-          
+
           // 更新进度提示
           loading.text = `已获取 ${allData.length}/${total} 条数据`;
-          
+
           hasMore = more;
           currentPage++;
         }
-        
+
         // 导出Excel
         if (allData.length > 0) {
           loading.text = '正在生成Excel文件...';
-          
+
           // 字段顺序与表头
           const headers = [
             'WORK_ORDER(PO号)', 'UDI', 'MASTER_CARTON_UDI（外箱UDI）', 'PART_NO(部件编码)',
             'QR_COED（条码）', 'SN_NO（客户物料编码）', 'STATION（工序描述）',
             'RESULT（绑定结果）', 'TEST_TIME（操作时间）', 'EMPNAME（操作人）'
           ];
-          
+
           // 字段映射
           const data = allData.map(item => ({
             'WORK_ORDER(PO号)': item.WORK_ORDER,
@@ -3380,16 +3381,16 @@ export default {
           // 生成Excel文件并下载
           loading.text = '正在下载文件...';
           const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-          const blob = new Blob([excelBuffer], { 
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          const blob = new Blob([excelBuffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           });
-          
+
           // 生成文件名
           const fileName = `销售订单${this.selectedSaleOrderNo}成品流程记录_${new Date().toLocaleDateString()}.xlsx`;
-          
+
           // 下载文件
           FileSaver.saveAs(blob, fileName);
-          
+
           this.$message.success('导出成功');
           this.saleOrderExportDialogVisible = false;
         } else {
