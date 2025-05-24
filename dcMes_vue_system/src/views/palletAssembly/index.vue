@@ -388,7 +388,9 @@ export default {
     localPrintTemplate: {
       get() {
         try {
-          const savedTemplate = localStorage.getItem("printTemplate_palletAssembly");
+          const savedTemplate = localStorage.getItem(
+            "printTemplate_palletAssembly"
+          );
           return savedTemplate ? JSON.parse(savedTemplate) : null;
         } catch (error) {
           console.error("解析缓存模板失败:", error);
@@ -397,7 +399,10 @@ export default {
       },
       set(value) {
         try {
-          localStorage.setItem("printTemplate_palletAssembly", JSON.stringify(value));
+          localStorage.setItem(
+            "printTemplate_palletAssembly",
+            JSON.stringify(value)
+          );
         } catch (error) {
           console.error("保存模板到缓存失败:", error);
         }
@@ -755,7 +760,7 @@ export default {
         this.$message.warning("请输入托盘编号");
         return;
       }
-      
+
       let tempPalletCodeForValidation = this.palletForm.palletCode.trim(); // 先保存，再重置
 
       // 解析条码信息
@@ -1070,7 +1075,27 @@ export default {
         return;
       }
 
-      //查询当前条码是否有解绑记录
+      // 如果条码以","开头，则认为是托盘条码
+      if (barcode.includes(",")) {
+        barcode = barcode.split(",")[0];
+      }
+
+      //是否为升级条码
+      const preProductionResponse = await getData("preProductionBarcode", {
+        query: {
+          transformedPrintBarcode: barcode,
+        },
+        select: {
+          transformedPrintBarcode: 1,
+          printBarcode: 1,
+        },
+        limit: 1,
+      });
+
+      if (preProductionResponse.data && preProductionResponse.data.length > 0) {
+        console.log("升级条码:", preProductionResponse.data[0]);
+        barcode = preProductionResponse.data[0].printBarcode;
+      }
 
       //查询是否有过托盘解绑记录
       const palletUnbindResponse = await getData(

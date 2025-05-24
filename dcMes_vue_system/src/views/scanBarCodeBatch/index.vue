@@ -1632,7 +1632,7 @@ export default {
         let cleanValue = value.trim().replace(/[\r\n]/g, "");
         if (!cleanValue) return;
 
-        // 如果条码以","开头，则认为是托盘条码
+        // 如果条码包含","，则取第一个逗号前的部分作为条码
         if (cleanValue.includes(",")) {
           cleanValue = cleanValue.split(",")[0];
         }
@@ -1642,7 +1642,7 @@ export default {
           "material_palletizing_unbind_log",
           {
             query: {
-              unbindBarcode: cleanValue,
+              unbindBarcode: cleanValue,  // 使用截取后的条码
             },
             select: {
               palletCode: 1,
@@ -1849,7 +1849,7 @@ export default {
           query: {
             processNodes: {
               $elemMatch: {
-                barcode: cleanValue,
+                barcode: cleanValue,  // 使用截取后的条码
                 isPackingBox: true,
               },
             },
@@ -2036,6 +2036,10 @@ export default {
             });
           }
         });
+        
+        // 记录最后一次的响应结果，用于在循环结束后更新界面
+        let lastResult = null;
+        
         // 添加到已扫描列表
         for await (const item of boxData) {
           let res = await handlePalletBarcode({
@@ -2053,7 +2057,7 @@ export default {
             componentScans, // 添加子物料信息
           });
           if (res.code === 200) {
-            //更新当前托盘编码
+            // 只更新托盘基本信息，不在循环中更新scannedList
             this.palletForm.palletCode = res.data.palletCode;
             this.palletForm.productionOrderId = res.data.productionOrderId;
             this.palletForm.workOrderNo = res.data.workOrderNo;
@@ -2062,124 +2066,8 @@ export default {
             this.palletForm.totalQuantity = res.data.totalQuantity;
             this.batchForm.batchSize = res.data.totalQuantity;
 
-            // this.scannedList.push({
-            //   barcode: item.barcode,
-            //   type: "box",
-            //   boxBarcode: boxBarcode,
-            //   scanTime: new Date(),
-            // });
-            // 打印托盘条码
-            let materialPalletizingPrintData = await getData(
-              "material_palletizing",
-              {
-                query: { _id: res.data._id },
-                populate: JSON.stringify([
-                  { path: "productLineId", select: "lineCode" },
-                  { path: "productionOrderId", select: "FWorkShopID_FName" },
-                ]),
-              }
-            );
-            let printData = materialPalletizingPrintData.data[0];
-            printData.createAt = this.formatDate(printData.createAt);
-            printData.workshop =
-              (printData.productionOrderId &&
-                printData.productionOrderId.FWorkShopID_FName) ||
-              "未记录生产车间";
-            printData.qrcode = `${printData.palletCode}#${
-              printData.saleOrderNo
-            }#${printData.materialCode}#${printData.totalQuantity}#${
-              (printData.productLineId && printData.productLineId.lineCode) ||
-              "未记录生产线"
-            }`;
-
-            // 初始化或格式化 palletBarcodes
-            if (Array.isArray(printData.palletBarcodes)) {
-              printData.palletBarcodes = printData.palletBarcodes.map(
-                (item) => {
-                  item.scanTime = this.formatDate(item.scanTime);
-                  return item;
-                }
-              );
-            } else {
-              printData.palletBarcodes = []; // 如果不存在或不是数组，初始化为空数组
-            }
-
-            // 如果 printData.boxItems 存在且有内容，则按 boxItems 结构处理 palletBarcodes
-            // 这段逻辑假设 printData 可能包含一个名为 boxItems 的数组，其中每个元素代表一个箱子，箱子内又有自己的条码
-            if (
-              Array.isArray(printData.boxItems) &&
-              printData.boxItems.length > 0
-            ) {
-              let palletBarcodesFromBoxItems = [];
-              printData.boxItems.forEach((box) => {
-                // box 是 printData.boxItems 中的一个对象
-                let currentBoxBarcode = box.boxBarcode;
-                // 确保 box.boxBarcodes 是一个数组再遍历
-                if (Array.isArray(box.boxBarcodes)) {
-                  box.boxBarcodes.forEach((itemInBox) => {
-                    palletBarcodesFromBoxItems.push({
-                      barcode: itemInBox.barcode,
-                      boxBarcode: currentBoxBarcode,
-                      scanTime: this.formatDate(itemInBox.scanTime),
-                    });
-                  });
-                }
-              });
-              printData.palletBarcodes = palletBarcodesFromBoxItems; // 用 boxItems 构建的条码列表覆盖原有的 palletBarcodes
-            } else {
-              // 如果没有 boxItems 结构，则确保 palletBarcodes 数组中的每一项都已格式化 scanTime
-              // (这一步可能在上面的初始化中已部分完成，这里作为补充或默认处理)
-              if (Array.isArray(printData.palletBarcodes)) {
-                printData.palletBarcodes = printData.palletBarcodes.map(
-                  (item) => {
-                    item.scanTime = this.formatDate(item.scanTime);
-                    // 根据业务需求，如果不是boxItems结构，可以考虑是否需要清除或设置item.boxBarcode
-                    // item.boxBarcode = "";
-                    return item;
-                  }
-                );
-              } else {
-                printData.palletBarcodes = []; // 再次确保 palletBarcodes 是数组
-              }
-            }
-
-            //处理多工单托盘的情况
-            if (
-              Array.isArray(printData.workOrders) &&
-              printData.workOrders.length > 1
-            ) {
-              // 使用 map 和 join 更简洁地拼接工单号
-              printData.workOrderNo = printData.workOrders
-                .map((item) => item.workOrderNo)
-                .join(",");
-            }
-
-            if (printData.isLastPallet) {
-              printData.isLastPallet = "尾数托盘";
-            } else {
-              printData.isLastPallet = ""; // 确保字段存在，即使值为假
-            }
-
-            this.printData = printData;
-
-            // 根据后端返回的 palletBarcodes 更新 scannedList
-            this.scannedList = this.printData.palletBarcodes.map((pbItem) => ({
-              barcode: pbItem.barcode,
-              scanTime: pbItem.scanTime, // scanTime is already formatted by previous map
-              type: pbItem.barcodeType,
-              boxBarcode: pbItem.boxBarcode,
-            }));
-
-            // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
-            if (res.data.status == "STACKED") {
-              this.palletForm.palletCode = "";
-              this.palletForm.totalQuantity = 0;
-              this.scannedList = [];
-
-              this.$nextTick(() => {
-                this.$refs.hirInput.handlePrints2();
-              });
-            }
+            // 记录最后一次成功的结果
+            lastResult = res;
           } else {
             this.$message.error(res.message);
             this.popupType = "ng";
@@ -2196,6 +2084,123 @@ export default {
             return;
           }
         }
+        
+        // 循环结束后，使用最后一次的结果更新printData和scannedList
+        if (lastResult && lastResult.code === 200) {
+          // 获取最新的托盘数据
+          let materialPalletizingPrintData = await getData(
+            "material_palletizing",
+            {
+              query: { _id: lastResult.data._id },
+              populate: JSON.stringify([
+                { path: "productLineId", select: "lineCode" },
+                { path: "productionOrderId", select: "FWorkShopID_FName" },
+              ]),
+            }
+          );
+          let printData = materialPalletizingPrintData.data[0];
+          printData.createAt = this.formatDate(printData.createAt);
+          printData.workshop =
+            (printData.productionOrderId &&
+              printData.productionOrderId.FWorkShopID_FName) ||
+            "未记录生产车间";
+          printData.qrcode = `${printData.palletCode}#${
+            printData.saleOrderNo
+          }#${printData.materialCode}#${printData.totalQuantity}#${
+            (printData.productLineId && printData.productLineId.lineCode) ||
+            "未记录生产线"
+          }`;
+
+          // 初始化或格式化 palletBarcodes
+          if (Array.isArray(printData.palletBarcodes)) {
+            printData.palletBarcodes = printData.palletBarcodes.map(
+              (item) => {
+                item.scanTime = this.formatDate(item.scanTime);
+                return item;
+              }
+            );
+          } else {
+            printData.palletBarcodes = []; // 如果不存在或不是数组，初始化为空数组
+          }
+
+          // 如果 printData.boxItems 存在且有内容，则按 boxItems 结构处理 palletBarcodes
+          // 这段逻辑假设 printData 可能包含一个名为 boxItems 的数组，其中每个元素代表一个箱子，箱子内又有自己的条码
+          if (
+            Array.isArray(printData.boxItems) &&
+            printData.boxItems.length > 0
+          ) {
+            let palletBarcodesFromBoxItems = [];
+            printData.boxItems.forEach((box) => {
+              // box 是 printData.boxItems 中的一个对象
+              let currentBoxBarcode = box.boxBarcode;
+              // 确保 box.boxBarcodes 是一个数组再遍历
+              if (Array.isArray(box.boxBarcodes)) {
+                box.boxBarcodes.forEach((itemInBox) => {
+                  palletBarcodesFromBoxItems.push({
+                    barcode: itemInBox.barcode,
+                    boxBarcode: currentBoxBarcode,
+                    scanTime: this.formatDate(itemInBox.scanTime),
+                  });
+                });
+              }
+            });
+            printData.palletBarcodes = palletBarcodesFromBoxItems; // 用 boxItems 构建的条码列表覆盖原有的 palletBarcodes
+          } else {
+            // 如果没有 boxItems 结构，则确保 palletBarcodes 数组中的每一项都已格式化 scanTime
+            // (这一步可能在上面的初始化中已部分完成，这里作为补充或默认处理)
+            if (Array.isArray(printData.palletBarcodes)) {
+              printData.palletBarcodes = printData.palletBarcodes.map(
+                (item) => {
+                  item.scanTime = this.formatDate(item.scanTime);
+                  // 根据业务需求，如果不是boxItems结构，可以考虑是否需要清除或设置item.boxBarcode
+                  // item.boxBarcode = "";
+                  return item;
+                }
+              );
+            } else {
+              printData.palletBarcodes = []; // 再次确保 palletBarcodes 是数组
+            }
+          }
+
+          //处理多工单托盘的情况
+          if (
+            Array.isArray(printData.workOrders) &&
+            printData.workOrders.length > 1
+          ) {
+            // 使用 map 和 join 更简洁地拼接工单号
+            printData.workOrderNo = printData.workOrders
+              .map((item) => item.workOrderNo)
+              .join(",");
+          }
+
+          if (printData.isLastPallet) {
+            printData.isLastPallet = "尾数托盘";
+          } else {
+            printData.isLastPallet = ""; // 确保字段存在，即使值为假
+          }
+
+          this.printData = printData;
+
+          // 根据后端返回的 palletBarcodes 更新 scannedList
+          this.scannedList = this.printData.palletBarcodes.map((pbItem) => ({
+            barcode: pbItem.barcode,
+            scanTime: pbItem.scanTime, // scanTime is already formatted by previous map
+            type: pbItem.barcodeType,
+            boxBarcode: pbItem.boxBarcode,
+          }));
+
+          // 如果托盘状态为组托完成，则清空托盘条码 清空条码列表
+          if (lastResult.data.status == "STACKED") {
+            this.palletForm.palletCode = "";
+            this.palletForm.totalQuantity = 0;
+            this.scannedList = [];
+
+            this.$nextTick(() => {
+              this.$refs.hirInput.handlePrints2();
+            });
+          }
+        }
+        
         tone(smcg);
         this.popupType = "ok";
         this.showPopup = true;

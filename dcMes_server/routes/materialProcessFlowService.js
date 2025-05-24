@@ -1057,19 +1057,6 @@ router.post("/api/v1/check-barcode-prerequisites", async (req, res) => {
         matchProcess: processStepInfo,
         matchBindRecord: flowRecord,
       },
-      // data: {
-      //   flowRecord: {
-      //     id: flowRecord._id,
-      //     barcode: flowRecord.barcode,
-      //     materialCode: flowRecord.materialCode,
-      //   },
-      //   processNode: {
-      //     id: processNode._id,
-      //     processStepName: processNode.processStepId?.name,
-      //     processStepCode: processNode.processStepId?.code,
-      //   },
-      //   checkResult,
-      // },
     });
   } catch (error) {
     const errorCode = matchErrorCode(error.message);
