@@ -1612,14 +1612,16 @@ export default {
             limit: 1,
           }
         );
-        // if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
-        //   let palletUnbindData = palletUnbindResponse.data[0];
-        //   this.$message.error(`该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`);
-        //   this.popupType = "ng";
-        //   this.showPopup = true;
-        //   tone(tmyw);
-        //   return;
-        // }
+        if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
+          let palletUnbindData = palletUnbindResponse.data[0];
+          this.$message.error(
+            `该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`
+          );
+          this.popupType = "ng";
+          this.showPopup = true;
+          tone(tmyw);
+          return;
+        }
         //是否为升级条码
         const preProductionResponse = await getData("preProductionBarcode", {
           query: {
@@ -1927,7 +1929,10 @@ export default {
                 this.palletForm.palletCode = "";
                 this.scannedList = [];
                 for (const material of this.processMaterials) {
-                  if (material.isBatch && this.scanForm.barcodes[material._id]) {
+                  if (
+                    material.isBatch &&
+                    this.scanForm.barcodes[material._id]
+                  ) {
                     const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
                     const usageKey = `${cacheKey}_usage`;
                     const currentUsage = parseInt(
