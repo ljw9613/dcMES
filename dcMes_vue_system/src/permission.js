@@ -105,11 +105,11 @@ router.afterEach((to) => {
   setTimeout(() => {
     const store = router.app.$store;
     if (store && store.getters && store.getters.roles) {
-      console.log('%c⚡角色权限诊断⚡', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
-      console.log('角色信息:', store.getters.roles);
-      console.log('按钮权限列表 (buttonList):', store.getters.roles.buttonList);
-      console.log('是否为数组:', Array.isArray(store.getters.roles.buttonList));
-      console.log('权限项数量:', store.getters.roles.buttonList ? store.getters.roles.buttonList.length : 0);
+      // console.log('%c⚡角色权限诊断⚡', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
+      // console.log('角色信息:', store.getters.roles);
+      // console.log('按钮权限列表 (buttonList):', store.getters.roles.buttonList);
+      // console.log('是否为数组:', Array.isArray(store.getters.roles.buttonList));
+      // console.log('权限项数量:', store.getters.roles.buttonList ? store.getters.roles.buttonList.length : 0);
 
       // 检查用户类型
       if (store.getters.roles.name === 'admin' ||

@@ -271,14 +271,8 @@ export default {
           // 级联选择三级菜单
           if(subMenu.children && subMenu.children.length > 0) {
             subMenu.children.forEach(thirdMenu => {
-              if (thirdMenu.type === '权限') {
-                if (!checked) { // 如果父级(目录)被取消勾选，则权限子菜单也取消勾选
-                  thirdMenu.checked = false;
-                }
-                // 如果父级(目录)被勾选，权限子菜单的勾选状态保持不变
-              } else { // 非权限类型的子菜单正常级联
-                thirdMenu.checked = checked;
-              }
+              // 无论是权限类型还是非权限类型的子菜单都正常级联
+              thirdMenu.checked = checked;
             });
           }
         });
@@ -297,14 +291,8 @@ export default {
       // 级联选择三级菜单
       if(subMenu.children && subMenu.children.length > 0) {
         subMenu.children.forEach(thirdMenu => {
-          if (thirdMenu.type === '权限') {
-            if (!checked) { // 如果父级(子菜单)被取消勾选，则权限子菜单也取消勾选
-              thirdMenu.checked = false;
-            }
-            // 如果父级(子菜单)被勾选，权限子菜单的勾选状态保持不变
-          } else { // 非权限类型的子菜单正常级联
-            thirdMenu.checked = checked;
-          }
+          // 无论是权限类型还是非权限类型的子菜单都正常级联
+          thirdMenu.checked = checked;
         });
       }
 

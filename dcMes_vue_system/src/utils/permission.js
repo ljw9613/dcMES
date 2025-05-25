@@ -23,15 +23,15 @@ export function checkPermission(permission) {
     }
     
     // 详细的调试信息
-    console.log('检查权限:', permission);
-    console.log('store是否存在:', !!store);
-    console.log('store.getters是否存在:', !!store.getters);
-    console.log('用户角色信息:', roles);
-    console.log('buttonList:', roles.buttonList);
+    // console.log('检查权限:', permission);
+    // console.log('store是否存在:', !!store);
+    // console.log('store.getters是否存在:', !!store.getters);
+    // console.log('用户角色信息:', roles);
+    // console.log('buttonList:', roles.buttonList);
     
     // 超级管理员默认拥有所有权限
     if (roles.name === 'admin' || roles.name === '超级管理员' || roles.label === 'admin') {
-      console.log('用户是超级管理员，默认拥有所有权限');
+      // console.log('用户是超级管理员，默认拥有所有权限');
       return true;
     }
     

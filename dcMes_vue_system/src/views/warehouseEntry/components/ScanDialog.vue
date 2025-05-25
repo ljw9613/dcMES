@@ -218,6 +218,12 @@ export default {
         this.scanForm.stockId = val.FStockId;
         localStorage.setItem("lastSelectedstock_id", val._id);
         localStorage.setItem("lastSelectedStockId", val.FStockId);
+      } else {
+        // 当清空选择时，也要清空相关数据
+        this.stock_id = null;
+        this.scanForm.stockId = null;
+        localStorage.removeItem("lastSelectedstock_id");
+        localStorage.removeItem("lastSelectedStockId");
       }
     },
     async handleScanInput() {
@@ -241,9 +247,9 @@ export default {
         // if (!palletCode || !saleOrderNo || !materialCode || !quantity) {
         //   throw new Error('无效的托盘条码格式');
         // }
-        // if(!this.scanForm.stockId){
-        //   throw new Error('请先选择仓库后再扫描二维码');
-        // }
+        if(!this.scanForm.stockId){
+          throw new Error('请先选择仓库后再扫描二维码');
+        }
         // 调用托盘入库API
 
         if (success) {

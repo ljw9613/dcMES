@@ -788,12 +788,12 @@ export default {
     },
 
     checkPermission(permission) {
-      console.log('检查权限:', permission);
+      // console.log('检查权限:', permission);
 
       try {
         // 获取用户角色信息
         const roles = this.$store.getters.roles || {};
-        console.log('用户角色信息:', roles);
+        // console.log('用户角色信息:', roles);
 
         // 检查buttonList是否存在并包含特定权限
         if (roles.buttonList && Array.isArray(roles.buttonList)) {
