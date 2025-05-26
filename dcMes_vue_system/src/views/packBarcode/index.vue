@@ -115,19 +115,21 @@
             {{ formatDate(scope.row.createAt) }}
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="100" align="center">
+          <template slot-scope="{ row }">
+            <el-button
+              v-if="
+                row.status === 'PENDING' && $checkPermission('装箱条码作废')
+              "
+              type="text"
+              size="small"
+              @click="handleVoid(row)"
+            >
+              作废
+            </el-button>
+          </template>
+        </el-table-column>
       </el-table>
-      <el-table-column label="操作" width="100" align="center">
-        <template slot-scope="{ row }">
-          <el-button
-            v-if="row.status === 'PENDING' && $checkPermission('装箱条码作废')"
-            type="text"
-            size="small"
-            @click="handleVoid(row)"
-          >
-            作废
-          </el-button>
-        </template>
-      </el-table-column>
       <pagination
         v-show="total > 0"
         :total="total"

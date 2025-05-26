@@ -299,7 +299,7 @@
               type="text"
               size="small"
               class="delete-btn"
-
+              v-if="$checkPermission('设备信息删除')"
               @click="handleDelete(scope.row)"
             >
               <i class="el-icon-delete"></i> 删除
