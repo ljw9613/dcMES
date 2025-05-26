@@ -376,7 +376,7 @@
         <el-dialog title="物料列表" :visible.sync="materialDialogVisible" width="60%">
             <div class="material-list-container">
                 <div class="material-list-header">
-                    <el-button type="primary" size="small" @click="handleAddMaterial">新增物料绑定</el-button>
+                    <el-button type="primary" size="small" @click="handleAddMaterial" v-if="$checkPermission('条码匹配规则查看物料列表-新增')">新增物料绑定</el-button>
                 </div>
 
                 <el-table :data="materialList" border style="width: 100%">

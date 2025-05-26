@@ -7,7 +7,6 @@
           style="float: right; padding: 3px 0"
           type="text"
           @click="toggleAdvanced"
-
         >
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
@@ -100,10 +99,14 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" >查询搜索</el-button>
-          <el-button @click="resetForm" >重置</el-button>
-          <el-button type="success" @click="exportData" >导出数据</el-button>
-          <el-button type="primary" icon="el-icon-plus" @click="handleAdd" v-if="$checkPermission('打印模板新增模版')"
+          <el-button type="primary" @click="search">查询搜索</el-button>
+          <el-button @click="resetForm">重置</el-button>
+          <el-button type="success" @click="exportData">导出数据</el-button>
+          <el-button
+            type="primary"
+            icon="el-icon-plus"
+            @click="handleAdd"
+            v-if="$checkPermission('打印模板新增模版')"
             >新增模板</el-button
           >
           <el-button
@@ -115,7 +118,7 @@
           >
             批量删除
           </el-button>
-          <el-button @click="dayinForm" >ZRMES打印模板</el-button>
+          <el-button @click="dayinForm">ZRMES打印模板</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -193,9 +196,24 @@
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleEdit(scope.row)"><i class="el-icon-edit" v-if="$checkPermission('打印模版编辑')"></i> 编辑</el-button>
-            <el-button type="text" size="small"  @click="handlePrint(scope.row)"><i class="el-icon-printer"></i> 打印</el-button>
-            <el-button type="text" size="small" class="delete-btn" @click="handleDelete(scope.row)"><i class="el-icon-delete"></i> 删除</el-button>
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('打印模板编辑')"
+              @click="handleEdit(scope.row)"
+              ><i class="el-icon-edit"></i> 编辑</el-button
+            >
+            <el-button type="text" size="small" @click="handlePrint(scope.row)"
+              ><i class="el-icon-printer"></i> 打印</el-button
+            >
+            <el-button
+              type="text"
+              size="small"
+              v-if="$checkPermission('打印模板删除')"
+              class="delete-btn"
+              @click="handleDelete(scope.row)"
+              ><i class="el-icon-delete"></i> 删除</el-button
+            >
           </template>
         </el-table-column>
       </template>
@@ -233,9 +251,18 @@
         </el-form-item>
 
         <!-- 使用模板参数替代手动添加测试数据 -->
-        <template v-if="currentPrintRow && currentPrintRow.printParams && currentPrintRow.printParams.length > 0">
+        <template
+          v-if="
+            currentPrintRow &&
+            currentPrintRow.printParams &&
+            currentPrintRow.printParams.length > 0
+          "
+        >
           <el-divider content-position="center">打印参数</el-divider>
-          <div v-for="(param, index) in currentPrintRow.printParams" :key="index">
+          <div
+            v-for="(param, index) in currentPrintRow.printParams"
+            :key="index"
+          >
             <el-form-item :label="param.paramName || param.paramKey">
               <!-- 字符串类型或未指定类型 -->
               <el-input
@@ -365,15 +392,15 @@ export default {
       // 更多 API 可查看 log
       console.log(e.detail.designerUtils);
 
-    //   e.detail.designerUtils.hiprintTemplate.setFontList([
-    //     { title: "微软雅黑", value: "Microsoft YaHei" },
-    //     { title: "黑体", value: "STHeitiSC-Light" },
-    //     { title: "思源黑体", value: "SourceHanSansCN-Normal" },
-    //     { title: "王羲之书法体", value: "王羲之书法体" },
-    //     { title: "宋体", value: "SimSun" },
-    //     { title: "华为楷体", value: "STKaiti" },
-    //     { title: "cursive", value: "cursive" },
-    //   ]);
+      //   e.detail.designerUtils.hiprintTemplate.setFontList([
+      //     { title: "微软雅黑", value: "Microsoft YaHei" },
+      //     { title: "黑体", value: "STHeitiSC-Light" },
+      //     { title: "思源黑体", value: "SourceHanSansCN-Normal" },
+      //     { title: "王羲之书法体", value: "王羲之书法体" },
+      //     { title: "宋体", value: "SimSun" },
+      //     { title: "华为楷体", value: "STKaiti" },
+      //     { title: "cursive", value: "cursive" },
+      //   ]);
     },
     dayinForm() {
       this.dialogVisible1 = true;
@@ -479,14 +506,14 @@ export default {
         businessType: "",
         config: {
           paperSize: "A4",
-          orientation: "portrait"
+          orientation: "portrait",
         },
         content: "",
         version: "1.0.0",
         status: true,
         isDefault: false,
         // 确保printParams是一个空数组而不是null或undefined
-        printParams: []
+        printParams: [],
       };
       this.dialogFormVisible = true;
     },
@@ -587,7 +614,7 @@ export default {
           );
           cleanData.templateCode = templateCode;
 
-          console.log('准备添加的数据:', cleanData);
+          console.log("准备添加的数据:", cleanData);
 
           // 使用简化的数据结构
           await addData("printTemplate", cleanData);
@@ -602,7 +629,7 @@ export default {
         this.fetchData();
       } catch (error) {
         console.error("操作失败:", error);
-        this.$message.error(`操作失败: ${error.message || '未知错误'}`);
+        this.$message.error(`操作失败: ${error.message || "未知错误"}`);
       }
     },
 
@@ -714,13 +741,13 @@ export default {
 
       // 初始化参数值
       if (row.printParams && row.printParams.length > 0) {
-        row.printParams.forEach(param => {
-          let defaultValue = param.defaultValue || '';
+        row.printParams.forEach((param) => {
+          let defaultValue = param.defaultValue || "";
 
           // 特殊处理布尔类型值
-          if (param.paramType === 'boolean') {
-            if (defaultValue === 'true') defaultValue = true;
-            else if (defaultValue === 'false') defaultValue = false;
+          if (param.paramType === "boolean") {
+            if (defaultValue === "true") defaultValue = true;
+            else if (defaultValue === "false") defaultValue = false;
             else defaultValue = false; // 默认为false
           }
 
@@ -759,7 +786,7 @@ export default {
 
         // 合并参数值到打印数据
         Object.assign(printData, this.printForm.paramValues);
-        console.log('printData',printData);
+        console.log("printData", printData);
 
         this.printData = printData;
 
@@ -779,65 +806,65 @@ export default {
 
     getPrintParamValue(key) {
       const value = this.printForm.paramValues[key];
-      return value !== undefined ? value : '';
+      return value !== undefined ? value : "";
     },
 
     updatePrintParamValue(key, value) {
-      console.log('更新参数值:', key, value); // 添加日志帮助调试
+      console.log("更新参数值:", key, value); // 添加日志帮助调试
       this.$set(this.printForm.paramValues, key, value);
     },
 
-    checkPermission(permission) {
-      // console.log('检查权限:', permission);
+    // checkPermission(permission) {
+    //   // console.log('检查权限:', permission);
 
-      try {
-        // 获取用户角色信息
-        const roles = this.$store.getters.roles || {};
-        // console.log('用户角色信息:', roles);
+    //   try {
+    //     // 获取用户角色信息
+    //     const roles = this.$store.getters.roles || {};
+    //     // console.log('用户角色信息:', roles);
 
-        // 检查buttonList是否存在并包含特定权限
-        if (roles.buttonList && Array.isArray(roles.buttonList)) {
-          return roles.buttonList.includes(permission);
-        }
+    //     // 检查buttonList是否存在并包含特定权限
+    //     if (roles.buttonList && Array.isArray(roles.buttonList)) {
+    //       return roles.buttonList.includes(permission);
+    //     }
 
-        // 如果找不到buttonList，尝试其他可能的路径
-        if (roles.permissions) {
-          return roles.permissions.includes(permission);
-        }
+    //     // 如果找不到buttonList，尝试其他可能的路径
+    //     if (roles.permissions) {
+    //       return roles.permissions.includes(permission);
+    //     }
 
-        // 超级管理员默认拥有所有权限
-        if (roles.roleKey === 'admin' || roles.isAdmin) {
-          return true;
-        }
+    //     // 超级管理员默认拥有所有权限
+    //     if (roles.roleKey === 'admin' || roles.isAdmin) {
+    //       return true;
+    //     }
 
-        console.warn('未找到权限列表，默认返回true');
-        return true; // 在开发过程中默认返回true方便测试
-      } catch (error) {
-        console.error('权限检查出错:', error);
-        return true; // 出错时默认显示按钮
-      }
-    },
+    //     console.warn('未找到权限列表，默认返回true');
+    //     return true; // 在开发过程中默认返回true方便测试
+    //   } catch (error) {
+    //     console.error('权限检查出错:', error);
+    //     return true; // 出错时默认显示按钮
+    //   }
+    // },
 
     handleQuery(row) {
-      this.$message.info('查询功能待实现');
+      this.$message.info("查询功能待实现");
     },
     handleAdvancedSearch(row) {
-      this.$message.info('高级搜索功能待实现');
+      this.$message.info("高级搜索功能待实现");
     },
     handleReset(row) {
-      this.$message.info('重置功能待实现');
+      this.$message.info("重置功能待实现");
     },
     handleExport(row) {
-      this.$message.info('导出数据功能待实现');
+      this.$message.info("导出数据功能待实现");
     },
     handleAddTemplate(row) {
-      this.$message.info('新增模版功能待实现');
+      this.$message.info("新增模版功能待实现");
     },
     handleBatchDeleteTemplate(row) {
-      this.$message.info('批量删除功能待实现');
+      this.$message.info("批量删除功能待实现");
     },
     handleZRPrint(row) {
-      this.$message.info('ZRMES打印模版功能待实现');
+      this.$message.info("ZRMES打印模版功能待实现");
     },
   },
   created() {

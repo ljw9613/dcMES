@@ -327,15 +327,16 @@
           type="success"
           v-if="form.status === 'PAUSED' && $checkPermission('生产计划补工单')"
           @click="handleOtherProduction"
-
         >
           补工单
         </el-button>
         <el-button
           type="info"
-          v-if="form.status === 'IN_PROGRESS'&& $checkPermission('生产计划一键生产')"
+          v-if="
+            form.status === 'IN_PROGRESS' &&
+            $checkPermission('生产计划一键生产')
+          "
           @click="handleOneKeyProduction"
-
         >
           一键生产
         </el-button>
@@ -343,7 +344,10 @@
           type="success"
           @click="handleStartProduction"
           :disabled="!canStart"
-          v-if="form.status === 'PENDING' || form.status === 'PAUSED' && $checkPermission('生产计划开始生产') "
+          v-if="
+            (form.status === 'PENDING' || form.status === 'PAUSED') &&
+            $checkPermission('生产计划开始生产')
+          "
         >
           开始生产
         </el-button>
@@ -351,14 +355,19 @@
           type="warning"
           @click="handlePauseProduction"
           :disabled="form.status !== 'IN_PROGRESS'"
-          v-if="form.status === 'IN_PROGRESS'&& $checkPermission('生产计划暂停生产')"
+          v-if="
+            form.status === 'IN_PROGRESS' &&
+            $checkPermission('生产计划暂停生产')
+          "
         >
           暂停生产
         </el-button>
         <el-button
           type="danger"
           @click="handleCancelProduction"
-          v-if="form.status === 'PENDING' && $checkPermission('生产计划工单作废')"
+          v-if="
+            form.status === 'PENDING' && $checkPermission('生产计划工单作废')
+          "
         >
           工单作废
         </el-button>
@@ -789,7 +798,7 @@ export default {
             const formData = { ...this.form };
 
             // 添加创建人和修改人信息
-            if (this.dialogStatus === 'create') {
+            if (this.dialogStatus === "create") {
               formData.createBy = this.$store.getters.name;
               formData.updateBy = this.$store.getters.name;
             } else {
@@ -901,49 +910,56 @@ export default {
         }
 
         // 使用输入框让用户输入补单数量
-        this.$prompt(`当前工单报废数量为 ${this.form.scrapQuantity}，请输入补单数量`, '创建补单', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          inputType: 'number',
-          inputValue: this.form.scrapQuantity,
-          inputValidator: (value) => {
-            if (!value) return '补单数量不能为空';
-            if (isNaN(Number(value)) || Number(value) <= 0) return '请输入有效的补单数量';
-            return true;
+        this.$prompt(
+          `当前工单报废数量为 ${this.form.scrapQuantity}，请输入补单数量`,
+          "创建补单",
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputType: "number",
+            inputValue: this.form.scrapQuantity,
+            inputValidator: (value) => {
+              if (!value) return "补单数量不能为空";
+              if (isNaN(Number(value)) || Number(value) <= 0)
+                return "请输入有效的补单数量";
+              return true;
+            },
           }
-        }).then(({ value }) => {
-          const supplementQuantity = Number(value);
+        )
+          .then(({ value }) => {
+            const supplementQuantity = Number(value);
 
-          // 创建补单数据
-          const supplementForm = {
-            ...this.form,
-            _id: undefined, // 清除ID,作为新记录
-            workOrderNo:
-              "P" +
-              new Date().getFullYear().toString() +
-              (new Date().getMonth() + 1).toString().padStart(2, "0") +
-              new Date().getDate().toString().padStart(2, "0") +
-              Date.now().toString(),
-            status: "PENDING",
-            businessType: "SUPPLEMENT", // 补单类型
-            planProductionQuantity: supplementQuantity, // 补单数量为用户输入的数量
-            inputQuantity: 0,
-            outputQuantity: 0,
-            scrapQuantity: 0, // 新工单初始报废数量为0
-            scrapProductBarcodeList: [], // 新工单初始报废列表为空
-            originalWorkOrderNo: this.form.workOrderNo, //关联原工单号
-            originalWorkOrderId: this.form._id, // 关联原工单ID
-            supplementQuantity: supplementQuantity, //补单数量
-            remark: `补单-原工单号:${this.form.workOrderNo}`,
-            createBy: this.$store.getters.name, // 添加创建人
-            updateBy: this.$store.getters.name // 添加修改人
-          };
+            // 创建补单数据
+            const supplementForm = {
+              ...this.form,
+              _id: undefined, // 清除ID,作为新记录
+              workOrderNo:
+                "P" +
+                new Date().getFullYear().toString() +
+                (new Date().getMonth() + 1).toString().padStart(2, "0") +
+                new Date().getDate().toString().padStart(2, "0") +
+                Date.now().toString(),
+              status: "PENDING",
+              businessType: "SUPPLEMENT", // 补单类型
+              planProductionQuantity: supplementQuantity, // 补单数量为用户输入的数量
+              inputQuantity: 0,
+              outputQuantity: 0,
+              scrapQuantity: 0, // 新工单初始报废数量为0
+              scrapProductBarcodeList: [], // 新工单初始报废列表为空
+              originalWorkOrderNo: this.form.workOrderNo, //关联原工单号
+              originalWorkOrderId: this.form._id, // 关联原工单ID
+              supplementQuantity: supplementQuantity, //补单数量
+              remark: `补单-原工单号:${this.form.workOrderNo}`,
+              createBy: this.$store.getters.name, // 添加创建人
+              updateBy: this.$store.getters.name, // 添加修改人
+            };
 
-          this.$emit("submit", supplementForm);
-          this.handleClose();
-        }).catch(() => {
-          this.$message.info('已取消补单操作');
-        });
+            this.$emit("submit", supplementForm);
+            this.handleClose();
+          })
+          .catch(() => {
+            this.$message.info("已取消补单操作");
+          });
       } catch (error) {
         console.error("创建补单失败:", error);
         this.$message.error("创建补单失败");

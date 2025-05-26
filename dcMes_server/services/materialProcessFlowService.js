@@ -6,6 +6,7 @@ const UnbindRecord = require("../model/project/unbindRecord");
 const ProductionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
 const productBarcodeRule = require("../model/project/productBarcodeRule");
 const barcodeRule = require("../model/project/barcodeRule");
+const ProductInitializeLog = require("../model/project/productInitializeLog");
 const mongoose = require("mongoose");
 const productDiNum = mongoose.model("productDiNum");
 const Material = mongoose.model("k3_BD_MATERIAL");
@@ -3845,24 +3846,101 @@ class MaterialProcessFlowService {
    * 初始化产品条码 - 删除产品流程记录并更新工单数量
    * @param {String} barcode - 产品条码
    * @param {String} userId - 操作用户ID
+   * @param {String} reason - 初始化原因
+   * @param {String} remark - 备注信息
+   * @param {String} ipAddress - 操作IP地址
+   * @param {String} userAgent - 用户代理信息
    * @returns {Object} 处理结果
    */
-  static async initializeProduct(barcode, userId) {
+  static async initializeProduct(barcode, userId, reason = "产品条码初始化", remark = "", ipAddress = "", userAgent = "") {
+    let logData = null;
+    
     try {
       // 1. 查找产品流程记录
-      const flowRecord = await MaterialProcessFlow.findOne({ barcode });
+      const flowRecord = await MaterialProcessFlow.findOne({ barcode }).populate('materialId');
       if (!flowRecord) {
         throw new Error(`未找到条码 ${barcode} 的流程记录`);
       }
 
-      // 2. 保存相关信息，用于后续操作
+      // 2. 保存相关信息，用于后续操作和日志记录
       const workOrderId = flowRecord.productionPlanWorkOrderId;
       const status = flowRecord.status;
       const progress = flowRecord.progress;
       const materialName = flowRecord.materialName;
       const materialCode = flowRecord.materialCode;
+      const materialId = flowRecord.materialId;
+      const craftId = flowRecord.craftId;
+      const productLineId = flowRecord.productLineId;
+      const productLineName = flowRecord.productLineName;
 
-      // 3. 根据产品状态更新工单投入输出数量
+      // 计算节点统计信息
+      const requiredNodes = flowRecord.processNodes.filter(
+        (node) =>
+          node.level !== 0 && // 排除根节点
+          (node.nodeType === "PROCESS_STEP" ||
+            (node.nodeType === "MATERIAL" && node.requireScan === true))
+      );
+      const completedNodes = requiredNodes.filter(
+        (node) => node.status === "COMPLETED"
+      );
+
+      // 获取工单信息
+      let workOrder = null;
+      let workOrderNo = "";
+      if (workOrderId) {
+        workOrder = await ProductionPlanWorkOrder.findById(workOrderId);
+        workOrderNo = workOrder ? workOrder.workOrderNo : "";
+      }
+
+      // 获取工艺信息
+      let craft = null;
+      let craftName = "";
+      let craftVersion = "";
+      if (craftId) {
+        craft = await Craft.findById(craftId);
+        craftName = craft ? craft.craftName : "";
+        craftVersion = craft ? craft.craftVersion : "";
+      }
+
+      // 3. 准备日志数据
+      logData = {
+        barcode,
+        materialId: materialId._id,
+        materialCode,
+        materialName,
+        materialSpec: materialId.FSpecification || "",
+        craftId,
+        craftName,
+        craftVersion,
+        productionPlanWorkOrderId: workOrderId,
+        workOrderNo,
+        productLineId,
+        productLineName,
+        beforeInitialize: {
+          status,
+          progress,
+          startTime: flowRecord.startTime,
+          endTime: flowRecord.endTime,
+          totalNodes: requiredNodes.length,
+          completedNodes: completedNodes.length,
+        },
+        workOrderAdjustment: {
+          inputQuantityAdjusted: false,
+          outputQuantityAdjusted: false,
+          inputAdjustmentAmount: 0,
+          outputAdjustmentAmount: 0,
+        },
+        operatorId: userId,
+        operateTime: new Date(),
+        reason,
+        remark,
+        result: "SUCCESS",
+        operationType: "INITIALIZE",
+        ipAddress,
+        userAgent,
+      };
+
+      // 4. 根据产品状态更新工单投入输出数量
       if (workOrderId) {
         // 如果产品状态为"已完成"，扣减1个产出量
         if (status === "COMPLETED") {
@@ -3871,20 +3949,30 @@ class MaterialProcessFlowService {
             "output",
             -1
           );
+          logData.workOrderAdjustment.outputQuantityAdjusted = true;
+          logData.workOrderAdjustment.outputAdjustmentAmount = -1;
         }
+        
+        // 如果进度大于0，说明已经投入，扣减1个投入量
         if (progress > 0) {
           await this.updateWorkOrderQuantity(
             workOrderId.toString(),
             "input",
             -1
           );
+          logData.workOrderAdjustment.inputQuantityAdjusted = true;
+          logData.workOrderAdjustment.inputAdjustmentAmount = -1;
         }
       }
 
-      // 4. 删除流程记录
+      // 5. 删除流程记录
       await MaterialProcessFlow.deleteOne({ _id: flowRecord._id });
 
-      // 5. 记录操作日志
+      // 6. 创建成功日志记录
+      const initializeLog = new ProductInitializeLog(logData);
+      await initializeLog.save();
+
+      // 7. 记录操作日志到控制台
       console.log(
         `用户 ${userId} 初始化产品 ${barcode} (${materialCode} - ${materialName})`
       );
@@ -3892,16 +3980,32 @@ class MaterialProcessFlowService {
       return {
         success: true,
         message: `成功初始化产品条码 ${barcode}`,
+        logId: initializeLog._id,
         detail: {
           barcode,
           materialCode,
           materialName,
           status: status,
           workOrderId: workOrderId,
+          workOrderAdjustment: logData.workOrderAdjustment,
         },
       };
     } catch (error) {
       console.error("初始化产品条码失败:", error);
+      
+      // 创建失败日志记录
+      if (logData) {
+        logData.result = "FAILED";
+        logData.errorMessage = error.message;
+        
+        try {
+          const failedLog = new ProductInitializeLog(logData);
+          await failedLog.save();
+        } catch (logError) {
+          console.error("保存失败日志记录时出错:", logError);
+        }
+      }
+      
       throw error;
     }
   }
