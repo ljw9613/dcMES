@@ -71,7 +71,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="add ? createData() : editData()">确定
+        <el-button type="primary" @click="add ? createData() : editData()" :loading="saveLoading">确定
         </el-button>
       </div>
     </el-dialog>
@@ -98,7 +98,8 @@ export default {
       buttonList: [],
       optionsList: null,
       isShow: false,
-      permissionMenus: [] // 存储权限类型的菜单项
+      permissionMenus: [], // 存储权限类型的菜单项
+      saveLoading: false, // 添加保存加载状态
     };
   },
   async created() {
@@ -262,178 +263,200 @@ export default {
 
     // 修改 createData 方法
     async createData() {
-      if (!this.postList.name) {
+      // 防止重复提交
+      if (this.saveLoading) {
+        return;
+      }
+
+      // 数据校验
+      if (!this.postList.name || this.postList.name.trim() === '') {
         this.$message.warning("角色名称不能为空");
         return;
-      } else if (!this.postList.label) {
+      }
+      
+      if (!this.postList.label || this.postList.label.trim() === '') {
         this.$message.warning("角色标识不能为空");
         return;
       }
 
-      // 检查角色名称是否重复
-      const exists = await this.checkRoleNameExists(this.postList.name);
-      if (exists) {
-        this.$message.error("角色名称已存在，请更换其他名称");
-        return;
-      }
+      // 去除首尾空格
+      this.postList.name = this.postList.name.trim();
+      this.postList.label = this.postList.label.trim();
 
-      // 确保提交前过滤无效的菜单项
-      if (this.postList.menuList) {
-        this.postList.menuList = this.postList.menuList.filter(id => id !== null && id !== undefined);
-      }
+      this.saveLoading = true;
 
-      // 从选中的权限菜单生成buttonList
-      this.postList.buttonList = this.extractPermissionsFromMenuList();
+      try {
+        // 检查角色名称是否重复
+        const exists = await this.checkRoleNameExists(this.postList.name);
+        if (exists) {
+          this.$message.error("角色名称已存在，请更换其他名称");
+          return;
+        }
 
-      // 详细记录提交数据
-      console.log('%c===== 角色提交数据详情 =====', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
-      console.log('%c角色名称:', 'color:#409EFF; font-weight:bold;', this.postList.name);
-      console.log('%c角色标识:', 'color:#409EFF; font-weight:bold;', this.postList.label);
+        // 确保提交前过滤无效的菜单项
+        if (this.postList.menuList) {
+          this.postList.menuList = this.postList.menuList.filter(id => id !== null && id !== undefined);
+        }
 
-      // 显示选中菜单的详细信息而不只是ID列表
-      console.log('%cmenuList详细信息:', 'color:#409EFF; font-weight:bold;');
-      this.logMenuDetails(this.postList.menuList);
+        // 从选中的权限菜单生成buttonList
+        this.postList.buttonList = this.extractPermissionsFromMenuList();
 
-      console.log('%cbuttonList(权限列表):', 'color:#409EFF; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.buttonList)));
+        // 详细记录提交数据
+        console.log('%c===== 角色提交数据详情 =====', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
+        console.log('%c角色名称:', 'color:#409EFF; font-weight:bold;', this.postList.name);
+        console.log('%c角色标识:', 'color:#409EFF; font-weight:bold;', this.postList.label);
 
-      console.log('根据菜单选择生成的按钮权限列表:', this.postList.buttonList);
+        // 显示选中菜单的详细信息而不只是ID列表
+        console.log('%cmenuList详细信息:', 'color:#409EFF; font-weight:bold;');
+        this.logMenuDetails(this.postList.menuList);
 
-      // 详细打印菜单权限数据
-      console.log('===== 提交的菜单权限数据 =====');
+        console.log('%cbuttonList(权限列表):', 'color:#409EFF; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.buttonList)));
 
-      const todata = {
-        ...this.postList,
-      };
+        console.log('根据菜单选择生成的按钮权限列表:', this.postList.buttonList);
 
-      let response = await addData("role", todata);
-      console.log(response);
-      if (response) {
-        console.log(response);
-        this.$emit("custom-event");
-        this.dialogFormVisible = false;
-        this.postList = {
-          type: "目录",
-          sortNum: 1,
-          status: true,
+        const todata = {
+          ...this.postList,
         };
+
+        let response = await addData("role", todata);
+        
+        if (response) {
+          console.log(response);
+          this.$emit("custom-event");
+          this.dialogFormVisible = false;
+          this.postList = {
+            type: "目录",
+            sortNum: 1,
+            status: true,
+          };
+          this.$notify({
+            title: "添加角色成功",
+            message: "Add Successfully",
+            type: "success",
+            duration: 2000,
+          });
+        } else {
+          this.$notify({
+            title: "添加失败，请重试或刷新",
+            message: "Add unsuccessful",
+            type: "warning",
+            duration: 2000,
+          });
+        }
+      } catch (error) {
+        console.error('添加角色失败:', error);
         this.$notify({
-          title: "添加角色成功",
-          message: "Add Successfully",
-          type: "success",
+          title: "添加失败",
+          message: "网络错误，请重试",
+          type: "error",
           duration: 2000,
         });
-      } else {
-        this.$notify({
-          title: "添加失败，请重试或刷新",
-          message: "Add unsuccessful",
-          type: "warning",
-          duration: 2000,
-        });
+      } finally {
+        this.saveLoading = false;
       }
     },
 
     // 修改 editData 方法
     async editData() {
-      if (!this.postList.name) {
+      // 防止重复提交
+      if (this.saveLoading) {
+        console.log('正在保存中，防止重复提交');
+        return;
+      }
+
+      // 数据校验
+      if (!this.postList.name || this.postList.name.trim() === '') {
         this.$message.warning("角色名称不能为空");
         return;
-      } else if (!this.postList.label) {
+      }
+      
+      if (!this.postList.label || this.postList.label.trim() === '') {
         this.$message.warning("角色标识不能为空");
         return;
       }
 
-      // 检查角色名称是否重复（排除当前角色）
-      const exists = await this.checkRoleNameExists(this.postList.name, this._id);
-      if (exists) {
-        this.$message.error("角色名称已存在，请更换其他名称");
+      // 检查必要的ID是否存在
+      if (!this._id) {
+        this.$message.error("角色ID丢失，请重新打开编辑窗口");
         return;
       }
 
-      // 确保提交前过滤无效的菜单项
-      if (this.postList.menuList) {
-        this.postList.menuList = this.postList.menuList.filter(id => id !== null && id !== undefined);
-      }
+      // 去除首尾空格
+      this.postList.name = this.postList.name.trim();
+      this.postList.label = this.postList.label.trim();
 
-      // 从选中的权限菜单生成buttonList
-      this.postList.buttonList = this.extractPermissionsFromMenuList();
+      this.saveLoading = true;
 
-      // 详细记录提交数据
-      console.log('%c===== 角色编辑数据详情 =====', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
-      console.log('%c角色名称:', 'color:#409EFF; font-weight:bold;', this.postList.name);
-      console.log('%c角色标识:', 'color:#409EFF; font-weight:bold;', this.postList.label);
+      try {
+        // 检查角色名称是否重复（排除当前角色）
+        const exists = await this.checkRoleNameExists(this.postList.name, this._id);
+        if (exists) {
+          this.$message.error("角色名称已存在，请更换其他名称");
+          return;
+        }
 
-      // 显示选中菜单的详细信息而不只是ID列表
-      console.log('%cmenuList详细信息:', 'color:#409EFF; font-weight:bold;');
-      this.logMenuDetails(this.postList.menuList);
+        // 确保提交前过滤无效的菜单项
+        if (this.postList.menuList) {
+          this.postList.menuList = this.postList.menuList.filter(id => id !== null && id !== undefined);
+        }
 
-      console.log('%cbuttonList(权限列表):', 'color:#409EFF; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.buttonList)));
+        // 从选中的权限菜单生成buttonList
+        this.postList.buttonList = this.extractPermissionsFromMenuList();
 
-      console.log('根据菜单选择生成的按钮权限列表:', this.postList.buttonList);
+        // 详细记录提交数据
+        console.log('%c===== 角色编辑数据详情 =====', 'background:#1E1E1E; color:#00FF00; font-size:14px; font-weight:bold;');
+        console.log('%c角色ID:', 'color:#409EFF; font-weight:bold;', this._id);
+        console.log('%c角色名称:', 'color:#409EFF; font-weight:bold;', this.postList.name);
+        console.log('%c角色标识:', 'color:#409EFF; font-weight:bold;', this.postList.label);
 
-      // 详细打印菜单权限数据
-      console.log('===== 提交的菜单权限数据 =====');
+        // 显示选中菜单的详细信息而不只是ID列表
+        console.log('%cmenuList详细信息:', 'color:#409EFF; font-weight:bold;');
+        this.logMenuDetails(this.postList.menuList);
 
-      // 如果有optionsList，辅助查看菜单ID对应的菜单名称
-      if (this.optionsList && this.optionsList.length) {
-        // 创建ID到菜单信息的映射
-        const menuMap = new Map();
+        console.log('%cbuttonList(权限列表):', 'color:#409EFF; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.buttonList)));
 
-        const collectMenuInfo = (menu, path = []) => {
-          const currentPath = [...path, menu.menuName];
-          menuMap.set(menu._id, {
-            name: menu.menuName,
-            path: currentPath.join(' > '),
-            type: menu.type || '菜单'
-          });
+        // 创建更新数据的副本，避免直接修改原数据
+        const updateData = JSON.parse(JSON.stringify(this.postList));
+        delete updateData._id; // 删除_id字段，避免更新时冲突
 
-          if (menu.children && menu.children.length) {
-            menu.children.forEach(child => collectMenuInfo(child, currentPath));
-          }
+        var data = {
+          query: { _id: this._id },
+          update: updateData,
         };
 
-        // 构建菜单映射
-        this.optionsList.forEach(menu => collectMenuInfo(menu));
+        console.log('提交的更新数据:', data);
 
-        // 转换选中的菜单ID为可读信息
-        const selectedMenus = this.postList.menuList
-          .map(id => {
-            const info = menuMap.get(id);
-            return info ? info : { name: '未知菜单', path: `未知路径 (ID: ${id})`, type: '未知' };
-          })
-          .sort((a, b) => a.path.localeCompare(b.path));
-
-        console.log('角色名称:', this.postList.name);
-        console.log('角色标识:', this.postList.label);
-        console.log('选中的菜单:');
-        console.table(selectedMenus.map((menu, index) => ({
-          '序号': index + 1,
-          '菜单名称': menu.name,
-          '菜单路径': menu.path,
-          '类型': menu.type
-        })));
-      } else {
-        console.log('无法解析菜单名称，未加载菜单列表');
+        let response = await updateData("role", data);
+        console.log('更新响应:', response);
+        
+        if (response) {
+          this.dialogFormVisible = false;
+          this.$emit("custom-event");
+          this.$notify({
+            title: "修改成功",
+            message: "edit Successfully",
+            type: "success",
+            duration: 2000,
+          });
+        } else {
+          this.$notify({
+            title: "修改失败",
+            message: "服务器返回失败，请重试",
+            type: "warning",
+            duration: 2000,
+          });
+        }
+      } catch (error) {
+        console.error('编辑角色失败:', error);
+        this.$notify({
+          title: "修改失败",
+          message: "网络错误，请重试",
+          type: "error",
+          duration: 2000,
+        });
+      } finally {
+        this.saveLoading = false;
       }
-
-      // console.log(this.postList); return
-      delete this.postList._id;
-      var data = {
-        query: { _id: this._id },
-        update: {
-          ...this.postList,
-        },
-      };
-
-      let response = updateData("role", data);
-      console.log(response);
-      this.dialogFormVisible = false;
-      this.$emit("custom-event");
-      this.$notify({
-        title: "修改成功",
-        message: "edit Successfully",
-        type: "success",
-        duration: 2000,
-      });
     },
 
     getParentId(item) {
@@ -454,6 +477,7 @@ export default {
       }
       this.menu = false
       this.isShow = false
+      this.saveLoading = false // 重置加载状态
     },
 
     handleDialogOpen() {
