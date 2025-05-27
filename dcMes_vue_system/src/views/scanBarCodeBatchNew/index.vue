@@ -209,26 +209,28 @@
                       :disabled="batchSizeLocked"
                     >
                     </el-input-number>
-                    <template v-if="!batchSizeLocked">
-                      <el-button
-                        type="text"
-                        size="mini"
-                        @click="handleSaveBatchSize"
-                        icon="el-icon-check"
-                      >
-                        保存
-                      </el-button>
-                    </template>
-                    <template v-else>
-                      <el-button
-                        type="text"
-                        style="color: red"
-                        @click="handleCancelBatchSize"
-                        icon="el-icon-close"
-                      >
-                        取消
-                      </el-button>
-                    </template>
+                    <div v-if="$checkPermission('产线编辑配置')">
+                      <template v-if="!batchSizeLocked">
+                        <el-button
+                          type="text"
+                          size="mini"
+                          @click="handleSaveBatchSize"
+                          icon="el-icon-check"
+                        >
+                          保存
+                        </el-button>
+                      </template>
+                      <template v-else>
+                        <el-button
+                          type="text"
+                          style="color: red"
+                          @click="handleCancelBatchSize"
+                          icon="el-icon-close"
+                        >
+                          取消
+                        </el-button>
+                      </template>
+                    </div>
                   </div>
                 </el-form-item>
               </el-form>

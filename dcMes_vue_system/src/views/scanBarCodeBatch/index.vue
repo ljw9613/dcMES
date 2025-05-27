@@ -169,26 +169,28 @@
                     :disabled="batchSizeLocked"
                   >
                   </el-input-number>
-                  <template v-if="!batchSizeLocked">
-                    <el-button
-                      type="text"
-                      size="mini"
-                      @click="handleSaveBatchSize"
-                      icon="el-icon-check"
-                    >
-                      保存
-                    </el-button>
-                  </template>
-                  <template v-else>
-                    <el-button
-                      type="text"
-                      style="color: red"
-                      @click="handleCancelBatchSize"
-                      icon="el-icon-close"
-                    >
-                      取消
-                    </el-button>
-                  </template>
+                  <div v-if="$checkPermission('产线编辑配置')">
+                    <template v-if="!batchSizeLocked">
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleSaveBatchSize"
+                        icon="el-icon-check"
+                      >
+                        保存
+                      </el-button>
+                    </template>
+                    <template v-else>
+                      <el-button
+                        type="text"
+                        style="color: red"
+                        @click="handleCancelBatchSize"
+                        icon="el-icon-close"
+                      >
+                        取消
+                      </el-button>
+                    </template>
+                  </div>
                 </div>
               </el-form-item>
             </el-form>
@@ -1642,7 +1644,7 @@ export default {
           "material_palletizing_unbind_log",
           {
             query: {
-              unbindBarcode: cleanValue,  // 使用截取后的条码
+              unbindBarcode: cleanValue, // 使用截取后的条码
             },
             select: {
               palletCode: 1,
@@ -1849,7 +1851,7 @@ export default {
           query: {
             processNodes: {
               $elemMatch: {
-                barcode: cleanValue,  // 使用截取后的条码
+                barcode: cleanValue, // 使用截取后的条码
                 isPackingBox: true,
               },
             },
@@ -2036,10 +2038,10 @@ export default {
             });
           }
         });
-        
+
         // 记录最后一次的响应结果，用于在循环结束后更新界面
         let lastResult = null;
-        
+
         // 添加到已扫描列表
         for await (const item of boxData) {
           let res = await handlePalletBarcode({
@@ -2084,7 +2086,7 @@ export default {
             return;
           }
         }
-        
+
         // 循环结束后，使用最后一次的结果更新printData和scannedList
         if (lastResult && lastResult.code === 200) {
           // 获取最新的托盘数据
@@ -2113,12 +2115,10 @@ export default {
 
           // 初始化或格式化 palletBarcodes
           if (Array.isArray(printData.palletBarcodes)) {
-            printData.palletBarcodes = printData.palletBarcodes.map(
-              (item) => {
-                item.scanTime = this.formatDate(item.scanTime);
-                return item;
-              }
-            );
+            printData.palletBarcodes = printData.palletBarcodes.map((item) => {
+              item.scanTime = this.formatDate(item.scanTime);
+              return item;
+            });
           } else {
             printData.palletBarcodes = []; // 如果不存在或不是数组，初始化为空数组
           }
@@ -2200,7 +2200,7 @@ export default {
             });
           }
         }
-        
+
         tone(smcg);
         this.popupType = "ok";
         this.showPopup = true;
