@@ -41,13 +41,26 @@
             <div class="info-item">
               <span class="label">工单号:</span>
               <div class="value">
-                <template v-if="!originalPallet.workOrders || !originalPallet.workOrders.length">
+                <template
+                  v-if="
+                    !originalPallet.workOrders ||
+                    !originalPallet.workOrders.length
+                  "
+                >
                   {{ originalPallet.workOrderNo || "--" }}
                 </template>
                 <div v-else>
-                  <div v-for="(wo, index) in originalPallet.workOrders" :key="index" style="margin-bottom: 5px">
-                    <el-tag size="mini" type="primary">{{ wo.workOrderNo || "--" }}</el-tag>
-                    <span v-if="wo.quantity" class="work-order-quantity">({{ wo.quantity }})</span>
+                  <div
+                    v-for="(wo, index) in originalPallet.workOrders"
+                    :key="index"
+                    style="margin-bottom: 5px"
+                  >
+                    <el-tag size="mini" type="primary">{{
+                      wo.workOrderNo || "--"
+                    }}</el-tag>
+                    <span v-if="wo.quantity" class="work-order-quantity"
+                      >({{ wo.quantity }})</span
+                    >
                   </div>
                 </div>
               </div>
@@ -97,6 +110,13 @@
       <el-card class="box-card" style="margin-bottom: 20px">
         <div slot="header" class="clearfix">
           <span>条码扫描</span>
+          <!-- 添加包装箱校验提示 -->
+          <div v-if="hasBoxItems" class="box-scan-hint">
+            <i class="el-icon-warning" style="color: #e6a23c;"></i>
+            <span style="color: #e6a23c; font-size: 12px; margin-left: 5px;">
+              当前托盘包含包装箱，请扫描包装箱条码进行拆分
+            </span>
+          </div>
         </div>
         <div class="scan-area">
           <el-input
@@ -215,6 +235,9 @@ export default {
     canSubmit() {
       return this.selectedBarcodes.length > 0;
     },
+    hasBoxItems() {
+      return this.originalPallet.boxItems && this.originalPallet.boxItems.length > 0;
+    },
   },
   watch: {
     visible(val) {
@@ -247,6 +270,11 @@ export default {
         this.$message.warning("请输入条码");
         return;
       }
+      // 如果条码包含","，则取第一个逗号前的部分作为条码
+      if (this.scanCode.includes(",")) {
+        this.scanCode = this.scanCode.split(",")[0];
+      }
+
       //是否为升级条码
       const preProductionResponse = await getData("preProductionBarcode", {
         query: {
@@ -274,6 +302,28 @@ export default {
         (item) => item.boxBarcode === this.scanCode.trim()
       );
 
+      // 包装箱校验：如果托盘包含包装箱，则必须扫描包装箱条码
+      if (this.hasBoxItems && foundInPalletBarcodes && !foundInBoxItems) {
+        // 检查该条码是否属于某个包装箱
+        let belongsToBox = false;
+        for (const box of this.originalPallet.boxItems) {
+          if (
+            box.boxBarcodes &&
+            box.boxBarcodes.some((bb) => bb.barcode === this.scanCode.trim())
+          ) {
+            belongsToBox = true;
+            break;
+          }
+        }
+        
+        if (belongsToBox) {
+          this.$message.error("当前托盘包含包装箱，请扫描对应的包装箱条码，不能直接扫描单个条码");
+          this.scanCode = "";
+          this.loading = false;
+          return;
+        }
+      }
+
       if (foundInPalletBarcodes) {
         // 检查是否已经在已选条码中
         const alreadySelected = this.selectedBarcodes.some(
@@ -295,14 +345,15 @@ export default {
           }
 
           const originalBarcode = this.originalPallet.palletBarcodes.find(
-            item => item.barcode === this.scanCode.trim()
+            (item) => item.barcode === this.scanCode.trim()
           );
-          
+
           this.selectedBarcodes.push({
             barcode: this.scanCode.trim(),
             barcodeType: "MAIN",
             boxBarcode: boxBarcode,
-            productionPlanWorkOrderId: originalBarcode.productionPlanWorkOrderId || null
+            productionPlanWorkOrderId:
+              originalBarcode.productionPlanWorkOrderId || null,
           });
           this.$message.success("条码添加成功");
         }
@@ -333,7 +384,8 @@ export default {
                   barcode: boxBarcode.barcode,
                   barcodeType: "MAIN",
                   boxBarcode: this.scanCode.trim(),
-                  productionPlanWorkOrderId: boxBarcode.productionPlanWorkOrderId || null
+                  productionPlanWorkOrderId:
+                    boxBarcode.productionPlanWorkOrderId || null,
                 });
               }
             });
@@ -416,6 +468,18 @@ export default {
         return;
       }
 
+      // 包装箱校验：如果托盘包含包装箱，确保所有选中的条码都是通过扫描包装箱条码添加的
+      if (this.hasBoxItems) {
+        const hasIndividualBarcodes = this.selectedBarcodes.some(
+          (item) => !item.boxBarcode
+        );
+        
+        if (hasIndividualBarcodes) {
+          this.$message.error("当前托盘包含包装箱，必须通过扫描包装箱条码进行拆分，请清空当前选择并重新扫描包装箱条码");
+          return;
+        }
+      }
+
       this.submitting = true;
       try {
         const payload = {
@@ -442,26 +506,31 @@ export default {
     },
     getBarcodeWorkOrderNo(barcodeItem) {
       if (!barcodeItem || !barcodeItem.barcode) return null;
-      
+
       // 从原托盘中查找此条码所属的工单
       if (this.originalPallet.palletBarcodes) {
         const originalBarcode = this.originalPallet.palletBarcodes.find(
-          pb => pb.barcode === barcodeItem.barcode
+          (pb) => pb.barcode === barcodeItem.barcode
         );
-        
-        if (originalBarcode && originalBarcode.productionPlanWorkOrderId && 
-            this.originalPallet.workOrders) {
+
+        if (
+          originalBarcode &&
+          originalBarcode.productionPlanWorkOrderId &&
+          this.originalPallet.workOrders
+        ) {
           const workOrder = this.originalPallet.workOrders.find(
-            wo => wo.productionPlanWorkOrderId && 
-                 wo.productionPlanWorkOrderId === originalBarcode.productionPlanWorkOrderId
+            (wo) =>
+              wo.productionPlanWorkOrderId &&
+              wo.productionPlanWorkOrderId ===
+                originalBarcode.productionPlanWorkOrderId
           );
-          
+
           if (workOrder) {
             return workOrder.workOrderNo;
           }
         }
       }
-      
+
       // 向后兼容：使用旧字段
       return this.originalPallet.workOrderNo;
     },
@@ -505,5 +574,15 @@ export default {
   margin-left: 5px;
   color: #666;
   font-size: 12px;
+}
+
+.box-scan-hint {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #fdf6ec;
+  border: 1px solid #f5dab1;
+  border-radius: 4px;
 }
 </style> 
