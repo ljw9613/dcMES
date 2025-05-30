@@ -140,12 +140,8 @@
             align="center"
           ></el-table-column>
           <el-table-column label="条码类型" align="center">
-            <template slot-scope="scope">
-              <el-tag
-                :type="scope.row.barcodeType === 'MAIN' ? 'primary' : 'success'"
-              >
-                {{ scope.row.barcodeType === "MAIN" ? "主条码" : "箱条码" }}
-              </el-tag>
+            <template>
+              <el-tag type="primary">主条码</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="所属工单" align="center">
@@ -311,22 +307,18 @@ export default {
           this.$message.success("条码添加成功");
         }
       } else if (foundInBoxItems) {
-        // 如果是箱条码
-        const alreadySelected = this.selectedBarcodes.some(
-          (item) =>
-            item.barcodeType === "BOX" && item.barcode === this.scanCode.trim()
+        // 如果是箱条码，检查是否已经选择了该箱内的条码
+        const boxBarcodesAlreadySelected = foundInBoxItems.boxBarcodes.filter(
+          (boxBarcode) =>
+            this.selectedBarcodes.some(
+              (sb) => sb.barcode === boxBarcode.barcode
+            )
         );
 
-        if (alreadySelected) {
-          this.$message.warning("该箱条码已经添加");
+        if (boxBarcodesAlreadySelected.length > 0) {
+          this.$message.warning("该箱内的部分条码已经添加，请先清除相关条码");
         } else {
-          this.selectedBarcodes.push({
-            barcode: this.scanCode.trim(),
-            barcodeType: "BOX",
-            boxBarcode: this.scanCode.trim(),
-          });
-
-          // 自动添加箱内所有条码
+          // 只添加箱内所有条码，不添加箱条码本身
           if (
             foundInBoxItems.boxBarcodes &&
             foundInBoxItems.boxBarcodes.length > 0
@@ -341,17 +333,18 @@ export default {
                   barcode: boxBarcode.barcode,
                   barcodeType: "MAIN",
                   boxBarcode: this.scanCode.trim(),
+                  productionPlanWorkOrderId: boxBarcode.productionPlanWorkOrderId || null
                 });
               }
             });
           }
 
           this.$message.success(
-            `箱条码及其内部${
+            `箱内 ${
               foundInBoxItems.boxBarcodes
                 ? foundInBoxItems.boxBarcodes.length
                 : 0
-            }个条码添加成功`
+            } 个条码添加成功`
           );
         }
       } else {
@@ -364,18 +357,45 @@ export default {
     removeBarcode(index) {
       const barcode = this.selectedBarcodes[index];
 
-      if (barcode.barcodeType === "BOX") {
-        // 如果是箱条码，一并移除所有属于该箱的条码
-        this.selectedBarcodes = this.selectedBarcodes.filter(
-          (item) =>
-            !(item.barcodeType === "BOX" && item.barcode === barcode.barcode) &&
-            !(item.boxBarcode === barcode.barcode)
+      // 如果删除的是箱内条码，检查是否需要删除该箱的所有条码
+      if (barcode.boxBarcode) {
+        // 获取同一箱子的所有条码
+        const sameBoxBarcodes = this.selectedBarcodes.filter(
+          (item) => item.boxBarcode === barcode.boxBarcode
         );
-        this.$message.success("已移除箱条码及其内部所有条码");
+
+        if (sameBoxBarcodes.length > 1) {
+          // 如果同一箱子有多个条码，询问是否删除整箱
+          this.$confirm(
+            `该条码属于箱 ${barcode.boxBarcode}，是否删除整箱所有条码？`,
+            "提示",
+            {
+              confirmButtonText: "删除整箱",
+              cancelButtonText: "仅删除此条码",
+              type: "warning",
+            }
+          )
+            .then(() => {
+              // 删除整箱条码
+              this.selectedBarcodes = this.selectedBarcodes.filter(
+                (item) => item.boxBarcode !== barcode.boxBarcode
+              );
+              this.$message.success("已删除整箱条码");
+            })
+            .catch(() => {
+              // 仅删除单个条码
+              this.selectedBarcodes.splice(index, 1);
+              this.$message.success("已删除单个条码");
+            });
+        } else {
+          // 如果该箱只有一个条码，直接删除
+          this.selectedBarcodes.splice(index, 1);
+          this.$message.success("已删除条码");
+        }
       } else {
-        // 移除单个条码
+        // 非箱内条码，直接删除
         this.selectedBarcodes.splice(index, 1);
-        this.$message.success("已移除条码");
+        this.$message.success("已删除条码");
       }
     },
     clearSelectedBarcodes() {

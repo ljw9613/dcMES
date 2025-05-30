@@ -1137,11 +1137,17 @@ class MaterialPalletizingService {
       }
 
       // 2. 验证所有条码是否存在于原托盘
+      // 收集所有有效的条码：包括托盘条码和箱条码
       const allPalletBarcodes = originalPallet.palletBarcodes.map(
         (pb) => pb.barcode
       );
+      const allBoxBarcodes = originalPallet.boxItems.map(
+        (boxItem) => boxItem.boxBarcode
+      );
+      const allValidBarcodes = [...allPalletBarcodes, ...allBoxBarcodes];
+      
       const invalidBarcodes = barcodes.filter(
-        (barcode) => !allPalletBarcodes.includes(barcode)
+        (barcode) => !allValidBarcodes.includes(barcode)
       );
 
       if (invalidBarcodes.length > 0) {
@@ -1252,6 +1258,8 @@ class MaterialPalletizingService {
       }
 
       // 6. 如果有整箱移动，处理箱条码
+      const boxesToRemoveFromOriginal = []; // 记录需要从原托盘移除的箱条码
+      
       for (const [boxBarcode, updatedBox] of boxesToUpdate.entries()) {
         // 检查是否整箱移动（所有条码都在要拆分的列表中）
         const originalBox = originalPallet.boxItems.find(
@@ -1267,6 +1275,8 @@ class MaterialPalletizingService {
         if (allBoxBarcodesIncluded) {
           // 整箱移动，将整个箱加入到新托盘
           newPallet.boxItems.push(originalBox);
+          // 记录需要从原托盘移除的箱条码
+          boxesToRemoveFromOriginal.push(boxBarcode);
         } else {
           // 部分移动，更新原箱中的条码数量
           const updatedOriginalBox = {
@@ -1279,20 +1289,25 @@ class MaterialPalletizingService {
             ).length,
           };
 
+          // 如果箱子变空了，也需要从原托盘移除
+          if (updatedOriginalBox.boxBarcodes.length === 0) {
+            boxesToRemoveFromOriginal.push(boxBarcode);
+          } else {
+            // 更新原托盘中的箱
+            await MaterialPalletizing.updateOne(
+              {
+                palletCode: originalPalletCode,
+                "boxItems.boxBarcode": boxBarcode,
+              },
+              { $set: { "boxItems.$": updatedOriginalBox } }
+            );
+          }
+
           // 将部分条码加入到新托盘的箱中
           newPallet.boxItems.push({
             ...updatedBox,
             quantity: updatedBox.boxBarcodes.length,
           });
-
-          // 更新原托盘中的箱
-          await MaterialPalletizing.updateOne(
-            {
-              palletCode: originalPalletCode,
-              "boxItems.boxBarcode": boxBarcode,
-            },
-            { $set: { "boxItems.$": updatedOriginalBox } }
-          );
         }
       }
 
@@ -1324,26 +1339,36 @@ class MaterialPalletizingService {
       newPallet.totalQuantity = newPalletBarcodesCount; // 确保与条码数量一致
       newPallet.boxCount = newPallet.boxItems.length;
 
-      // 9. 从原托盘中移除条码
+      // 9. 从原托盘中移除条码和整箱移动的箱子
       const remainingBarcodesCount =
         originalPallet.palletBarcodes.length - barcodes.length;
+      
+      const updateOperations = {
+        $pull: {
+          palletBarcodes: { barcode: { $in: barcodes } },
+        },
+        $set: {
+          updateAt: new Date(),
+          updateBy: userId,
+          // 更新原托盘总数量为剩余条码数量，确保与托盘条码数量一致
+          totalQuantity: remainingBarcodesCount,
+          barcodeCount: remainingBarcodesCount, // 直接更新条码计数
+          // 只有在原状态是组托完成时，才保持组托完成状态
+          status:
+            originalPallet.status === "STACKED" ? "STACKED" : "STACKING",
+        },
+      };
+
+      // 如果有需要移除的箱子，添加到pull操作中
+      if (boxesToRemoveFromOriginal.length > 0) {
+        updateOperations.$pull.boxItems = { 
+          boxBarcode: { $in: boxesToRemoveFromOriginal } 
+        };
+      }
+
       await MaterialPalletizing.updateOne(
         { palletCode: originalPalletCode },
-        {
-          $pull: {
-            palletBarcodes: { barcode: { $in: barcodes } },
-          },
-          $set: {
-            updateAt: new Date(),
-            updateBy: userId,
-            // 更新原托盘总数量为剩余条码数量，确保与托盘条码数量一致
-            totalQuantity: remainingBarcodesCount,
-            barcodeCount: remainingBarcodesCount, // 直接更新条码计数
-            // 只有在原状态是组托完成时，才保持组托完成状态
-            status:
-              originalPallet.status === "STACKED" ? "STACKED" : "STACKING",
-          },
-        }
+        updateOperations
       );
 
       // 10. 获取更新后的原托盘数据
@@ -1385,6 +1410,9 @@ class MaterialPalletizingService {
         const palletBarcodesCount = updatedOriginalPallet.palletBarcodes.length;
         updatedOriginalPallet.barcodeCount = palletBarcodesCount;
         updatedOriginalPallet.totalQuantity = palletBarcodesCount;
+        
+        // 更新箱数
+        updatedOriginalPallet.boxCount = updatedOriginalPallet.boxItems.length;
 
         // 检查原托盘中剩余的产品的出库状态并更新出入库状态
         if (updatedOriginalPallet.palletBarcodes.length > 0) {
