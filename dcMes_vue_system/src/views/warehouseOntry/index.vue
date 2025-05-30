@@ -1190,14 +1190,12 @@ export default {
           // 检查是否有托盘和条码数据
           if (item.entryItems && item.entryItems.length > 0) {
             item.entryItems.forEach((entryItem) => {
-              // 检查托盘是否有条码数据
-              if (
-                entryItem.palletId &&
-                entryItem.palletId.palletBarcodes &&
-                entryItem.palletId.palletBarcodes.length > 0
-              ) {
-                // 遍历每个条码，为每个条码创建一行数据
-                entryItem.palletId.palletBarcodes.forEach((barcodeItem) => {
+              // 使用 getCompletedBarcodes 方法获取正确的出库条码
+              const completedBarcodes = this.getCompletedBarcodes(entryItem);
+              
+              if (completedBarcodes && completedBarcodes.length > 0) {
+                // 遍历实际出库的条码，为每个条码创建一行数据
+                completedBarcodes.forEach((barcodeItem) => {
                   exportData.push({
                     出库单号: item.entryNo || "",
                     工单编号: item.productionOrderNo || "",
@@ -1312,14 +1310,12 @@ export default {
         // 检查是否有托盘和条码数据
         if (item.entryItems && item.entryItems.length > 0) {
           item.entryItems.forEach((entryItem) => {
-            // 检查托盘是否有条码数据
-            if (
-              entryItem.palletId &&
-              entryItem.palletId.palletBarcodes &&
-              entryItem.palletId.palletBarcodes.length > 0
-            ) {
-              // 遍历每个条码，为每个条码创建一行数据
-              entryItem.palletId.palletBarcodes.forEach((barcodeItem) => {
+            // 使用 getCompletedBarcodes 方法获取正确的出库条码
+            const completedBarcodes = this.getCompletedBarcodes(entryItem);
+            
+            if (completedBarcodes && completedBarcodes.length > 0) {
+              // 遍历实际出库的条码，为每个条码创建一行数据
+              completedBarcodes.forEach((barcodeItem) => {
                 exportData.push({
                   出库单号: item.entryNo || "",
                   工单编号: item.productionOrderNo || "",
