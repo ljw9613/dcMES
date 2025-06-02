@@ -13,6 +13,7 @@ var materialSchema = new mongoose.Schema({
     FUseOrgId: { type: String, required: true }, // 使用组织
     FUseOrgId_FNumber: { type: String }, // 使用组织编码
     FUseOrgId_FName: { type: String }, // 使用组织名称
+    F_TFQJ_KHDM: { type: String }, // 客户代码
     
     // 基础信息
     FOldNumber: { type: String }, // 旧物料编码

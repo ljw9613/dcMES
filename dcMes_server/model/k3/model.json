@@ -608,6 +608,10 @@
         "entityNameconvert": true
       },
       {
+        "name": "F_TFQJ_KHDM",
+        "description": "客户代码"
+      },
+      {
         "name": "FCreatorId",
 
         "description": "创建人"
