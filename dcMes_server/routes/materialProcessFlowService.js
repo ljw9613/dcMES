@@ -1227,4 +1227,351 @@ router.get("/api/v1/export-by-sale-order", async (req, res) => {
   }
 });
 
+// 镭雕设备获取打印条码数据接口
+router.post("/api/v1/get-laser-print-barcode", async (req, res) => {
+  try {
+    console.log("[API] 镭雕设备获取打印条码数据 - 请求参数:", req.body);
+    const { machineIp } = req.body;
+
+    // 参数验证
+    if (!machineIp) {
+      const errorCode = matchErrorCode("缺少必要参数：设备IP地址");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "缺少必要参数：设备IP地址",
+        errorCode: errorCode,
+      });
+    }
+
+    // 1. 根据设备IP获取设备信息
+    const machine = await Machine.findOne({ machineIp: machineIp });
+    if (!machine) {
+      const errorCode = matchErrorCode("未找到对应的设备信息");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "未找到对应的设备信息",
+        errorCode: errorCode,
+      });
+    }
+
+    // 2. 获取设备对应的产线信息
+    const ProductionLine = require("../model/project/productionLine");
+    const productionLine = await ProductionLine.findById(machine.lineId);
+    if (!productionLine) {
+      const errorCode = matchErrorCode("未找到设备对应的产线信息");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "未找到设备对应的产线信息",
+        errorCode: errorCode,
+      });
+    }
+
+    // 3. 查找产线对应的正在生产的工单
+    const ProductionPlanWorkOrder = require("../model/project/productionPlanWorkOrder");
+    const workOrder = await ProductionPlanWorkOrder.findOne({
+      productionLineId: productionLine._id,
+      status: "IN_PROGRESS", // 正在生产状态
+    }).populate("materialId");
+
+    if (!workOrder) {
+      const errorCode = matchErrorCode("未找到产线对应的正在生产工单");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "未找到产线对应的正在生产工单",
+        errorCode: errorCode,
+      });
+    }
+
+    // 4. 获取管理后台生成的产品条码（状态为待使用的第一个）
+    const PreProductionBarcode = require("../model/project/preProductionBarcode");
+    const barcodeRecord = await PreProductionBarcode.findOne({
+      workOrderId: workOrder._id,
+      status: "PENDING", // 待使用状态
+    })
+    .sort({ serialNumber: 1 }); // 按序号排序，取第一个
+
+    if (!barcodeRecord) {
+      const errorCode = matchErrorCode("未找到可用的预生产条码");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "未找到可用的预生产条码",
+        errorCode: errorCode,
+      });
+    }
+
+    // 5. 使用validateBarcodeWithMaterial方法进行条码规则校验
+    let validationResult;
+    try {
+      validationResult = await MaterialProcessFlowService.validateBarcodeWithMaterial(
+        barcodeRecord.barcode,
+        workOrder.materialId
+      );
+      
+      if (!validationResult.isValid) {
+        const errorCode = matchErrorCode(validationResult.error || "条码验证失败");
+        return res.status(200).json({
+          code: 500,
+          success: false,
+          message: validationResult.error || "条码验证失败",
+          errorCode: errorCode,
+        });
+      }
+    } catch (error) {
+      const errorCode = matchErrorCode(error.message);
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: `条码验证失败: ${error.message}`,
+        errorCode: errorCode,
+      });
+    }
+
+    // 6. 条码验证通过后，使用createFlowByMaterialCode方法初始化流程记录
+    let flowRecord;
+    try {
+      flowRecord = await MaterialProcessFlowService.createFlowByMaterialCode(
+        workOrder.materialId._id, // 主物料ID
+        workOrder.materialNumber, // 物料编码
+        barcodeRecord.barcode, // 条码
+        productionLine._id, // 产线ID
+        productionLine.lineName, // 产线名称
+        true, // 来自设备
+        workOrder._id // 工单ID
+      );
+      
+      console.log("[API] 流程记录初始化成功:", flowRecord._id);
+    } catch (error) {
+      console.error("[API] 流程记录初始化失败:", error);
+      // 如果流程记录创建失败，仍然返回条码数据，但标记流程初始化状态
+      flowRecord = null;
+    }
+
+    // 7. 返回条码数据
+    const responseData = {
+        id: barcodeRecord._id,
+        barcode: barcodeRecord.barcode, // 生产条码（基础条码）
+        printBarcode: barcodeRecord.printBarcode, // 基础打印条码
+        transformedBarcode: barcodeRecord.transformedBarcode, // 转换后的条码
+        transformedPrintBarcode: barcodeRecord.transformedPrintBarcode, // 转换后的打印条码
+        serialNumber: barcodeRecord.serialNumber,
+        segmentBreakdown: barcodeRecord.segmentBreakdown, // 段落明细
+        ruleName: barcodeRecord.ruleName,
+        ruleCode: barcodeRecord.ruleCode,
+    };
+
+    console.log("[API] 镭雕设备获取打印条码数据 - 返回结果:", responseData);
+
+    res.json({
+      code: 200,
+      success: true,
+      message: "获取打印条码数据成功",
+      data: responseData,
+    });
+
+  } catch (error) {
+    const errorCode = matchErrorCode(error.message);
+    console.error("获取镭雕设备打印条码数据失败:", error);
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+      errorCode: errorCode,
+    });
+  }
+});
+
+// 镭雕设备确认使用条码接口
+router.post("/api/v1/confirm-laser-barcode-used", async (req, res) => {
+  try {
+    console.log("[API] 镭雕设备确认使用条码 - 请求参数:", req.body);
+    const { barcodeId, machineIp, userId } = req.body;
+
+    // 参数验证
+    if (!barcodeId || !machineIp) {
+      const errorCode = matchErrorCode("缺少必要参数");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "缺少必要参数：条码ID和设备IP",
+        errorCode: errorCode,
+      });
+    }
+
+    // 更新条码状态为已使用
+    const PreProductionBarcode = require("../model/project/preProductionBarcode");
+    const updateResult = await PreProductionBarcode.findByIdAndUpdate(
+      barcodeId,
+      {
+        status: "USED",
+        usedAt: new Date(),
+        usedBy: userId || "LASER_MACHINE",
+        updater: userId || "LASER_MACHINE",
+        updateAt: new Date(),
+      },
+      { new: true }
+    );
+
+    if (!updateResult) {
+      const errorCode = matchErrorCode("未找到指定的条码记录");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "未找到指定的条码记录",
+        errorCode: errorCode,
+      });
+    }
+
+    // 查找当前设备信息
+    const machine = await Machine.findOne({ machineIp: machineIp });
+    if (!machine) {
+      const errorCode = matchErrorCode("未找到对应的设备信息");
+      return res.status(200).json({
+        code: 500,
+        success: false,
+        message: "未找到对应的设备信息",
+        errorCode: errorCode,
+      });
+    }
+
+    // 查找设备关联的所有工序
+    const ProcessStep = require("../model/project/processStep");
+    const relatedProcessSteps = await ProcessStep.find({
+      $or: [
+        { machineId: machine._id },
+        { machineIds: machine._id }
+      ]
+    });
+
+    console.log("设备关联的工序:", relatedProcessSteps);
+
+    // 找到流程记录
+    const MaterialProcessFlow = require("../model/project/materialProcessFlow");
+    const flowRecord = await MaterialProcessFlow.findOne({
+      barcode: updateResult.printBarcode,
+    });
+
+    if (!flowRecord) {
+      console.log("未找到对应的流程记录:", updateResult.printBarcode);
+      return res.json({
+        code: 200,
+        success: true,
+        message: "条码使用状态已更新，但未找到对应的流程记录",
+        data: {
+          barcodeId: updateResult._id,
+          barcode: updateResult.barcode,
+          status: updateResult.status,
+          usedAt: updateResult.usedAt,
+        },
+      });
+    }
+
+    // 检查流程记录中是否有与设备关联工序匹配的工序节点
+    let matchedProcessStep = null;
+    let matchedProcessNode = null;
+
+    // 遍历流程记录中的工序节点
+    for (const processNode of flowRecord.processNodes) {
+      if (processNode.nodeType === "PROCESS_STEP") {
+        // 遍历设备关联的工序
+        for (const step of relatedProcessSteps) {
+          if (processNode.processStepId && 
+              processNode.processStepId.toString() === step._id.toString() &&
+              processNode.status !== "COMPLETED") {
+            matchedProcessStep = step;
+            matchedProcessNode = processNode;
+            break;
+          }
+        }
+        if (matchedProcessStep) break;
+      }
+    }
+
+    if (!matchedProcessStep || !matchedProcessNode) {
+      console.log("未找到匹配的工序节点");
+      return res.json({
+        code: 200,
+        success: true,
+        message: "条码使用状态已更新，但未找到匹配的工序节点",
+        data: {
+          barcodeId: updateResult._id,
+          barcode: updateResult.barcode,
+          status: updateResult.status,
+          usedAt: updateResult.usedAt,
+          flowRecordId: flowRecord._id,
+        },
+      });
+    }
+
+    console.log("找到匹配的工序节点:", {
+      processStepId: matchedProcessStep._id,
+      processStepName: matchedProcessStep.name,
+      nodeId: matchedProcessNode._id
+    });
+
+    // 调用工序绑定方法
+    // 检查机器是否绑定了产线
+    if (!machine.lineId) {
+      console.log("设备未绑定产线，无法完成工序绑定");
+      return res.json({
+        code: 200,
+        success: true,
+        message: "条码使用状态已更新，但设备未绑定产线，无法完成工序绑定",
+        data: {
+          barcodeId: updateResult._id,
+          barcode: updateResult.barcode,
+          status: updateResult.status,
+          usedAt: updateResult.usedAt,
+          flowRecordId: flowRecord._id,
+        },
+      });
+    }
+
+    // 构建空的组件扫描数组，因为镭雕工序通常不需要扫描子组件
+    const componentScans = [];
+
+    // 调用工序扫码处理方法
+    const result = await MaterialProcessFlowService.scanProcessComponents(
+      updateResult.printBarcode,
+      matchedProcessStep._id,
+      componentScans,
+      userId || "LASER_MACHINE",
+      machine.lineId,
+      true // 来自设备
+    );
+
+    console.log("工序绑定结果:", result);
+
+    res.json({
+      code: 200,
+      success: true,
+      message: "条码使用状态更新成功，并已完成工序绑定",
+      data: {
+        barcodeId: updateResult._id,
+        barcode: updateResult.barcode,
+        status: updateResult.status,
+        usedAt: updateResult.usedAt,
+        flowRecordId: flowRecord._id,
+        processStepId: matchedProcessStep._id,
+        processStepName: matchedProcessStep.name,
+        bindResult: result
+      },
+    });
+
+  } catch (error) {
+    const errorCode = matchErrorCode(error.message);
+    console.error("确认镭雕设备使用条码失败:", error);
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+      errorCode: errorCode,
+    });
+  }
+});
+
 module.exports = router;

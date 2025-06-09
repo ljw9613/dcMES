@@ -36,14 +36,12 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="生产订单号">
-              <!-- <el-input v-model="searchForm.productionOrderNo" placeholder="请输入生产订单号"
-                                clearable></el-input> -->
               <zr-select
                 v-model="searchForm.productionOrderNo"
-                collection="warehouse_entry"
-                :search-fields="['productionOrderNo']"
-                label-key="productionOrderNo"
-                value-key="productionOrderNo"
+                collection="k3_PRD_MO"
+                :search-fields="['FBillNo']"
+                label-key="FBillNo"
+                value-key="FBillNo"
                 :multiple="false"
                 placeholder="请输入生产订单号"
                 clearable
@@ -52,12 +50,7 @@
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
-                      <span class="option-label">{{
-                        item.productionOrderNo
-                      }}</span>
-                      <!-- <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.entryNo }}
-                                            </el-tag> -->
+                      <span class="option-label">{{ item.FBillNo }}</span>
                     </div>
                   </div>
                 </template>
@@ -66,7 +59,6 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="销售订单号">
-              <!-- <el-input v-model="searchForm.saleOrderNo" placeholder="请输入销售订单号" clearable></el-input> -->
               <zr-select
                 v-model="searchForm.saleOrderNo"
                 collection="k3_SAL_SaleOrder"
@@ -145,19 +137,15 @@
         </el-row>
 
         <el-form-item>
-          <el-button
-              type="primary"
-              @click="search"
-              >查询搜索</el-button>
-          <el-button
-              @click="resetForm"
-              >重置</el-button>
+          <el-button type="primary" @click="search">查询搜索</el-button>
+          <el-button @click="resetForm">重置</el-button>
           <!-- 扫码入库 -->
           <el-button
-              type="primary"
-              @click="handlePalletBarcodeOpen"
-              :loading="scanDialogLoading"
-              v-if="$checkPermission('生产入库单扫描单据入库')">扫描单据入库</el-button
+            type="primary"
+            @click="handlePalletBarcodeOpen"
+            :loading="scanDialogLoading"
+            v-if="$checkPermission('生产入库单扫描单据入库')"
+            >扫描单据入库</el-button
           >
         </el-form-item>
       </el-form>
@@ -274,9 +262,12 @@
               v-if="$checkPermission('生产入库单删除')"
               >删除</el-button
             >
-            <el-button type="text"  @click="handleSync(scope.row)"
-                       v-if="$checkPermission('生产入库单同步金蝶云')"
-            >同步金蝶云</el-button>
+            <el-button
+              type="text"
+              @click="handleSync(scope.row)"
+              v-if="$checkPermission('生产入库单同步金蝶云')"
+              >同步金蝶云</el-button
+            >
           </template>
         </el-table-column>
       </template>
@@ -730,7 +721,6 @@ export default {
     if (roles.buttonList.includes("Async_stock_permission")) {
       this.hasAsyncStockPermission = true;
     }
-
   },
 };
 </script>

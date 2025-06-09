@@ -6,6 +6,8 @@ const productionPlanWorkOrder = require("../model/project/productionPlanWorkOrde
 const materialPalletizing = require("../model/project/materialPalletizing");
 // 添加预生产条码模型引用
 const preProductionBarcode = require("../model/project/preProductionBarcode");
+// 添加解绑记录模型引用
+const UnbindRecord = require("../model/project/unbindRecord");
 const apiLogger = require("../middleware/apiLogger");
 
 // 使用API日志中间件，指定服务名称
@@ -392,6 +394,50 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
       }
     }
 
+    // 检查是否是部件更换处理方案
+    if (repairRecord.solution === "COMPONENT_REPLACEMENT" || repairRecord.solution === "部件更换") {
+      // 查找对应的物料流程记录
+      const materialFlowRecord = await materialProcessFlow.findOne({
+        barcode: repairRecord.barcode,
+      });
+
+      if (materialFlowRecord) {
+        // 查找该产品的解绑记录
+        const unbindRecords = await UnbindRecord.find({
+          flowRecordId: materialFlowRecord._id,
+          mainBarcode: repairRecord.barcode,
+        }).populate('operatorId');
+
+        if (!unbindRecords || unbindRecords.length === 0) {
+          return res.status(200).json({
+            code: 401,
+            message: "部件更换维修单需要先进行部件解绑操作才能审核，请先解绑相关部件后再进行审核",
+            data: {
+              requireUnbind: true,
+              barcode: repairRecord.barcode,
+            },
+          });
+        }
+
+        // 检查解绑记录的有效性（可选：检查解绑时间是否在维修记录创建时间之后）
+        const validUnbindRecords = unbindRecords.filter(record => 
+          new Date(record.operateTime) >= new Date(repairRecord.repairTime)
+        );
+
+        if (validUnbindRecords.length === 0) {
+          return res.status(200).json({
+            code: 401,
+            message: "未找到有效的部件更换记录，请确保在创建维修单后进行了部件解绑操作",
+            data: {
+              requireUnbind: true,
+              barcode: repairRecord.barcode,
+              unbindRecordsCount: unbindRecords.length,
+            },
+          });
+        }
+      }
+    }
+
     // 更新维修记录
     const updateData = {
       repairResult,
@@ -578,6 +624,65 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
         message: "部分产品存在已绑定的关键物料，请先解绑关键物料后再进行报废",
         data: {
           barcodeWithKeyMaterials,
+        },
+      });
+    }
+
+    // 筛选出部件更换的记录并检查解绑记录
+    const componentReplacementRepairs = repairRecords.filter(
+      (record) => record.solution === "COMPONENT_REPLACEMENT" || record.solution === "部件更换"
+    );
+
+    const barcodeWithoutUnbindRecords = [];
+
+    for (const record of componentReplacementRepairs) {
+      // 查找对应的物料流程记录
+      const materialFlowRecord = await materialProcessFlow.findOne({
+        barcode: record.barcode,
+      });
+
+      if (materialFlowRecord) {
+        // 查找该产品的解绑记录
+        const unbindRecords = await UnbindRecord.find({
+          flowRecordId: materialFlowRecord._id,
+          mainBarcode: record.barcode,
+        });
+
+        // 检查是否存在有效的解绑记录
+        const validUnbindRecords = unbindRecords.filter(unbindRecord => 
+          new Date(unbindRecord.operateTime) >= new Date(record.repairTime)
+        );
+
+        if (!unbindRecords || unbindRecords.length === 0) {
+          barcodeWithoutUnbindRecords.push({
+            barcode: record.barcode,
+            repairId: record._id,
+            message: "未找到任何解绑记录"
+          });
+        } else if (validUnbindRecords.length === 0) {
+          barcodeWithoutUnbindRecords.push({
+            barcode: record.barcode,
+            repairId: record._id,
+            message: "未找到有效的解绑记录（解绑时间早于维修时间）",
+            unbindRecordsCount: unbindRecords.length
+          });
+        }
+      } else {
+        barcodeWithoutUnbindRecords.push({
+          barcode: record.barcode,
+          repairId: record._id,
+          message: "未找到物料流程记录"
+        });
+      }
+    }
+
+    // 如果存在没有解绑记录的部件更换维修单，返回提示信息
+    if (barcodeWithoutUnbindRecords.length > 0) {
+      return res.status(200).json({
+        code: 401,
+        message: "部分部件更换维修单缺少有效的解绑记录，请先进行部件解绑操作后再审核",
+        data: {
+          barcodeWithoutUnbindRecords,
         },
       });
     }

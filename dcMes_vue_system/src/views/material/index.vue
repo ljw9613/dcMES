@@ -138,6 +138,7 @@
                         <el-link type="primary" @click="handleView(scope.row)">{{ scope.row.FNumber }}</el-link>
                     </template>
                 </el-table-column>
+                <el-table-column label="客户代码" prop="F_TFQJ_KHDM" width="120" />
                 <el-table-column label="旧物料编码" prop="FOldNumber" width="120" />
                 <el-table-column label="物料名称" prop="FName" />
                 <el-table-column label="规格型号" prop="FSpecification" width="120" />

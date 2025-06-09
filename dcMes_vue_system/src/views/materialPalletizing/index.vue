@@ -268,6 +268,17 @@
                     prop="barcode"
                     align="center"
                   ></el-table-column>
+                  <el-table-column label="工单号" align="center">
+                    <template slot-scope="barcodeScope">
+                      <el-tag
+                        size="mini"
+                        v-if="getBarcodeWorkOrderNoForExpand(barcodeScope.row, scope.row)"
+                      >
+                        {{ getBarcodeWorkOrderNoForExpand(barcodeScope.row, scope.row) }}
+                      </el-tag>
+                      <span v-else>--</span>
+                    </template>
+                  </el-table-column>
                   <el-table-column label="扫描时间" align="center">
                     <template slot-scope="barcodeScope">
                       {{ formatDate(barcodeScope.row.scanTime) }}
@@ -2091,6 +2102,28 @@ export default {
 
       // 向后兼容：使用旧字段
       return this.detailData.workOrderNo;
+    },
+
+    // 获取展开行中条码对应的工单号
+    getBarcodeWorkOrderNoForExpand(barcodeItem, palletData) {
+      if (!barcodeItem || !barcodeItem.productionPlanWorkOrderId) return null;
+
+      // 如果有工单数组，从中查找匹配的工单
+      if (palletData.workOrders && palletData.workOrders.length) {
+        const workOrder = palletData.workOrders.find(
+          (wo) =>
+            wo.productionPlanWorkOrderId &&
+            wo.productionPlanWorkOrderId ===
+              barcodeItem.productionPlanWorkOrderId
+        );
+
+        if (workOrder) {
+          return workOrder.workOrderNo;
+        }
+      }
+
+      // 向后兼容：使用旧字段
+      return palletData.workOrderNo;
     },
 
     /**

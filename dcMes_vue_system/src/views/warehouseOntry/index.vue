@@ -40,10 +40,10 @@
                                 clearable></el-input> -->
               <zr-select
                 v-model="searchForm.productionOrderNo"
-                collection="warehouse_ontry"
-                :search-fields="['productionOrderNo']"
-                label-key="productionOrderNo"
-                value-key="productionOrderNo"
+                collection="k3_PRD_MO"
+                :search-fields="['FBillNo']"
+                label-key="FBillNo"
+                value-key="FBillNo"
                 :multiple="false"
                 placeholder="请输入生产订单号"
                 clearable
@@ -52,12 +52,7 @@
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
-                      <span class="option-label">{{
-                        item.productionOrderNo
-                      }}</span>
-                      <!-- <el-tag size="mini" type="info" class="option-tag">
-                                                {{ item.entryNo }}
-                                            </el-tag> -->
+                      <span class="option-label">{{ item.FBillNo }}</span>
                     </div>
                   </div>
                 </template>
@@ -1192,7 +1187,7 @@ export default {
             item.entryItems.forEach((entryItem) => {
               // 使用 getCompletedBarcodes 方法获取正确的出库条码
               const completedBarcodes = this.getCompletedBarcodes(entryItem);
-              
+
               if (completedBarcodes && completedBarcodes.length > 0) {
                 // 遍历实际出库的条码，为每个条码创建一行数据
                 completedBarcodes.forEach((barcodeItem) => {
@@ -1312,7 +1307,7 @@ export default {
           item.entryItems.forEach((entryItem) => {
             // 使用 getCompletedBarcodes 方法获取正确的出库条码
             const completedBarcodes = this.getCompletedBarcodes(entryItem);
-            
+
             if (completedBarcodes && completedBarcodes.length > 0) {
               // 遍历实际出库的条码，为每个条码创建一行数据
               completedBarcodes.forEach((barcodeItem) => {

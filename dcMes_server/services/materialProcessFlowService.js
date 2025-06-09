@@ -7,6 +7,7 @@ const ProductionPlanWorkOrder = require("../model/project/productionPlanWorkOrde
 const productBarcodeRule = require("../model/project/productBarcodeRule");
 const barcodeRule = require("../model/project/barcodeRule");
 const ProductInitializeLog = require("../model/project/productInitializeLog");
+const WorkOrderQuantityLog = require("../model/project/workOrderQuantityLog");
 const mongoose = require("mongoose");
 const productDiNum = mongoose.model("productDiNum");
 const Material = mongoose.model("k3_BD_MATERIAL");
@@ -707,7 +708,17 @@ class MaterialProcessFlowService {
       if (planWorkOrder) {
         if (processPosition.isFirst) {
           try {
-            await this.updateWorkOrderQuantity(planWorkOrder._id, "input");
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "input", 1, {
+              relatedBarcode: mainBarcode,
+              barcodeOperation: "SCAN_PROCESS",
+              operatorId: userId,
+              processStepId: processStepId,
+              processName: processNode.processName,
+              processCode: processNode.processCode,
+              reason: "扫描工序组件首道工序投入",
+              source: isFromDevice ? "DEVICE" : "WEB",
+              isAutomatic: true,
+            });
           } catch (error) {
             // 这里可以选择继续执行或者其他处理方式
             throw new Error("更新工单投入量失败");
@@ -832,7 +843,17 @@ class MaterialProcessFlowService {
         // 如果是末道工序且所有节点完成，更新工单产出量  && flowRecord.progress === 100
         if (processPosition.isLast) {
           try {
-            await this.updateWorkOrderQuantity(planWorkOrder._id, "output");
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
+              relatedBarcode: mainBarcode,
+              barcodeOperation: "SCAN_PROCESS",
+              operatorId: userId,
+              processStepId: processStepId,
+              processName: processNode.processName,
+              processCode: processNode.processCode,
+              reason: "扫描工序组件末道工序产出",
+              source: isFromDevice ? "DEVICE" : "WEB",
+              isAutomatic: true,
+            });
           } catch (error) {
             console.warn("更新工单产出量失败:", error.message);
             // 这里可以选择继续执行或者其他处理方式
@@ -1096,7 +1117,16 @@ class MaterialProcessFlowService {
             await this.updateWorkOrderQuantity(
               flowRecord.productionPlanWorkOrderId,
               "input",
-              -1
+              -1,
+              {
+                relatedBarcode: mainBarcode,
+                barcodeOperation: "UNBIND_PROCESS",
+                operatorId: userId,
+                processStepId: processStepId,
+                reason: `解绑工序减少投入量: ${reason}`,
+                remark: unbindSubsequent ? "解绑后续工序" : "解绑单个工序",
+                isAutomatic: true,
+              }
             );
             console.log(`工单${flowRecord.productionPlanWorkOrderId}投入量-1`);
           } catch (error) {
@@ -1115,7 +1145,16 @@ class MaterialProcessFlowService {
             await this.updateWorkOrderQuantity(
               flowRecord.productionPlanWorkOrderId,
               "output",
-              -1
+              -1,
+              {
+                relatedBarcode: mainBarcode,
+                barcodeOperation: "UNBIND_PROCESS",
+                operatorId: userId,
+                processStepId: processStepId,
+                reason: `解绑完成产品减少产出量: ${reason}`,
+                remark: unbindSubsequent ? "解绑后续工序" : "解绑单个工序",
+                isAutomatic: true,
+              }
             );
             console.log(`工单${flowRecord.productionPlanWorkOrderId}产出量-1`);
           } catch (error) {
@@ -1869,7 +1908,17 @@ class MaterialProcessFlowService {
           }
 
           try {
-            await this.updateWorkOrderQuantity(planWorkOrder._id, "input");
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "input", 1, {
+              relatedBarcode: mainBarcode,
+              barcodeOperation: "SCAN_PROCESS",
+              operatorId: userId,
+              processStepId: processStepId,
+              processName: processNode.processName,
+              processCode: processNode.processCode,
+              reason: "扫描工序组件首道工序投入",
+              source: isFromDevice ? "DEVICE" : "WEB",
+              isAutomatic: true,
+            });
           } catch (error) {
             // 这里可以选择继续执行或者其他处理方式
             throw new Error("更新工单投入量失败");
@@ -1934,7 +1983,17 @@ class MaterialProcessFlowService {
         // TODO
         if (processPosition.isLast) {
           try {
-            await this.updateWorkOrderQuantity(planWorkOrder._id, "output");
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
+              relatedBarcode: mainBarcode,
+              barcodeOperation: "SCAN_PROCESS",
+              operatorId: userId,
+              processStepId: processStepId,
+              processName: processNode.processName,
+              processCode: processNode.processCode,
+              reason: "扫描工序组件末道工序产出",
+              source: isFromDevice ? "DEVICE" : "WEB",
+              isAutomatic: true,
+            });
           } catch (error) {
             console.warn("更新工单产出量失败:", error.message);
             // 这里可以选择继续执行或者其他处理方式
@@ -1960,8 +2019,21 @@ class MaterialProcessFlowService {
    * @param {string} workOrderId - 工单ID
    * @param {string} type - 更新类型 ('input' | 'output')
    * @param {number} quantity - 更新数量
+   * @param {Object} logContext - 日志上下文信息
+   * @param {string} logContext.relatedBarcode - 相关主条码
+   * @param {string} logContext.barcodeOperation - 条码操作类型
+   * @param {string} logContext.operatorId - 操作人员ID
+   * @param {string} logContext.processStepId - 工序步骤ID（可选）
+   * @param {string} logContext.processName - 工序名称（可选）
+   * @param {string} logContext.processCode - 工序编码（可选）
+   * @param {string} logContext.reason - 变更原因（可选）
+   * @param {string} logContext.remark - 备注信息（可选）
+   * @param {string} logContext.ipAddress - 操作IP地址（可选）
+   * @param {string} logContext.userAgent - 用户代理信息（可选）
+   * @param {string} logContext.source - 数据来源（可选）
+   * @param {boolean} logContext.isAutomatic - 是否为自动操作（可选）
    */
-  static async updateWorkOrderQuantity(workOrderId, type, quantity = 1) {
+  static async updateWorkOrderQuantity(workOrderId, type, quantity = 1, logContext = {}) {
     try {
       if (!workOrderId) {
         console.log("未提供工单ID，跳过更新工单数量");
@@ -1970,18 +2042,24 @@ class MaterialProcessFlowService {
 
       const updateField = type === "input" ? "inputQuantity" : "outputQuantity";
 
+      // 获取更新前的工单信息
+      const beforeWorkOrder = await mongoose
+        .model("production_plan_work_order")
+        .findById(workOrderId)
+        .populate('materialId');
+
+      if (!beforeWorkOrder) {
+        console.log(`未找到工单(ID: ${workOrderId})`);
+        return null;
+      }
+
+      const beforeQuantity = beforeWorkOrder[updateField] || 0;
+      const beforeStatus = beforeWorkOrder.status;
+      const beforeProgress = beforeWorkOrder.progress || 0;
+
       // 扣减情况下，先查询当前数量，确保不会小于0
       if (quantity < 0) {
-        const currentWorkOrder = await mongoose
-          .model("production_plan_work_order")
-          .findById(workOrderId);
-
-        if (!currentWorkOrder) {
-          console.log(`未找到工单(ID: ${workOrderId})`);
-          return null;
-        }
-
-        const currentValue = currentWorkOrder[updateField] || 0;
+        const currentValue = beforeQuantity;
         // 确保扣减后不小于0
         if (currentValue + quantity < 0) {
           quantity = -currentValue; // 最多扣减到0
@@ -2004,7 +2082,8 @@ class MaterialProcessFlowService {
             },
           },
           { new: true }
-        );
+        )
+        .populate('materialId');
 
       if (!workOrder) {
         console.log(`未找到工单(ID: ${workOrderId})或物料不匹配`);
@@ -2060,6 +2139,74 @@ class MaterialProcessFlowService {
       }
 
       await workOrder.save();
+
+      // 创建工单数量变更日志记录
+      try {
+        const logData = {
+          // 工单信息
+          workOrderId: workOrder._id,
+          workOrderNo: workOrder.workOrderNo || workOrder.workOrderNumber || "",
+          
+          // 物料信息
+          materialId: workOrder.materialId._id,
+          materialCode: workOrder.materialId.FNumber || "",
+          materialName: workOrder.materialId.FName || "",
+          
+          // 产线信息
+          productionLineId: workOrder.productionLineId || "",
+          productionLineName: workOrder.productionLineName || "",
+          
+          // 变更信息
+          changeType: type,
+          changeQuantity: quantity,
+          beforeQuantity: beforeQuantity,
+          afterQuantity: workOrder[updateField],
+          
+          // 关联的主条码信息
+          relatedBarcode: logContext.relatedBarcode || "",
+          barcodeOperation: logContext.barcodeOperation || "OTHER",
+          
+          // 工序信息（如果是工序相关操作）
+          processStepId: logContext.processStepId || null,
+          processName: logContext.processName || "",
+          processCode: logContext.processCode || "",
+          
+          // 工单状态变更
+          beforeStatus: beforeStatus,
+          afterStatus: workOrder.status,
+          
+          // 进度变更
+          beforeProgress: beforeProgress,
+          afterProgress: workOrder.progress || 0,
+          
+          // 操作信息
+          operatorId: logContext.operatorId || "SYSTEM",
+          operatorName: logContext.operatorName || "",
+          operateTime: new Date(),
+          
+          // 操作原因和备注
+          reason: logContext.reason || `${type === "input" ? "投入" : "产出"}数量${quantity > 0 ? "增加" : "减少"}`,
+          remark: logContext.remark || "",
+          
+          // 系统信息
+          ipAddress: logContext.ipAddress || "",
+          userAgent: logContext.userAgent || "",
+          
+          // 是否为自动操作
+          isAutomatic: logContext.isAutomatic !== undefined ? logContext.isAutomatic : true,
+          
+          // 数据来源
+          source: logContext.source || "SYSTEM",
+        };
+
+        const quantityLog = new WorkOrderQuantityLog(logData);
+        await quantityLog.save();
+        
+        console.log(`工单数量变更日志记录创建成功: ${quantityLog._id}`);
+      } catch (logError) {
+        console.error("创建工单数量变更日志失败:", logError);
+        // 日志记录失败不影响主流程
+      }
 
       return workOrder;
     } catch (error) {
@@ -3947,7 +4094,18 @@ class MaterialProcessFlowService {
           await this.updateWorkOrderQuantity(
             workOrderId.toString(),
             "output",
-            -1
+            -1,
+            {
+              relatedBarcode: barcode,
+              barcodeOperation: "INITIALIZE_PRODUCT",
+              operatorId: userId,
+              reason: `产品初始化减少产出量: ${reason}`,
+              remark: remark,
+              ipAddress: ipAddress,
+              userAgent: userAgent,
+              source: "WEB",
+              isAutomatic: false,
+            }
           );
           logData.workOrderAdjustment.outputQuantityAdjusted = true;
           logData.workOrderAdjustment.outputAdjustmentAmount = -1;
@@ -3958,7 +4116,18 @@ class MaterialProcessFlowService {
           await this.updateWorkOrderQuantity(
             workOrderId.toString(),
             "input",
-            -1
+            -1,
+            {
+              relatedBarcode: barcode,
+              barcodeOperation: "INITIALIZE_PRODUCT",
+              operatorId: userId,
+              reason: `产品初始化减少投入量: ${reason}`,
+              remark: remark,
+              ipAddress: ipAddress,
+              userAgent: userAgent,
+              source: "WEB",
+              isAutomatic: false,
+            }
           );
           logData.workOrderAdjustment.inputQuantityAdjusted = true;
           logData.workOrderAdjustment.inputAdjustmentAmount = -1;

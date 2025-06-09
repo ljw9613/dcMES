@@ -1188,8 +1188,8 @@ class MaterialPalletizingService {
         barcodeCount: 0,
         boxCount: 0,
         status: "STACKED", // 新托盘设置为组托完成状态
-        // 新托盘的出入库状态暂时设置为待入库，后续会根据拆分的条码状态进行更新
-        inWarehouseStatus: "IN_WAREHOUSE",
+        // 新托盘的出入库状态先继承原托盘状态，后续会根据拆分的条码状态进行更新
+        inWarehouseStatus: originalPallet.inWarehouseStatus,
         createAt: new Date(),
         updateAt: new Date(),
         createBy: userId,
@@ -1434,12 +1434,23 @@ class MaterialPalletizingService {
             // 如果部分剩余条码已出库，则设置为部分出库
             updatedOriginalPallet.inWarehouseStatus = "PART_OUT_WAREHOUSE";
           } else {
-            // 如果所有剩余条码都是待出库状态，则设置为已入库
-            updatedOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+            // 如果所有剩余条码都是待出库状态，需要根据原托盘状态决定
+            // 如果原托盘是待入库状态，保持待入库状态
+            // 如果原托盘是已入库或部分出库状态，则设置为已入库
+            if (originalPallet.inWarehouseStatus === "PENDING") {
+              updatedOriginalPallet.inWarehouseStatus = "PENDING";
+            } else {
+              updatedOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+            }
           }
         } else {
-          // 如果原托盘没有任何条码了，则设置为已入库
-          updatedOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+          // 如果原托盘没有任何条码了，保持原来的入库状态不变
+          // 如果原来是待入库，应该保持待入库；如果是已入库，保持已入库
+          if (originalPallet.inWarehouseStatus === "PENDING") {
+            updatedOriginalPallet.inWarehouseStatus = "PENDING";
+          } else {
+            updatedOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+          }
         }
 
         // 保存更新后的原托盘
@@ -1465,20 +1476,24 @@ class MaterialPalletizingService {
           // 如果部分拆分条码已出库，则新托盘设置为部分出库
           newPallet.inWarehouseStatus = "PART_OUT_WAREHOUSE";
         } else {
-          // 如果所有拆分条码都是待出库状态
-          if (
-            originalPallet.inWarehouseStatus === "PENDING" ||
-            originalPallet.inWarehouseStatus === "IN_WAREHOUSE"
-          ) {
-            // 如果原托盘状态是待入库或已入库，则新托盘状态与原托盘一致
-            newPallet.inWarehouseStatus = originalPallet.inWarehouseStatus;
-          } else if (
-            originalPallet.inWarehouseStatus === "PART_OUT_WAREHOUSE"
-          ) {
-            // 如果原托盘状态是部分出库，则新托盘状态为已入库
+          // 如果所有拆分条码都是待出库状态，新托盘状态应该继承原托盘状态
+          if (originalPallet.inWarehouseStatus === "PENDING") {
+            // 如果原托盘是待入库状态，新托盘也应该是待入库
+            newPallet.inWarehouseStatus = "PENDING";
+          } else if (originalPallet.inWarehouseStatus === "IN_WAREHOUSE") {
+            // 如果原托盘是已入库状态，新托盘也应该是已入库
+            newPallet.inWarehouseStatus = "IN_WAREHOUSE";
+          } else if (originalPallet.inWarehouseStatus === "PART_OUT_WAREHOUSE") {
+            // 如果原托盘是部分出库状态，新托盘（没有出库条码）应该是已入库
+            newPallet.inWarehouseStatus = "IN_WAREHOUSE";
+          } else {
+            // 默认情况，设置为已入库
             newPallet.inWarehouseStatus = "IN_WAREHOUSE";
           }
         }
+      } else {
+        // 如果新托盘没有条码（理论上不应该发生），继承原托盘状态
+        newPallet.inWarehouseStatus = originalPallet.inWarehouseStatus;
       }
 
       // 8. 创建新托盘记录
@@ -1500,8 +1515,13 @@ class MaterialPalletizingService {
 
       // 最终检查拆分后原托盘剩余条码的出库状态，更新原托盘的出入库状态
       if (finalOriginalPallet.palletBarcodes.length === 0) {
-        // 如果没有剩余条码，则设置为已入库
-        finalOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+        // 如果没有剩余条码，保持原来的入库状态不变
+        // 如果原来是待入库，应该保持待入库；如果是已入库，保持已入库
+        if (originalPallet.inWarehouseStatus === "PENDING") {
+          finalOriginalPallet.inWarehouseStatus = "PENDING";
+        } else {
+          finalOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+        }
       } else {
         // 检查剩余条码中是否有已出库的条码
         const allRemainingOut = finalOriginalPallet.palletBarcodes.every(
@@ -1519,8 +1539,14 @@ class MaterialPalletizingService {
           // 如果部分剩余条码已出库，则设置为部分出库
           finalOriginalPallet.inWarehouseStatus = "PART_OUT_WAREHOUSE";
         } else {
-          // 如果所有剩余条码都是待出库状态，则设置为已入库
-          finalOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+          // 如果所有剩余条码都是待出库状态，需要根据原托盘状态决定
+          // 如果原托盘是待入库状态，保持待入库状态
+          // 如果原托盘是已入库或部分出库状态，则设置为已入库
+          if (originalPallet.inWarehouseStatus === "PENDING") {
+            finalOriginalPallet.inWarehouseStatus = "PENDING";
+          } else {
+            finalOriginalPallet.inWarehouseStatus = "IN_WAREHOUSE";
+          }
         }
       }
 

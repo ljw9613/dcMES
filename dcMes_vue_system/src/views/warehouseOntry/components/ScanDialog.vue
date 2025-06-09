@@ -358,6 +358,9 @@ export default {
           },
         ],
       },
+      isScanning: false,
+      isProductScanning: false,
+      isBoxProcessing: false,
     };
   },
   watch: {
@@ -425,8 +428,31 @@ export default {
         await this.$refs.entryForm.validate();
 
         const barcode = this.scanForm.barcode.trim();
+        
+        // 防重复扫码检查：检查条码是否已在当前出库单中
+        if (this.entryInfo && this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
+          // 检查是否存在相同的托盘条码
+          const isDuplicatePallet = this.entryInfo.entryItems.some(item => 
+            item.palletCode === barcode.split("#")[0]
+          );
+          
+          if (isDuplicatePallet) {
+            this.$message.warning("该托盘已在当前出库单中，请勿重复扫码");
+            this.scanForm.barcode = "";
+            this.$nextTick(() => {
+              this.$refs.scanInput && this.$refs.scanInput.focus();
+            });
+            return;
+          }
+        }
 
-        // 添加加载状态
+        // 添加加载状态 - 防止用户快速重复点击
+        if (this.isScanning) {
+          this.$message.warning("正在处理中，请稍候...");
+          return;
+        }
+        
+        this.isScanning = true;
         const loading = this.$loading({
           lock: true,
           text: "处理托盘条码中...",
@@ -502,6 +528,7 @@ export default {
 
               // 如果已完成，则更新状态为已完成并自动关闭对话框
               if (isCompleted) {
+                this.isScanning = false;
                 loading.close();
                 this.dialogVisible = false;
                 setTimeout(() => {
@@ -514,7 +541,9 @@ export default {
             }
 
             if (response.code !== 200) {
+              this.isScanning = false;
               loading.close();
+              
               // 如果托盘已部分出库，提示用户可以整托出库
               if (
                 response.message ===
@@ -530,6 +559,12 @@ export default {
                   }
                 )
                   .then(async () => {
+                    // 防止重复操作
+                    if (this.isScanning) {
+                      return;
+                    }
+                    
+                    this.isScanning = true;
                     // 添加整托出库的加载状态
                     const entirePalletLoading = this.$loading({
                       lock: true,
@@ -558,6 +593,7 @@ export default {
                         palletFinished: true, // 指示整托出库
                       });
 
+                      this.isScanning = false;
                       entirePalletLoading.close();
                       
                       if (entirePalletResponse.code === 200) {
@@ -583,6 +619,7 @@ export default {
                         });
                       }
                     } catch (error) {
+                      this.isScanning = false;
                       entirePalletLoading.close();
                       this.$message.error("整托出库失败：" + error.message);
                       this.scanForm.barcode = "";
@@ -606,6 +643,7 @@ export default {
               }
             }
 
+            this.isScanning = false;
             loading.close();
             
             if (response.mode === "init") {
@@ -639,9 +677,11 @@ export default {
               return;
             }
           } else {
+            this.isScanning = false;
             loading.close();
           }
         } catch (error) {
+          this.isScanning = false;
           loading.close();
           this.$message.error("处理托盘条码失败：" + error.message);
           this.scanForm.barcode = "";
@@ -650,6 +690,7 @@ export default {
           });
         }
       } catch (error) {
+        this.isScanning = false;
         this.scanForm.barcode = "";
         this.$nextTick(() => {
           this.$refs.scanInput.focus();
@@ -668,6 +709,31 @@ export default {
         await this.$refs.entryForm.validate();
 
         const barcode = this.productScanForm.barcode.trim();
+        
+        // 防重复扫码检查：检查产品条码是否已在当前出库单中
+        if (this.entryInfo && this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
+          // 检查是否存在相同的产品条码
+          const isDuplicateProduct = this.entryInfo.entryItems.some(item => 
+            item.palletBarcodes && item.palletBarcodes.some(pb => pb.barcode === barcode)
+          );
+          
+          if (isDuplicateProduct) {
+            this.$message.warning("该产品条码已在当前出库单中，请勿重复扫码");
+            this.productScanForm.barcode = "";
+            this.$nextTick(() => {
+              this.$refs.productScanInput && this.$refs.productScanInput.focus();
+            });
+            return;
+          }
+        }
+
+        // 添加加载状态 - 防止用户快速重复点击
+        if (this.isProductScanning) {
+          this.$message.warning("正在处理中，请稍候...");
+          return;
+        }
+        
+        this.isProductScanning = true;
 
         // 检查是否为包装箱条码
         const boxResponse = await getData("material_process_flow", {
@@ -690,6 +756,12 @@ export default {
             type: "warning",
           })
             .then(async () => {
+              // 防止重复操作
+              if (this.isBoxProcessing) {
+                return;
+              }
+              
+              this.isBoxProcessing = true;
               // 设置加载提示
               const loading = this.$loading({
                 lock: true,
@@ -704,6 +776,8 @@ export default {
 
                 if (!boxContents || boxContents.length === 0) {
                   this.$message.error("未找到包装箱内容信息");
+                  this.isBoxProcessing = false;
+                  this.isProductScanning = false;
                   loading.close();
                   return;
                 }
@@ -713,6 +787,8 @@ export default {
 
                 if (productBarcodes.length === 0) {
                   this.$message.error("包装箱内无产品条码");
+                  this.isBoxProcessing = false;
+                  this.isProductScanning = false;
                   loading.close();
                   return;
                 }
@@ -729,6 +805,8 @@ export default {
                     const remainingQuantity = outboundQuantity - outNumber;
                     if (productBarcodes.length > remainingQuantity) {
                       this.$message.error(`包装箱内产品数量(${productBarcodes.length})超过剩余应出库数量(${remainingQuantity})`);
+                      this.isBoxProcessing = false;
+                      this.isProductScanning = false;
                       loading.close();
                       return;
                     }
@@ -736,6 +814,8 @@ export default {
                     // 出库单未初始化或未开始出库，验证总应出库数量
                     if (productBarcodes.length > outboundQuantity) {
                       this.$message.error(`包装箱内产品数量(${productBarcodes.length})超过应出库总数量(${outboundQuantity})`);
+                      this.isBoxProcessing = false;
+                      this.isProductScanning = false;
                       loading.close();
                       return;
                     }
@@ -743,6 +823,8 @@ export default {
                 } else {
                   // 应出库数量未设置，提示用户
                   this.$message.error("请先设置应出库数量");
+                  this.isBoxProcessing = false;
+                  this.isProductScanning = false;
                   loading.close();
                   return;
                 }
@@ -813,6 +895,8 @@ export default {
                         Number(this.entryInfo.outboundQuantity));
 
                   if (isCompleted) {
+                    this.isBoxProcessing = false;
+                    this.isProductScanning = false;
                     loading.close();
                     this.dialogVisible = false;
                     setTimeout(() => {
@@ -824,6 +908,8 @@ export default {
                   }
                 }
 
+                this.isBoxProcessing = false;
+                this.isProductScanning = false;
                 loading.close();
                 this.$message.success(
                   `包装箱条码处理完成, 成功:${successCount}, 失败:${failCount}`
@@ -835,6 +921,8 @@ export default {
                   this.$refs.productScanInput.focus();
                 });
               } catch (error) {
+                this.isBoxProcessing = false;
+                this.isProductScanning = false;
                 loading.close();
                 console.error("处理包装箱条码失败:", error);
                 this.$message.error(error.message || "处理包装箱条码失败");
@@ -849,6 +937,7 @@ export default {
             .catch(() => {
               // 用户取消整箱出库，直接当作单个产品条码处理
               // this.processSingleProductBarcode(barcode);
+              this.isProductScanning = false;
               this.$message.warning("已取消整箱出库");
             });
         } else {
@@ -858,6 +947,7 @@ export default {
       } catch (error) {
         console.error("产品条码扫描失败:", error);
 
+        this.isProductScanning = false;
         // 清空输入框并聚焦
         this.productScanForm.barcode = "";
         this.$nextTick(() => {
@@ -899,6 +989,7 @@ export default {
           });
 
           if (response.code !== 200) {
+            this.isProductScanning = false;
             loading.close();
             this.$message.error(response.message);
             // 清空输入框并聚焦
@@ -956,6 +1047,7 @@ export default {
 
             // 如果已完成，则更新状态为已完成并自动关闭对话框
             if (isCompleted) {
+              this.isProductScanning = false;
               loading.close();
               this.dialogVisible = false;
               setTimeout(() => {
@@ -967,6 +1059,7 @@ export default {
             }
           }
 
+          this.isProductScanning = false;
           loading.close();
           
           // 清空输入框
@@ -977,6 +1070,7 @@ export default {
 
           this.$message.success("产品条码出库成功");
         } catch (error) {
+          this.isProductScanning = false;
           loading.close();
           this.$message.error("处理产品条码失败：" + error.message);
           this.productScanForm.barcode = "";
@@ -986,6 +1080,7 @@ export default {
         }
       } catch (error) {
         console.error("处理单个产品条码失败:", error);
+        this.isProductScanning = false;
         // 清空输入框并聚焦
         this.productScanForm.barcode = "";
         this.$nextTick(() => {
@@ -1049,6 +1144,12 @@ export default {
       this.scanForm.barcode = "";
       this.productScanForm.barcode = "";
       this.scanRecords = [];
+      
+      // 重置扫码状态
+      this.isScanning = false;
+      this.isProductScanning = false;
+      this.isBoxProcessing = false;
+      
       if (this.$refs.scanForm) {
         this.$refs.scanForm.resetFields();
       }

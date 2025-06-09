@@ -50,7 +50,9 @@ const apiLogger = (serviceName) => {
     // 设备对接的接口不需要验证路由
     const isDeviceRoute =
       req.path.includes("/machine-scan-components") ||
-      req.path.includes("/initialize-machine-barcode");
+      req.path.includes("/initialize-machine-barcode")||
+      req.path.includes("/get-laser-print-barcode")||
+      req.path.includes("/confirm-laser-barcode-used");
 
     if (token && token.length > 0) {
       try {

@@ -196,6 +196,7 @@
               tag-key="lineCode"
               sub-key="workshop"
               :multiple="false"
+              :disabled="form.status !== 'PENDING' && form.status !== 'PAUSED'"
               placeholder="请输入产线信息搜索"
               @select="handleProductionLineSelect"
             />

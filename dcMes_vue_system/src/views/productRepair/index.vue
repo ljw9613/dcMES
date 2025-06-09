@@ -1065,6 +1065,32 @@ export default {
                   type: "warning",
                 }
               );
+            } else if (
+              response.code === 401 &&
+              response.data &&
+              response.data.requireUnbind
+            ) {
+              // 处理部件更换验证失败的情况
+              this.$alert(
+                `<div style="max-height: 300px; overflow-y: auto;">
+                                  <p>${response.message}</p>
+                                  <p><strong>产品条码:</strong> ${response.data.barcode}</p>
+                                  ${response.data.unbindRecordsCount ? 
+                                    `<p><strong>现有解绑记录数:</strong> ${response.data.unbindRecordsCount}</p>` : 
+                                    ''
+                                  }
+                                  <p style="color: #f56c6c; margin-top: 10px;">
+                                    <i class="el-icon-warning"></i> 
+                                    请先在产品详情中进行部件解绑操作
+                                  </p>
+                              </div>`,
+                "部件更换审核失败",
+                {
+                  dangerouslyUseHTMLString: true,
+                  confirmButtonText: "确定",
+                  type: "warning",
+                }
+              );
             } else {
               this.$message.error(response.message || "审核失败");
             }
@@ -1113,6 +1139,32 @@ export default {
                                 <p>${keyMaterialsInfo}</p>
                             </div>`,
               "审核失败",
+              {
+                dangerouslyUseHTMLString: true,
+                confirmButtonText: "确定",
+                type: "warning",
+              }
+            );
+          } else if (
+            response.code === 401 &&
+            response.data &&
+            response.data.requireUnbind
+          ) {
+            // 处理部件更换验证失败的情况
+            this.$alert(
+              `<div style="max-height: 300px; overflow-y: auto;">
+                                <p>${response.message}</p>
+                                <p><strong>产品条码:</strong> ${response.data.barcode}</p>
+                                ${response.data.unbindRecordsCount ? 
+                                  `<p><strong>现有解绑记录数:</strong> ${response.data.unbindRecordsCount}</p>` : 
+                                  ''
+                                }
+                                <p style="color: #f56c6c; margin-top: 10px;">
+                                  <i class="el-icon-warning"></i> 
+                                  请先在产品详情中进行部件解绑操作
+                                </p>
+                            </div>`,
+              "部件更换审核失败",
               {
                 dangerouslyUseHTMLString: true,
                 confirmButtonText: "确定",
@@ -1221,6 +1273,45 @@ export default {
                                     ${barcodeInfo}
                                 </div>`,
                 "批量审核失败",
+                {
+                  dangerouslyUseHTMLString: true,
+                  confirmButtonText: "确定",
+                  type: "warning",
+                }
+              );
+            } else if (
+              response.code === 401 &&
+              response.data &&
+              response.data.barcodeWithoutUnbindRecords
+            ) {
+              // 处理部件更换验证失败的情况
+              let unbindInfo = "";
+              response.data.barcodeWithoutUnbindRecords.forEach((item) => {
+                unbindInfo += `<div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #f56c6c; background-color: #fef0f0;">
+                                <p><strong>条码:</strong> ${item.barcode}</p>
+                                <p><strong>问题:</strong> ${item.message}</p>
+                                ${item.unbindRecordsCount ? 
+                                  `<p><strong>现有解绑记录数:</strong> ${item.unbindRecordsCount}</p>` : 
+                                  ''
+                                }
+                              </div>`;
+              });
+
+              this.$alert(
+                `<div style="max-height: 400px; overflow-y: auto;">
+                                    <p>${response.message}</p>
+                                    <div style="margin: 15px 0;">
+                                      <h4 style="color: #f56c6c; margin-bottom: 10px;">
+                                        <i class="el-icon-warning"></i> 详细信息:
+                                      </h4>
+                                      ${unbindInfo}
+                                    </div>
+                                    <p style="color: #f56c6c; margin-top: 15px; padding: 10px; background-color: #fef0f0; border-radius: 4px;">
+                                      <i class="el-icon-info"></i> 
+                                      请先在产品详情中为这些产品进行部件解绑操作，然后再进行审核
+                                    </p>
+                                </div>`,
+                "部件更换批量审核失败",
                 {
                   dangerouslyUseHTMLString: true,
                   confirmButtonText: "确定",

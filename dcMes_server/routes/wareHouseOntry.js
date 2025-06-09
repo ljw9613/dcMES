@@ -455,123 +455,171 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       entry.HuoGuiCode = entryInfo.HuoGuiCode;
     }
 
-    // 4. 检查托盘是否已经出库
+    // 4. 检查托盘是否已经出库 - 增强重复检查
     const existingPallet = entry.entryItems.find(
       (item) => item.palletCode === palletCode
     );
 
-    // 处理部分出库的情况
-    if (
-      existingPallet &&
-      pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE" &&
-      palletFinished
-    ) {
-      // 如果托盘已经部分出库，且用户选择了整托出库，则更新现有记录，增加剩余的产品
-      // 获取托盘中所有未出库的条码
-      const remainingBarcodes = pallet.palletBarcodes.filter(
-        (item) => item.outWarehouseStatus !== "COMPLETED"
-      );
-
-      // 如果没有剩余未出库的条码，直接返回已出库信息
-      if (remainingBarcodes.length === 0) {
-        return res.status(200).json({
-          code: 200,
-          message: "该托盘所有产品已出库",
-          data: entry,
-        });
-      }
-
-      // 将这些条码添加到出库单中
-      for (const barcode of remainingBarcodes) {
-        if (!existingPallet.palletBarcodes) {
-          existingPallet.palletBarcodes = [];
-        }
-
-        existingPallet.palletBarcodes.push({
-          barcode: barcode.barcode,
-          barcodeType: barcode.barcodeType,
-          materialProcessFlowId: barcode.materialProcessFlowId,
-          productionPlanWorkOrderId: barcode.productionPlanWorkOrderId,
-          scanTime: new Date(),
-          scanBy: userId,
-        });
-
-        // 更新托盘中条码的出库状态
-        barcode.outWarehouseStatus = "COMPLETED";
-        barcode.outWarehouseTime = new Date();
-        barcode.outWarehouseBy = userId;
-      }
-
-      // 更新托盘条目的数量
-      existingPallet.quantity = existingPallet.palletBarcodes ? existingPallet.palletBarcodes.length : remainingBarcodes.length;
-
-      // 更新出库单数量和进度
-      entry.outNumber = entry.entryItems.reduce(
-        (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
-        0
-      );
-      entry.actualQuantity = entry.outNumber;
-      entry.palletCount = entry.entryItems.length;
-      entry.progress = Math.round(
-        (entry.outNumber / entry.outboundQuantity) * 100
-      );
-
-      // 更新出库单状态
-      if (entry.outNumber >= entry.outboundQuantity) {
-        entry.status = "COMPLETED";
-        entry.completedTime = new Date();
-        // 调用通知接口
-        warehouseService.notifyOutWarehouseCompleted(entry.entryNo)
-          .then(result => {
-            if (!result.success) {
-              console.error(`出库单${entry.entryNo}完成通知失败: ${result.error}`);
-            }
-          })
-          .catch(error => {
-            console.error(`出库单${entry.entryNo}完成通知出错: ${error.message}`);
-          });
-      } else {
-        entry.status = "IN_PROGRESS";
-      }
-
-      // 更新托盘状态为完全出库
-      pallet.inWarehouseStatus = "OUT_WAREHOUSE";
-      pallet.outWarehouseTime = new Date();
-      pallet.outWarehouseBy = userId;
-
-      // 保存更新
-      await MaterialPallet.findByIdAndUpdate(pallet._id, {
-        inWarehouseStatus: pallet.inWarehouseStatus,
-        outWarehouseTime: new Date(),
-        updateAt: new Date(),
-        palletBarcodes: pallet.palletBarcodes,
-      });
-
-      await entry.save();
-
+    // 强化防重复机制：检查是否存在同一托盘的重复出库单项
+    const duplicatePalletItems = entry.entryItems.filter(
+      (item) => item.palletCode === palletCode
+    );
+    
+    if (duplicatePalletItems.length > 1) {
+      // 如果发现重复项，记录错误并拒绝操作
+      console.error(`发现重复托盘项，托盘编号: ${palletCode}, 出库单号: ${entry.entryNo}, 重复项数量: ${duplicatePalletItems.length}`);
       return res.status(200).json({
-        code: 200,
-        message: "托盘剩余产品成功出库",
-        data: entry,
+        code: 404,
+        message: `数据异常：托盘 ${palletCode} 在出库单中存在重复项，请联系管理员处理`,
       });
-    } else if (existingPallet) {
-      // 对于已经在出库单中的托盘，需要判断其出入库状态
-      if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
-        // 如果托盘状态为"已出库"，才提示不能出库
-        return res.status(200).json({
-          code: 404,
-          message: "该托盘已出库",
-        });
-      } else if (
-        pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE" &&
-        !palletFinished
-      ) {
-        // 如果托盘状态为"部分出库"且不是整托出库模式，提示用户可以使用整托出库功能
-        return res.status(200).json({
-          code: 404,
-          message: "该托盘已部分出库，请使用整托出库功能完成剩余产品出库",
-        });
+    }
+
+    // 额外检查：防止并发操作导致的重复添加
+    if (existingPallet) {
+      // 重新获取最新的出库单数据，防止并发修改
+      const latestEntry = await wareHouseOntry.findById(entry._id);
+      const latestExistingPallet = latestEntry.entryItems.find(
+        (item) => item.palletCode === palletCode
+      );
+      
+      if (latestExistingPallet) {
+        // 托盘已存在于出库单中，进行相应处理
+        if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+          return res.status(200).json({
+            code: 404,
+            message: "该托盘已出库",
+          });
+        }
+        
+        // 处理部分出库的情况
+        if (
+          pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE" &&
+          palletFinished
+        ) {
+          // 如果托盘已经部分出库，且用户选择了整托出库，则更新现有记录，增加剩余的产品
+          // 获取托盘中所有未出库的条码
+          const remainingBarcodes = pallet.palletBarcodes.filter(
+            (item) => item.outWarehouseStatus !== "COMPLETED"
+          );
+
+          // 如果没有剩余未出库的条码，直接返回已出库信息
+          if (remainingBarcodes.length === 0) {
+            return res.status(200).json({
+              code: 200,
+              message: "该托盘所有产品已出库",
+              data: latestEntry,
+            });
+          }
+
+          // 检查是否已经添加过这些条码
+          const currentBarcodes = latestExistingPallet.palletBarcodes ? 
+            latestExistingPallet.palletBarcodes.map(b => b.barcode) : [];
+          
+          const newBarcodes = remainingBarcodes.filter(
+            barcode => !currentBarcodes.includes(barcode.barcode)
+          );
+
+          if (newBarcodes.length === 0) {
+            return res.status(200).json({
+              code: 200,
+              message: "该托盘剩余产品已在当前出库单中",
+              data: latestEntry,
+            });
+          }
+
+          // 将新的条码添加到出库单中
+          if (!latestExistingPallet.palletBarcodes) {
+            latestExistingPallet.palletBarcodes = [];
+          }
+
+          for (const barcode of newBarcodes) {
+            latestExistingPallet.palletBarcodes.push({
+              barcode: barcode.barcode,
+              barcodeType: barcode.barcodeType,
+              materialProcessFlowId: barcode.materialProcessFlowId,
+              productionPlanWorkOrderId: barcode.productionPlanWorkOrderId,
+              scanTime: new Date(),
+              scanBy: userId,
+            });
+
+            // 更新托盘中条码的出库状态
+            barcode.outWarehouseStatus = "COMPLETED";
+            barcode.outWarehouseTime = new Date();
+            barcode.outWarehouseBy = userId;
+          }
+
+          // 更新托盘条目的数量
+          latestExistingPallet.quantity = latestExistingPallet.palletBarcodes.length;
+
+          // 更新出库单数量和进度
+          latestEntry.outNumber = latestEntry.entryItems.reduce(
+            (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+            0
+          );
+          latestEntry.actualQuantity = latestEntry.outNumber;
+          latestEntry.palletCount = latestEntry.entryItems.length;
+          latestEntry.progress = Math.round(
+            (latestEntry.outNumber / latestEntry.outboundQuantity) * 100
+          );
+
+          // 更新出库单状态
+          if (latestEntry.outNumber >= latestEntry.outboundQuantity) {
+            latestEntry.status = "COMPLETED";
+            latestEntry.completedTime = new Date();
+            // 调用通知接口
+            warehouseService.notifyOutWarehouseCompleted(latestEntry.entryNo)
+              .then(result => {
+                if (!result.success) {
+                  console.error(`出库单${latestEntry.entryNo}完成通知失败: ${result.error}`);
+                }
+              })
+              .catch(error => {
+                console.error(`出库单${latestEntry.entryNo}完成通知出错: ${error.message}`);
+              });
+          } else {
+            latestEntry.status = "IN_PROGRESS";
+          }
+
+          // 更新托盘状态为完全出库
+          pallet.inWarehouseStatus = "OUT_WAREHOUSE";
+          pallet.outWarehouseTime = new Date();
+          pallet.outWarehouseBy = userId;
+
+          // 保存更新
+          await MaterialPallet.findByIdAndUpdate(pallet._id, {
+            inWarehouseStatus: pallet.inWarehouseStatus,
+            outWarehouseTime: new Date(),
+            updateAt: new Date(),
+            palletBarcodes: pallet.palletBarcodes,
+          });
+
+          await latestEntry.save();
+
+          return res.status(200).json({
+            code: 200,
+            message: "托盘剩余产品成功出库",
+            data: latestEntry,
+          });
+        } else if (
+          pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE" &&
+          !palletFinished
+        ) {
+          // 如果托盘状态为"部分出库"且不是整托出库模式，提示用户可以使用整托出库功能
+          return res.status(200).json({
+            code: 404,
+            message: "该托盘已部分出库，请使用整托出库功能完成剩余产品出库",
+          });
+        } else {
+          // 托盘已在出库单中，不允许重复添加
+          return res.status(200).json({
+            code: 404,
+            message: "该托盘已在当前出库单中，不允许重复出库",
+          });
+        }
       }
+      
+      // 更新entry为最新数据
+      entry = latestEntry;
     }
 
     //判断是托盘出库还是单一产品出库
@@ -590,11 +638,19 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     }
     //托盘出库
 
-    // 5. 添加托盘到出库单
+    // 5. 添加托盘到出库单 - 增强重复检查
     // 获取未出库的条码
     const unOutBarcodes = pallet.palletBarcodes.filter(
       (item) => item.outWarehouseStatus !== "COMPLETED"
     );
+
+    // 如果没有未出库的条码，说明托盘已全部出库
+    if (unOutBarcodes.length === 0) {
+      return res.status(200).json({
+        code: 404,
+        message: "该托盘所有产品已出库",
+      });
+    }
     
     // 预先计算添加该托盘后的总出库数量
     const currentTotalQuantity = entry.entryItems.reduce(
@@ -625,7 +681,21 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       }
     }
 
-    entry.entryItems.push({
+    // 再次检查当前出库单中是否已存在该托盘（防止并发添加）
+    const currentEntry = await wareHouseOntry.findById(entry._id);
+    const finalExistingPallet = currentEntry.entryItems.find(
+      (item) => item.palletCode === palletCode
+    );
+    
+    if (finalExistingPallet) {
+      return res.status(200).json({
+        code: 404,
+        message: "该托盘已在当前出库单中，请勿重复扫码",
+      });
+    }
+
+    // 使用原子操作添加托盘项，防止并发重复添加
+    const palletItem = {
       palletId: pallet._id,
       palletCode: pallet.palletCode,
       quantity: unOutBarcodes.length, // 使用未出库条码的数量
@@ -643,21 +713,56 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
         scanTime: new Date(),
         scanBy: userId,
       })),
-    });
+    };
+
+    // 使用 MongoDB 的原子操作确保不会重复添加
+    const updateResult = await wareHouseOntry.updateOne(
+      { 
+        _id: entry._id,
+        "entryItems.palletCode": { $ne: palletCode } // 确保托盘不存在
+      },
+      { 
+        $push: { entryItems: palletItem },
+        $set: { updateAt: new Date() }
+      }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(200).json({
+        code: 404,
+        message: "该托盘已在当前出库单中，或出库单不存在",
+      });
+    }
+
+    if (updateResult.modifiedCount === 0) {
+      return res.status(200).json({
+        code: 404,
+        message: "托盘添加失败，可能已存在重复项",
+      });
+    }
+
+    // 重新获取更新后的出库单
+    const updatedEntry = await wareHouseOntry.findById(entry._id);
 
     // 6. 更新出库单数量信息和完成进度
-    entry.outNumber = entry.entryItems.reduce(
+    updatedEntry.outNumber = updatedEntry.entryItems.reduce(
       (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
       0
     );
-    entry.actualQuantity = entry.outNumber;
-    entry.palletCount = entry.entryItems.length;
-    entry.progress = Math.round(
-      (entry.outNumber / entry.outboundQuantity) * 100
+    updatedEntry.actualQuantity = updatedEntry.outNumber;
+    updatedEntry.palletCount = updatedEntry.entryItems.length;
+    updatedEntry.progress = Math.round(
+      (updatedEntry.outNumber / updatedEntry.outboundQuantity) * 100
     );
 
     //计算已出库数量是否超过应出库数量
-    if (entry.outNumber > entryInfo.outboundQuantity) {
+    if (updatedEntry.outNumber > entryInfo.outboundQuantity) {
+      // 如果超过，需要回滚操作
+      await wareHouseOntry.updateOne(
+        { _id: updatedEntry._id },
+        { $pull: { entryItems: { palletCode: palletCode } } }
+      );
+      
       return res.status(200).json({
         code: 404,
         message: "该托盘数量已经超过应出库数量,无法进行出库,需修改应出库数量",
@@ -665,21 +770,21 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     }
 
     // 7. 更新出库单状态
-    if (entry.outNumber >= entry.outboundQuantity) {
-      entry.status = "COMPLETED";
-      entry.completedTime = new Date();
+    if (updatedEntry.outNumber >= updatedEntry.outboundQuantity) {
+      updatedEntry.status = "COMPLETED";
+      updatedEntry.completedTime = new Date();
       // 调用通知接口
-      warehouseService.notifyOutWarehouseCompleted(entry.entryNo)
+      warehouseService.notifyOutWarehouseCompleted(updatedEntry.entryNo)
         .then(result => {
           if (!result.success) {
-            console.error(`出库单${entry.entryNo}完成通知失败: ${result.error}`);
+            console.error(`出库单${updatedEntry.entryNo}完成通知失败: ${result.error}`);
           }
         })
         .catch(error => {
-          console.error(`出库单${entry.entryNo}完成通知出错: ${error.message}`);
+          console.error(`出库单${updatedEntry.entryNo}完成通知出错: ${error.message}`);
         });
     } else {
-      entry.status = "IN_PROGRESS";
+      updatedEntry.status = "IN_PROGRESS";
     }
 
     // 8. 更新托盘中所有条码的出库状态
@@ -701,7 +806,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       palletBarcodes: pallet.palletBarcodes,
     });
 
-    await entry.save();
+    await updatedEntry.save();
 
     // 重新查询以获取最新数据
     // const latestEntry = await wareHouseOntry.findById(entry._id);
@@ -709,9 +814,10 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     return res.status(200).json({
       code: 200,
       message: "扫码出库成功",
-      data: entry,
+      data: updatedEntry,
     });
   } catch (error) {
+    console.error("扫码出库失败:", error);
     return res.status(200).json({
       code: 500,
       message: error.message,
@@ -1506,6 +1612,245 @@ router.post("/api/v1/warehouse_entry/delete_entry", async (req, res) => {
     });
   } catch (error) {
     console.error("删除出库单错误:", error);
+    return res.status(200).json({
+      code: 500,
+      message: error.message
+    });
+  }
+});
+
+// 清理出库单中的重复托盘项
+router.post("/api/v1/warehouse_entry/clean_duplicate_pallets", async (req, res) => {
+  try {
+    const { entryId } = req.body;
+
+    if (!entryId) {
+      return res.status(200).json({
+        code: 400,
+        message: "出库单ID不能为空",
+      });
+    }
+
+    // 获取出库单信息
+    const entry = await wareHouseOntry.findById(entryId);
+    if (!entry) {
+      return res.status(200).json({
+        code: 404,
+        message: "出库单不存在",
+      });
+    }
+
+    // 检查是否存在重复托盘项
+    const palletCodeMap = new Map();
+    const duplicateItems = [];
+    const uniqueItems = [];
+
+    entry.entryItems.forEach((item, index) => {
+      if (palletCodeMap.has(item.palletCode)) {
+        // 发现重复项
+        duplicateItems.push({
+          index,
+          palletCode: item.palletCode,
+          quantity: item.quantity,
+          scanTime: item.scanTime
+        });
+      } else {
+        // 第一次出现的托盘
+        palletCodeMap.set(item.palletCode, index);
+        uniqueItems.push(item);
+      }
+    });
+
+    if (duplicateItems.length === 0) {
+      return res.status(200).json({
+        code: 200,
+        message: "未发现重复托盘项",
+        data: {
+          totalItems: entry.entryItems.length,
+          duplicateCount: 0
+        }
+      });
+    }
+
+    console.log(`出库单 ${entry.entryNo} 发现 ${duplicateItems.length} 个重复托盘项:`, duplicateItems);
+
+    // 对于重复项，保留最早扫描的那一项，合并后续重复项的条码信息
+    const mergedItems = [];
+    const processedPallets = new Set();
+
+    for (const item of entry.entryItems) {
+      if (processedPallets.has(item.palletCode)) {
+        // 已处理过该托盘，跳过
+        continue;
+      }
+
+      // 找到所有相同托盘编号的项
+      const sameCodeItems = entry.entryItems.filter(i => i.palletCode === item.palletCode);
+      
+      if (sameCodeItems.length === 1) {
+        // 没有重复，直接添加
+        mergedItems.push(item);
+      } else {
+        // 有重复，需要合并
+        const mergedItem = { ...sameCodeItems[0] }; // 保留第一项的基本信息
+        const allBarcodes = [];
+
+        // 收集所有重复项的条码，去重
+        sameCodeItems.forEach(sameItem => {
+          if (sameItem.palletBarcodes && sameItem.palletBarcodes.length > 0) {
+            sameItem.palletBarcodes.forEach(barcode => {
+              const exists = allBarcodes.some(b => b.barcode === barcode.barcode);
+              if (!exists) {
+                allBarcodes.push(barcode);
+              }
+            });
+          }
+        });
+
+        // 更新合并后的项
+        mergedItem.palletBarcodes = allBarcodes;
+        mergedItem.quantity = allBarcodes.length;
+        
+        mergedItems.push(mergedItem);
+        
+        console.log(`合并托盘 ${item.palletCode}: ${sameCodeItems.length} 个重复项 -> 1 个项，条码数量: ${allBarcodes.length}`);
+      }
+
+      processedPallets.add(item.palletCode);
+    }
+
+    // 更新出库单
+    entry.entryItems = mergedItems;
+    
+    // 重新计算数量和进度
+    entry.outNumber = entry.entryItems.reduce(
+      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      0
+    );
+    entry.actualQuantity = entry.outNumber;
+    entry.palletCount = entry.entryItems.length;
+    entry.progress = Math.round(
+      (entry.outNumber / entry.outboundQuantity) * 100
+    );
+
+    // 更新状态
+    if (entry.outNumber >= entry.outboundQuantity) {
+      entry.status = "COMPLETED";
+      if (!entry.completedTime) {
+        entry.completedTime = new Date();
+      }
+    } else {
+      entry.status = "IN_PROGRESS";
+    }
+
+    entry.updateAt = new Date();
+
+    await entry.save();
+
+    return res.status(200).json({
+      code: 200,
+      message: "重复托盘项清理成功",
+      data: {
+        entryNo: entry.entryNo,
+        originalItemCount: entry.entryItems.length + duplicateItems.length,
+        cleanedItemCount: entry.entryItems.length,
+        duplicatesRemoved: duplicateItems.length,
+        duplicateDetails: duplicateItems,
+        newOutNumber: entry.outNumber,
+        newProgress: entry.progress
+      }
+    });
+  } catch (error) {
+    console.error("清理重复托盘项失败:", error);
+    return res.status(200).json({
+      code: 500,
+      message: error.message
+    });
+  }
+});
+
+// 批量清理所有出库单的重复托盘项
+router.post("/api/v1/warehouse_entry/batch_clean_duplicates", async (req, res) => {
+  try {
+    const { status = "all" } = req.body; // all, IN_PROGRESS, COMPLETED
+
+    // 构建查询条件
+    let query = {};
+    if (status !== "all") {
+      query.status = status;
+    }
+
+    // 查找所有符合条件的出库单
+    const entries = await wareHouseOntry.find(query);
+    
+    const results = [];
+    let totalCleaned = 0;
+
+    for (const entry of entries) {
+      // 检查是否存在重复托盘项
+      const palletCodeMap = new Map();
+      let hasDuplicates = false;
+
+      entry.entryItems.forEach((item) => {
+        if (palletCodeMap.has(item.palletCode)) {
+          hasDuplicates = true;
+        } else {
+          palletCodeMap.set(item.palletCode, true);
+        }
+      });
+
+      if (!hasDuplicates) {
+        continue;
+      }
+
+      try {
+        // 对有重复项的出库单进行清理
+        const cleanResult = await fetch(`${req.protocol}://${req.get('host')}/api/v1/warehouse_entry/clean_duplicate_pallets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ entryId: entry._id.toString() })
+        }).then(response => response.json());
+
+        if (cleanResult.code === 200) {
+          results.push({
+            entryNo: entry.entryNo,
+            entryId: entry._id,
+            duplicatesRemoved: cleanResult.data.duplicatesRemoved,
+            status: "success"
+          });
+          totalCleaned += cleanResult.data.duplicatesRemoved;
+        } else {
+          results.push({
+            entryNo: entry.entryNo,
+            entryId: entry._id,
+            error: cleanResult.message,
+            status: "failed"
+          });
+        }
+      } catch (error) {
+        results.push({
+          entryNo: entry.entryNo,
+          entryId: entry._id,
+          error: error.message,
+          status: "failed"
+        });
+      }
+    }
+
+    return res.status(200).json({
+      code: 200,
+      message: "批量清理完成",
+      data: {
+        totalProcessed: entries.length,
+        totalWithDuplicates: results.length,
+        totalDuplicatesRemoved: totalCleaned,
+        results
+      }
+    });
+  } catch (error) {
+    console.error("批量清理重复托盘项失败:", error);
     return res.status(200).json({
       code: 500,
       message: error.message

@@ -55,6 +55,19 @@
                 :value="dict.value"
               />
             </el-select>
+            <!-- 部件更换提示信息 -->
+            <div 
+              v-if="form.solution === 'COMPONENT_REPLACEMENT' || form.solution === '部件更换'"
+              style="margin-top: 8px; padding: 10px; background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 4px;"
+            >
+              <p style="margin: 0; color: #fa8c16; font-size: 13px;">
+                <i class="el-icon-warning-outline"></i>
+                <strong>重要提示：</strong>
+              </p>
+              <p style="margin: 5px 0 0 0; color: #8c8c8c; font-size: 12px;">
+                选择部件更换处理方案后，审核前需要先在产品详情中进行部件解绑操作，否则无法完成审核。
+              </p>
+            </div>
           </el-form-item>
         </el-col>
       </el-row>

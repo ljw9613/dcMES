@@ -253,7 +253,7 @@
                 :printData="printData"
               />
             </div>
-            <div class="scan-input-section">
+            <div class="scan-input-section" :class="{ processing: isProcessingBox }">
               <!-- 添加扫描模式切换 -->
               <!-- <div class="scan-mode-switch">
                                 <el-radio-group v-model="scanMode" size="small">
@@ -273,130 +273,154 @@
                 ref="scanInput"
                 clearable
                 @clear="focusInput"
+                :disabled="isProcessingBox"
               >
                 <template slot="prepend">
                   <i class="el-icon-camera"></i>
                 </template>
               </el-input>
-            </div>
 
-            <!-- 添加子物料扫描区域 -->
-            <div class="section-header">
-              <div class="header-left">
-                <i class="el-icon-box"></i>
-                <span>物料匹配扫描</span>
+              <!-- 包装箱处理进度显示 -->
+              <div v-if="isProcessingBox" class="box-process-indicator">
+                <el-alert
+                  title="正在处理包装箱条码，请稍候..."
+                  type="warning"
+                  :closable="false"
+                  show-icon
+                >
+                  <template slot="default">
+                    <div class="process-content">
+                      <div class="process-text">
+                        处理进度: {{ boxProcessProgress.current }}/{{ boxProcessProgress.total }}
+                      </div>
+                      <el-progress
+                        :percentage="Math.floor((boxProcessProgress.current / boxProcessProgress.total) * 100)"
+                        :stroke-width="8"
+                        status="success"
+                      ></el-progress>
+                    </div>
+                  </template>
+                </el-alert>
               </div>
-              <el-tooltip
-                content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除"
-                placement="top"
-              >
-                <el-tag type="info" size="small">批次物料缓存已启用</el-tag>
-              </el-tooltip>
-            </div>
 
-            <div class="material-section">
-              <el-form-item
-                :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`"
-                label-width="100%"
-                class="vertical-form-item"
-              >
-                <div class="input-with-status">
-                  <el-input
-                    v-model="scanForm.mainBarcode"
-                    placeholder="请扫描主物料条码"
-                    :class="{ 'valid-input': validateStatus['mainBarcode'] }"
-                    readonly
-                  >
-                    <template slot="prefix">
-                      <i class="el-icon-full-screen"></i>
-                    </template>
-                  </el-input>
-                  <div
-                    class="status-indicator"
-                    :class="{ valid: validateStatus['mainBarcode'] }"
-                  >
-                    <i :class="getValidateIcon('mainBarcode')"></i>
-                  </div>
-                </div>
-              </el-form-item>
-            </div>
-
-            <div class="material-section" v-if="processMaterials.length > 0">
-              <el-form-item
-                v-for="material in processMaterials"
-                :key="material._id"
-                :label="`编号：${material.materialCode}  名称：${material.materialName}`"
-                label-width="100%"
-                class="vertical-form-item"
-              >
-                <div class="input-with-status">
-                  <el-input
-                    v-model="scanForm.barcodes[material._id]"
-                    placeholder="请扫描子物料条码"
-                    :class="{ 'valid-input': validateStatus[material._id] }"
-                    readonly
-                  >
-                    <template slot="prefix">
-                      <i class="el-icon-full-screen"></i>
-                    </template>
-                    <template slot="suffix">
-                      <template v-if="!material.scanOperation">
-                        <el-tag type="info">无需扫码</el-tag>
-                      </template>
-                      <template v-else-if="material.isBatch">
-                        <el-tag type="warning" v-if="material.batchQuantity">
-                          {{ getBatchUsageText(material._id) }}
-                        </el-tag>
-                        <el-tag type="warning" v-else>批次物料</el-tag>
-                      </template>
-                    </template>
-                  </el-input>
-                  <div
-                    class="status-indicator"
-                    :class="{ valid: validateStatus[material._id] }"
-                  >
-                    <i :class="getValidateIcon(material._id)"></i>
-                  </div>
-                </div>
-              </el-form-item>
-            </div>
-
-            <!-- 已扫描条码列表 -->
-            <div class="scanned-list">
+              <!-- 添加子物料扫描区域 -->
               <div class="section-header">
                 <div class="header-left">
-                  <i class="el-icon-document"></i>
-                  <span>已扫描条码</span>
+                  <i class="el-icon-box"></i>
+                  <span>物料匹配扫描</span>
                 </div>
-                <div class="progress-container">
-                  <div class="progress-text">
-                    当前进度: {{ scannedList.length }}/{{ batchForm.batchSize }}
-                  </div>
-                  <el-progress :percentage="progressPercentage"> </el-progress>
-                </div>
+                <el-tooltip
+                  content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除"
+                  placement="top"
+                >
+                  <el-tag type="info" size="small">批次物料缓存已启用</el-tag>
+                </el-tooltip>
               </div>
 
-              <el-row :gutter="20" class="barcode-list">
-                <el-col
-                  :span="8"
-                  v-for="(item, index) in scannedList"
-                  :key="index"
+              <div class="material-section">
+                <el-form-item
+                  :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`"
+                  label-width="100%"
+                  class="vertical-form-item"
                 >
-                  <el-card class="barcode-card" shadow="hover">
-                    <div class="barcode-content">
-                      <div class="barcode-info">
-                        <div class="scan-time">条码：</div>
-                        <div class="scan-time">
-                          <el-tag> {{ item.barcode }}</el-tag>
-                        </div>
-                        <div class="scan-time">
-                          扫描时间：{{ formatDate(item.scanTime) }}
+                  <div class="input-with-status">
+                    <el-input
+                      v-model="scanForm.mainBarcode"
+                      placeholder="请扫描主物料条码"
+                      :class="{ 'valid-input': validateStatus['mainBarcode'] }"
+                      readonly
+                    >
+                      <template slot="prefix">
+                        <i class="el-icon-full-screen"></i>
+                      </template>
+                    </el-input>
+                    <div
+                      class="status-indicator"
+                      :class="{ valid: validateStatus['mainBarcode'] }"
+                    >
+                      <i :class="getValidateIcon('mainBarcode')"></i>
+                    </div>
+                  </div>
+                </el-form-item>
+              </div>
+
+              <div class="material-section" v-if="processMaterials.length > 0">
+                <el-form-item
+                  v-for="material in processMaterials"
+                  :key="material._id"
+                  :label="`编号：${material.materialCode}  名称：${material.materialName}`"
+                  label-width="100%"
+                  class="vertical-form-item"
+                >
+                  <div class="input-with-status">
+                    <el-input
+                      v-model="scanForm.barcodes[material._id]"
+                      placeholder="请扫描子物料条码"
+                      :class="{ 'valid-input': validateStatus[material._id] }"
+                      readonly
+                    >
+                      <template slot="prefix">
+                        <i class="el-icon-full-screen"></i>
+                      </template>
+                      <template slot="suffix">
+                        <template v-if="!material.scanOperation">
+                          <el-tag type="info">无需扫码</el-tag>
+                        </template>
+                        <template v-else-if="material.isBatch">
+                          <el-tag type="warning" v-if="material.batchQuantity">
+                            {{ getBatchUsageText(material._id) }}
+                          </el-tag>
+                          <el-tag type="warning" v-else>批次物料</el-tag>
+                        </template>
+                      </template>
+                    </el-input>
+                    <div
+                      class="status-indicator"
+                      :class="{ valid: validateStatus[material._id] }"
+                    >
+                      <i :class="getValidateIcon(material._id)"></i>
+                    </div>
+                  </div>
+                </el-form-item>
+              </div>
+
+              <!-- 已扫描条码列表 -->
+              <div class="scanned-list">
+                <div class="section-header">
+                  <div class="header-left">
+                    <i class="el-icon-document"></i>
+                    <span>已扫描条码</span>
+                  </div>
+                  <div class="progress-container">
+                    <div class="progress-text">
+                      当前进度: {{ scannedList.length }}/{{ batchForm.batchSize }}
+                    </div>
+                    <el-progress :percentage="progressPercentage"> </el-progress>
+                  </div>
+                </div>
+
+                <el-row :gutter="20" class="barcode-list">
+                  <el-col
+                    :span="8"
+                    v-for="(item, index) in scannedList"
+                    :key="index"
+                  >
+                    <el-card class="barcode-card" shadow="hover">
+                      <div class="barcode-content">
+                        <div class="barcode-info">
+                          <div class="scan-time">条码：</div>
+                          <div class="scan-time">
+                            <el-tag> {{ item.barcode }}</el-tag>
+                          </div>
+                          <div class="scan-time">
+                            扫描时间：{{ formatDate(item.scanTime) }}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </el-card>
-                </el-col>
-              </el-row>
+                    </el-card>
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-form>
         </el-card>
@@ -530,6 +554,13 @@ export default {
 
       craftInfo: {},
       craftHasPackingProcess: false, // 新增：标记当前工艺是否包含装箱工序
+
+      // 新增：包装箱处理状态
+      isProcessingBox: false, // 是否正在处理包装箱条码
+      boxProcessProgress: {
+        current: 0,
+        total: 0,
+      }, // 包装箱处理进度
     };
   },
   computed: {
@@ -1557,6 +1588,14 @@ export default {
     async handleUnifiedScan(value) {
       if (!value) return;
 
+      // 检查是否正在处理包装箱条码
+      if (this.isProcessingBox) {
+        this.$message.warning("正在处理包装箱条码，请等待处理完成...");
+        this.unifiedScanInput = "";
+        this.$refs.scanInput.focus();
+        return;
+      }
+
       //当打印模板未选择时提醒
       if (!this.$refs.hirInput.selectedTemplate) {
         this.unifiedScanInput = "";
@@ -1595,6 +1634,17 @@ export default {
             tone(tmyw);
             // 清空并聚焦的逻辑移至finally
             return; // 终止处理
+          }
+
+          // 如果是包装箱条码，需要特殊处理
+          if (isScannedBoxBarcode) {
+            // 获取包装箱内的所有条码数据
+            const boxData = boxCheckResponse.data;
+            if (boxData && boxData.length > 0) {
+              // 调用包装箱处理方法
+              await this.handleBoxBarcode(cleanValue, boxData);
+              return; // 包装箱处理完成后直接返回
+            }
           }
         }
 
@@ -2049,6 +2099,11 @@ export default {
     // 处理包装箱条码
     async handleBoxBarcode(boxBarcode, boxData) {
       try {
+        // 设置处理状态
+        this.isProcessingBox = true;
+        this.boxProcessProgress.current = 0;
+        this.boxProcessProgress.total = boxData.length;
+
         // 检查包装箱条码数量是否超过托盘剩余可用数量
         const remainingQuantity =
           this.batchForm.batchSize - this.scannedList.length;
@@ -2074,6 +2129,9 @@ export default {
         });
         // 添加到已扫描列表
         for await (const item of boxData) {
+          // 更新进度
+          this.boxProcessProgress.current++;
+
           let res = await handlePalletBarcode({
             lineId: this.productLineId,
             lineName: this.productLineName,
@@ -2164,6 +2222,11 @@ export default {
       } catch (error) {
         console.error("处理包装箱条码失败:", error);
         throw error;
+      } finally {
+        // 重置处理状态
+        this.isProcessingBox = false;
+        this.boxProcessProgress.current = 0;
+        this.boxProcessProgress.total = 0;
       }
     },
     // 处理单个条码
@@ -3681,6 +3744,47 @@ export default {
   width: 20px;
   height: 20px;
   font-size: 12px;
+}
+
+/* 添加包装箱处理进度样式 */
+.box-process-indicator {
+  margin-top: 15px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+}
+
+.process-content {
+  padding: 10px 0;
+}
+
+.process-text {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 10px;
+}
+
+.box-process-indicator .el-progress {
+  width: 100%;
+}
+
+/* 禁用状态的输入框样式 */
+.el-input.is-disabled >>> .el-input__inner {
+  background-color: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+.el-input.is-disabled >>> .el-input__inner::placeholder {
+  color: #c0c4cc;
+}
+
+/* 处理状态下的扫描区域样式 */
+.scan-input-section.processing {
+  border-color: #e6a23c;
+  background: #fdf6ec;
 }
 </style>
 

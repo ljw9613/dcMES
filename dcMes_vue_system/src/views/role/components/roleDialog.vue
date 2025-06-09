@@ -416,12 +416,12 @@ export default {
         console.log('%cbuttonList(权限列表):', 'color:#409EFF; font-weight:bold;', JSON.parse(JSON.stringify(this.postList.buttonList)));
 
         // 创建更新数据的副本，避免直接修改原数据
-        const updateData = JSON.parse(JSON.stringify(this.postList));
-        delete updateData._id; // 删除_id字段，避免更新时冲突
+        const updatereqData = JSON.parse(JSON.stringify(this.postList));
+        delete updatereqData._id; // 删除_id字段，避免更新时冲突
 
         var data = {
           query: { _id: this._id },
-          update: updateData,
+          update: updatereqData,
         };
 
         console.log('提交的更新数据:', data);
