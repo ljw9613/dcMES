@@ -1619,6 +1619,8 @@ export default {
       }
     },
     handlePrint(row) {
+      console.log(row,'row==');
+
       // 添加加载状态
       const loading = this.$loading({
         lock: true,
@@ -1667,9 +1669,31 @@ export default {
               let boxBarcode = item.boxBarcode;
               item.boxBarcodes.forEach((boxBarcodeItem) => {
                 if (boxBarcodeItem && boxBarcodeItem.barcode) {
+                  // 获取条码对应的工单号
+                  let workOrderNo = "";
+                  if (boxBarcodeItem.productionPlanWorkOrderId) {
+                    // 如果有工单数组，从中查找匹配的工单
+                    if (row.workOrders && row.workOrders.length) {
+                      const workOrder = row.workOrders.find(
+                        (wo) =>
+                          wo.productionPlanWorkOrderId &&
+                          wo.productionPlanWorkOrderId ===
+                            boxBarcodeItem.productionPlanWorkOrderId
+                      );
+                      if (workOrder) {
+                        workOrderNo = workOrder.workOrderNo;
+                      }
+                    }
+                  }
+                  // 向后兼容：使用旧字段
+                  if (!workOrderNo) {
+                    workOrderNo = row.workOrderNo || "";
+                  }
+
                   palletBarcodes.push({
                     barcode: boxBarcodeItem.barcode,
                     boxBarcode: boxBarcode,
+                    workOrderNo: workOrderNo,
                     scanTime: this.formatDate(
                       boxBarcodeItem.scanTime || new Date()
                     ),
@@ -1681,8 +1705,30 @@ export default {
           printData.palletBarcodes = palletBarcodes;
         } else if (row.palletBarcodes && Array.isArray(row.palletBarcodes)) {
           printData.palletBarcodes = row.palletBarcodes.map((item) => {
+            // 获取条码对应的工单号
+            let workOrderNo = "";
+            if (item.productionPlanWorkOrderId) {
+              // 如果有工单数组，从中查找匹配的工单
+              if (row.workOrders && row.workOrders.length) {
+                const workOrder = row.workOrders.find(
+                  (wo) =>
+                    wo.productionPlanWorkOrderId &&
+                    wo.productionPlanWorkOrderId ===
+                      item.productionPlanWorkOrderId
+                );
+                if (workOrder) {
+                  workOrderNo = workOrder.workOrderNo;
+                }
+              }
+            }
+            // 向后兼容：使用旧字段
+            if (!workOrderNo) {
+              workOrderNo = row.workOrderNo || "";
+            }
+
             return {
               barcode: item.barcode || "",
+              workOrderNo: workOrderNo,
               scanTime: this.formatDate(item.scanTime || new Date()),
               boxBarcode: "",
             };

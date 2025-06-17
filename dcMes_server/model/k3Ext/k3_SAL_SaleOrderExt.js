@@ -20,6 +20,7 @@ var saleOrderExtSchema = new mongoose.Schema({
   FMinSpecImage: { type: String }, // 铭牌图片路径
   FVoltageRatio: { type: String, required: true }, // 电压功率
   FBatterySpec: { type: String, required: true }, // 锂电池规格
+  FProductUrl: { type: String }, // 产品网址
 
   
   // 印刷和包装信息

@@ -1959,12 +1959,32 @@ export default {
                 (printData.productLineId && printData.productLineId.lineCode) ||
                 "未记录生产线"
               }`;
-              printData.palletBarcodes = printData.palletBarcodes.map(
-                (item) => {
-                  item.scanTime = this.formatDate(item.scanTime);
-                  return item;
+              printData.palletBarcodes = printData.palletBarcodes.map((item) => {
+                // 获取条码对应的工单号
+                let workOrderNo = "";
+                if (item.productionPlanWorkOrderId) {
+                  // 如果有工单数组，从中查找匹配的工单
+                  if (printData.workOrders && printData.workOrders.length) {
+                    const workOrder = printData.workOrders.find(
+                      (wo) =>
+                        wo.productionPlanWorkOrderId &&
+                        wo.productionPlanWorkOrderId ===
+                          item.productionPlanWorkOrderId
+                    );
+                    if (workOrder) {
+                      workOrderNo = workOrder.workOrderNo;
+                    }
+                  }
                 }
-              );
+                // 向后兼容：使用旧字段
+                if (!workOrderNo) {
+                  workOrderNo = printData.workOrderNo || "";
+                }
+
+                item.scanTime = this.formatDate(item.scanTime);
+                item.workOrderNo = workOrderNo;
+                return item;
+              });
               this.printData = printData;
 
               this.scannedList = printData.palletBarcodes.map((item) => ({
@@ -2186,7 +2206,29 @@ export default {
               "未记录生产线"
             }`;
             printData.palletBarcodes = printData.palletBarcodes.map((item) => {
+              // 获取条码对应的工单号
+              let workOrderNo = "";
+              if (item.productionPlanWorkOrderId) {
+                // 如果有工单数组，从中查找匹配的工单
+                if (printData.workOrders && printData.workOrders.length) {
+                  const workOrder = printData.workOrders.find(
+                    (wo) =>
+                      wo.productionPlanWorkOrderId &&
+                      wo.productionPlanWorkOrderId ===
+                        item.productionPlanWorkOrderId
+                  );
+                  if (workOrder) {
+                    workOrderNo = workOrder.workOrderNo;
+                  }
+                }
+              }
+              // 向后兼容：使用旧字段
+              if (!workOrderNo) {
+                workOrderNo = printData.workOrderNo || "";
+              }
+
               item.scanTime = this.formatDate(item.scanTime);
+              item.workOrderNo = workOrderNo;
               return item;
             });
             this.printData = printData;
@@ -2822,7 +2864,29 @@ export default {
                 printData.productionOrderId.FWorkShopID_FName) ||
               "未记录生产车间";
             printData.palletBarcodes = printData.palletBarcodes.map((item) => {
+              // 获取条码对应的工单号
+              let workOrderNo = "";
+              if (item.productionPlanWorkOrderId) {
+                // 如果有工单数组，从中查找匹配的工单
+                if (printData.workOrders && printData.workOrders.length) {
+                  const workOrder = printData.workOrders.find(
+                    (wo) =>
+                      wo.productionPlanWorkOrderId &&
+                      wo.productionPlanWorkOrderId ===
+                        item.productionPlanWorkOrderId
+                  );
+                  if (workOrder) {
+                    workOrderNo = workOrder.workOrderNo;
+                  }
+                }
+              }
+              // 向后兼容：使用旧字段
+              if (!workOrderNo) {
+                workOrderNo = printData.workOrderNo || "";
+              }
+
               item.scanTime = this.formatDate(item.scanTime);
+              item.workOrderNo = workOrderNo;
               return item;
             });
             printData.qrcode = `${printData.palletCode}#${

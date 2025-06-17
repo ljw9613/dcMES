@@ -82,6 +82,9 @@ const productRepair = require("../model/project/productRepair");
 const productDiNum = require("../model/project/productDiNum");
 const productEanNum = require("../model/project/productEanNum");
 
+// 引入 工单数量变更日志
+const workOrderQuantityLog = require("../model/project/workOrderQuantityLog");
+
 //封装
 const ADDROUTER = require("../libs/request");
 //三个参数 挂载路由 ， 表名 ， 表Model
@@ -126,7 +129,7 @@ ADDROUTER(router, "materialBarcodeBatch", materialBarcodeBatch);
 ADDROUTER(router, "barcodeSegmentRuleMaterial", barcodeSegmentRuleMaterial);
 ADDROUTER(router, "preProductionBarcode", preProductionBarcode);
 ADDROUTER(router, "packBarcode", packBarcode);
-
+ADDROUTER(router, "workOrderQuantityLog", workOrderQuantityLog);
 
 ADDROUTER(router, "productDiNum", productDiNum);
 ADDROUTER(router, "productEanNum", productEanNum);

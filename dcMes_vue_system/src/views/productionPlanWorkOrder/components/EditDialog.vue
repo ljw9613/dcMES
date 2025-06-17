@@ -818,6 +818,14 @@ export default {
       });
     },
     async handleStartProduction() {
+      console.log(this.form, "this.form");
+      console.log(
+        this.form.planProductionQuantity,
+        "this.form.planProductionQuantity"
+      );
+      console.log(this.form.planQuantity, "this.form.planQuantity");
+      console.log(this.form.planProductionQuantity > this.form.planQuantity);
+      console.log( this.form.planProductionQuantity <= 0 );
       // 工单数量 大于 0 小于等于 计划生产数量
       if (
         this.form.planProductionQuantity <= 0 ||

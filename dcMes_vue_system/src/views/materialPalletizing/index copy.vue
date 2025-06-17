@@ -1170,6 +1170,7 @@ export default {
       }
     },
     handlePrint(row) {
+      console.log(row,'row==');
       let printData = row;
       printData.createAt = this.formatDate(row.createAt);
       printData.workshop =
@@ -1184,6 +1185,7 @@ export default {
         item.scanTime = this.formatDate(item.scanTime);
         return item;
       });
+      console.log(printData);
       this.printData = printData;
       this.$nextTick(() => {
         this.$refs.hirInput.handlePrints();

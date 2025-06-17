@@ -1027,6 +1027,13 @@ const inspectionDataSchema = new mongoose.Schema(
     掉电模式: { type: String },
     气缸复位1: { type: String },
 
+    // 10.0.50.248
+    倾斜模式: { type: String },
+    屏幕全橙: { type: String },
+    屏幕全橙灯环: { type: String },
+    污水桶未满: { type: String },
+    电池包标示信息识别: { type: String },
+
     inspectionData: [
       {
         field: { type: String },

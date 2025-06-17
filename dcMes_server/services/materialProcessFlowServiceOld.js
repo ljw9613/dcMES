@@ -872,33 +872,21 @@ class MaterialProcessFlowService {
       if (planWorkOrder) {
         // 如果是末道工序且所有节点完成，更新工单产出量  && flowRecord.progress === 100
         if (flowRecord.progress === 100 && processPosition.isLast) {
-          // 检查该条码是否已经完成过产出统计，防止重复统计
-          const existingOutputRecord = await mongoose.model("workOrderQuantityLog").findOne({
-            workOrderId: planWorkOrder._id,
-            relatedBarcode: mainBarcode,
-            changeType: "output",
-            reason: { $regex: /末道工序产出|扫描工序组件末道工序产出/ }
-          });
-          
-          if (existingOutputRecord) {
-            console.log(`条码 ${mainBarcode} 已完成产出统计，跳过重复统计`);
-          } else {
-            try {
-              await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
-                relatedBarcode: mainBarcode,
-                barcodeOperation: "SCAN_PROCESS",
-                operatorId: userId,
-                processStepId: processStepId,
-                processName: processNode.processName,
-                processCode: processNode.processCode,
-                reason: "扫描工序组件末道工序产出",
-                source: "WEB",
-                isAutomatic: true,
-              });
-            } catch (error) {
-              console.warn("更新工单产出量失败:", error.message);
-              // 这里可以选择继续执行或者其他处理方式
-            }
+          try {
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
+              relatedBarcode: mainBarcode,
+              barcodeOperation: "SCAN_PROCESS",
+              operatorId: userId,
+              processStepId: processStepId,
+              processName: processNode.processName,
+              processCode: processNode.processCode,
+              reason: "扫描工序组件末道工序产出",
+              source: isFromDevice ? "DEVICE" : "WEB",
+              isAutomatic: true,
+            });
+          } catch (error) {
+            console.warn("更新工单产出量失败:", error.message);
+            // 这里可以选择继续执行或者其他处理方式
           }
         }
       }
@@ -2026,33 +2014,21 @@ class MaterialProcessFlowService {
         console.log("processPosition.isLast", processPosition.isLast);
         // TODO
         if (processPosition.isLast && flowRecord.progress === 100) {
-          // 检查该条码是否已经完成过产出统计，防止重复统计
-          const existingOutputRecord = await mongoose.model("workOrderQuantityLog").findOne({
-            workOrderId: planWorkOrder._id,
-            relatedBarcode: mainBarcode,
-            changeType: "output",
-            reason: { $regex: /末道工序产出|扫描工序组件末道工序产出/ }
-          });
-          
-          if (existingOutputRecord) {
-            console.log(`条码 ${mainBarcode} 已完成产出统计，跳过重复统计`);
-          } else {
-            try {
-              await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
-                relatedBarcode: mainBarcode,
-                barcodeOperation: "SCAN_PROCESS",
-                operatorId: userId,
-                processStepId: processStepId,
-                processName: processNode.processName,
-                processCode: processNode.processCode,
-                reason: "扫描工序组件末道工序产出",
-                source: "WEB",
-                isAutomatic: true,
-              });
-            } catch (error) {
-              console.warn("更新工单产出量失败:", error.message);
-              // 这里可以选择继续执行或者其他处理方式
-            }
+          try {
+            await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
+              relatedBarcode: mainBarcode,
+              barcodeOperation: "SCAN_PROCESS",
+              operatorId: userId,
+              processStepId: processStepId,
+              processName: processNode.processName,
+              processCode: processNode.processCode,
+              reason: "扫描工序组件末道工序产出",
+              source: "WEB",
+              isAutomatic: true,
+            });
+          } catch (error) {
+            console.warn("更新工单产出量失败:", error.message);
+            // 这里可以选择继续执行或者其他处理方式
           }
         }
       }
@@ -4253,984 +4229,76 @@ class MaterialProcessFlowService {
   }
 
   /**
-   * 验证主物料工序节点和子物料工序节点是否完全匹配（支持多层级递归比较）
+   * 验证主物料工序节点和子物料工序节点是否完全匹配
    * @param {Array} mainProcessNodes - 主物料流程节点
    * @param {Array} subProcessNodes - 子物料流程节点
    * @param {Object} bindingMaterialNode - 绑定的物料节点
    * @returns {Object} 验证结果
    */
   static validateProcessNodesCompatibility(mainProcessNodes, subProcessNodes, bindingMaterialNode) {
-    console.log(`开始验证物料 ${bindingMaterialNode.materialCode} 的工序节点兼容性`);
-    
-    // 1. 首先检查物料节点是否匹配
-    const subMaterialNode = subProcessNodes.find(
-      node => node.nodeType === "MATERIAL" && node.level === 0
+    // 获取主物料中该绑定物料节点下的子工序节点
+    const mainSubProcessNodes = mainProcessNodes.filter(
+      (node) =>
+        node.parentNodeId === bindingMaterialNode.nodeId &&
+        node.nodeType === "PROCESS_STEP"
     );
 
-    if (!subMaterialNode) {
-      return {
-        isValid: false,
-        message: "子物料流程中未找到根物料节点"
-      };
-    }
+    // 获取子物料中的所有工序节点（排除根节点level 0）
+    const subMaterialProcessNodes = subProcessNodes.filter(
+      (node) => node.nodeType === "PROCESS_STEP" && node.level > 0
+    );
 
-    // 检查物料ID是否匹配
-    if (bindingMaterialNode.materialId.toString() !== subMaterialNode.materialId.toString()) {
-      return {
-        isValid: false,
-        message: `物料不匹配：主物料ID ${bindingMaterialNode.materialId} 与子物料ID ${subMaterialNode.materialId} 不一致`,
-        mainMaterial: {
-          materialId: bindingMaterialNode.materialId,
-          materialCode: bindingMaterialNode.materialCode,
-          materialName: bindingMaterialNode.materialName
-        },
-        subMaterial: {
-          materialId: subMaterialNode.materialId,
-          materialCode: subMaterialNode.materialCode,
-          materialName: subMaterialNode.materialName
-        }
-      };
-    }
-
-    // 2. 构建主物料中该绑定物料节点的完整子树结构
-    const getChildNodesRecursively = (nodes, parentNodeId) => {
-      const directChildren = nodes.filter(node => node.parentNodeId === parentNodeId);
-      const result = [];
-      
-      for (const child of directChildren) {
-        result.push(child);
-        // 递归获取子节点
-        const grandChildren = getChildNodesRecursively(nodes, child.nodeId);
-        result.push(...grandChildren);
-      }
-      
-      return result;
-    };
-
-    // 获取主物料中该绑定物料节点下的所有子节点（递归）
-    const mainSubNodes = getChildNodesRecursively(mainProcessNodes, bindingMaterialNode.nodeId);
-    
-    // 获取子物料中的所有非根节点（level > 0）
-    const subMaterialNodes = subProcessNodes.filter(node => node.level > 0);
-
-    console.log(`主物料中绑定节点的子节点数量: ${mainSubNodes.length}`);
-    console.log(`子物料中非根节点数量: ${subMaterialNodes.length}`);
-
-    // 如果主物料该节点下没有子节点，说明不需要匹配
-    if (mainSubNodes.length === 0) {
+    // 如果主物料该节点下没有子工序，说明不需要匹配
+    if (mainSubProcessNodes.length === 0) {
       return {
         isValid: true,
         message: "该物料节点下无需匹配工序"
       };
     }
 
-    // 3. 构建层级结构树进行比较
-    const buildNodeTree = (nodes, rootNodeId, baseLevel = 0) => {
-      const tree = [];
-      const directChildren = nodes.filter(node => node.parentNodeId === rootNodeId);
-      
-      for (const child of directChildren) {
-        const childTree = {
-          ...child,
-          adjustedLevel: child.level - baseLevel, // 调整层级为相对层级
-          children: buildNodeTree(nodes, child.nodeId, baseLevel)
-        };
-        tree.push(childTree);
-      }
-      
-      return tree.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
-    };
-
-    // 构建主物料子树（从绑定物料节点开始）
-    const mainSubTree = buildNodeTree(mainProcessNodes, bindingMaterialNode.nodeId, bindingMaterialNode.level);
-    
-    // 构建子物料树（从根物料节点开始）
-    const subMaterialTree = buildNodeTree(subProcessNodes, subMaterialNode.nodeId, 0);
-
-    console.log(`主物料子树根节点数量: ${mainSubTree.length}`);
-    console.log(`子物料树根节点数量: ${subMaterialTree.length}`);
-
-    // 4. 递归比较树结构
-    const compareTreeNodes = (mainTree, subTree, path = '') => {
-      const errors = [];
-      
-      // 首先比较节点数量
-      if (mainTree.length !== subTree.length) {
-        errors.push({
-          path: path || 'root',
-          type: 'count_mismatch',
-          message: `节点数量不匹配：主物料有 ${mainTree.length} 个节点，子物料有 ${subTree.length} 个节点`,
-          mainNodes: mainTree.map(n => `${n.nodeType === 'PROCESS_STEP' ? n.processName : n.materialName}(${n.nodeType === 'PROCESS_STEP' ? n.processCode : n.materialCode})`),
-          subNodes: subTree.map(n => `${n.nodeType === 'PROCESS_STEP' ? n.processName : n.materialName}(${n.nodeType === 'PROCESS_STEP' ? n.processCode : n.materialCode})`)
-        });
-        return errors;
-      }
-
-      // 逐个比较节点
-      for (let i = 0; i < mainTree.length; i++) {
-        const mainNode = mainTree[i];
-        const subNode = subTree[i];
-        const currentPath = path ? `${path}.${i}` : `${i}`;
-
-        // 比较节点类型
-        if (mainNode.nodeType !== subNode.nodeType) {
-          errors.push({
-            path: currentPath,
-            type: 'type_mismatch',
-            message: `节点类型不匹配：主物料为 ${mainNode.nodeType}，子物料为 ${subNode.nodeType}`
-          });
-          continue;
-        }
-
-        // 比较具体内容
-        if (mainNode.nodeType === 'PROCESS_STEP') {
-          // 比较工序节点
-          if (mainNode.processStepId.toString() !== subNode.processStepId.toString()) {
-            errors.push({
-              path: currentPath,
-              type: 'process_mismatch',
-              message: `工序不匹配：主物料为 ${mainNode.processName}(${mainNode.processCode})[${mainNode.processStepId}]，子物料为 ${subNode.processName}(${subNode.processCode})[${subNode.processStepId}]`
-            });
-          }
-        } else if (mainNode.nodeType === 'MATERIAL') {
-          // 比较物料节点
-          if (mainNode.materialId.toString() !== subNode.materialId.toString()) {
-            errors.push({
-              path: currentPath,
-              type: 'material_mismatch',
-              message: `物料不匹配：主物料为 ${mainNode.materialName}(${mainNode.materialCode})[${mainNode.materialId}]，子物料为 ${subNode.materialName}(${subNode.materialCode})[${subNode.materialId}]`
-            });
-          }
-        }
-
-        // 递归比较子节点
-        if (mainNode.children && subNode.children) {
-          const childErrors = compareTreeNodes(mainNode.children, subNode.children, currentPath);
-          errors.push(...childErrors);
-        } else if (mainNode.children?.length !== subNode.children?.length) {
-          errors.push({
-            path: currentPath,
-            type: 'children_count_mismatch',
-            message: `子节点数量不匹配：主物料有 ${mainNode.children?.length || 0} 个子节点，子物料有 ${subNode.children?.length || 0} 个子节点`
-          });
-        }
-      }
-
-      return errors;
-    };
-
-    // 执行树结构比较
-    const validationErrors = compareTreeNodes(mainSubTree, subMaterialTree);
-
-    console.log(`验证完成，发现 ${validationErrors.length} 个错误`);
-
-    if (validationErrors.length > 0) {
+    // 比较工序节点数量
+    if (mainSubProcessNodes.length !== subMaterialProcessNodes.length) {
       return {
         isValid: false,
-        message: `工序节点结构不匹配，共发现 ${validationErrors.length} 个问题`,
-        errors: validationErrors,
-        details: {
-          mainTreeStructure: this.formatTreeStructure(mainSubTree),
-          subTreeStructure: this.formatTreeStructure(subMaterialTree)
-        }
+        message: `工序节点数量不匹配：主物料需要 ${mainSubProcessNodes.length} 个工序，子物料有 ${subMaterialProcessNodes.length} 个工序`,
+        mainProcesses: mainSubProcessNodes.map(p => `${p.processName}(${p.processCode})`),
+        subProcesses: subMaterialProcessNodes.map(p => `${p.processName}(${p.processCode})`)
+      };
+    }
+
+    // 按工序顺序排序进行匹配
+    const sortedMainProcesses = mainSubProcessNodes.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
+    const sortedSubProcesses = subMaterialProcessNodes.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
+
+    // 检查每个工序是否匹配（按processStepId匹配）
+    const unmatchedProcesses = [];
+    for (let i = 0; i < sortedMainProcesses.length; i++) {
+      const mainProcess = sortedMainProcesses[i];
+      const subProcess = sortedSubProcesses[i];
+
+      // 按processStepId进行匹配（更精确）
+      if (mainProcess.processStepId.toString() !== subProcess.processStepId.toString()) {
+        unmatchedProcesses.push({
+          position: i + 1,
+          mainProcess: `${mainProcess.processName}(${mainProcess.processCode})[${mainProcess.processStepId}]`,
+          subProcess: `${subProcess.processName}(${subProcess.processCode})[${subProcess.processStepId}]`
+        });
+      }
+    }
+
+    if (unmatchedProcesses.length > 0) {
+      return {
+        isValid: false,
+        message: `工序节点不匹配，共有 ${unmatchedProcesses.length} 个工序不匹配`,
+        unmatchedProcesses,
+        mainProcesses: sortedMainProcesses.map(p => `${p.processName}(${p.processCode})`),
+        subProcesses: sortedSubProcesses.map(p => `${p.processName}(${p.processCode})`)
       };
     }
 
     return {
       isValid: true,
-      message: "物料和工序节点完全匹配",
-      details: {
-        totalNodes: mainSubNodes.length,
-        treeStructure: this.formatTreeStructure(mainSubTree)
-      }
-    };
-  }
-
-  /**
-   * 格式化树结构用于调试输出
-   * @param {Array} tree - 树结构
-   * @param {number} indent - 缩进级别
-   * @returns {string} 格式化的树结构字符串
-   */
-  static formatTreeStructure(tree, indent = 0) {
-    const spaces = '  '.repeat(indent);
-    let result = '';
-    
-    for (const node of tree) {
-      const nodeInfo = node.nodeType === 'PROCESS_STEP' 
-        ? `${node.processName}(${node.processCode})`
-        : `${node.materialName}(${node.materialCode})`;
-      
-      result += `${spaces}- [${node.nodeType}] ${nodeInfo}\n`;
-      
-      if (node.children && node.children.length > 0) {
-        result += this.formatTreeStructure(node.children, indent + 1);
-      }
-    }
-    
-    return result;
-  }
-
-  /**
-   * 改进版本：更新工艺流程记录节点（智能合并）
-   * 基于createFlowByMaterialCode逻辑，重新生成完整流程然后进行智能合并
-   * @param {string} barcode - 主条码
-   * @param {string} userId - 操作用户ID
-   * @returns {Promise<Object>} 更新后的流程记录
-   */
-  static async updateFlowNodesAdvanced(barcode, userId = "SYSTEM") {
-    try {
-      console.log(`开始高级更新流程节点: ${barcode}`);
-      
-      // 1. 获取现有流程记录
-      const existingFlowRecord = await MaterialProcessFlow.findOne({ barcode });
-      if (!existingFlowRecord) {
-        throw new Error(`未找到条码为 ${barcode} 的流程记录`);
-      }
-
-
-      console.log(`找到现有流程记录: ${existingFlowRecord._id}`);
-      console.log(`现有节点数量: ${existingFlowRecord.processNodes.length}`);
-
-      // 2. 获取最新的工艺信息
-      const craft = await Craft.findOne({ materialId: existingFlowRecord.materialId });
-      if (!craft) {
-        throw new Error(`未找到物料 ${existingFlowRecord.materialCode} 对应的工艺信息`);
-      }
-
-      console.log(`找到工艺信息: ${craft.craftName}, 版本: ${craft.craftVersion}`);
-
-      // 3. 模拟生成一个新的完整流程结构（参考createFlowByMaterialCode）
-      console.log("开始生成新的完整流程结构...");
-      const newProcessNodes = await this.buildProcessNodes(
-        existingFlowRecord.materialId,
-        craft,
-        new Set()
-      );
-
-      console.log(`生成新节点数量: ${newProcessNodes.length}`);
-
-      // 4. 创建节点唯一标识映射（用于精确匹配）
-      const createNodeSignature = (node) => {
-        if (node.nodeType === "PROCESS_STEP") {
-          return `PROCESS_${node.processStepId}_${node.level}`;
-        } else if (node.nodeType === "MATERIAL") {
-          return `MATERIAL_${node.materialId}_${node.level}`;
-        }
-        return `UNKNOWN_${node.nodeId}`;
-      };
-
-      // 5. 构建现有节点的映射表
-      const existingNodeMap = new Map();
-      existingFlowRecord.processNodes.forEach(node => {
-        const signature = createNodeSignature(node);
-        if (!existingNodeMap.has(signature)) {
-          existingNodeMap.set(signature, []);
-        }
-        existingNodeMap.get(signature).push(node);
-      });
-
-      console.log(`现有节点映射表构建完成，共 ${existingNodeMap.size} 种类型节点`);
-
-      // 6. 智能合并节点（保留完成状态，更新结构）
-      const mergedNodes = [];
-      const processedSignatures = new Set();
-
-      for (const newNode of newProcessNodes) {
-        const signature = createNodeSignature(newNode);
-        
-        // 查找现有的匹配节点
-        const existingNodes = existingNodeMap.get(signature) || [];
-        
-        if (existingNodes.length > 0) {
-          // 找到匹配的现有节点，尝试使用最合适的一个
-          let bestMatch = existingNodes[0];
-          
-          // 如果有多个匹配，优先选择已完成的节点
-          for (const existingNode of existingNodes) {
-            if (existingNode.status === "COMPLETED" && bestMatch.status !== "COMPLETED") {
-              bestMatch = existingNode;
-              break;
-            }
-          }
-
-          // 合并节点（保留重要的历史信息，更新结构信息）
-          const mergedNode = {
-            ...newNode, // 使用新的结构信息
-            // 保留重要的历史状态
-            status: bestMatch.status,
-            barcode: bestMatch.barcode || "",
-            scanTime: bestMatch.scanTime,
-            endTime: bestMatch.endTime,
-            updateBy: bestMatch.updateBy,
-            relatedBill: bestMatch.relatedBill || "",
-            // 特殊字段处理
-            batchDocNumber: bestMatch.batchDocNumber,
-            scanOperator: bestMatch.scanOperator,
-          };
-
-          mergedNodes.push(mergedNode);
-          console.log(`合并节点: ${signature}, 状态: ${bestMatch.status}`);
-        } else {
-          // 新增的节点，设置为待处理状态
-          const newMergedNode = {
-            ...newNode,
-            status: "PENDING",
-            barcode: "",
-            scanTime: null,
-            endTime: null,
-            updateBy: null,
-            relatedBill: "",
-          };
-
-          mergedNodes.push(newMergedNode);
-          console.log(`新增节点: ${signature}`);
-        }
-
-        processedSignatures.add(signature);
-      }
-
-      // 7. 检查被删除的节点（记录日志）
-      const deletedNodes = [];
-      existingFlowRecord.processNodes.forEach(existingNode => {
-        const signature = createNodeSignature(existingNode);
-        if (!processedSignatures.has(signature)) {
-          deletedNodes.push({
-            signature,
-            nodeType: existingNode.nodeType,
-            name: existingNode.processName || existingNode.materialName,
-            status: existingNode.status,
-          });
-        }
-      });
-
-      if (deletedNodes.length > 0) {
-        console.log(`检测到被删除的节点 ${deletedNodes.length} 个:`);
-        deletedNodes.forEach(node => {
-          console.log(`- ${node.signature}: ${node.name} (${node.status})`);
-          // 记录节点删除历史
-          this.recordNodeDeletion(existingFlowRecord._id, { 
-            nodeId: node.signature, 
-            nodeType: node.nodeType,
-            name: node.name,
-            status: node.status 
-          });
-        });
-      }
-
-      // 8. 处理子物料流程记录的更新
-      console.log("开始处理子物料流程记录更新...");
-      await this.updateSubMaterialFlowRecords(mergedNodes, userId);
-
-      // 9. 按照节点层级和工序顺序排序
-      mergedNodes.sort((a, b) => {
-        if (a.level !== b.level) {
-          return a.level - b.level;
-        }
-        if (a.nodeType === "PROCESS_STEP" && b.nodeType === "PROCESS_STEP") {
-          return (a.processSort || 0) - (b.processSort || 0);
-        }
-        return 0;
-      });
-
-      // 10. 更新流程记录
-      existingFlowRecord.processNodes = mergedNodes;
-      existingFlowRecord.craftVersion = craft.craftVersion;
-      existingFlowRecord.lastUpdateTime = new Date();
-      existingFlowRecord.lastUpdateBy = userId;
-
-      // 11. 保存更新
-      await existingFlowRecord.save();
-      console.log("流程记录保存成功");
-
-      // 12. 重新计算进度和状态
-      await this.fixFlowProgress(barcode);
-
-      // 13. 重新获取更新后的记录
-      const updatedFlowRecord = await MaterialProcessFlow.findOne({ barcode });
-
-      console.log(`高级更新完成，最终节点数量: ${updatedFlowRecord.processNodes.length}`);
-      console.log(`最终进度: ${updatedFlowRecord.progress}%`);
-      console.log(`最终状态: ${updatedFlowRecord.status}`);
-
-      return {
-        success: true,
-        message: "流程节点高级更新成功",
-        data: updatedFlowRecord,
-        statistics: {
-          originalNodeCount: existingFlowRecord.processNodes.length,
-          newNodeCount: newProcessNodes.length,
-          finalNodeCount: mergedNodes.length,
-          deletedNodeCount: deletedNodes.length,
-          newAddedNodeCount: mergedNodes.length - (existingFlowRecord.processNodes.length - deletedNodes.length),
-        }
-      };
-
-    } catch (error) {
-      console.error("高级更新工艺流程记录失败:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * 更新子物料流程记录
-   * 处理组件物料自身工艺变化的情况
-   * @param {Array} mergedNodes - 合并后的节点数组
-   * @param {string} userId - 操作用户ID
-   */
-  static async updateSubMaterialFlowRecords(mergedNodes, userId) {
-    try {
-      // 收集所有有条码的物料节点
-      const materialNodesWithBarcode = mergedNodes.filter(
-        node => 
-          node.nodeType === "MATERIAL" && 
-          node.barcode && 
-          node.barcode.length > 0 &&
-          node.level > 0 // 排除根节点
-      );
-
-      console.log(`发现 ${materialNodesWithBarcode.length} 个有条码的子物料节点`);
-
-      // 并行更新所有子物料流程记录
-      const updatePromises = materialNodesWithBarcode.map(async (materialNode) => {
-        try {
-          // 查找对应的子物料流程记录
-          const subFlowRecord = await MaterialProcessFlow.findOne({
-            barcode: materialNode.barcode
-          });
-
-          if (subFlowRecord) {
-            console.log(`更新子物料流程: ${materialNode.barcode}`);
-            // 递归调用高级更新方法
-            await this.updateFlowNodesAdvanced(materialNode.barcode, userId);
-            console.log(`子物料流程更新完成: ${materialNode.barcode}`);
-          } else {
-            console.log(`子物料 ${materialNode.barcode} 没有对应的流程记录，跳过更新`);
-          }
-        } catch (error) {
-          console.warn(`更新子物料流程失败 ${materialNode.barcode}:`, error.message);
-          // 子物料更新失败不影响主流程
-        }
-      });
-
-      // 等待所有子物料更新完成
-      await Promise.all(updatePromises);
-      console.log("所有子物料流程记录更新完成");
-
-    } catch (error) {
-      console.error("更新子物料流程记录失败:", error);
-      // 这里不抛出错误，因为子物料更新失败不应该影响主流程
-    }
-  }
-
-  /**
-   * 批量更新流程节点（用于工艺变更后的批量处理）
-   * @param {Array<string>} barcodes - 需要更新的条码数组
-   * @param {string} userId - 操作用户ID
-   * @param {Object} options - 更新选项
-   * @returns {Promise<Object>} 批量更新结果
-   */
-  static async batchUpdateFlowNodesAdvanced(barcodes, userId = "SYSTEM", options = {}) {
-    try {
-      const {
-        batchSize = 10, // 批次大小
-        continueOnError = true, // 是否在遇到错误时继续
-        logProgress = true, // 是否记录进度
-      } = options;
-
-      console.log(`开始批量更新流程节点，共 ${barcodes.length} 个条码`);
-
-      const results = {
-        success: [],
-        failed: [],
-        total: barcodes.length,
-        startTime: new Date(),
-      };
-
-      // 分批处理
-      for (let i = 0; i < barcodes.length; i += batchSize) {
-        const batch = barcodes.slice(i, i + batchSize);
-        
-        if (logProgress) {
-          console.log(`处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(barcodes.length / batchSize)}, 条码: ${batch.join(', ')}`);
-        }
-
-        // 并行处理当前批次
-        const batchPromises = batch.map(async (barcode) => {
-          try {
-            const result = await this.updateFlowNodesAdvanced(barcode, userId);
-            results.success.push({
-              barcode,
-              statistics: result.statistics,
-              message: result.message,
-            });
-            return { barcode, success: true };
-          } catch (error) {
-            const errorInfo = {
-              barcode,
-              error: error.message,
-              timestamp: new Date(),
-            };
-            results.failed.push(errorInfo);
-            
-            if (!continueOnError) {
-              throw error;
-            }
-            
-            console.error(`更新条码 ${barcode} 失败:`, error.message);
-            return { barcode, success: false, error: error.message };
-          }
-        });
-
-        // 等待当前批次完成
-        await Promise.all(batchPromises);
-
-        // 批次间短暂延迟，避免数据库压力过大
-        if (i + batchSize < barcodes.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-
-      results.endTime = new Date();
-      results.duration = results.endTime - results.startTime;
-
-      console.log(`批量更新完成，成功: ${results.success.length}, 失败: ${results.failed.length}, 耗时: ${results.duration}ms`);
-
-      return results;
-    } catch (error) {
-      console.error("批量更新流程节点失败:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * 比较两个流程节点结构的差异
-   * @param {Array} oldNodes - 旧节点数组
-   * @param {Array} newNodes - 新节点数组
-   * @returns {Object} 差异分析结果
-   */
-  static compareProcessNodes(oldNodes, newNodes) {
-    try {
-      const createNodeSignature = (node) => {
-        if (node.nodeType === "PROCESS_STEP") {
-          return `PROCESS_${node.processStepId}_${node.level}`;
-        } else if (node.nodeType === "MATERIAL") {
-          return `MATERIAL_${node.materialId}_${node.level}`;
-        }
-        return `UNKNOWN_${node.nodeId}`;
-      };
-
-      // 构建节点映射
-      const oldNodeMap = new Map();
-      const newNodeMap = new Map();
-
-      oldNodes.forEach(node => {
-        const signature = createNodeSignature(node);
-        oldNodeMap.set(signature, node);
-      });
-
-      newNodes.forEach(node => {
-        const signature = createNodeSignature(node);
-        newNodeMap.set(signature, node);
-      });
-
-      // 分析差异
-      const differences = {
-        added: [], // 新增的节点
-        removed: [], // 删除的节点
-        modified: [], // 修改的节点
-        unchanged: [], // 未变化的节点
-      };
-
-      // 检查新增的节点
-      for (const [signature, newNode] of newNodeMap) {
-        if (!oldNodeMap.has(signature)) {
-          differences.added.push({
-            signature,
-            nodeType: newNode.nodeType,
-            name: newNode.processName || newNode.materialName,
-            level: newNode.level,
-          });
-        }
-      }
-
-      // 检查删除的节点
-      for (const [signature, oldNode] of oldNodeMap) {
-        if (!newNodeMap.has(signature)) {
-          differences.removed.push({
-            signature,
-            nodeType: oldNode.nodeType,
-            name: oldNode.processName || oldNode.materialName,
-            level: oldNode.level,
-            status: oldNode.status,
-          });
-        }
-      }
-
-      // 检查修改和未变化的节点
-      for (const [signature, oldNode] of oldNodeMap) {
-        if (newNodeMap.has(signature)) {
-          const newNode = newNodeMap.get(signature);
-          
-          // 比较关键属性是否有变化
-          const hasChanges = (
-            oldNode.requireScan !== newNode.requireScan ||
-            oldNode.isKeyMaterial !== newNode.isKeyMaterial ||
-            oldNode.isBatch !== newNode.isBatch ||
-            oldNode.batchQuantity !== newNode.batchQuantity ||
-            oldNode.processSort !== newNode.processSort
-          );
-
-          if (hasChanges) {
-            differences.modified.push({
-              signature,
-              nodeType: oldNode.nodeType,
-              name: oldNode.processName || oldNode.materialName,
-              level: oldNode.level,
-              changes: {
-                requireScan: { old: oldNode.requireScan, new: newNode.requireScan },
-                isKeyMaterial: { old: oldNode.isKeyMaterial, new: newNode.isKeyMaterial },
-                isBatch: { old: oldNode.isBatch, new: newNode.isBatch },
-                batchQuantity: { old: oldNode.batchQuantity, new: newNode.batchQuantity },
-                processSort: { old: oldNode.processSort, new: newNode.processSort },
-              },
-            });
-          } else {
-            differences.unchanged.push({
-              signature,
-              nodeType: oldNode.nodeType,
-              name: oldNode.processName || oldNode.materialName,
-              level: oldNode.level,
-            });
-          }
-        }
-      }
-
-      return {
-        summary: {
-          totalOld: oldNodes.length,
-          totalNew: newNodes.length,
-          added: differences.added.length,
-          removed: differences.removed.length,
-          modified: differences.modified.length,
-          unchanged: differences.unchanged.length,
-        },
-        details: differences,
-      };
-    } catch (error) {
-      console.error("比较流程节点差异失败:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * 检查工艺变更影响的条码
-   * @param {string} materialId - 物料ID
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Array>} 受影响的条码列表
-   */
-  static async findAffectedBarcodesByCraftChange(materialId, options = {}) {
-    try {
-      const {
-        status = null, // 流程状态过滤
-        maxCount = 1000, // 最大返回数量
-        includeDays = null, // 包含最近几天的记录
-      } = options;
-
-      // 构建查询条件
-      const query = { materialId };
-
-      if (status) {
-        query.status = status;
-      }
-
-      if (includeDays) {
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - includeDays);
-        query.createdAt = { $gte: startDate };
-      }
-
-      // 查询受影响的流程记录
-      const affectedRecords = await MaterialProcessFlow.find(query)
-        .select('barcode materialCode materialName status progress createdAt')
-        .limit(maxCount)
-        .sort({ createdAt: -1 });
-
-      console.log(`找到 ${affectedRecords.length} 个受物料 ${materialId} 工艺变更影响的条码`);
-
-      return affectedRecords.map(record => ({
-        barcode: record.barcode,
-        materialCode: record.materialCode,
-        materialName: record.materialName,
-        status: record.status,
-        progress: record.progress,
-        createdAt: record.createdAt,
-      }));
-
-    } catch (error) {
-      console.error("查找受工艺变更影响的条码失败:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * 预览流程节点更新（不实际执行更新）
-   * @param {string} barcode - 主条码
-   * @returns {Promise<Object>} 更新预览结果
-   */
-  static async previewFlowNodesUpdate(barcode) {
-    try {
-      // 1. 获取现有流程记录
-      const existingFlowRecord = await MaterialProcessFlow.findOne({ barcode });
-      if (!existingFlowRecord) {
-        throw new Error(`未找到条码为 ${barcode} 的流程记录`);
-      }
-
-      // 2. 获取最新的工艺信息
-      const craft = await Craft.findOne({ materialId: existingFlowRecord.materialId });
-      if (!craft) {
-        throw new Error(`未找到物料 ${existingFlowRecord.materialCode} 对应的工艺信息`);
-      }
-
-      // 3. 生成新的流程结构
-      const newProcessNodes = await this.buildProcessNodes(
-        existingFlowRecord.materialId,
-        craft,
-        new Set()
-      );
-
-      // 4. 比较差异
-      const comparison = this.compareProcessNodes(existingFlowRecord.processNodes, newProcessNodes);
-
-      // 5. 分析影响
-      const analysis = {
-        craftVersionChanged: existingFlowRecord.craftVersion !== craft.craftVersion,
-        structureChanged: comparison.summary.added > 0 || comparison.summary.removed > 0,
-        propertiesChanged: comparison.summary.modified > 0,
-        riskLevel: this.assessUpdateRisk(existingFlowRecord, comparison),
-      };
-
-      return {
-        barcode,
-        currentStatus: {
-          craftVersion: existingFlowRecord.craftVersion,
-          status: existingFlowRecord.status,
-          progress: existingFlowRecord.progress,
-          nodeCount: existingFlowRecord.processNodes.length,
-        },
-        newStatus: {
-          craftVersion: craft.craftVersion,
-          nodeCount: newProcessNodes.length,
-        },
-        comparison,
-        analysis,
-        recommendations: this.generateUpdateRecommendations(existingFlowRecord, comparison, analysis),
-      };
-
-    } catch (error) {
-      console.error("预览流程节点更新失败:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * 评估更新风险等级
-   * @param {Object} flowRecord - 流程记录
-   * @param {Object} comparison - 比较结果
-   * @returns {string} 风险等级
-   */
-  static assessUpdateRisk(flowRecord, comparison) {
-    const completedNodes = flowRecord.processNodes.filter(node => node.status === "COMPLETED");
-    const hasCompletedNodes = completedNodes.length > 0;
-    const hasRemovedNodes = comparison.summary.removed > 0;
-    const hasAddedNodes = comparison.summary.added > 0;
-
-    if (hasRemovedNodes && hasCompletedNodes) {
-      return "HIGH"; // 有已完成的节点被删除
-    } else if ((hasAddedNodes || comparison.summary.modified > 0) && hasCompletedNodes) {
-      return "MEDIUM"; // 有结构变化且有已完成的节点
-    } else if (hasAddedNodes || comparison.summary.modified > 0) {
-      return "LOW"; // 有变化但无已完成节点
-    } else {
-      return "NONE"; // 无变化
-    }
-  }
-
-  /**
-   * 生成更新建议
-   * @param {Object} flowRecord - 流程记录
-   * @param {Object} comparison - 比较结果
-   * @param {Object} analysis - 分析结果
-   * @returns {Array} 建议列表
-   */
-  static generateUpdateRecommendations(flowRecord, comparison, analysis) {
-    const recommendations = [];
-
-    if (analysis.riskLevel === "HIGH") {
-      recommendations.push({
-        type: "WARNING",
-        message: "检测到高风险更新：有已完成的节点将被删除，建议谨慎操作并备份数据"
-      });
-    }
-
-    if (analysis.riskLevel === "MEDIUM") {
-      recommendations.push({
-        type: "INFO",
-        message: "检测到中等风险更新：有结构变化，建议在非生产环境先测试"
-      });
-    }
-
-    if (comparison.summary.added > 0) {
-      recommendations.push({
-        type: "INFO",
-        message: `将新增 ${comparison.summary.added} 个节点，这些节点将设置为待处理状态`
-      });
-    }
-
-    if (comparison.summary.removed > 0) {
-      recommendations.push({
-        type: "WARNING",
-        message: `将删除 ${comparison.summary.removed} 个节点，请确认这些节点不再需要`
-      });
-    }
-
-    if (flowRecord.status === "IN_PROCESS") {
-      recommendations.push({
-        type: "INFO",
-        message: "流程正在进行中，更新后请重新检查进度和状态"
-      });
-    }
-
-    return recommendations;
-  }
-
-  /**
-   * 使用示例：演示如何使用改进的更新系统
-   */
-  static getUsageExamples() {
-    return {
-      // 1. 单个条码预览更新
-      previewSingleUpdate: `
-        // 预览单个条码的更新影响
-        const preview = await MaterialProcessFlowService.previewFlowNodesUpdate('YOUR_BARCODE');
-        console.log('风险等级:', preview.analysis.riskLevel);
-        console.log('建议:', preview.recommendations);
-        
-        // 如果风险可接受，执行更新
-        if (preview.analysis.riskLevel !== 'HIGH') {
-          const result = await MaterialProcessFlowService.updateFlowNodesAdvanced('YOUR_BARCODE', 'USER_ID');
-          console.log('更新结果:', result.statistics);
-        }
-      `,
-
-      // 2. 批量更新工艺变更影响的条码
-      batchUpdateByMaterial: `
-        // 查找受工艺变更影响的条码
-        const affectedBarcodes = await MaterialProcessFlowService.findAffectedBarcodesByCraftChange(
-          'MATERIAL_ID',
-          {
-            status: 'IN_PROCESS', // 只更新进行中的流程
-            includeDays: 30, // 只包含最近30天的记录
-            maxCount: 100 // 最多100个条码
-          }
-        );
-        
-        console.log(\`找到 \${affectedBarcodes.length} 个受影响的条码\`);
-        
-        // 批量更新
-        const batchResult = await MaterialProcessFlowService.batchUpdateFlowNodesAdvanced(
-          affectedBarcodes.map(item => item.barcode),
-          'USER_ID',
-          {
-            batchSize: 5, // 每批处理5个
-            continueOnError: true, // 遇到错误继续处理
-            logProgress: true // 记录进度
-          }
-        );
-        
-        console.log(\`批量更新完成，成功: \${batchResult.success.length}, 失败: \${batchResult.failed.length}\`);
-      `,
-
-      // 3. 工艺变更后的完整更新流程
-      fullUpdateWorkflow: `
-        // 完整的工艺变更更新流程
-        async function handleCraftChange(materialId, userId) {
-          try {
-            // 1. 查找受影响的条码
-            const affectedBarcodes = await MaterialProcessFlowService.findAffectedBarcodesByCraftChange(materialId);
-            
-            if (affectedBarcodes.length === 0) {
-              console.log('没有受影响的条码');
-              return;
-            }
-            
-            console.log(\`找到 \${affectedBarcodes.length} 个受影响的条码\`);
-            
-            // 2. 预览几个典型条码的更新影响
-            const sampleBarcodes = affectedBarcodes.slice(0, 3);
-            for (const sample of sampleBarcodes) {
-              const preview = await MaterialProcessFlowService.previewFlowNodesUpdate(sample.barcode);
-              console.log(\`条码 \${sample.barcode} 风险等级: \${preview.analysis.riskLevel}\`);
-            }
-            
-            // 3. 分类处理不同风险等级的条码
-            const highRiskBarcodes = [];
-            const safeUpdateBarcodes = [];
-            
-            for (const item of affectedBarcodes) {
-              const preview = await MaterialProcessFlowService.previewFlowNodesUpdate(item.barcode);
-              if (preview.analysis.riskLevel === 'HIGH') {
-                highRiskBarcodes.push(item.barcode);
-              } else {
-                safeUpdateBarcodes.push(item.barcode);
-              }
-            }
-            
-            // 4. 先更新安全的条码
-            if (safeUpdateBarcodes.length > 0) {
-              console.log(\`开始更新 \${safeUpdateBarcodes.length} 个低风险条码\`);
-              const safeResult = await MaterialProcessFlowService.batchUpdateFlowNodesAdvanced(
-                safeUpdateBarcodes,
-                userId
-              );
-              console.log('低风险条码更新完成:', safeResult.success.length);
-            }
-            
-            // 5. 高风险条码需要人工确认
-            if (highRiskBarcodes.length > 0) {
-              console.log(\`发现 \${highRiskBarcodes.length} 个高风险条码，需要人工确认\`);
-              // 这里可以发送通知或记录日志，等待人工处理
-            }
-            
-            return {
-              total: affectedBarcodes.length,
-              safeUpdated: safeUpdateBarcodes.length,
-              highRisk: highRiskBarcodes.length
-            };
-            
-          } catch (error) {
-            console.error('工艺变更更新流程失败:', error);
-            throw error;
-          }
-        }
-      `,
-
-      // 4. 比较两个流程的差异
-      compareFlows: `
-        // 比较两个流程节点的差异
-        const flowRecord1 = await MaterialProcessFlow.findOne({ barcode: 'BARCODE1' });
-        const flowRecord2 = await MaterialProcessFlow.findOne({ barcode: 'BARCODE2' });
-        
-        const comparison = MaterialProcessFlowService.compareProcessNodes(
-          flowRecord1.processNodes,
-          flowRecord2.processNodes
-        );
-        
-        console.log('差异摘要:', comparison.summary);
-        console.log('新增节点:', comparison.details.added);
-        console.log('删除节点:', comparison.details.removed);
-        console.log('修改节点:', comparison.details.modified);
-      `
+      message: "工序节点完全匹配"
     };
   }
 }

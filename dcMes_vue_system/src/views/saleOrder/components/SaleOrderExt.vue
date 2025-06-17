@@ -58,6 +58,11 @@
               <el-input v-model="formData.FBatterySpec"></el-input>
             </el-form-item>
           </el-col>
+          <el-col :span="8">
+            <el-form-item label="产品链接" prop="FProductUrl">
+              <el-input v-model="formData.FProductUrl" placeholder="请输入产品链接"></el-input>
+            </el-form-item>
+          </el-col>
         </el-row>
       </el-card>
 
@@ -274,6 +279,7 @@ export default {
         FMinSpecImage: "",
         FVoltageRatio: "",
         FBatterySpec: "",
+        FProductUrl: "",
         FPrintPosition: "",
         FPrintColor: "",
         FAccessories: "",
@@ -308,6 +314,9 @@ export default {
         ],
         FBatterySpec: [
           { required: true, message: "请输入锂电池规格", trigger: "blur" },
+        ],
+        FProductUrl: [
+          { required: true, message: "请输入配网码", trigger: "blur" },
         ],
         FPrintPosition: [
           { required: true, message: "请输入印刷位置", trigger: "blur" },

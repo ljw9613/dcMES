@@ -74,6 +74,88 @@ async function closeDatabase() {
 }
 
 /**
+ * 清理错误的条码数据
+ * @param {Object} flowRecord - 工艺流程记录
+ * @param {Array} unbindRecords - 解绑记录数组
+ */
+async function cleanupMismatchedBarcodes(flowRecord, unbindRecords) {
+  try {
+    console.log(`\n🧹 检查并清理错误的条码数据...`);
+    
+    let updated = false;
+    
+    // 收集所有解绑记录中的条码信息
+    const unbindBarcodeMap = new Map(); // 条码 -> 正确的materialCode
+    
+    for (const record of unbindRecords) {
+      if (record.unbindMaterials && record.unbindMaterials.length > 0) {
+        for (const material of record.unbindMaterials) {
+          if (material.originalBarcode && material.materialCode) {
+            unbindBarcodeMap.set(material.originalBarcode, material.materialCode);
+          }
+        }
+      }
+    }
+    
+    if (unbindBarcodeMap.size === 0) {
+      console.log(`ℹ️  无需清理的条码数据`);
+      return;
+    }
+    
+    console.log(`📋 需要检查的条码: ${unbindBarcodeMap.size}个`);
+    
+    // 检查所有工艺节点
+    for (const node of flowRecord.processNodes) {
+      if (node.barcode && unbindBarcodeMap.has(node.barcode)) {
+        const correctMaterialCode = unbindBarcodeMap.get(node.barcode);
+        
+        // 检查条码是否在错误的节点上
+        if (!node.materialCode || node.materialCode !== correctMaterialCode) {
+          console.log(`🔍 发现错误条码: ${node.barcode}`);
+          console.log(`   当前节点: ${node.materialCode || '无materialCode'} (${node.nodeId})`);
+          console.log(`   应该在节点: ${correctMaterialCode}`);
+          
+          // 查找正确的目标节点
+          const correctNode = flowRecord.processNodes.find(n => 
+            n.materialCode === correctMaterialCode &&
+            (!n.barcode || n.barcode === "" || n.barcode === node.barcode)
+          );
+          
+          if (correctNode && correctNode.nodeId !== node.nodeId) {
+            // 移动条码到正确的节点
+            correctNode.barcode = node.barcode;
+            correctNode.scanTime = node.scanTime || new Date();
+            
+            // 清空错误节点的条码
+            node.barcode = "";
+            node.scanTime = null;
+            
+            updated = true;
+            console.log(`   ✅ 已移动条码到正确节点: ${correctMaterialCode}`);
+          } else if (!correctNode) {
+            console.log(`   ⚠️  未找到正确的目标节点: ${correctMaterialCode}`);
+          } else {
+            console.log(`   ℹ️  条码已在正确位置`);
+          }
+        }
+      }
+    }
+    
+    // 保存更新
+    if (updated) {
+      flowRecord.updateAt = new Date();
+      await flowRecord.save();
+      console.log(`✅ 错误条码清理完成，已保存更新`);
+    } else {
+      console.log(`ℹ️  未发现需要清理的错误条码`);
+    }
+    
+  } catch (error) {
+    console.error(`❌ 清理错误条码时发生错误:`, error.message);
+  }
+}
+
+/**
  * 强制完成产品条码的工艺流程进度
  * @param {string} barcode - 产品条码
  */
@@ -95,7 +177,10 @@ async function forceCompleteProduct(barcode) {
     console.log(`   当前状态: ${flowRecord.status}`);
     console.log(`   当前进度: ${flowRecord.progress}%`);
     
-    // 2. 查询解绑记录
+    // 2. 设置主产品条码到正确位置（level为0且nodeType为MATERIAL的节点）
+    await setMainProductBarcode(flowRecord, barcode);
+    
+    // 3. 查询解绑记录
     console.log(`\n🔍 查询解绑记录...`);
     const unbindRecords = await UnbindRecord.find({
       flowRecordId: flowRecord._id,
@@ -119,25 +204,88 @@ async function forceCompleteProduct(barcode) {
         }
       }
       
-      // 3. 恢复解绑的条码到工艺节点
-      await restoreUnbindBarcodes(flowRecord, unbindRecords);
+      // 4. 先清理错误的条码数据
+      await cleanupMismatchedBarcodes(flowRecord, unbindRecords);
       
+      // 5. 恢复解绑的条码
+      await restoreUnbindBarcodes(flowRecord, unbindRecords);
     } else {
       console.log(`ℹ️  未找到解绑记录`);
     }
     
-    // 4. 检查并处理托盘工序（独立于解绑记录）
-    await checkAndProcessPalletNodes(flowRecord, barcode);
-    
-    // 5. 强制完成工艺流程
+    // 6. 强制完成工艺流程
     await forceCompleteFlow(flowRecord);
     
-    console.log(`✅ 产品条码 ${barcode} 处理完成\n`);
+    // 7. 独立处理托盘工序（不依赖解绑记录）
+    await checkAndProcessPalletNodes(flowRecord, barcode);
+    
+    // 8. 最终保存更新
+    flowRecord.updateAt = new Date();
+    await flowRecord.save();
+    
+    console.log(`\n🎉 产品条码 ${barcode} 处理完成！`);
     return true;
     
   } catch (error) {
     console.error(`❌ 处理产品条码 ${barcode} 时发生错误:`, error.message);
     return false;
+  }
+}
+
+/**
+ * 设置主产品条码到正确位置
+ * @param {Object} flowRecord - 工艺流程记录
+ * @param {string} barcode - 产品条码
+ */
+async function setMainProductBarcode(flowRecord, barcode) {
+  try {
+    console.log(`\n🎯 设置主产品条码到正确位置...`);
+    
+    // 查找level为0且nodeType为MATERIAL的根节点
+    const rootMaterialNode = flowRecord.processNodes.find(node => 
+      node.level === 0 && 
+      node.nodeType === "MATERIAL"
+    );
+    
+    if (!rootMaterialNode) {
+      console.log(`⚠️  未找到level为0的MATERIAL节点`);
+      return;
+    }
+    
+    // 检查根节点是否已设置主产品条码
+    if (rootMaterialNode.barcode && rootMaterialNode.barcode === barcode) {
+      console.log(`✅ 主产品条码已正确设置在根物料节点`);
+      return;
+    }
+    
+    // 清理其他节点上错误设置的主产品条码（特别是PROCESS_STEP节点）
+    let clearedNodes = 0;
+    flowRecord.processNodes.forEach(node => {
+      if (node.barcode === barcode && 
+          (node.nodeType !== "MATERIAL" || node.level !== 0)) {
+        console.log(`🧹 清理节点上的错误主产品条码: ${node.processName || node.materialName} (${node.nodeType})`);
+        node.barcode = "";
+        node.scanTime = null;
+        clearedNodes++;
+      }
+    });
+    
+    if (clearedNodes > 0) {
+      console.log(`✅ 已清理 ${clearedNodes} 个节点上的错误主产品条码`);
+    }
+    
+    // 设置主产品条码到根物料节点
+    rootMaterialNode.barcode = barcode;
+    rootMaterialNode.scanTime = new Date();
+    rootMaterialNode.status = "COMPLETED";
+    rootMaterialNode.endTime = new Date();
+    
+    console.log(`✅ 主产品条码 ${barcode} 已设置到根物料节点`);
+    console.log(`   节点名称: ${rootMaterialNode.materialName}`);
+    console.log(`   物料编码: ${rootMaterialNode.materialCode}`);
+    
+  } catch (error) {
+    console.error(`❌ 设置主产品条码时发生错误:`, error.message);
   }
 }
 
@@ -156,29 +304,85 @@ async function restoreUnbindBarcodes(flowRecord, unbindRecords) {
     for (const unbindRecord of unbindRecords) {
       const processStepId = unbindRecord.processStepId;
       
-      // 查找对应的工艺节点
-      const processNode = flowRecord.processNodes.find(node => 
-        node.processStepId && node.processStepId.toString() === processStepId.toString()
-      );
-      
-      if (!processNode) {
-        console.log(`⚠️  未找到工序 ${unbindRecord.processName} 对应的工艺节点`);
-        continue;
-      }
-      
-      console.log(`🔧 处理工序: ${unbindRecord.processName}`);
+      console.log(`\n🔧 处理工序: ${unbindRecord.processName}`);
       
       // 恢复解绑的物料条码
       if (unbindRecord.unbindMaterials && unbindRecord.unbindMaterials.length > 0) {
         
         for (const unbindMaterial of unbindRecord.unbindMaterials) {
-          if (unbindMaterial.originalBarcode) {
-            // 如果当前节点的barcode为空，则恢复条码
+          if (unbindMaterial.originalBarcode && unbindMaterial.materialCode) {
+            console.log(`   🔍 查找物料: ${unbindMaterial.materialCode} -> ${unbindMaterial.originalBarcode}`);
+            
+            // 优先根据 materialCode + processStepId 精确匹配
+            let targetNode = flowRecord.processNodes.find(node => 
+              node.materialCode === unbindMaterial.materialCode &&
+              node.processStepId && 
+              node.processStepId.toString() === processStepId.toString()
+            );
+            
+            // 如果没找到，则根据 materialCode 匹配（可能在不同工序下的同一物料）
+            if (!targetNode) {
+              targetNode = flowRecord.processNodes.find(node => 
+                node.materialCode === unbindMaterial.materialCode &&
+                (!node.barcode || node.barcode === "")
+              );
+            }
+            
+            // 如果还没找到，则根据 processStepId 查找空的物料节点
+            if (!targetNode) {
+              const processNodes = flowRecord.processNodes.filter(node => 
+                node.processStepId && 
+                node.processStepId.toString() === processStepId.toString() &&
+                node.nodeType === "MATERIAL" &&
+                (!node.barcode || node.barcode === "")
+              );
+              
+              // 从多个候选节点中选择一个（优先选择相同物料ID的）
+              targetNode = processNodes.find(node => 
+                node.materialId && 
+                node.materialId.toString() === unbindMaterial.materialId?.toString()
+              ) || processNodes[0];
+            }
+            
+            if (!targetNode) {
+              console.log(`   ⚠️  未找到物料 ${unbindMaterial.materialCode} 对应的工艺节点`);
+              continue;
+            }
+            
+            // 检查节点是否已有条码
+            if (!targetNode.barcode || targetNode.barcode === "") {
+              targetNode.barcode = unbindMaterial.originalBarcode;
+              targetNode.scanTime = new Date();
+              updated = true;
+              console.log(`   ✅ 恢复条码: ${unbindMaterial.originalBarcode} -> ${targetNode.materialCode || targetNode.processName}`);
+              
+              // 检查是否是托盘工序
+              if (targetNode.batchDocNumber) {
+                await restoreToPallet(targetNode.batchDocNumber, unbindMaterial.originalBarcode);
+              }
+              
+            } else {
+              console.log(`   ℹ️  节点已有条码: ${targetNode.barcode}，跳过恢复 ${unbindMaterial.originalBarcode}`);
+            }
+            
+          } else if (unbindMaterial.originalBarcode) {
+            // 如果没有materialCode，按原逻辑处理
+            console.log(`   🔍 查找工序节点: ${unbindRecord.processName} -> ${unbindMaterial.originalBarcode}`);
+            
+            const processNode = flowRecord.processNodes.find(node => 
+              node.processStepId && node.processStepId.toString() === processStepId.toString()
+            );
+            
+            if (!processNode) {
+              console.log(`   ⚠️  未找到工序 ${unbindRecord.processName} 对应的工艺节点`);
+              continue;
+            }
+            
             if (!processNode.barcode || processNode.barcode === "") {
               processNode.barcode = unbindMaterial.originalBarcode;
               processNode.scanTime = new Date();
               updated = true;
-              console.log(`   ✅ 恢复条码: ${unbindMaterial.originalBarcode}`);
+              console.log(`   ✅ 恢复条码: ${unbindMaterial.originalBarcode} -> ${processNode.processName}`);
               
               // 检查是否是托盘工序
               if (processNode.batchDocNumber) {
@@ -324,7 +528,7 @@ async function checkAndProcessPalletNodes(flowRecord, barcode) {
     for (const node of palletNodes) {
       console.log(`\n🔧 处理托盘工序: ${node.processName || '未知工序'}`);
       console.log(`   托盘编号: ${node.batchDocNumber}`);
-      console.log(`   当前条码: ${node.barcode || '空'}`);
+      console.log(`   节点类型: ${node.nodeType}`);
       
       // 检查托盘是否存在
       const pallet = await MaterialPalletizing.findOne({ 
@@ -348,13 +552,6 @@ async function checkAndProcessPalletNodes(flowRecord, barcode) {
       
       if (existingBarcode) {
         console.log(`   ✅ 产品条码 ${barcode} 已存在于托盘中`);
-        
-        // 如果节点的barcode为空，则设置为产品条码
-        if (!node.barcode || node.barcode === "") {
-          node.barcode = barcode;
-          node.scanTime = new Date();
-          console.log(`   🔄 已将产品条码设置到工艺节点`);
-        }
       } else {
         console.log(`   ➕ 产品条码 ${barcode} 不在托盘中，准备添加...`);
         
@@ -381,12 +578,20 @@ async function checkAndProcessPalletNodes(flowRecord, barcode) {
         
         console.log(`   ✅ 产品条码 ${barcode} 已添加到托盘 ${node.batchDocNumber}`);
         console.log(`   📊 托盘条码数量: ${pallet.barcodeCount}/${pallet.totalQuantity}`);
-        
-        // 设置节点的barcode
+      }
+      
+      // 注意：不要将主产品条码设置到PROCESS_STEP节点的barcode字段
+      // 托盘工序节点通常是PROCESS_STEP类型，不应该包含条码信息
+      // 条码信息应该存储在托盘记录(MaterialPalletizing)中
+      if (node.nodeType === "PROCESS_STEP") {
+        node.barcode = "";
+        console.log(`   ℹ️  托盘工序为PROCESS_STEP类型，不设置条码到节点字段`);
+      } else if (node.nodeType === "MATERIAL") {
+        // 如果是MATERIAL类型的托盘节点，且条码为空，可以考虑设置
         if (!node.barcode || node.barcode === "") {
           node.barcode = barcode;
           node.scanTime = new Date();
-          console.log(`   🔄 已将产品条码设置到工艺节点`);
+          console.log(`   🔄 已将产品条码设置到物料节点`);
         }
       }
     }
@@ -459,5 +664,6 @@ module.exports = {
   restoreUnbindBarcodes,
   restoreToPallet,
   forceCompleteFlow,
-  checkAndProcessPalletNodes
+  checkAndProcessPalletNodes,
+  cleanupMismatchedBarcodes
 }; 

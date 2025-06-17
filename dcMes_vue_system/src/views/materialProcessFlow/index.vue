@@ -265,6 +265,18 @@
               @click="handleBatchFixFlowProgress"
               >批量修复流程进度</el-button
             >
+            <el-button
+              type="primary"
+              v-if="$checkPermission('条码记录批量更新流程节点')"
+              @click="handleBatchUpdateFlowNodes"
+              >批量更新流程节点</el-button
+            >
+            <el-button
+              type="danger"
+              v-if="$checkPermission('条码记录批量强制更新流程节点')"
+              @click="handleBatchForceUpdateFlowNodes"
+              >批量强制更新流程节点</el-button
+            >
           </div>
         </div>
       </div>
@@ -1770,6 +1782,16 @@ export default {
     //handleUpdateFlowNodes
     async handleUpdateFlowNodes(row) {
       try {
+        // 检查流程状态和产品状态，不允许对已完成和报废的记录进行操作
+        if (row.status === "COMPLETED") {
+          this.$message.warning("该记录已完成，不允许更新流程节点");
+          return;
+        }
+        if (row.productStatus === "SCRAP") {
+          this.$message.warning("该记录已报废，不允许更新流程节点");
+          return;
+        }
+
         // 显示确认对话框
         await this.$confirm("确认要更新流程节点吗?", "提示", {
           confirmButtonText: "确定",
@@ -1785,8 +1807,10 @@ export default {
           this.$message.error("更新失败");
         }
       } catch (error) {
-        console.error("更新失败:", error);
-        this.$message.error("更新失败: " + error.message);
+        if (error !== "cancel") {
+          console.error("更新失败:", error);
+          this.$message.error("更新失败: " + error.message);
+        }
       }
     },
     // 查看详情
@@ -3434,6 +3458,253 @@ export default {
       // 如果输入的数字大于100，则限制为100
       if (this.searchForm[field] && Number(this.searchForm[field]) > 100) {
         this.searchForm[field] = '100';
+      }
+    },
+    // 批量更新流程节点
+    async handleBatchUpdateFlowNodes() {
+      if (!this.selection || this.selection.length === 0) {
+        this.$message.warning("请选择需要更新的记录");
+        return;
+      }
+
+      // 过滤掉已完成和报废状态的记录
+      const validRecords = this.selection.filter(row => {
+        return row.status !== "COMPLETED" && row.productStatus !== "SCRAP";
+      });
+
+      const invalidRecords = this.selection.filter(row => {
+        return row.status === "COMPLETED" || row.productStatus === "SCRAP";
+      });
+
+      // 如果有无效记录，提示用户
+      if (invalidRecords.length > 0) {
+        const invalidMessages = invalidRecords.map(row => {
+          if (row.status === "COMPLETED") {
+            return `${row.barcode}（已完成）`;
+          }
+          if (row.productStatus === "SCRAP") {
+            return `${row.barcode}（已报废）`;
+          }
+        });
+        
+        this.$message.warning(
+          `以下${invalidRecords.length}条记录因状态限制将被跳过：${invalidMessages.join("、")}`
+        );
+      }
+
+      // 如果没有有效记录，停止操作
+      if (validRecords.length === 0) {
+        this.$message.warning("所选记录均为已完成或已报废状态，无法执行更新操作");
+        return;
+      }
+
+      try {
+        // 显示确认对话框
+        let confirmMessage = `确认要批量更新选中的${validRecords.length}条记录的流程节点吗?`;
+        if (invalidRecords.length > 0) {
+          confirmMessage += `\n\n注意：${invalidRecords.length}条记录因状态限制将被跳过`;
+        }
+
+        await this.$confirm(confirmMessage, "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+        });
+
+        // 显示加载中
+        const loading = this.$loading({
+          lock: true,
+          text: "批量更新中...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
+        });
+
+        let successCount = 0;
+        let failCount = 0;
+
+        // 依次处理每条有效记录
+        for (const row of validRecords) {
+          try {
+            const result = await updateFlowNodes({
+              barcode: row.barcode,
+            });
+            if (result.code === 200 && result.success) {
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } catch (error) {
+            console.error("更新记录时出错:", error);
+            failCount++;
+          }
+        }
+
+        // 关闭加载中
+        loading.close();
+
+        // 显示结果
+        let resultMessage = "";
+        if (successCount > 0 && failCount === 0) {
+          resultMessage = `成功更新全部${successCount}条记录`;
+        } else if (successCount > 0 && failCount > 0) {
+          resultMessage = `成功更新${successCount}条记录，${failCount}条记录更新失败`;
+        } else {
+          resultMessage = "所有记录更新失败";
+        }
+
+        if (invalidRecords.length > 0) {
+          resultMessage += `，${invalidRecords.length}条记录因状态限制被跳过`;
+        }
+
+        if (successCount > 0 && failCount === 0) {
+          this.$message.success(resultMessage);
+        } else if (successCount > 0 && failCount > 0) {
+          this.$message.warning(resultMessage);
+        } else {
+          this.$message.error(resultMessage);
+        }
+
+        // 刷新数据
+        this.fetchData();
+      } catch (error) {
+        // 用户取消操作或发生其他错误
+        if (error !== "cancel") {
+          console.error("批量更新流程节点时出错:", error);
+          this.$message.error("批量更新流程节点时出错");
+        }
+      }
+    },
+    handleForceUpdateFlowNodes(row) {
+      // 这里可以添加强制更新流程节点的逻辑
+      console.log("强制更新流程节点:", row);
+      this.$message.success("强制更新流程节点操作已执行");
+    },
+    // 强制更新流程节点（单个）
+    async handleForceUpdateFlowNodes(row) {
+      try {
+        // 显示确认对话框，强调这是强制操作
+        await this.$confirm(
+          "确认要强制更新流程节点吗？\n\n⚠️ 警告：此操作将忽略状态检查，强制执行更新！",
+          "强制更新确认",
+          {
+            confirmButtonText: "确认强制更新",
+            cancelButtonText: "取消",
+            type: "warning",
+            dangerouslyUseHTMLString: true
+          }
+        );
+
+        const loading = this.$loading({
+          lock: true,
+          text: "正在强制更新...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
+        });
+
+        try {
+          const result = await updateFlowNodes({ barcode: row.barcode });
+          console.log(result, "强制更新结果");
+          if (result.code === 200 && result.success) {
+            this.$message.success("强制更新成功");
+            this.fetchData();
+          } else {
+            this.$message.error("强制更新失败");
+          }
+        } catch (error) {
+          console.error("强制更新失败:", error);
+          this.$message.error("强制更新失败: " + error.message);
+        } finally {
+          loading.close();
+        }
+      } catch (error) {
+        if (error !== "cancel") {
+          console.error("强制更新流程节点失败:", error);
+          this.$message.error("强制更新流程节点失败: " + error.message);
+        }
+      }
+    },
+
+    // 批量强制更新流程节点
+    async handleBatchForceUpdateFlowNodes() {
+      if (!this.selection || this.selection.length === 0) {
+        this.$message.warning("请选择需要强制更新的记录");
+        return;
+      }
+
+      // 统计各种状态的记录数量，用于向用户展示
+      const completedCount = this.selection.filter(row => row.status === "COMPLETED").length;
+      const scrapCount = this.selection.filter(row => row.productStatus === "SCRAP").length;
+      const normalCount = this.selection.length - completedCount - scrapCount;
+
+      try {
+        // 构建详细的确认消息
+        let confirmMessage = `确认要批量强制更新选中的${this.selection.length}条记录的流程节点吗？\n\n`;
+        confirmMessage += `⚠️ 警告：此操作将忽略所有状态检查，强制执行更新！\n\n`;
+        confirmMessage += `记录状态统计：\n`;
+        if (normalCount > 0) confirmMessage += `• 正常状态：${normalCount}条\n`;
+        if (completedCount > 0) confirmMessage += `• 已完成状态：${completedCount}条\n`;
+        if (scrapCount > 0) confirmMessage += `• 已报废状态：${scrapCount}条\n`;
+        confirmMessage += `\n所有记录都将被强制更新！`;
+
+        await this.$confirm(confirmMessage, "批量强制更新确认", {
+          confirmButtonText: "确认强制更新",
+          cancelButtonText: "取消",
+          type: "warning",
+          dangerouslyUseHTMLString: true
+        });
+
+        // 显示加载中
+        const loading = this.$loading({
+          lock: true,
+          text: "批量强制更新中...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
+        });
+
+        let successCount = 0;
+        let failCount = 0;
+
+        // 依次处理所有选中的记录（不做状态过滤）
+        for (const row of this.selection) {
+          try {
+            const result = await updateFlowNodes({
+              barcode: row.barcode,
+            });
+            if (result.code === 200 && result.success) {
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } catch (error) {
+            console.error("强制更新记录时出错:", error);
+            failCount++;
+          }
+        }
+
+        // 关闭加载中
+        loading.close();
+
+        // 显示结果
+        let resultMessage = "";
+        if (successCount > 0 && failCount === 0) {
+          resultMessage = `成功强制更新全部${successCount}条记录`;
+          this.$message.success(resultMessage);
+        } else if (successCount > 0 && failCount > 0) {
+          resultMessage = `成功强制更新${successCount}条记录，${failCount}条记录更新失败`;
+          this.$message.warning(resultMessage);
+        } else {
+          resultMessage = "所有记录强制更新失败";
+          this.$message.error(resultMessage);
+        }
+
+        // 刷新数据
+        this.fetchData();
+      } catch (error) {
+        // 用户取消操作或发生其他错误
+        if (error !== "cancel") {
+          console.error("批量强制更新流程节点时出错:", error);
+          this.$message.error("批量强制更新流程节点时出错");
+        }
       }
     },
   },

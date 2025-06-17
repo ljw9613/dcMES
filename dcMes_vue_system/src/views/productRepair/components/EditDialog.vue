@@ -537,7 +537,7 @@ export default {
         }
 
         // 判断条码是否已存在
-        if (this.form.barcodes.includes(barcode)) {
+        if (this.form.barcodes.some(item => item.barcode === barcode)) {
           this.$message.warning("该条码已存在");
           this.barcode = "";
           return;

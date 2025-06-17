@@ -351,6 +351,7 @@ import cxwgd from "@/assets/tone/cxwgd.mp3";
 import dwx from "@/assets/tone/dwx.mp3";
 import wxsb from "@/assets/tone/wxsb.mp3";
 import smztm from "@/assets/tone/smztm.mp3";
+import { generateCompleteNetCode } from "./netCodeUtils";
 
 import StatusPopup from "@/components/StatusPopup/index.vue";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
@@ -2015,6 +2016,27 @@ export default {
                   ...saleOrderCustInfoResult.data[0],
                 };
               }
+
+              if (printData.FProductUrl && printData.printBarcode) {
+                printData.FProductUrl =
+                  printData.FProductUrl + "&sn=" + printData.printBarcode;
+              }
+
+              if (printData.FCustPO && printData.printBarcode) {
+                //配网码=客户PO+条码 加密
+                try {
+                  printData.FNetCode = generateCompleteNetCode(
+                    printData.FCustPO,
+                    printData.printBarcode
+                  );
+                  console.log("配网码生成成功:", printData.FNetCode);
+                } catch (error) {
+                  console.error("配网码生成失败:", error);
+                  // 如果加密失败，使用原有的简单拼接方式作为备用
+                  printData.FNetCode =
+                    printData.FCustPO + printData.printBarcode;
+                }
+              }
             }
 
             //生产日期
@@ -2032,7 +2054,6 @@ export default {
               printData.productionDate +
               "," +
               printData.quantity;
-
 
             //createDate
             printData.createDate = `${year}.${month}`;
@@ -2458,6 +2479,8 @@ export default {
     localStorage.removeItem("printTemplate_scanBarCodeBatch");
   },
   mounted() {
+    // let netCode = generateCompleteNetCode("10025843", "E0AK12345F164S6V0024");
+
     console.log("Complete roles data:", this.$store.getters.roles);
     const roles = this.$store.getters.roles;
     if (!roles || !roles.buttonList) {

@@ -54,7 +54,6 @@
               style="margin-left: 10px"
               type="primary"
               @click="Search()"
-             
               >查询搜索
             </el-button>
           </div>
@@ -131,16 +130,8 @@
       </el-table-column>
 
       <el-table-column align="center" label="密码" min-width="120">
-        <template slot-scope="scope">
-          <div class="password-field">
-            <span v-if="scope.row.showPassword">{{ scope.row.password }}</span>
-            <span v-else>******</span>
-            <i
-              :class="scope.row.showPassword ? 'el-icon-view' : 'el-icon-hide'"
-              @click="togglePasswordVisibility(scope.row)"
-              class="password-toggle-icon">
-            </i>
-          </div>
+        <template>
+          <span>******</span>
         </template>
       </el-table-column>
 
@@ -173,7 +164,12 @@
 
       <el-table-column align="center" label="登录二维码" min-width="100">
         <template slot-scope="scope">
-          <el-button type="primary" size="mini" @click="showQRCode(scope.row)" v-if="$checkPermission('用户列表查看二维码')">
+          <el-button
+            type="primary"
+            size="mini"
+            @click="showQRCode(scope.row)"
+            v-if="$checkPermission('用户列表查看二维码')"
+          >
             查看二维码
           </el-button>
         </template>
@@ -208,7 +204,11 @@
           >
             上线
           </el-button>
-          <el-button v-else-if="row.status && $checkPermission('用户列表下线')" size="mini" type="danger" @click="handisshow(row)"
+          <el-button
+            v-else-if="row.status && $checkPermission('用户列表下线')"
+            size="mini"
+            type="danger"
+            @click="handisshow(row)"
           >
             下线
           </el-button>
@@ -243,11 +243,19 @@
         </el-form-item>
         <el-form-item label="用户密码" label-width="120">
           <div class="password-input-container">
-            <el-input
-              v-model="password"  :show-password="true"
-              placeholder="请输入管理人员的密码">
-           </el-input>
-
+            <el-input 
+              v-model="password" 
+              type="password" 
+              placeholder="请输入管理人员的密码"
+              show-password
+              :disabled="!$checkPermission('用户列表修改密码')"
+            >
+            </el-input>
+            <div v-if="!$checkPermission('用户列表修改密码')" class="permission-tip">
+              <el-tooltip content="您没有修改密码的权限" placement="top">
+                <i class="el-icon-warning-outline"></i>
+              </el-tooltip>
+            </div>
           </div>
         </el-form-item>
         <el-form-item label="联系姓名" label-width="120">
@@ -439,7 +447,7 @@ import XLSX from "xlsx";
 
 let that;
 export default {
-  name : "user",
+  name: "user",
   filters: {},
   data() {
     return {
@@ -491,7 +499,7 @@ export default {
       uploadHeaders: {
         Authorization: getToken(),
       },
-      showPasswordInForm: false,
+      originalPassword: "", // 存储编辑时的原始密码
     };
   },
   created() {
@@ -520,10 +528,7 @@ export default {
 
       try {
         let { data: response, countnum } = await getData("user_login", data1);
-        // 为每个用户添加密码显示控制属性
-        this.categorylist = response.map(item => {
-          return { ...item, showPassword: false };
-        });
+        this.categorylist = response;
         this.categorylist1 = this.categorylist;
         this.total = countnum;
       } catch (error) {
@@ -536,6 +541,7 @@ export default {
       this.dialogFormVisible = true;
       this._id = row._id;
       this.password = row.password;
+      this.originalPassword = row.password; // 存储编辑时的原始密码
       this.role = row.role._id ? row.role._id : row.role;
       this.number = row.userName;
       this.name = row.nickName;
@@ -636,9 +642,9 @@ export default {
         // 先检查数据库中是否已存在此用户名
         try {
           const checkExist = await getData("user_login", {
-            query: { userName: this.number }
+            query: { userName: this.number },
           });
-          
+
           if (checkExist.data && checkExist.data.length > 0) {
             this.$notify({
               title: "添加失败",
@@ -648,7 +654,7 @@ export default {
             });
             return;
           }
-          
+
           // 创建用户数据对象
           const userData = {
             _id: Date.now().toString(), // 临时ID，实际应该由后端生成
@@ -734,12 +740,12 @@ export default {
         // 检查是否存在同名账号（除了当前编辑的用户）
         try {
           const checkExist = await getData("user_login", {
-            query: { 
+            query: {
               userName: this.number,
-              _id: { $ne: this._id } // 排除当前正在编辑的用户
-            }
+              _id: { $ne: this._id }, // 排除当前正在编辑的用户
+            },
           });
-          
+
           if (checkExist.data && checkExist.data.length > 0) {
             this.$notify({
               title: "修改失败",
@@ -749,16 +755,26 @@ export default {
             });
             return;
           }
-          
+
+          // 根据权限决定是否更新密码
+          const updateData = {
+            nickName: this.name,
+            userName: this.number,
+            phone: this.phone,
+            role: this.role,
+          };
+
+          // 只有拥有修改密码权限的用户才能更新密码
+          if (this.$checkPermission('用户列表修改密码')) {
+            updateData.password = this.password;
+          } else {
+            // 没有权限时，使用原始密码
+            updateData.password = this.originalPassword;
+          }
+
           var data = {
             query: { _id: this._id },
-            update: {
-              nickName: this.name,
-              userName: this.number,
-              password: this.password,
-              phone: this.phone,
-              role: this.role,
-            },
+            update: updateData,
           };
 
           putuserlist(data).then((response) => {
@@ -1441,11 +1457,6 @@ export default {
         "用户导入模板.xlsx"
       );
     },
-
-    // 切换密码显示/隐藏
-    togglePasswordVisibility(row) {
-      this.$set(row, 'showPassword', !row.showPassword);
-    },
   },
 };
 </script>
@@ -1841,36 +1852,26 @@ export default {
   }
 }
 
-.password-field {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  .password-toggle-icon {
-    margin-left: 8px;
-    cursor: pointer;
-    color: #909399;
-    &:hover {
-      color: #409EFF;
-    }
-  }
-}
-
+// 密码权限提示样式
 .password-input-container {
   position: relative;
   width: 100%;
 
-  .password-toggle-icon {
+  .permission-tip {
     position: absolute;
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    cursor: pointer;
-    color: #909399;
-    z-index: 2;
+    z-index: 10;
 
-    &:hover {
-      color: #409EFF;
+    i {
+      color: #f56c6c;
+      font-size: 16px;
+      cursor: pointer;
+
+      &:hover {
+        color: #f78989;
+      }
     }
   }
 }

@@ -4253,222 +4253,77 @@ class MaterialProcessFlowService {
   }
 
   /**
-   * 验证主物料工序节点和子物料工序节点是否完全匹配（支持多层级递归比较）
+   * 验证主物料工序节点和子物料工序节点是否完全匹配
    * @param {Array} mainProcessNodes - 主物料流程节点
    * @param {Array} subProcessNodes - 子物料流程节点
    * @param {Object} bindingMaterialNode - 绑定的物料节点
    * @returns {Object} 验证结果
    */
   static validateProcessNodesCompatibility(mainProcessNodes, subProcessNodes, bindingMaterialNode) {
-    console.log(`开始验证物料 ${bindingMaterialNode.materialCode} 的工序节点兼容性`);
-    
-    // 1. 首先检查物料节点是否匹配
-    const subMaterialNode = subProcessNodes.find(
-      node => node.nodeType === "MATERIAL" && node.level === 0
+    // 获取主物料中该绑定物料节点下的子工序节点
+    const mainSubProcessNodes = mainProcessNodes.filter(
+      (node) =>
+        node.parentNodeId === bindingMaterialNode.nodeId &&
+        node.nodeType === "PROCESS_STEP"
     );
 
-    if (!subMaterialNode) {
-      return {
-        isValid: false,
-        message: "子物料流程中未找到根物料节点"
-      };
-    }
+    // 获取子物料中的所有工序节点（排除根节点level 0）
+    const subMaterialProcessNodes = subProcessNodes.filter(
+      (node) => node.nodeType === "PROCESS_STEP" && node.level > 0
+    );
 
-    // 检查物料ID是否匹配
-    if (bindingMaterialNode.materialId.toString() !== subMaterialNode.materialId.toString()) {
-      return {
-        isValid: false,
-        message: `物料不匹配：主物料ID ${bindingMaterialNode.materialId} 与子物料ID ${subMaterialNode.materialId} 不一致`,
-        mainMaterial: {
-          materialId: bindingMaterialNode.materialId,
-          materialCode: bindingMaterialNode.materialCode,
-          materialName: bindingMaterialNode.materialName
-        },
-        subMaterial: {
-          materialId: subMaterialNode.materialId,
-          materialCode: subMaterialNode.materialCode,
-          materialName: subMaterialNode.materialName
-        }
-      };
-    }
-
-    // 2. 构建主物料中该绑定物料节点的完整子树结构
-    const getChildNodesRecursively = (nodes, parentNodeId) => {
-      const directChildren = nodes.filter(node => node.parentNodeId === parentNodeId);
-      const result = [];
-      
-      for (const child of directChildren) {
-        result.push(child);
-        // 递归获取子节点
-        const grandChildren = getChildNodesRecursively(nodes, child.nodeId);
-        result.push(...grandChildren);
-      }
-      
-      return result;
-    };
-
-    // 获取主物料中该绑定物料节点下的所有子节点（递归）
-    const mainSubNodes = getChildNodesRecursively(mainProcessNodes, bindingMaterialNode.nodeId);
-    
-    // 获取子物料中的所有非根节点（level > 0）
-    const subMaterialNodes = subProcessNodes.filter(node => node.level > 0);
-
-    console.log(`主物料中绑定节点的子节点数量: ${mainSubNodes.length}`);
-    console.log(`子物料中非根节点数量: ${subMaterialNodes.length}`);
-
-    // 如果主物料该节点下没有子节点，说明不需要匹配
-    if (mainSubNodes.length === 0) {
+    // 如果主物料该节点下没有子工序，说明不需要匹配
+    if (mainSubProcessNodes.length === 0) {
       return {
         isValid: true,
         message: "该物料节点下无需匹配工序"
       };
     }
 
-    // 3. 构建层级结构树进行比较
-    const buildNodeTree = (nodes, rootNodeId, baseLevel = 0) => {
-      const tree = [];
-      const directChildren = nodes.filter(node => node.parentNodeId === rootNodeId);
-      
-      for (const child of directChildren) {
-        const childTree = {
-          ...child,
-          adjustedLevel: child.level - baseLevel, // 调整层级为相对层级
-          children: buildNodeTree(nodes, child.nodeId, baseLevel)
-        };
-        tree.push(childTree);
-      }
-      
-      return tree.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
-    };
-
-    // 构建主物料子树（从绑定物料节点开始）
-    const mainSubTree = buildNodeTree(mainProcessNodes, bindingMaterialNode.nodeId, bindingMaterialNode.level);
-    
-    // 构建子物料树（从根物料节点开始）
-    const subMaterialTree = buildNodeTree(subProcessNodes, subMaterialNode.nodeId, 0);
-
-    console.log(`主物料子树根节点数量: ${mainSubTree.length}`);
-    console.log(`子物料树根节点数量: ${subMaterialTree.length}`);
-
-    // 4. 递归比较树结构
-    const compareTreeNodes = (mainTree, subTree, path = '') => {
-      const errors = [];
-      
-      // 首先比较节点数量
-      if (mainTree.length !== subTree.length) {
-        errors.push({
-          path: path || 'root',
-          type: 'count_mismatch',
-          message: `节点数量不匹配：主物料有 ${mainTree.length} 个节点，子物料有 ${subTree.length} 个节点`,
-          mainNodes: mainTree.map(n => `${n.nodeType === 'PROCESS_STEP' ? n.processName : n.materialName}(${n.nodeType === 'PROCESS_STEP' ? n.processCode : n.materialCode})`),
-          subNodes: subTree.map(n => `${n.nodeType === 'PROCESS_STEP' ? n.processName : n.materialName}(${n.nodeType === 'PROCESS_STEP' ? n.processCode : n.materialCode})`)
-        });
-        return errors;
-      }
-
-      // 逐个比较节点
-      for (let i = 0; i < mainTree.length; i++) {
-        const mainNode = mainTree[i];
-        const subNode = subTree[i];
-        const currentPath = path ? `${path}.${i}` : `${i}`;
-
-        // 比较节点类型
-        if (mainNode.nodeType !== subNode.nodeType) {
-          errors.push({
-            path: currentPath,
-            type: 'type_mismatch',
-            message: `节点类型不匹配：主物料为 ${mainNode.nodeType}，子物料为 ${subNode.nodeType}`
-          });
-          continue;
-        }
-
-        // 比较具体内容
-        if (mainNode.nodeType === 'PROCESS_STEP') {
-          // 比较工序节点
-          if (mainNode.processStepId.toString() !== subNode.processStepId.toString()) {
-            errors.push({
-              path: currentPath,
-              type: 'process_mismatch',
-              message: `工序不匹配：主物料为 ${mainNode.processName}(${mainNode.processCode})[${mainNode.processStepId}]，子物料为 ${subNode.processName}(${subNode.processCode})[${subNode.processStepId}]`
-            });
-          }
-        } else if (mainNode.nodeType === 'MATERIAL') {
-          // 比较物料节点
-          if (mainNode.materialId.toString() !== subNode.materialId.toString()) {
-            errors.push({
-              path: currentPath,
-              type: 'material_mismatch',
-              message: `物料不匹配：主物料为 ${mainNode.materialName}(${mainNode.materialCode})[${mainNode.materialId}]，子物料为 ${subNode.materialName}(${subNode.materialCode})[${subNode.materialId}]`
-            });
-          }
-        }
-
-        // 递归比较子节点
-        if (mainNode.children && subNode.children) {
-          const childErrors = compareTreeNodes(mainNode.children, subNode.children, currentPath);
-          errors.push(...childErrors);
-        } else if (mainNode.children?.length !== subNode.children?.length) {
-          errors.push({
-            path: currentPath,
-            type: 'children_count_mismatch',
-            message: `子节点数量不匹配：主物料有 ${mainNode.children?.length || 0} 个子节点，子物料有 ${subNode.children?.length || 0} 个子节点`
-          });
-        }
-      }
-
-      return errors;
-    };
-
-    // 执行树结构比较
-    const validationErrors = compareTreeNodes(mainSubTree, subMaterialTree);
-
-    console.log(`验证完成，发现 ${validationErrors.length} 个错误`);
-
-    if (validationErrors.length > 0) {
+    // 比较工序节点数量
+    if (mainSubProcessNodes.length !== subMaterialProcessNodes.length) {
       return {
         isValid: false,
-        message: `工序节点结构不匹配，共发现 ${validationErrors.length} 个问题`,
-        errors: validationErrors,
-        details: {
-          mainTreeStructure: this.formatTreeStructure(mainSubTree),
-          subTreeStructure: this.formatTreeStructure(subMaterialTree)
-        }
+        message: `工序节点数量不匹配：主物料需要 ${mainSubProcessNodes.length} 个工序，子物料有 ${subMaterialProcessNodes.length} 个工序`,
+        mainProcesses: mainSubProcessNodes.map(p => `${p.processName}(${p.processCode})`),
+        subProcesses: subMaterialProcessNodes.map(p => `${p.processName}(${p.processCode})`)
+      };
+    }
+
+    // 按工序顺序排序进行匹配
+    const sortedMainProcesses = mainSubProcessNodes.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
+    const sortedSubProcesses = subMaterialProcessNodes.sort((a, b) => (a.processSort || 0) - (b.processSort || 0));
+
+    // 检查每个工序是否匹配（按processStepId匹配）
+    const unmatchedProcesses = [];
+    for (let i = 0; i < sortedMainProcesses.length; i++) {
+      const mainProcess = sortedMainProcesses[i];
+      const subProcess = sortedSubProcesses[i];
+
+      // 按processStepId进行匹配（更精确）
+      if (mainProcess.processStepId.toString() !== subProcess.processStepId.toString()) {
+        unmatchedProcesses.push({
+          position: i + 1,
+          mainProcess: `${mainProcess.processName}(${mainProcess.processCode})[${mainProcess.processStepId}]`,
+          subProcess: `${subProcess.processName}(${subProcess.processCode})[${subProcess.processStepId}]`
+        });
+      }
+    }
+
+    if (unmatchedProcesses.length > 0) {
+      return {
+        isValid: false,
+        message: `工序节点不匹配，共有 ${unmatchedProcesses.length} 个工序不匹配`,
+        unmatchedProcesses,
+        mainProcesses: sortedMainProcesses.map(p => `${p.processName}(${p.processCode})`),
+        subProcesses: sortedSubProcesses.map(p => `${p.processName}(${p.processCode})`)
       };
     }
 
     return {
       isValid: true,
-      message: "物料和工序节点完全匹配",
-      details: {
-        totalNodes: mainSubNodes.length,
-        treeStructure: this.formatTreeStructure(mainSubTree)
-      }
+      message: "工序节点完全匹配"
     };
-  }
-
-  /**
-   * 格式化树结构用于调试输出
-   * @param {Array} tree - 树结构
-   * @param {number} indent - 缩进级别
-   * @returns {string} 格式化的树结构字符串
-   */
-  static formatTreeStructure(tree, indent = 0) {
-    const spaces = '  '.repeat(indent);
-    let result = '';
-    
-    for (const node of tree) {
-      const nodeInfo = node.nodeType === 'PROCESS_STEP' 
-        ? `${node.processName}(${node.processCode})`
-        : `${node.materialName}(${node.materialCode})`;
-      
-      result += `${spaces}- [${node.nodeType}] ${nodeInfo}\n`;
-      
-      if (node.children && node.children.length > 0) {
-        result += this.formatTreeStructure(node.children, indent + 1);
-      }
-    }
-    
-    return result;
   }
 
   /**
@@ -4487,7 +4342,6 @@ class MaterialProcessFlowService {
       if (!existingFlowRecord) {
         throw new Error(`未找到条码为 ${barcode} 的流程记录`);
       }
-
 
       console.log(`找到现有流程记录: ${existingFlowRecord._id}`);
       console.log(`现有节点数量: ${existingFlowRecord.processNodes.length}`);
