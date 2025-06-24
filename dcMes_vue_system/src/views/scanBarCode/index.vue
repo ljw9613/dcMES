@@ -477,6 +477,12 @@ export default {
         inputQuantity: 0,
         scrapQuantity: 0,
       },
+      
+      // 新增：防重复处理机制
+      isProcessing: false, // 防重复扫描标识
+      isSubmitting: false, // 防重复提交标识
+      processingBarcodes: new Set(), // 正在处理的条码集合
+      requestTimeouts: new Map(), // 请求超时管理
     };
   },
   computed: {
@@ -1495,31 +1501,39 @@ export default {
 
       console.log("工艺信息:", this.craftInfo);
 
+      // 添加防重复扫描检查
+      if (this.isProcessing) {
+        this.$message.warning("正在处理扫描，请稍候...");
+        this.unifiedScanInput = "";
+        this.$refs.scanInput.focus();
+        return;
+      }
+
       try {
         // 更严格地清理输入值中的所有空格和换行符
         const cleanValue = value.replace(/[\s\r\n]/g, "");
         if (!cleanValue) return;
 
-        //特殊处理
-        if (cleanValue.includes("102251-114010190087")) {
-          // 检查条码格式是否符合预期，并提取日期部分
-          const parts = cleanValue.split("-");
-          if (parts.length >= 4) {
-            const dateStr = parts[2]; // 获取第三段日期字符串
-
-            // 判断日期是否小于20250201
-            if (dateStr && dateStr.length === 8 && dateStr < "20250201") {
-              this.unifiedScanInput = "";
-              this.$refs.scanInput.focus();
-              this.$message.error("该物料已过期，不可使用");
-              this.errorMessage = "该物料已过期，不可使用";
-              this.popupType = "ng";
-              this.showPopup = true;
-              playAudio('dwx');
-              return;
-            }
-          }
+        // 检查是否为重复条码处理
+        if (this.processingBarcodes.has(cleanValue)) {
+          this.$message.warning(`条码 ${cleanValue} 正在处理中，请勿重复扫描`);
+          this.unifiedScanInput = "";
+          this.$refs.scanInput.focus();
+          return;
         }
+
+        // 锁定处理状态
+        this.isProcessing = true;
+        this.processingBarcodes.add(cleanValue);
+        
+        // 设置超时清理，防止异常情况下锁定无法释放
+        const timeoutId = setTimeout(() => {
+          this.processingBarcodes.delete(cleanValue);
+          this.requestTimeouts.delete(cleanValue);
+          this.isProcessing = false;
+        }, 30000); // 30秒超时
+        
+        this.requestTimeouts.set(cleanValue, timeoutId);
 
         const isValidResult = await this.validateBarcode(cleanValue);
         if (!isValidResult.isValid) {
@@ -1900,7 +1914,10 @@ export default {
           });
 
           // 所有条码都已扫描完成,进行scanComponents提交
-          await this.handleConfirm();
+          // 添加防重复提交检查
+          if (!this.isSubmitting) {
+            await this.handleConfirm();
+          }
         } else {
           // 显示剩余需要扫描的物料
           const remainingMaterials = this.processMaterials
@@ -1942,6 +1959,21 @@ export default {
           position: "top-right",
         });
       } finally {
+        // 清理条码锁定状态
+        if (cleanValue) {
+          // 清除处理锁定
+          this.processingBarcodes.delete(cleanValue);
+          
+          // 清除对应的超时器
+          const timeoutId = this.requestTimeouts.get(cleanValue);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            this.requestTimeouts.delete(cleanValue);
+          }
+        }
+        
+        // 重置处理状态
+        this.isProcessing = false;
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
       }
@@ -2026,7 +2058,16 @@ export default {
 
     // 确认按钮处理方法
     async handleConfirm() {
+      // 添加防重复提交检查
+      if (this.isSubmitting) {
+        this.$message.warning("正在提交中，请稍候...");
+        return;
+      }
+
       try {
+        // 锁定提交状态
+        this.isSubmitting = true;
+
         // 1. 验证所有需要扫码的条码是否已扫描
         const allBarcodesFilled = Object.values(this.validateStatus).every(
           (status) => {
@@ -2197,6 +2238,9 @@ export default {
             playAudio('tmyw'); // 延迟播放
           }, 1000);
         }
+      } finally {
+        // 解锁提交状态
+        this.isSubmitting = false;
       }
     },
 
@@ -2593,6 +2637,19 @@ export default {
     }
     // 清除心跳定时器
     this.stopHeartbeat();
+    
+    // 清理防重复处理相关状态
+    this.processingBarcodes.clear();
+    
+    // 清除所有请求超时器
+    this.requestTimeouts.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    this.requestTimeouts.clear();
+    
+    // 重置状态标识
+    this.isProcessing = false;
+    this.isSubmitting = false;
   },
 };
 </script>
