@@ -1426,6 +1426,13 @@ export default {
       });
     },
     handleAllDelete(row) {
+        // 设置加载提示
+        const loading = this.$loading({
+            lock: true,
+            text: "初始化中...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.7)",
+          });
       // 检查托盘的出入库状态
       if (row.inWarehouseStatus === "IN_WAREHOUSE") {
         this.$message.error("已入库的托盘不能删除");
@@ -1472,6 +1479,8 @@ export default {
         } catch (error) {
           console.error("初始化失败:", error);
           this.$message.error("初始化失败");
+        } finally {
+          loading.close();
         }
       });
     },

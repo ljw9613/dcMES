@@ -19,6 +19,12 @@
               <el-input v-model="formData.FProductModel"></el-input>
             </el-form-item>
           </el-col>
+          <!-- 产品类型名称 -->
+          <el-col :span="8">
+            <el-form-item label="产品类型名称" prop="FProductTypeName">
+              <el-input v-model="formData.FProductTypeName"></el-input>
+            </el-form-item>
+          </el-col>
           <!-- 销售国家地区 -->
           <el-col :span="8">
             <el-form-item label="销售国家地区" prop="FSaleCountry">
@@ -273,6 +279,7 @@ export default {
     return {
       formData: {
         FProductModel: "",
+        FProductTypeName: "",
         FSaleOrderId: "",
         FSaleCountry: "",
         FMinSpec: "",

@@ -1,0 +1,700 @@
+{
+    "_id": ObjectId("680e54347effbe3596bbd4a7"),
+    "entryNo": "SCCK-20250427-0003",
+    "entryType": "PRODUCTION",
+    "HuoGuiCode": "\\",
+    "FaQIaoNo": "\\",
+    "outboundQuantity": NumberInt("1230"),
+    "outNumber": NumberInt("45"),
+    "saleNumber": NumberInt("1230"),
+    "productionOrderNo": "MO2120486",
+    "saleOrderId": ObjectId("67abac4dd96e0c42b6a0f636"),
+    "saleOrderNo": "2025-NO.TKVNVCB014",
+    "saleOrderEntryId": "146361",
+    "materialId": ObjectId("67a514cfd96e0c42b69a0df0"),
+    "materialCode": "11016010012V",
+    "materialName": "A25 / ZB2452-02-VA190200CA",
+    "materialSpec": " ",
+    "actualQuantity": NumberInt("45"),
+    "palletCount": NumberInt("27"),
+    "totalBoxCount": NumberInt("0"),
+    "progress": NumberInt("4"),
+    "unit": "10101",
+    "workShop": "添可装配车间",
+    "productType": "1",
+    "workOrderWhitelist": [
+        {
+            "workOrderNo": "P202504061743905452858",
+            "_id": ObjectId("680e54347effbe3596bbd4a8")
+        }
+    ],
+    "outboundMode": "PALLET",
+    "status": "IN_PROGRESS",
+    "startTime": ISODate("2025-04-27T15:58:44.311Z"),
+    "createBy": ObjectId("67b7f7eae3f04b4286c3e858"),
+    "createAt": ISODate("2025-04-27T15:58:44.311Z"),
+    "updateAt": ISODate("2025-06-18T13:14:13.864Z"),
+    "entryItems": [
+        {
+            "palletId": ObjectId("67f765850530f4b9f6e6c687"),
+            "palletCode": "YDC-SN-1744266629565",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T15:58:44.327Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f51372d560d9ff292de800"),
+            "palletCode": "YDC-SN-1744114546644",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:03:18.546Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f5cab52560c8ee392d408e"),
+            "palletCode": "YDC-SN-1744161461742",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:03:24.981Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f736b00530f4b9f6dff7c5"),
+            "palletCode": "YDC-SN-1744254640754",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:03:32.808Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f8ad5f92cc38775b2d62ff"),
+            "palletCode": "YDC-SN-1744350559361",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:03:36.848Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f525b2d560d9ff2931f3cf"),
+            "palletCode": "YDC-SN-1744119218043",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:03:44.516Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f78be1e4a5ced0c623abc4"),
+            "palletCode": "YDC-SN-1744276449338",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:07:07.363Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f7cd85e4a5ced0c6314abb"),
+            "palletCode": "YDC-SN-1744293253265",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:07:13.847Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f798a0e4a5ced0c626d595"),
+            "palletCode": "YDC-SN-1744279712214",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:07:18.227Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f646a53a074cf05d067f25"),
+            "palletCode": "YDC-SN-1744193189747",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:09:23.453Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f723460530f4b9f6db70e5"),
+            "palletCode": "YDC-SN-1744249670700",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:09:28.618Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f7c43de4a5ced0c62f12a9"),
+            "palletCode": "YDC-SN-1744290877833",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:09:35.526Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f5ea9091f19ae047d5edfe"),
+            "palletCode": "YDC-SN-1744169616306",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:11:54.489Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f775b00530f4b9f6e9ed8f"),
+            "palletCode": "YDC-SN-1744270768240",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:11:59.178Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f7b7cbe4a5ced0c62bf3ce"),
+            "palletCode": "YDC-SN-1744287691471",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:12:03.464Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f7b091e4a5ced0c62a284d"),
+            "palletCode": "YDC-SN-1744285841205",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:14:56.821Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f613e491f19ae047dc63b8"),
+            "palletCode": "YDC-SN-1744180196793",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:15:05.822Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f688073a074cf05d0f92f0"),
+            "palletCode": "YDC-SN-1744209927057",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:15:09.813Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f4fa947b914f08494839d3"),
+            "palletCode": "YDC-SN-1744108180659",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:17:38.917Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f7bd10e4a5ced0c62d5b63"),
+            "palletCode": "YDC-SN-1744289040048",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:17:44.804Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f7d98ce4a5ced0c631f523"),
+            "palletCode": "YDC-SN-1744296332556",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:20:01.402Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f603dd91f19ae047d8e119"),
+            "palletCode": "YDC-SN-1744176093867",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:20:05.661Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f757ef0530f4b9f6e42476"),
+            "palletCode": "YDC-SN-1744263151126",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:20:09.813Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f8c0c4f5861bca0bd04486"),
+            "palletCode": "YDC-SN-1744355524980",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:25:57.772Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("6803785293cbeab1428bc236"),
+            "palletCode": "YDC-SN-1745057874440",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("44"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:26:11.216Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f61cad91f19ae047de87ec"),
+            "palletCode": "YDC-SN-1744182445966",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-04-27T16:34:37.399Z"),
+            "scanBy": ObjectId("67b7f7eae3f04b4286c3e858")
+        },
+        {
+            "palletId": ObjectId("67f87bec2cc34a4ebe7e1481"),
+            "palletCode": "YDC-SN-1744337900065",
+            "saleOrderNo": "2025-NO.TKVNVCB014",
+            "materialCode": "11016010012V",
+            "lineCode": "TK一号线",
+            "quantity": NumberInt("45"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-06-18T13:14:13.863Z"),
+            "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+            "palletBarcodes": [
+                {
+                    "barcode": "WA2026J8J0183",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f6518a3a074cf05d087b99"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1890",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f7cb66e4a5ced0c630daa9"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1730",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f79a42e4a5ced0c62746ec"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J0225",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f662533a074cf05d09f9e6"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1894",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8662ff5861bca0bce1d0e"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1725",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f79ac5e4a5ced0c627616d"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1912",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f87d4c78ad956db837ee70"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1913",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f87d9478ad956db837f7bd"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1964",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f87f9378ad956db8382829"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1963",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8800378ad956db8383978"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1962",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8836078ad956db8388edb"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1961",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8838f2cc34a4ebe7e6f2d"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1910",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f87b4f2cc34a4ebe7e01df"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1960",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88afb92cc38775b2ca1a1"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1903",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8706d78ad956db836f408"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1959",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88bda92cc38775b2cad71"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1953",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88b2d78ad956db838e6ab"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1958",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88c0278ad956db83903ba"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1957",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88c6478ad956db8390bf8"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1955",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88d0af5861bca0bce83dc"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1956",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88ca578ad956db83913fe"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1954",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88d3278ad956db8392266"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1952",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88d5978ad956db8392a2e"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1951",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88d81f5861bca0bce8e48"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1950",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88dc2f5861bca0bce9846"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1897",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8712d78ad956db837089f"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1907",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f873b692cc38775b2bc747"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1947",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88ed4f5861bca0bcec154"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1945",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88f50f5861bca0bced1f7"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1946",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f88f13f5861bca0bcecaea"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1937",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8904778ad956db8394452"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1943",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8909392cc38775b2ce0de"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1942",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8911792cc38775b2cf4ef"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1941",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8914692cc38775b2d0034"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1940",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8926b78ad956db8398b25"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1939",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f892f192cc38775b2d20e3"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1936",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8931c78ad956db8399ef2"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1935",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8937992cc38775b2d2911"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1934",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f893a378ad956db839b5a9"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1924",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f893f878ad956db839c4b9"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1925",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8946178ad956db839d6ed"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1926",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8949378ad956db839e0cd"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1927",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f894d52cc34a4ebe7e99d3"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1928",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f8950092cc38775b2d3088"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                },
+                {
+                    "barcode": "WA2026J8J1929",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("67f895682cc34a4ebe7ea6b8"),
+                    "scanTime": ISODate("2025-06-18T13:14:13.864Z"),
+                    "scanBy": ObjectId("67b3e6de6296e6c3660ac4df"),
+                    "outWarehouseStatus": "PENDING"
+                }
+            ],
+            "boxItems": [ ]
+        }
+    ],
+    "__v": NumberInt("26")
+}

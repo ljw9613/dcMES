@@ -24,7 +24,7 @@
             clearable
           >
             <template slot="append">
-              <el-button @click="handleBarcodeSearch">确认</el-button>
+              <el-button @click="handleBarcodeSearch">{{ $t('editDialog.form.confirm') }}</el-button>
             </template>
           </el-input>
         </el-form-item>
@@ -40,11 +40,11 @@
       </el-row> -->
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item label="处理方案" prop="solution">
+          <el-form-item :label="$t('editDialog.form.solution')" prop="solution">
             <el-select
               v-model="form.solution"
               clearable
-              placeholder="请选择处理方案"
+              :placeholder="$t('editDialog.form.solutionPlaceholder')"
               style="width: 100%"
               :disabled="dialogStatus == 'view'"
             >
@@ -56,16 +56,16 @@
               />
             </el-select>
             <!-- 部件更换提示信息 -->
-            <div 
+            <div
               v-if="form.solution === 'COMPONENT_REPLACEMENT' || form.solution === '部件更换'"
               style="margin-top: 8px; padding: 10px; background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 4px;"
             >
               <p style="margin: 0; color: #fa8c16; font-size: 13px;">
                 <i class="el-icon-warning-outline"></i>
-                <strong>重要提示：</strong>
+                <strong>{{ $t('editDialog.tips.componentReplacementTitle') }}</strong>
               </p>
               <p style="margin: 5px 0 0 0; color: #8c8c8c; font-size: 12px;">
-                选择部件更换处理方案后，审核前需要先在产品详情中进行部件解绑操作，否则无法完成审核。
+                {{ $t('editDialog.tips.componentReplacementContent') }}
               </p>
             </div>
           </el-form-item>
@@ -75,11 +75,11 @@
       <!-- 维修信息 -->
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item label="不良现象" prop="defectDescription">
+          <el-form-item :label="$t('editDialog.form.defectDescription')" prop="defectDescription">
             <el-input
               type="textarea"
               v-model="form.defectDescription"
-              placeholder="请描述不良现象"
+              :placeholder="$t('editDialog.form.defectDescriptionPlaceholder')"
               :readonly="dialogStatus == 'view'"
             ></el-input>
           </el-form-item>
@@ -88,47 +88,47 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="产品编码" prop="materialNumber">
+          <el-form-item :label="$t('editDialog.form.materialNumber')" prop="materialNumber">
             <el-input
               v-model="form.materialNumber"
-              placeholder="请输入产品编码"
+              :placeholder="$t('editDialog.form.materialNumberPlaceholder')"
               disabled
             ></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="产品名称" prop="materialName">
+          <el-form-item :label="$t('editDialog.form.materialName')" prop="materialName">
             <el-input
               v-model="form.materialName"
-              placeholder="请输入产品名称"
+              :placeholder="$t('editDialog.form.materialNamePlaceholder')"
               disabled
             ></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="产品型号" prop="materialSpec">
+          <el-form-item :label="$t('editDialog.form.materialSpec')" prop="materialSpec">
             <el-input
               v-model="form.materialSpec"
-              placeholder="请输入产品型号"
+              :placeholder="$t('editDialog.form.materialSpecPlaceholder')"
               disabled
             ></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="生产工单" prop="workOrderNo">
+          <el-form-item :label="$t('editDialog.form.workOrderNo')" prop="workOrderNo">
             <el-input
               v-model="form.workOrderNo"
-              placeholder="请输入生产工单"
+              :placeholder="$t('editDialog.form.workOrderNoPlaceholder')"
               disabled
             ></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="业务类型" prop="businessType">
+          <el-form-item :label="$t('editDialog.form.businessType')" prop="businessType">
             <el-select
               v-model="form.businessType"
               clearable
-              placeholder="请选择业务类型"
+              :placeholder="$t('editDialog.form.businessTypePlaceholder')"
               style="width: 100%"
               disabled
             >
@@ -145,11 +145,11 @@
 
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item label="分析原因" prop="causeAnalysis">
+          <el-form-item :label="$t('editDialog.form.causeAnalysis')" prop="causeAnalysis">
             <el-input
               type="textarea"
               v-model="form.causeAnalysis"
-              placeholder="请输入分析原因"
+              :placeholder="$t('editDialog.form.causeAnalysisPlaceholder')"
               :readonly="dialogStatus == 'view'"
             ></el-input>
           </el-form-item>
@@ -158,11 +158,11 @@
 
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item label="维修描述" prop="repairDescription">
+          <el-form-item :label="$t('editDialog.form.repairDescription')" prop="repairDescription">
             <el-input
               type="textarea"
               v-model="form.repairDescription"
-              placeholder="请输入维修描述"
+              :placeholder="$t('editDialog.form.repairDescriptionPlaceholder')"
               :readonly="dialogStatus == 'view'"
             ></el-input>
           </el-form-item>
@@ -188,24 +188,24 @@
 
       <el-row :gutter="20" v-if="form.repairResult">
         <el-col :span="24">
-          <el-form-item label="审核结果" prop="repairResult">
+          <el-form-item :label="$t('editDialog.form.repairResult')" prop="repairResult">
             <el-tag
               :type="form.repairResult === 'QUALIFIED' ? 'success' : 'danger'"
               v-if="form.repairResult"
             >
-              {{ form.repairResult === "QUALIFIED" ? "合格" : "不合格" }}
+              {{ form.repairResult === "QUALIFIED" ? $t('productRepair.status.qualified') : $t('productRepair.status.unqualified') }}
             </el-tag>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="20" v-if="form.adverseEffect">
         <el-col :span="24">
-          <el-form-item label="不利影响评价" prop="adverseEffect">
+          <el-form-item :label="$t('editDialog.form.adverseEffect')" prop="adverseEffect">
             <el-input
               type="textarea"
               v-model="form.adverseEffect"
               :readonly="dialogStatus == 'view' || dialogStatus == 'edit'"
-              placeholder="请输入不利影响评价"
+              :placeholder="$t('editDialog.form.adverseEffectPlaceholder')"
             ></el-input>
           </el-form-item>
         </el-col>
@@ -213,17 +213,17 @@
 
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item label="状态" prop="status">
+          <el-form-item :label="$t('editDialog.form.status')" prop="status">
             <el-select
               v-model="form.status"
-              placeholder="请选择状态"
+              :placeholder="$t('editDialog.form.statusPlaceholder')"
               clearable
               style="width: 100%"
               v-if="dialogStatus == 'edit'"
             >
-              <el-option label="待审核" value="PENDING_REVIEW" />
-              <el-option label="已审核" value="REVIEWED" />
-              <el-option label="已作废" value="VOIDED" />
+              <el-option :label="$t('productRepair.status.pendingReview')" value="PENDING_REVIEW" />
+              <el-option :label="$t('productRepair.status.reviewed')" value="REVIEWED" />
+              <el-option :label="$t('productRepair.status.voided')" value="VOIDED" />
             </el-select>
 
             <el-tag :type="getStatusType(form.status)" v-else>
@@ -233,11 +233,11 @@
         </el-col>
       </el-row>
 
-      <el-form-item label="备注" prop="remark">
+      <el-form-item :label="$t('editDialog.form.remark')" prop="remark">
         <el-input
           type="textarea"
           v-model="form.remark"
-          placeholder="请输入备注信息"
+          :placeholder="$t('editDialog.form.remarkPlaceholder')"
           :readonly="dialogStatus == 'view'"
         ></el-input>
       </el-form-item>
@@ -248,15 +248,15 @@
           @click="handleSubmit"
           :loading="submitLoading"
           v-if="dialogStatus != 'view'"
-          >保存并提交</el-button
+          >{{ $t('editDialog.buttons.saveAndSubmit') }}</el-button
         >
       </div>
 
       <!-- 新增条码列表展示 -->
-      <el-form-item label="条码列表">
+      <el-form-item :label="$t('editDialog.form.barcodeList')">
         <div class="barcode-list-container">
           <div class="barcode-count" v-if="form.barcodes.length > 0">
-            已扫描条码数量：{{ form.barcodes.length }}/100
+            {{ $t('editDialog.form.scannedCount') }}：{{ form.barcodes.length }}/100
           </div>
           <el-table
             :data="form.barcodes"
@@ -268,14 +268,14 @@
           >
             <el-table-column
               type="index"
-              label="序号"
+              :label="$t('editDialog.form.serialNumber')"
               width="60"
               align="center"
               fixed="left"
             />
             <el-table-column
               prop="barcode"
-              label="产品条码"
+              :label="$t('editDialog.form.productBarcode')"
               align="center"
               min-width="180"
             >
@@ -284,7 +284,7 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="操作"
+              :label="$t('editDialog.form.operation')"
               width="180"
               align="center"
               fixed="right"
@@ -297,7 +297,7 @@
                   @click="handleRemoveBarcode(scope.$index)"
                   class="delete-btn"
                 >
-                  删除
+                  {{ $t('editDialog.form.delete') }}
                 </el-button>
               </template>
             </el-table-column>
@@ -307,7 +307,7 @@
     </el-form>
 
     <div slot="footer" class="dialog-footer">
-      <el-button @click="handleClose">取 消</el-button>
+      <el-button @click="handleClose">{{ $t('editDialog.buttons.cancel') }}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -370,7 +370,7 @@ export default {
             required: true,
             validator: (rule, value, callback) => {
               if (!value || value.length === 0) {
-                callback(new Error("请至少扫描一个产品条码"));
+                callback(new Error(this.$t('editDialog.validation.barcodeRequired')));
               } else {
                 callback();
               }
@@ -378,15 +378,15 @@ export default {
             trigger: "change",
           },
         ],
-        materialSpec: [{ message: "请输入产品型号", trigger: "blur" }],
-        batchNumber: [{ message: "请输入生产批号", trigger: "blur" }],
+        materialSpec: [{ message: this.$t('editDialog.validation.materialSpecRequired'), trigger: "blur" }],
+        batchNumber: [{ message: this.$t('editDialog.validation.batchNumberRequired'), trigger: "blur" }],
         defectDescription: [
-          { required: true, message: "请描述不良现象", trigger: "blur" },
+          { required: true, message: this.$t('editDialog.validation.defectDescriptionRequired'), trigger: "blur" },
         ],
         solution: [
-          { required: true, message: "请选择处理方案", trigger: "change" },
+          { required: true, message: this.$t('editDialog.validation.solutionRequired'), trigger: "change" },
         ],
-        status: [{ required: true, message: "请选择状态", trigger: "change" }],
+        status: [{ required: true, message: this.$t('editDialog.validation.statusRequired'), trigger: "change" }],
       },
       submitLoading: false,
     };
@@ -429,7 +429,7 @@ export default {
     // 处理条码搜索
     async handleBarcodeSearch() {
       if (!this.barcode.trim()) {
-        this.$message.warning("请输入要搜索的条码");
+        this.$message.warning(this.$t('editDialog.messages.scanBarcodeWarning'));
         return;
       }
 
@@ -508,10 +508,10 @@ export default {
           return;
         }
 
-        this.$message.warning("未找到相关数据");
+        this.$message.warning(this.$t('editDialog.messages.noDataFound'));
       } catch (error) {
         console.error("搜索失败:", error);
-        this.$message.error("搜索失败: " + error.message);
+        this.$message.error(this.$t('editDialog.messages.searchFailed') + ": " + error.message);
       } finally {
         this.barcode = "";
         this.searchLoading = false;
@@ -531,14 +531,14 @@ export default {
 
         // 添加条码数量限制检查
         if (this.form.barcodes.length >= 100) {
-          this.$message.warning("单次最多只能扫描100个条码");
+          this.$message.warning(this.$t('editDialog.messages.maxBarcodeLimit'));
           this.barcode = "";
           return;
         }
 
         // 判断条码是否已存在
         if (this.form.barcodes.some(item => item.barcode === barcode)) {
-          this.$message.warning("该条码已存在");
+          this.$message.warning(this.$t('editDialog.messages.barcodeExists'));
           this.barcode = "";
           return;
         }
@@ -599,7 +599,7 @@ export default {
         this.form.barcodes.push({ barcode: barcode });
         this.barcode = "";
 
-        this.$message.success(response.message);
+        this.$message.success(this.$t('editDialog.messages.scanSuccess'));
       } catch (error) {
         console.error("扫描失败:", error);
       }
@@ -647,7 +647,7 @@ export default {
         }
 
         if (!this.form.barcodes || this.form.barcodes.length === 0) {
-          this.$message.error("请至少扫描一个产品条码");
+          this.$message.error(this.$t('editDialog.messages.atLeastOneBarcodeRequired'));
           return;
         }
 
@@ -705,7 +705,7 @@ export default {
           this.handleClose();
         } catch (error) {
           console.error("提交失败:", error);
-          this.$message.error("提交失败");
+          this.$message.error(this.$t('editDialog.messages.submitFailed'));
         } finally {
           this.submitLoading = false;
         }

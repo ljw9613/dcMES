@@ -6,12 +6,12 @@
         <div class="card-header">
           <span>
             <i class="el-icon-setting"></i>
-            工序设置</span
+            {{ $t('scanBarCodePack.processSettings.title') }}</span
           >
           <el-switch
             v-model="autoInit"
-            active-text="自动"
-            inactive-text="手动"
+            :active-text="$t('scanBarCodePack.processSettings.auto')"
+            :inactive-text="$t('scanBarCodePack.processSettings.manual')"
             class="print-switch"
             @change="handleAutoInitChange"
           >
@@ -23,12 +23,12 @@
             <div class="section-header">
               <el-tag :type="websocketConnected ? 'success' : 'danger'">
                 <i class="el-icon-goods"></i>
-                {{ websocketConnected ? "已连接" : "未连接" }}</el-tag
+                {{ websocketConnected ? $t('scanBarCodePack.processSettings.connected') : $t('scanBarCodePack.processSettings.disconnected') }}</el-tag
               >
-              <span> 基础信息 </span>
+              <span> {{ $t('scanBarCodePack.processSettings.basicInfo') }} </span>
             </div>
 
-            <el-form-item label="产品型号">
+            <el-form-item :label="$t('scanBarCodePack.processSettings.productModel')">
               <zr-select
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
@@ -38,7 +38,7 @@
                 label-key="FName"
                 sub-key="FMATERIALID"
                 :multiple="false"
-                placeholder="请输入物料编码/名称搜索"
+                :placeholder="$t('scanBarCodePack.processSettings.productModelPlaceholder')"
                 @select="handleProductChange"
               >
                 <template #option="{ item }">
@@ -57,15 +57,15 @@
               <el-input
                 v-else
                 v-model="formData.productName"
-                placeholder="请输入物料编码/名称搜索"
+                :placeholder="$t('scanBarCodePack.processSettings.productModelPlaceholder')"
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
 
-            <el-form-item label="产品工序">
+            <el-form-item :label="$t('scanBarCodePack.processSettings.processStep')">
               <el-select
                 v-model="formData.processStep"
-                placeholder="请选择产品工序"
+                :placeholder="$t('scanBarCodePack.processSettings.processStepPlaceholder')"
                 @change="handleProcessChange"
                 class="custom-select"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -88,7 +88,7 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="产线编码">
+            <el-form-item :label="$t('scanBarCodePack.processSettings.productionLine')">
               <zr-select
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -99,13 +99,13 @@
                 tag-key="lineCode"
                 sub-key="workshop"
                 :multiple="false"
-                placeholder="请输入产线信息搜索"
+                :placeholder="$t('scanBarCodePack.processSettings.productionLinePlaceholder')"
                 @select="handleProductionLineSelect"
               />
               <el-input
                 v-else
                 v-model="formData.lineName"
-                placeholder="请输入产线信息搜索"
+                :placeholder="$t('scanBarCodePack.processSettings.productionLinePlaceholder')"
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
@@ -119,7 +119,7 @@
               icon="el-icon-close"
               v-if="mainMaterialId && processStepId"
             >
-              取消设置
+              {{ $t('scanBarCodePack.processSettings.cancelSettings') }}
             </el-button>
             <el-button
               type="primary"
@@ -127,7 +127,7 @@
               @click="handleSave"
               icon="el-icon-check"
             >
-              保存设置
+              {{ $t('scanBarCodePack.processSettings.saveSettings') }}
             </el-button>
           </div>
         </el-form>
@@ -144,7 +144,7 @@
           <div class="card-header">
             <div class="header-left">
               <i class="el-icon-scan"></i>
-              <span>条码扫描</span>
+              <span>{{ $t('scanBarCodePack.scanning.title') }}</span>
               <el-button type="text" @click="toggleCollapse">
                 <i
                   :class="
@@ -153,7 +153,7 @@
                       : 'el-icon-d-arrow-left'
                   "
                 ></i>
-                {{ isCollapsed ? "展开" : "收起" }}
+                {{ isCollapsed ? $t('scanBarCodePack.scanning.expand') : $t('scanBarCodePack.scanning.collapse') }}
               </el-button>
             </div>
             <el-button
@@ -161,19 +161,19 @@
               @click="handleClearCache"
               icon="el-icon-delete"
             >
-              清除批次物料缓存
+              {{ $t('scanBarCodePack.scanning.clearCache') }}
             </el-button>
           </div>
 
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
             <div class="section-header">
               <i class="el-icon-camera"></i>
-              <span>统一扫描区域</span>
+              <span>{{ $t('scanBarCodePack.scanning.unifiedScanArea') }}</span>
             </div>
             <div class="scan-input-section">
               <el-input
                 v-model="unifiedScanInput"
-                placeholder="请扫描条码"
+                :placeholder="$t('scanBarCodePack.scanning.scanPlaceholder')"
                 @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
                 ref="scanInput"
                 clearable
@@ -185,7 +185,7 @@
             <div class="section-header">
               <div class="section-title">
                 <i class="el-icon-goods"></i>
-                <span>主物料</span>
+                <span>{{ $t('scanBarCodePack.scanning.mainMaterial') }}</span>
               </div>
               <div class="print-batch-btn">
                 <hir-input
@@ -201,14 +201,14 @@
             </div>
             <div class="material-section">
               <el-form-item
-                :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`"
+                :label="`${$t('scanBarCodePack.materialInfo.materialNumber')}${mainMaterialCode}  ${$t('scanBarCodePack.materialInfo.materialName')}${mainMaterialName}`"
                 label-width="100%"
                 class="vertical-form-item"
               >
                 <div class="input-with-status">
                   <el-input
                     v-model="scanForm.mainBarcode"
-                    placeholder="请扫描主物料条码"
+                    :placeholder="$t('scanBarCodePack.scanning.mainBarcodePlaceholder')"
                     :class="{ 'valid-input': validateStatus['mainBarcode'] }"
                     readonly
                   >
@@ -229,20 +229,20 @@
             <!-- 包装箱条码数据 -->
             <div class="packing-details">
               <el-tag type="info" v-if="!packingBarcode.printBarcode"
-                >未生成包装箱条码</el-tag
+                >{{ $t('scanBarCodePack.packaging.notGenerated') }}</el-tag
               >
               <el-tag type="info" v-if="packingBarcode.printBarcode"
-                >包装箱条码：{{ packingBarcode.printBarcode }}</el-tag
+                >{{ $t('scanBarCodePack.packaging.packageBarcode') }}：{{ packingBarcode.printBarcode }}</el-tag
               >
               <el-tag type="warning" v-if="packingBarcode.status === 'PENDING'"
-                >待装满</el-tag
+                >{{ $t('scanBarCodePack.packaging.pending') }}</el-tag
               >
             </div>
 
             <!-- 子物料部分 -->
             <div class="section-header">
               <i class="el-icon-box"></i>
-              <span>子物料</span>
+              <span>{{ $t('scanBarCodePack.scanning.subMaterial') }}</span>
             </div>
             <div class="material-section">
               <el-row :gutter="20">
@@ -252,7 +252,7 @@
                   :key="material._id"
                 >
                   <el-form-item
-                    :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
+                    :label="`${$t('scanBarCodePack.materialInfo.materialNumber')}${material.materialCode}  ${$t('scanBarCodePack.materialInfo.materialName')}${material.materialName}  `"
                     class="vertical-form-item"
                   >
                     <div class="input-with-status">
@@ -260,8 +260,8 @@
                         v-model="scanForm.barcodes[material._id]"
                         :placeholder="
                           !material.scanOperation
-                            ? '无需扫码'
-                            : '请扫描子物料条码'
+                            ? $t('scanBarCodePack.scanning.noScanRequired')
+                            : $t('scanBarCodePack.scanning.subBarcodePlaceholder')
                         "
                         :class="{ 'valid-input': validateStatus[material._id] }"
                         :readonly="material.scanOperation"
@@ -272,7 +272,7 @@
                         </template>
                         <template slot="suffix">
                           <template v-if="!material.scanOperation">
-                            <el-tag type="info">无需扫码</el-tag>
+                            <el-tag type="info">{{ $t('scanBarCodePack.scanning.noScanRequired') }}</el-tag>
                           </template>
                           <template v-else-if="material.isBatch">
                             <el-tag
@@ -281,7 +281,7 @@
                             >
                               {{ getBatchUsageText(material._id) }}
                             </el-tag>
-                            <el-tag type="warning" v-else>批次物料</el-tag>
+                            <el-tag type="warning" v-else>{{ $t('scanBarCodePack.scanning.batchMaterial') }}</el-tag>
                           </template>
                         </template>
                       </el-input>
@@ -301,13 +301,13 @@
             <!-- 按钮组 -->
             <div class="button-group">
               <el-button plain @click="resetScanForm" icon="el-icon-refresh"
-                >重置</el-button
+                >{{ $t('scanBarCodePack.buttons.reset') }}</el-button
               >
               <el-button
                 type="primary"
                 @click="handleConfirm"
                 icon="el-icon-check"
-                >确认</el-button
+                >{{ $t('scanBarCodePack.buttons.confirm') }}</el-button
               >
             </div>
           </el-form>
@@ -317,7 +317,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>请先初始化工序设置,请选择非托盘工序</p>
+            <p>{{ $t('scanBarCodePack.initTip.message') }}</p>
           </div>
         </div>
       </template>
@@ -353,15 +353,7 @@ import { getMachineProgress } from "@/api/machine";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import { createBatch } from "@/api/materialBarcodeBatch";
 import ZrSelect from "@/components/ZrSelect";
-import { tone } from "@/utils/tone.js";
-import smcg from "@/assets/tone/smcg.mp3";
-import tmyw from "@/assets/tone/tmyw.mp3";
-import bdcg from "@/assets/tone/bdcg.mp3";
-import cfbd from "@/assets/tone/cfbd.mp3";
-import pcwlxz from "@/assets/tone/pcwlxz.mp3";
-import cxwgd from "@/assets/tone/cxwgd.mp3";
-import dwx from "@/assets/tone/dwx.mp3";
-import wxsb from "@/assets/tone/wxsb.mp3";
+import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
 import TscPrinter from "@/components/tscInput";
 import StatusPopup from "@/components/StatusPopup/index.vue";
@@ -586,7 +578,7 @@ export default {
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
-      this.$message.success(`已${value ? "开启" : "关闭"}自动初始化模式`);
+      this.$message.success(value ? this.$t('scanBarCodePack.messages.autoInitEnabled') : this.$t('scanBarCodePack.messages.autoInitDisabled'));
 
       if (value) {
         // 如果开启自动模式，立即获取机器进度
@@ -652,14 +644,14 @@ export default {
               this.lineNum = lineId.lineNum;
               this.formData.lineName = lineId.lineName;
             }
-            this.$message.success("自动初始化工序成功");
+            this.$message.success(this.$t('scanBarCodePack.messages.autoInitSuccess'));
 
             // 对比当前设置的工序和缓存工序是否一致，不一致时调用handleSave()
             if (processStepIdValue !== this.processStepId) {
               this.handleSave();
             }
           } else {
-            this.$message.warning("未获取到机器进度配置");
+            this.$message.warning(this.$t('scanBarCodePack.messages.noMachineProgressConfig'));
           }
         } else {
           throw new Error(response.message || "获取机器进度失败");
@@ -673,7 +665,7 @@ export default {
         this.formData.productModel = "";
         this.formData.processStep = "";
         console.error("自动初始化失败:", error);
-        this.$message.error("自动初始化失败: " + error.message);
+        this.$message.error(this.$t('scanBarCodePack.messages.autoInitFailed') + ": " + error.message);
       }
     },
     // 获取产品关联的条码规则
@@ -731,7 +723,7 @@ export default {
         });
       } catch (error) {
         console.error("获取条码规则失败:", error);
-        this.$message.error("获取条码规则失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.getBarcodeRulesFailed'));
       }
     },
     // 修改模板变更处理方法
@@ -741,10 +733,10 @@ export default {
       try {
         // 保存完整的模板对象到本地存储
         this.localPrintTemplate = template;
-        this.$message.success("打印模板已保存到本地");
+        this.$message.success(this.$t('scanBarCodePack.messages.printTemplateSaved'));
       } catch (error) {
         console.error("保存打印模板失败:", error);
-        this.$message.error("保存打印模板失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.printTemplateSaveFailed'));
       }
     },
     async handlePrintBatch() {
@@ -790,7 +782,7 @@ export default {
           throw new Error("批次条码生成失败");
         }
       } catch (error) {
-        this.$message.error(error.message || "批次条码生成失败");
+        this.$message.error(error.message || this.$t('scanBarCodePack.messages.batchBarcodeGenerateFailed'));
       } finally {
         loading.close();
         this.$nextTick(() => {
@@ -875,7 +867,7 @@ export default {
           this.productOptions = result.data;
         } catch (error) {
           console.error("获取产品型号失败:", error);
-          this.$message.error("获取产品型号失败");
+          this.$message.error(this.$t('scanBarCodePack.messages.getProductModelFailed'));
         } finally {
           this.materialLoading = false;
         }
@@ -901,7 +893,7 @@ export default {
         this.formData.productModel = materialId;
       } catch (error) {
         console.error("获取工序列表失败:", error);
-        this.$message.error("获取工序列表失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.getProcessStepsFailed'));
       }
     },
 
@@ -923,7 +915,7 @@ export default {
         !this.formData.processStep ||
         !this.formData.productLine
       ) {
-        this.$message.warning("请选择产品型号、工序和产线");
+        this.$message.warning(this.$t('scanBarCodePack.messages.pleaseSelectProductProcessLine'));
         return;
       }
 
@@ -965,7 +957,7 @@ export default {
           this.processName = processStep.processName;
         }
 
-        this.$message.success("保存成功");
+        this.$message.success(this.$t('scanBarCodePack.messages.saveSuccess'));
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -976,7 +968,7 @@ export default {
         }, 500);
       } catch (error) {
         console.error("保存失败:", error);
-        this.$message.error("保存失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.saveFailed'));
         loading.close(); // 确保在错误情况下关闭加载动画
       }
     },
@@ -1002,7 +994,7 @@ export default {
         }
       } catch (error) {
         console.error("获取主物料信息失败:", error);
-        this.$message.error("获取主物料信息失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.getMainMaterialInfoFailed'));
         this.mainMaterialName = "";
         this.mainMaterialCode = "";
       }
@@ -1125,14 +1117,14 @@ export default {
           }
         } catch (error) {
           console.error("获取工序物料失败:", error);
-          this.$message.error("获取工序物料失败");
+          this.$message.error(this.$t('scanBarCodePack.messages.getProcessMaterialsFailed'));
           this.processMaterials = [];
           this.validateStatus = { mainBarcode: false };
           this.scanForm.barcodes = {};
         }
       } catch (error) {
         console.error("获取工序物料失败:", error);
-        this.$message.error(error.message || "获取工序物料失败");
+        this.$message.error(error.message || this.$t('scanBarCodePack.messages.getProcessMaterialsFailed'));
         this.processMaterials = [];
         this.validateStatus = { mainBarcode: false };
         this.scanForm.barcodes = {};
@@ -1149,7 +1141,7 @@ export default {
         });
 
         if (response.data.length === 0) {
-          this.$message.error("该DI编码不存在本系统");
+          this.$message.error(this.$t('scanBarCodePack.messages.diCodeNotExist'));
           return { isValid: false };
         }
 
@@ -1159,7 +1151,7 @@ export default {
           .map((item) => item.productId.FNumber);
 
         if (possibleMaterialCodes.length === 0) {
-          this.$message.error("该DI编码未关联有效物料");
+          this.$message.error(this.$t('scanBarCodePack.messages.diCodeNoMaterial'));
           return { isValid: false };
         }
 
@@ -1175,8 +1167,8 @@ export default {
         );
 
         if (!matchedMaterialCode) {
-          this.$message.error("该DI编码对应的物料与当前工序不匹配");
-          this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
+          this.$message.error(this.$t('scanBarCodePack.messages.diCodeMaterialMismatch'));
+          this.errorMessage = this.$t('scanBarCodePack.messages.diCodeMaterialMismatch');
           return { isValid: false };
         }
 
@@ -1187,7 +1179,7 @@ export default {
         };
       } catch (error) {
         console.error("DI码验证失败:", error);
-        this.$message.error("DI码验证失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.diCodeValidationFailed'));
         return { isValid: false };
       }
     },
@@ -1202,7 +1194,7 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
-          this.errorMessage = "未找到可用的条码规则";
+          this.errorMessage = this.$t('scanBarCodePack.messages.barcodeRuleNotFound');
           return { materialCode: null, isValid: false };
         }
 
@@ -1336,13 +1328,13 @@ export default {
         }
 
         // 所有规则都未匹配成功
-        this.$message.error("该条码不符合任何已配置的规则或物料不匹配");
-        this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
+        this.$message.error(this.$t('scanBarCodePack.messages.barcodeRuleNotMatch'));
+        this.errorMessage = this.$t('scanBarCodePack.messages.barcodeRuleNotMatch');
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
-        this.$message.error("条码验证过程发生错误");
-        this.errorMessage = "条码验证过程发生错误";
+        this.$message.error(this.$t('scanBarCodePack.messages.barcodeValidationError'));
+        this.errorMessage = this.$t('scanBarCodePack.messages.barcodeValidationError');
         return { materialCode: null, isValid: false };
       }
     },
@@ -1357,7 +1349,7 @@ export default {
         if (response.data && response.data.length > 0) {
           // 条码已存在，获取流程信息
           const flowData = response.data[0];
-          this.$message.success("扫描成功");
+          this.$message.success(this.$t('scanBarCodePack.messages.scanSuccess'));
         } else {
           // 使用工序对应的主物料信息创建新的流程记录
           const createResponse = await createFlow({
@@ -1369,7 +1361,7 @@ export default {
           });
 
           if (createResponse.code === 200) {
-            this.$message.success("成品条码追溯记录创建成功");
+            this.$message.success(this.$t('scanBarCodePack.messages.flowRecordCreateSuccess'));
           } else {
             this.errorMessage =
               createResponse.message || "创建成品条码追溯记录失败";
@@ -1383,7 +1375,7 @@ export default {
         this.popupType = "ng";
         this.showPopup = true;
         this.errorMessage = error;
-        tone(tmyw);
+        playAudio('tmyw');
         throw error;
       }
     },
@@ -1410,12 +1402,12 @@ export default {
         }
 
         this.validateStatus[materialId] = true;
-        this.$message.success("扫码成功");
+        this.$message.success(this.$t('scanBarCodePack.messages.scanSuccessful'));
       } catch (error) {
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        playAudio('tmyw');
         throw error;
       }
     },
@@ -1488,7 +1480,7 @@ export default {
       if (!this.$refs.hirInput.selectedTemplate) {
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
-        this.$message.warning("请先选择打印模板");
+        this.$message.warning(this.$t('scanBarCodePack.messages.printTemplateRequired'));
         return;
       }
 
@@ -1502,11 +1494,11 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            tone(tmyw); // 延迟播放错误提示音
+            playAudio('tmyw'); // 延迟播放错误提示音
           }, 300);
           this.$notify({
-            title: "条码验证失败",
-            message: "条码格式不正确,未在系统中注册",
+            title: this.$t('scanBarCodePack.messages.barcodeValidationFailed'),
+            message: this.$t('scanBarCodePack.messages.barcodeFormatIncorrect'),
             type: "error",
             duration: 3000,
             position: "top-right",
@@ -1535,11 +1527,11 @@ export default {
           if (repairRecord.data[0].status == "PENDING_REVIEW") {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
-            this.$message.error("该条码存在未完成的维修记录");
-            this.errorMessage = "该条码存在未完成的维修记录";
+            this.$message.error(this.$t('scanBarCodePack.messages.repairRecordExists'));
+            this.errorMessage = this.$t('scanBarCodePack.messages.repairRecordExists');
             this.popupType = "ng";
             this.showPopup = true;
-            tone(dwx);
+            playAudio('dwx');
             return;
           }
           if (
@@ -1549,19 +1541,19 @@ export default {
             if (repairRecord.data[0].solution == "报废") {
               this.unifiedScanInput = "";
               this.$refs.scanInput.focus();
-              this.$message.error("该条码已完成报废处理");
+              this.$message.error(this.$t('scanBarCodePack.messages.barcodeScrapProcessed'));
               this.popupType = "ng";
               this.showPopup = true;
-              tone(tmyw);
+              playAudio('tmyw');
               return;
             }
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
-            this.$message.error("该条码已完成维修,但维修结果为不合格");
-            this.errorMessage = "该条码已完成维修,但维修结果为不合格";
+            this.$message.error(this.$t('scanBarCodePack.messages.repairResultUnqualified'));
+            this.errorMessage = this.$t('scanBarCodePack.messages.repairResultUnqualified');
             this.popupType = "ng";
             this.showPopup = true;
-            tone(wxsb);
+            playAudio('wxsb');
             return;
           }
         }
@@ -1599,7 +1591,7 @@ export default {
                   this.errorMessage = `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`;
                   this.popupType = "ng";
                   this.showPopup = true;
-                  tone(tmyw);
+                  playAudio('tmyw');
                   return;
                 }
               }
@@ -1616,7 +1608,7 @@ export default {
 
           await this.handleMainBarcode(cleanValue);
 
-          tone(smcg);
+          playAudio('smcg');
           this.$notify({
             title: "主物料扫描成功",
             dangerouslyUseHTMLString: true,
@@ -1730,7 +1722,7 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    tone(pcwlxz);
+                    playAudio('pcwlxz');
                     if (material.isPackingBox) {
                       await updateData("packBarcode", {
                         query: {
@@ -1755,7 +1747,7 @@ export default {
               // 处理子物料条码
               await this.handleSubBarcode(material._id, materialCode);
 
-              tone(smcg);
+              playAudio('smcg');
               this.$notify({
                 title: "子物料扫描成功",
                 dangerouslyUseHTMLString: true,
@@ -1786,12 +1778,12 @@ export default {
         }
 
         if (!matched) {
-          this.$message.error("条码不匹配");
-          this.errorMessage = "条码不匹配";
+          this.$message.error(this.$t('scanBarCodePack.messages.barcodeNotMatch'));
+          this.errorMessage = this.$t('scanBarCodePack.messages.barcodeNotMatch');
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            tone(tmyw); // 延迟播放错误提示音
+            playAudio('tmyw'); // 延迟播放错误提示音
           }, 300);
           this.unifiedScanInput = "";
           this.$refs.scanInput.focus();
@@ -1856,7 +1848,7 @@ export default {
       } catch (error) {
         console.error("扫描处理失败:", error);
         setTimeout(() => {
-          tone(tmyw); // 延迟播放错误提示音
+          playAudio('tmyw'); // 延迟播放错误提示音
         }, 1000);
         this.$notify({
           title: "扫描失败",
@@ -1925,7 +1917,7 @@ export default {
           componentName: "",
         };
 
-        this.$message.success("已取消工序设置");
+        this.$message.success(this.$t('scanBarCodePack.messages.cancelSettingsSuccess'));
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -1936,7 +1928,7 @@ export default {
       } catch (error) {
         if (error !== "cancel") {
           console.error("取消设置失败:", error);
-          this.$message.error("取消设置失败");
+          this.$message.error(this.$t('scanBarCodePack.messages.cancelSettingsFailed'));
         }
       }
     },
@@ -1963,7 +1955,7 @@ export default {
         );
 
         if (!allBarcodesFilled) {
-          this.$message.warning("请完成所有必要的条码扫描");
+          this.$message.warning(this.$t('scanBarCodePack.messages.confirmCompleteAllScanning'));
           return;
         }
 
@@ -2228,7 +2220,7 @@ export default {
           this.showPopup = true;
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
-            tone(bdcg);
+            playAudio('bdcg');
           }, 1000);
         }
 
@@ -2244,7 +2236,7 @@ export default {
           this.$message.warning(error.message);
           this.errorMessage = error.message;
           setTimeout(() => {
-            tone(pcwlxz);
+            playAudio('pcwlxz');
             this.popupType = "ng";
             this.showPopup = true;
             // 播放批次物料条码已达到使用次数限制提示音
@@ -2270,21 +2262,21 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            tone(cfbd); // 延迟播放
+            playAudio('cfbd'); // 延迟播放
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            tone(cxwgd); // 延迟播放
+            playAudio('cxwgd'); // 延迟播放
           }, 1000);
         } else {
           this.$message.error("确认失败:" + error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            tone(tmyw); // 延迟播放
+            playAudio('tmyw'); // 延迟播放
           }, 1000);
         }
       }
@@ -2292,13 +2284,13 @@ export default {
 
     // 打印成功处理
     handlePrintSuccess() {
-      this.$message.success("批次条码打印成功");
+      this.$message.success(this.$t('scanBarCodePack.messages.batchBarcodePrintSuccess'));
       this.currentBatchBarcode = ""; // 清空当前批次条码
     },
 
     // 打印失败处理
     handlePrintError(error) {
-      this.$message.error(`打印失败: ${error}`);
+      this.$message.error(`${this.$t('scanBarCodePack.messages.printFailed')}: ${error}`);
       this.currentBatchBarcode = ""; // 清空当前批次条码
     },
 
@@ -2312,7 +2304,7 @@ export default {
     handleAutoPrintChange(value) {
       // 将开关状态保存到本地存储
       localStorage.setItem("autoPrint", value);
-      this.$message.success(`已${value ? "开启" : "关闭"}自动打印模式`);
+      this.$message.success(value ? this.$t('scanBarCodePack.messages.autoPrintEnabled') : this.$t('scanBarCodePack.messages.autoPrintDisabled'));
     },
 
     // 新增清除缓存方法
@@ -2345,7 +2337,7 @@ export default {
           }
         });
 
-        this.$message.success("缓存清除成功");
+        this.$message.success(this.$t('scanBarCodePack.messages.cacheClearedSuccess'));
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -2356,7 +2348,7 @@ export default {
       } catch (error) {
         if (error !== "cancel") {
           console.error("清除缓存失败:", error);
-          this.$message.error("清除缓存失败");
+          this.$message.error(this.$t('scanBarCodePack.messages.clearCacheFailed'));
         }
       }
     },
@@ -2384,7 +2376,7 @@ export default {
         // 连接成功
         this.ws.onopen = () => {
           this.websocketConnected = true;
-          this.$message.success("设备服务器连接成功");
+          this.$message.success(this.$t('scanBarCodePack.messages.deviceServerConnected'));
           this.startHeartbeat();
           this.reconnectAttempts = 0; // 重置重连计数
         };
@@ -2412,7 +2404,7 @@ export default {
               this.initWebSocket();
             }, delay);
           } else {
-            this.$message.error("重连次数已达上限，请检查网络连接或刷新页面");
+            this.$message.error(this.$t('scanBarCodePack.messages.maxReconnectAttemptsReached'));
           }
         };
 
@@ -2443,7 +2435,7 @@ export default {
         };
       } catch (error) {
         console.error("WebSocket初始化失败:", error);
-        this.$message.error(`设备连接初始化失败: ${error.message}`);
+        this.$message.error(`${this.$t('scanBarCodePack.messages.deviceConnectionInitFailed')}: ${error.message}`);
       }
     },
 
@@ -2486,7 +2478,7 @@ export default {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify(message));
       } else {
-        this.$message.warning("设备未连接");
+        this.$message.warning(this.$t('scanBarCodePack.messages.deviceNotConnected'));
       }
     },
 
@@ -2551,7 +2543,7 @@ export default {
       console.log(ruleResult, "ruleResult");
 
       if (!ruleResult.data || !ruleResult.data.length) {
-        this.$message.error("该物料未绑定条码生成规则");
+        this.$message.error(this.$t('scanBarCodePack.messages.materialNotBoundBarcodeRule'));
         return;
       }
 
@@ -2564,7 +2556,7 @@ export default {
       });
 
       if (!ruleDetail.data || !ruleDetail.data.length) {
-        this.$message.error("获取条码规则详情失败");
+        this.$message.error(this.$t('scanBarCodePack.messages.getBarcodeRuleDetailsFailed'));
         return;
       }
 
@@ -2607,7 +2599,7 @@ export default {
 
       console.log(workOrderResult, "workOrderResult");
       if (!workOrderResult.data || !workOrderResult.data.length) {
-        this.$message.error("当前产线没有正在生产的工单");
+        this.$message.error(this.$t('scanBarCodePack.messages.noActiveWorkOrderOnLine'));
         return;
       }
 
@@ -2626,7 +2618,7 @@ export default {
       );
 
       if (!barcodeResult.barcode) {
-        this.$message.error("生成的条码为空");
+        this.$message.error(this.$t('scanBarCodePack.messages.generatedBarcodeEmpty'));
         return;
       }
 
@@ -2650,7 +2642,7 @@ export default {
       });
       this.handleUnifiedScan(barcodeResult.printBarcode);
       this.packingBarcode = res.data; // 设置生成的条码
-      this.$message.success("装箱条码已初始化");
+      this.$message.success(this.$t('scanBarCodePack.messages.packingBarcodeInitialized'));
     },
 
     // 修改 generateBarcode 方法
@@ -2980,11 +2972,11 @@ export default {
               count === material.batchQuantity &&
               material.batchQuantity > 0
             ) {
-              this.$message.warning("批次条码使用次数已达到上限");
-              this.errorMessage = "批次条码使用次数已达到上限";
+              this.$message.warning(this.$t('scanBarCodePack.messages.batchUsageLimitReached'));
+              this.errorMessage = this.$t('scanBarCodePack.messages.batchUsageLimitReached');
               this.popupType = "ng";
               this.showPopup = true;
-              tone(pcwlxz); // 播放批次物料条码已达到使用次数限制提示音
+              playAudio('pcwlxz'); // 播放批次物料条码已达到使用次数限制提示音
               localStorage.removeItem(cacheKey);
               this.$set(this.scanForm.barcodes, material._id, "");
               this.$set(this.validateStatus, material._id, false);

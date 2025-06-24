@@ -110,12 +110,7 @@
 <script>
 import { checkBarcodeCompletion } from '@/api/materialProcessFlowService'
 import StatusPopup from '@/components/StatusPopup/index.vue'
-import {
-  tone
-} from "@/utils/tone.js";
-import lcywc from "@/assets/tone/lcywc.mp3";
-import lcyw from "@/assets/tone/lcyw.mp3";
-import tmyw from "@/assets/tone/tmyw.mp3";
+import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
 export default {
   name: 'ScanBarCodeCheck',

@@ -2,36 +2,36 @@
   <div class="app-container">
     <el-card class="filter-container">
       <div slot="header" class="clearfix">
-        <span>筛选搜索</span>
+        <span>{{ $t('productRepair.search.title') }}</span>
       </div>
 
       <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
         <el-row :gutter="20">
           <el-col :span="4">
-            <el-form-item label="产品条码">
+            <el-form-item :label="$t('productRepair.search.productBarcode')">
               <el-input
                 v-model="searchForm.barcode"
-                placeholder="请输入产品条码"
+                :placeholder="$t('productRepair.search.productBarcodePlaceholder')"
                 clearable
               ></el-input>
             </el-form-item>
           </el-col>
 
           <el-col :span="4">
-            <el-form-item label="产品型号">
+            <el-form-item :label="$t('productRepair.search.productModel')">
               <el-input
                 v-model="searchForm.materialSpec"
-                placeholder="请输入产品型号"
+                :placeholder="$t('productRepair.search.productModelPlaceholder')"
                 clearable
               ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="4">
-            <el-form-item label="处理方案">
+            <el-form-item :label="$t('productRepair.search.solution')">
               <el-select
                 v-model="searchForm.solution"
                 clearable
-                placeholder="请选择处理方案"
+                :placeholder="$t('productRepair.search.solutionPlaceholder')"
                 style="width: 100%"
                 @change="handleSolutionChange"
               >
@@ -45,72 +45,72 @@
             </el-form-item>
           </el-col>
           <el-col :span="4">
-            <el-form-item label="生产工单">
+            <el-form-item :label="$t('productRepair.search.workOrderNo')">
               <el-input
                 v-model="searchForm.workOrderNo"
-                placeholder="请输入生产工单"
+                :placeholder="$t('productRepair.search.workOrderNoPlaceholder')"
                 clearable
               ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="4">
-            <el-form-item label="销售订单">
+            <el-form-item :label="$t('productRepair.search.saleOrderNo')">
               <el-input
                 v-model="searchForm.saleOrderNo"
-                placeholder="请输入销售订单"
+                :placeholder="$t('productRepair.search.saleOrderNoPlaceholder')"
                 clearable
               ></el-input>
             </el-form-item>
           </el-col>
           <!-- 生产订单 -->
           <el-col :span="4">
-            <el-form-item label="生产订单">
+            <el-form-item :label="$t('productRepair.search.productionOrderNo')">
               <el-input
                 v-model="searchForm.productionOrderNo"
-                placeholder="请输入生产订单"
+                :placeholder="$t('productRepair.search.productionOrderNoPlaceholder')"
                 clearable
               ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="4">
-            <el-form-item label="物料编号">
+            <el-form-item :label="$t('productRepair.search.materialNumber')">
               <el-input
                 v-model="searchForm.materialNumber"
-                placeholder="请输入物料编号"
+                :placeholder="$t('productRepair.search.materialNumberPlaceholder')"
                 clearable
               ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="4">
-            <el-form-item label="状态">
+            <el-form-item :label="$t('productRepair.search.status')">
               <el-select
                 v-model="searchForm.status"
-                placeholder="请选择状态"
+                :placeholder="$t('productRepair.search.statusPlaceholder')"
                 clearable
                 style="width: 100%"
               >
-                <el-option label="待审核" value="PENDING_REVIEW" />
-                <el-option label="已审核" value="REVIEWED" />
-                <el-option label="已作废" value="VOIDED" />
+                <el-option :label="$t('productRepair.status.pendingReview')" value="PENDING_REVIEW" />
+                <el-option :label="$t('productRepair.status.reviewed')" value="REVIEWED" />
+                <el-option :label="$t('productRepair.status.voided')" value="VOIDED" />
               </el-select>
             </el-form-item>
           </el-col>
           <!-- 当处理方案为部件更换时显示以下字段 -->
           <template v-if="searchForm.solution === 'COMPONENT_REPLACEMENT'">
             <el-col :span="4">
-              <el-form-item label="原产品条码">
+              <el-form-item :label="$t('productRepair.search.originalBarcode')">
                 <el-input
                   v-model="searchForm.originalBarcode"
-                  placeholder="请输入原产品条码"
+                  :placeholder="$t('productRepair.search.originalBarcodePlaceholder')"
                   clearable
                 ></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="4">
-              <el-form-item label="新产品条码">
+              <el-form-item :label="$t('productRepair.search.newBarcode')">
                 <el-input
                   v-model="searchForm.newBarcode"
-                  placeholder="请输入新产品条码"
+                  :placeholder="$t('productRepair.search.newBarcodePlaceholder')"
                   clearable
                 ></el-input>
               </el-form-item>
@@ -119,21 +119,21 @@
         </el-row>
 
         <el-form-item>
-          <el-button type="primary" @click="search" >查询搜索</el-button>
-          <el-button @click="resetForm" >重置</el-button>
+          <el-button type="primary" @click="search" >{{ $t('productRepair.buttons.search') }}</el-button>
+          <el-button @click="resetForm" >{{ $t('productRepair.buttons.reset') }}</el-button>
           <el-button
             type="primary"
             icon="el-icon-plus"
             @click="handleAdd('main')"
             v-if="$checkPermission('产品维修新增成品维修')"
-            >新增成品维修</el-button
+            >{{ $t('productRepair.buttons.addMainRepair') }}</el-button
           >
           <el-button
             type="primary"
             icon="el-icon-plus"
             @click="handleAdd('auxiliary')"
             v-if="$checkPermission('产品维修新增组件维修')"
-            >新增组件维修</el-button
+            >{{ $t('productRepair.buttons.addAuxiliaryRepair') }}</el-button
           >
           <el-button
             type="danger"
@@ -141,7 +141,7 @@
             :disabled="!selection.length"
             v-if="$checkPermission('产品维修批量作废')"
             @click="handleBatchVoid"
-            >批量作废</el-button
+            >{{ $t('productRepair.buttons.batchVoid') }}</el-button
           >
           <el-button
             type="success"
@@ -150,7 +150,7 @@
             :disabled="!selection.length"
             @click="handleBatchReview"
             v-if="$checkPermission('产品维修批量审核')"
-            >批量审核</el-button
+            >{{ $t('productRepair.buttons.batchReview') }}</el-button
           >
           <el-button
             type="success"
@@ -158,8 +158,7 @@
             @click="handleExport"
             :loading="exportLoading"
           >
-            <i class="el-icon-download"></i>
-            {{ exportLoading ? `正在导出(${exportProgress}%)` : "导出数据" }}
+            {{ exportLoading ? `${$t('productRepair.buttons.exporting')}(${exportProgress}%)` : $t('productRepair.buttons.exportData') }}
           </el-button>
         </el-form-item>
       </el-form>
@@ -168,7 +167,7 @@
     <div class="screen1">
       <div class="screen_content">
         <div class="screen_content_first">
-          <i class="el-icon-tickets">维修记录列表</i>
+          <i class="el-icon-tickets">{{ $t('productRepair.table.repairRecordList') }}</i>
         </div>
       </div>
     </div>
@@ -192,7 +191,7 @@
           align="center"
           fixed="left"
         />
-        <el-table-column label="产品条码" align="center" prop="barcode">
+        <el-table-column :label="$t('productRepair.table.productBarcode')" align="center" prop="barcode">
           <template slot-scope="scope">
             <el-link type="primary" @click="handleView(scope.row)">{{
               scope.row.barcode
@@ -200,31 +199,31 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="产品型号" align="center" prop="materialSpec">
+        <el-table-column :label="$t('productRepair.table.productModel')" align="center" prop="materialSpec">
           <template slot-scope="scope">
-            {{ scope.row.materialSpec ? scope.row.materialSpec : "暂无数据" }}
+            {{ scope.row.materialSpec ? scope.row.materialSpec : $t('productRepair.table.noData') }}
           </template>
         </el-table-column>
-        <el-table-column label="销售订单" align="center" prop="saleOrderNo" />
+        <el-table-column :label="$t('productRepair.table.saleOrderNo')" align="center" prop="saleOrderNo" />
         <el-table-column
-          label="生产订单"
+          :label="$t('productRepair.table.productionOrderNo')"
           align="center"
           prop="productionOrderNo"
         />
-        <el-table-column label="生产工单" align="center" prop="workOrderNo" />
+        <el-table-column :label="$t('productRepair.table.workOrderNo')" align="center" prop="workOrderNo" />
 
         <el-table-column
-          label="维修上报人"
+          :label="$t('productRepair.table.repairPerson')"
           align="center"
           prop="repairPerson.nickName"
         />
 
-        <el-table-column label="维修时间" align="center" width="160">
+        <el-table-column :label="$t('productRepair.table.repairTime')" align="center" width="160">
           <template slot-scope="scope">
             {{ formatDate(scope.row.repairTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="业务类型" align="center" prop="businessType">
+        <el-table-column :label="$t('productRepair.table.businessType')" align="center" prop="businessType">
           <template slot-scope="scope">
             <dict-tag
               :options="dict.type.businessType"
@@ -232,10 +231,10 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="处理方案" align="center" prop="solution" />
+        <el-table-column :label="$t('productRepair.table.solution')" align="center" prop="solution" />
 
         <el-table-column
-          label="不良现象"
+          :label="$t('productRepair.table.defectDescription')"
           align="center"
           prop="defectDescription"
         >
@@ -243,17 +242,17 @@
             {{
               scope.row.defectDescription
                 ? scope.row.defectDescription
-                : "暂无数据"
+                : $t('productRepair.table.noData')
             }}
           </template>
         </el-table-column>
-        <el-table-column label="分析原因" align="center" prop="causeAnalysis">
+        <el-table-column :label="$t('productRepair.table.causeAnalysis')" align="center" prop="causeAnalysis">
           <template slot-scope="scope">
-            {{ scope.row.causeAnalysis ? scope.row.causeAnalysis : "暂无数据" }}
+            {{ scope.row.causeAnalysis ? scope.row.causeAnalysis : $t('productRepair.table.noData') }}
           </template>
         </el-table-column>
         <el-table-column
-          label="维修描述"
+          :label="$t('productRepair.table.repairDescription')"
           align="center"
           prop="repairDescription"
         >
@@ -261,24 +260,24 @@
             {{
               scope.row.repairDescription
                 ? scope.row.repairDescription
-                : "暂无数据"
+                : $t('productRepair.table.noData')
             }}
           </template>
         </el-table-column>
 
-        <el-table-column label="审核人" align="center" prop="reviewer.nickName">
+        <el-table-column :label="$t('productRepair.table.reviewer')" align="center" prop="reviewer.nickName">
           <template slot-scope="scope">
-            {{ scope.row.reviewer ? scope.row.reviewer.nickName : "暂无数据" }}
+            {{ scope.row.reviewer ? scope.row.reviewer.nickName : $t('productRepair.table.noData') }}
           </template>
         </el-table-column>
 
-        <el-table-column label="审核时间" align="center" width="160">
+        <el-table-column :label="$t('productRepair.table.reviewTime')" align="center" width="160">
           <template slot-scope="scope">
             {{ formatDate(scope.row.reviewTime) }}
           </template>
         </el-table-column>
 
-        <el-table-column label="产品状态" align="center" width="100">
+        <el-table-column :label="$t('productRepair.table.productStatus')" align="center" width="100">
           <template slot-scope="scope">
             <el-tag :type="getProductStatusType(scope.row.productStatus)">
               {{ getProductStatusText(scope.row.productStatus) }}
@@ -287,7 +286,7 @@
         </el-table-column>
 
         <el-table-column
-          label="维修结果"
+          :label="$t('productRepair.table.repairResult')"
           align="center"
           width="100"
           fixed="right"
@@ -300,20 +299,20 @@
               {{
                 scope.row.repairResult
                   ? getRepairResultText(scope.row.repairResult)
-                  : "暂无数据"
+                  : $t('productRepair.table.noData')
               }}
             </el-tag>
-            <el-tag v-else>暂无数据</el-tag>
+            <el-tag v-else>{{ $t('productRepair.table.noData') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" align="center" width="100" fixed="right">
+        <el-table-column :label="$t('productRepair.table.status')" align="center" width="100" fixed="right">
           <template slot-scope="scope">
             <el-tag :type="getStatusType(scope.row.status)">
               {{ getStatusText(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column :label="$t('productRepair.table.operation')" width="250" fixed="right">
           <template slot-scope="scope">
             <el-button
               type="text"
@@ -322,7 +321,7 @@
               style="color: #409eff"
 
             >
-              <i class="el-icon-view"></i> 查看
+              <i class="el-icon-view"></i> {{ $t('productRepair.buttons.view') }}
             </el-button>
             <el-button
               type="text"
@@ -331,7 +330,7 @@
               style="color: blue"
 
             >
-              <i class="el-icon-view"></i> 查看产品详情
+              <i class="el-icon-view"></i> {{ $t('productRepair.buttons.viewProductDetails') }}
             </el-button>
             <el-button
               type="text"
@@ -343,7 +342,7 @@
                 $checkPermission('产品维修审核')
               "
             >
-              <i class="el-icon-edit"></i> 审核
+              <i class="el-icon-edit"></i> {{ $t('productRepair.buttons.review') }}
             </el-button>
             <el-button
               type="text"
@@ -354,7 +353,7 @@
                 $checkPermission('产品维修修改')
               "
             >
-              <i class="el-icon-edit"></i> 修改
+              <i class="el-icon-edit"></i> {{ $t('productRepair.buttons.edit') }}
             </el-button>
             <el-button
               type="text"
@@ -366,7 +365,7 @@
                 $checkPermission('产品维修作废')
               "
             >
-              <i class="el-icon-delete"></i> 作废
+              <i class="el-icon-delete"></i> {{ $t('productRepair.buttons.void') }}
             </el-button>
           </template>
         </el-table-column>
@@ -381,35 +380,35 @@
       @submit="handleSubmit"
     />
 
-    <el-dialog title="审核" :visible.sync="reviewDialogVisible" width="30%">
+    <el-dialog :title="$t('productRepair.dialogs.review')" :visible.sync="reviewDialogVisible" width="30%">
       <el-form :model="reviewForm" ref="reviewForm" label-width="100px">
         <el-form-item
-          label="维修结果"
+          :label="$t('productRepair.dialogs.repairResult')"
           prop="repairResult"
           v-if="!isScrapRepair"
         >
           <el-radio-group v-model="reviewForm.repairResult">
-            <el-radio label="QUALIFIED">合格</el-radio>
-            <el-radio label="UNQUALIFIED">不合格</el-radio>
+            <el-radio label="QUALIFIED">{{ $t('productRepair.status.qualified') }}</el-radio>
+            <el-radio label="UNQUALIFIED">{{ $t('productRepair.status.unqualified') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="不利影响评价" prop="adverseEffect">
+        <el-form-item :label="$t('productRepair.dialogs.adverseEffect')" prop="adverseEffect">
           <el-input
             type="textarea"
             v-model="reviewForm.adverseEffect"
             :rows="3"
-            placeholder="请输入不利影响评价"
+            :placeholder="$t('productRepair.dialogs.adverseEffectPlaceholder')"
           ></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="reviewDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="submitReview">确 定</el-button>
+        <el-button @click="reviewDialogVisible = false">{{ $t('productRepair.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click="submitReview">{{ $t('productRepair.buttons.confirm') }}</el-button>
       </div>
     </el-dialog>
 
     <el-dialog
-      title="批量审核"
+      :title="$t('productRepair.dialogs.batchReview')"
       :visible.sync="batchReviewDialogVisible"
       width="30%"
     >
@@ -419,33 +418,33 @@
         label-width="100px"
       >
         <el-form-item
-          label="维修结果"
+          :label="$t('productRepair.dialogs.repairResult')"
           prop="repairResult"
           v-if="!hasOnlyScrapRepairs"
         >
           <el-radio-group v-model="batchReviewForm.repairResult">
-            <el-radio label="QUALIFIED">合格</el-radio>
-            <el-radio label="UNQUALIFIED">不合格</el-radio>
+            <el-radio label="QUALIFIED">{{ $t('productRepair.status.qualified') }}</el-radio>
+            <el-radio label="UNQUALIFIED">{{ $t('productRepair.status.unqualified') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="不利影响评价" prop="adverseEffect">
+        <el-form-item :label="$t('productRepair.dialogs.adverseEffect')" prop="adverseEffect">
           <el-input
             type="textarea"
             v-model="batchReviewForm.adverseEffect"
             :rows="3"
-            placeholder="请输入不利影响评价"
+            :placeholder="$t('productRepair.dialogs.adverseEffectPlaceholder')"
           ></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="batchReviewDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="submitBatchReview">确 定</el-button>
+        <el-button @click="batchReviewDialogVisible = false">{{ $t('productRepair.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click="submitBatchReview">{{ $t('productRepair.buttons.confirm') }}</el-button>
       </div>
     </el-dialog>
 
     <!-- 添加导出进度条对话框 -->
     <el-dialog
-      title="导出进度"
+      :title="$t('productRepair.dialogs.exportProgress')"
       :visible.sync="exportDialogVisible"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -459,13 +458,13 @@
       >
       </el-progress>
       <div style="text-align: center; margin-top: 10px">
-        {{ exportProgress === 100 ? "导出完成" : "正在导出数据，请稍候..." }}
+        {{ exportProgress === 100 ? $t('productRepair.dialogs.exportComplete') : $t('productRepair.dialogs.exportingData') }}
       </div>
     </el-dialog>
 
     <!-- 产品详情弹窗 -->
     <el-dialog
-      :title="'工艺流程详情 - ' + productDetailsData.barcode"
+      :title="$t('productRepair.dialogs.processFlowDetails') + ' - ' + productDetailsData.barcode"
       :visible.sync="productDetailsDialogVisible"
       width="80%"
       class="process-flow-dialog"
@@ -475,7 +474,7 @@
         <div class="process-section">
           <el-card class="process-card">
             <div slot="header">
-              <span><i class="el-icon-time"></i> 工艺流程</span>
+              <span><i class="el-icon-time"></i> {{ $t('productRepair.processFlow.processFlowTitle') }}</span>
             </div>
 
             <div class="process-flow">
@@ -483,7 +482,7 @@
               <div class="main-material">
                 <div class="main-material-header">
                   <i class="el-icon-box"></i>
-                  <span class="title">主产品信息</span>
+                  <span class="title">{{ $t('productRepair.dialogs.mainProductInfo') }}</span>
                   <el-tag type="primary" size="mini">{{
                     productDetailsData.materialCode
                   }}</el-tag>
@@ -491,29 +490,29 @@
                 <div class="main-material-content">
                   <div class="info-row">
                     <div class="info-item">
-                      <label>产品条码：</label>
+                      <label>{{ $t('productRepair.dialogs.productBarcode') }}</label>
                       <span>{{ productDetailsData.barcode }}</span>
                     </div>
                   </div>
                   <div class="info-row">
                     <div class="info-item">
-                      <label>物料名称：</label>
+                      <label>{{ $t('productRepair.dialogs.materialName') }}</label>
                       <span>{{ productDetailsData.materialName }}</span>
                     </div>
                     <div class="info-item">
-                      <label>规格型号：</label>
+                      <label>{{ $t('productRepair.processFlow.specModel') }}</label>
                       <span>{{ productDetailsData.materialSpec }}</span>
                     </div>
                   </div>
                   <div class="info-row">
                     <div class="info-item">
-                      <label>整体进度：</label>
+                      <label>{{ $t('productRepair.processFlow.overallProgress') }}</label>
                       <el-progress
                         :percentage="productDetailsData.progress || 0"
                       ></el-progress>
                     </div>
                     <div class="info-item">
-                      <label>当前状态：</label>
+                      <label>{{ $t('productRepair.processFlow.currentStatus') }}</label>
                       <el-tag
                         :type="getProcessStatusType(productDetailsData.status)"
                       >
@@ -527,7 +526,7 @@
               <!-- 详情标签页 -->
               <el-tabs v-model="activeTab" type="border-card">
                 <!-- 工序信息 -->
-                <el-tab-pane label="工序信息" name="process">
+                <el-tab-pane :label="$t('productRepair.processFlow.processInfo')" name="process">
                   <process-step-list
                     ref="processStepList"
                     :loading="listLoading"
@@ -537,7 +536,7 @@
                 </el-tab-pane>
 
                 <!-- 物料信息 -->
-                <el-tab-pane label="物料信息" name="material">
+                <el-tab-pane :label="$t('productRepair.processFlow.materialInfo')" name="material">
                   <material-info
                     :main-barcode="productDetailsData.barcode"
                     :flow-chart-data="processedFlowChartData"
@@ -548,7 +547,7 @@
                 </el-tab-pane>
 
                 <!-- 物料条码信息 -->
-                <el-tab-pane label="物料条码信息" name="materialBarcode">
+                <el-tab-pane :label="$t('productRepair.processFlow.materialBarcodeInfo')" name="materialBarcode">
                   <material-barcode-info
                     :main-barcode="productDetailsData.barcode"
                     :material-barcode-data="processedMaterialBarcodeData"
@@ -557,14 +556,14 @@
                 </el-tab-pane>
 
                 <!-- 检测信息 -->
-                <el-tab-pane label="检测信息" name="inspection">
+                <el-tab-pane :label="$t('productRepair.processFlow.inspectionInfo')" name="inspection">
                   <inspection-list
                     :inspections="productDetailsData"
                   ></inspection-list>
                 </el-tab-pane>
 
                 <!-- 解绑信息 -->
-                <el-tab-pane label="解绑信息" name="unbind">
+                <el-tab-pane :label="$t('productRepair.processFlow.unbindInfo')" name="unbind">
                   <unbind-record-list :unbind-records="unbindRecord">
                   </unbind-record-list>
                 </el-tab-pane>
@@ -829,7 +828,7 @@ export default {
         this.total = result.countnum;
       } catch (error) {
         console.error("获取数据失败:", error);
-        this.$message.error("获取数据失败");
+        this.$message.error(this.$t('productRepair.messages.getDataFailed'));
       } finally {
         this.listLoading = false;
       }
@@ -875,7 +874,7 @@ export default {
     handleEdit(row) {
       // 审核不可删除
       if (row.status === "REVIEWED") {
-        this.$message.warning("该记录已审核，不可修改！");
+        this.$message.warning(this.$t('productRepair.messages.recordReviewedCannotEdit'));
         return;
       }
       this.dialogStatus = "edit";
@@ -885,7 +884,7 @@ export default {
     handleVoid(row) {
       // 审核不可删除
       if (row.status === "REVIEWED") {
-        this.$message.warning("该记录已审核，不可作废！");
+        this.$message.warning(this.$t('productRepair.messages.recordReviewedCannotVoid'));
         return;
       }
       this.$confirm("确认要作废该产品维修记录吗?", "提示", {
@@ -898,7 +897,7 @@ export default {
           update: { $set: { status: "VOIDED" } },
         };
         await updateData("product_repair", req);
-        this.$message.success("作废成功");
+        this.$message.success(this.$t('productRepair.messages.voidSuccess'));
         this.fetchData();
       });
     },
@@ -911,15 +910,15 @@ export default {
         .then(async () => {
           try {
             await removeData("product_repair", { query: { _id: row._id } });
-            this.$message.success("删除成功");
+            this.$message.success(this.$t('productRepair.messages.deleteSuccess'));
             this.fetchData();
           } catch (error) {
             console.error("删除失败:", error);
-            this.$message.error("删除失败");
+            this.$message.error(this.$t('productRepair.messages.deleteFailed'));
           }
         })
         .catch(() => {
-          this.$message.info("已取消删除");
+          this.$message.info(this.$t('productRepair.messages.deleteCancel'));
         });
     },
 
@@ -932,7 +931,7 @@ export default {
 
     handleBatchVoid() {
       if (!this.selection.length) {
-        this.$message.warning("请选择要删除的记录");
+        this.$message.warning(this.$t('productRepair.messages.pleaseSelectRecordsToDelete'));
         return;
       }
       // 检查是否包含已审核的记录
@@ -940,7 +939,7 @@ export default {
         (item) => item.status === "REVIEWED"
       );
       if (hasReviewedRecords) {
-        this.$message.warning("选中记录中包含已审核的记录，不能删除");
+        this.$message.warning(this.$t('productRepair.messages.selectedRecordsContainReviewed'));
         return;
       }
 
@@ -962,18 +961,18 @@ export default {
               update: { $set: { status: "VOIDED" } },
             };
             await updateData("product_repair", req);
-            this.$message.success("批量作废成功");
+            this.$message.success(this.$t('productRepair.messages.batchVoidSuccess'));
             this.selection = []; // 清空选择
             await this.fetchData();
           } catch (error) {
             console.error("批量作废失败:", error);
-            this.$message.error("批量作废失败，可能包含已审核的记录");
+            this.$message.error(this.$t('productRepair.messages.batchVoidFailed'));
           } finally {
             this.listLoading = false;
           }
         })
         .catch(() => {
-          this.$message.info("已取消作废");
+          this.$message.info(this.$t('productRepair.messages.voidCancelled'));
         });
     },
 
@@ -983,7 +982,7 @@ export default {
         this.fetchData();
       } catch (error) {
         console.error("操作失败:", error);
-        this.$message.error("操作失败");
+        this.$message.error(this.$t('productRepair.messages.operationFailed'));
       }
     },
 
@@ -1005,7 +1004,7 @@ export default {
 
     handleReview(row) {
       if (row.status === "REVIEWED") {
-        this.$message.warning("该记录已审核");
+        this.$message.warning(this.$t('productRepair.messages.recordAlreadyReviewed'));
         return;
       }
       this.reviewForm = {
@@ -1032,7 +1031,7 @@ export default {
           });
 
           if (response.code === 200) {
-            this.$message.success("报废审核成功");
+            this.$message.success(this.$t('productRepair.messages.scrapReviewSuccess'));
             this.reviewDialogVisible = false;
             this.fetchData();
           } else {
@@ -1092,7 +1091,7 @@ export default {
                 }
               );
             } else {
-              this.$message.error(response.message || "审核失败");
+              this.$message.error(response.message || this.$t('productRepair.messages.reviewFailed'));
             }
           }
           return;
@@ -1100,7 +1099,7 @@ export default {
 
         // 非报废处理方案，需要选择维修结果
         if (!this.reviewForm.repairResult) {
-          this.$message.warning("请选择维修结果");
+          this.$message.warning(this.$t('productRepair.messages.pleaseSelectRepairResult'));
           return;
         }
 
@@ -1112,7 +1111,7 @@ export default {
         });
 
         if (response.code === 200) {
-          this.$message.success("审核成功");
+          this.$message.success(this.$t('productRepair.messages.reviewSuccess'));
           this.reviewDialogVisible = false;
           this.fetchData();
         } else {
@@ -1172,18 +1171,18 @@ export default {
               }
             );
           } else {
-            this.$message.error(response.message || "审核失败");
+            this.$message.error(response.message || this.$t('productRepair.messages.reviewFailed'));
           }
         }
       } catch (error) {
         console.error("审核失败:", error);
-        this.$message.error("审核失败: " + (error.message || "未知错误"));
+        this.$message.error(this.$t('productRepair.messages.reviewFailed') + ": " + (error.message || "未知错误"));
       }
     },
 
     handleBatchReview() {
       if (!this.selection.length) {
-        this.$message.warning("请选择要审核的记录");
+        this.$message.warning(this.$t('productRepair.messages.pleaseSelectRecordsToReview'));
         return;
       }
 
@@ -1194,7 +1193,7 @@ export default {
 
       if (invalidRecords) {
         this.$message.warning(
-          "选中记录中包含已审核或已作废的记录，不能进行批量审核"
+          this.$t('productRepair.messages.selectedRecordsContainInvalid')
         );
         return;
       }
@@ -1225,7 +1224,7 @@ export default {
 
           // 先处理非报废记录
           if (nonScrapIds.length > 0) {
-            this.$message.warning("非报废维修记录需要选择维修结果");
+            this.$message.warning(this.$t('productRepair.messages.nonScrapRecordsNeedResult'));
             return;
           }
 
@@ -1238,7 +1237,9 @@ export default {
 
           if (response.code === 200) {
             this.$message.success(
-              `批量审核成功，共处理 ${response.data.updatedCount} 条记录，其中报废 ${response.data.scrapCount} 条`
+              this.$t('productRepair.messages.batchReviewSuccessTemplate')
+                .replace('{updatedCount}', response.data.updatedCount)
+                .replace('{scrapCount}', response.data.scrapCount)
             );
             this.batchReviewDialogVisible = false;
             this.selection = [];
@@ -1319,7 +1320,7 @@ export default {
                 }
               );
             } else {
-              this.$message.error(response.message || "批量审核失败");
+              this.$message.error(response.message || this.$t('productRepair.messages.batchReviewFailed'));
             }
           }
           return;
@@ -1327,7 +1328,7 @@ export default {
 
         // 常规处理逻辑，要求选择维修结果
         if (!this.batchReviewForm.repairResult) {
-          this.$message.warning("请选择维修结果");
+          this.$message.warning(this.$t('productRepair.messages.pleaseSelectRepairResult'));
           return;
         }
 
@@ -1342,7 +1343,9 @@ export default {
 
         if (response.code === 200) {
           this.$message.success(
-            `批量审核成功，共处理 ${response.data.updatedCount} 条记录，其中报废 ${response.data.scrapCount} 条`
+            this.$t('productRepair.messages.batchReviewSuccessTemplate')
+              .replace('{updatedCount}', response.data.updatedCount)
+              .replace('{scrapCount}', response.data.scrapCount)
           );
           this.batchReviewDialogVisible = false;
           this.selection = [];
@@ -1384,12 +1387,12 @@ export default {
               }
             );
           } else {
-            this.$message.error(response.message || "批量审核失败");
+            this.$message.error(response.message || this.$t('productRepair.messages.batchReviewFailed'));
           }
         }
       } catch (error) {
         console.error("批量审核失败:", error);
-        this.$message.error("批量审核失败: " + (error.message || "未知错误"));
+        this.$message.error(this.$t('productRepair.messages.batchReviewFailed') + ": " + (error.message || "未知错误"));
       }
     },
 
@@ -1411,7 +1414,7 @@ export default {
         const totalItems = result.data.length;
 
         if (totalItems === 0) {
-          this.$message.warning("未找到符合条件的维修记录");
+          this.$message.warning(this.$t('productRepair.messages.noRecordsFound'));
           this.exportDialogVisible = false;
           this.exportLoading = false;
           return;
@@ -1495,7 +1498,7 @@ export default {
             bookType: "xlsx",
           });
           this.exportProgress = 100;
-          this.$message.success("导出成功");
+          this.$message.success(this.$t('productRepair.messages.exportSuccess'));
         });
 
         // 延迟关闭对话框
@@ -1505,7 +1508,7 @@ export default {
         }, 1000);
       } catch (error) {
         console.error("导出失败:", error);
-        this.$message.error("导出失败");
+        this.$message.error(this.$t('productRepair.messages.exportFailed'));
         this.exportDialogVisible = false;
       } finally {
         this.exportLoading = false;
@@ -1539,11 +1542,11 @@ export default {
           });
           this.unbindRecord = unbindRecord.data;
         } else {
-          this.$message.error("获取产品详情失败");
+          this.$message.error(this.$t('productRepair.messages.getProductDetailsFailed'));
         }
       } catch (error) {
         console.error("获取产品详情失败:", error);
-        this.$message.error("获取产品详情失败: " + error.message);
+        this.$message.error(this.$t('productRepair.messages.getProductDetailsFailed') + ": " + error.message);
       } finally {
         this.listLoading = false;
       }

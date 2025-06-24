@@ -215,10 +215,13 @@ export default {
 
                     return false;
                 }).map(item => {
-                    // 如果启用了产线筛选，则只显示当前产线的关联设备
+                    // 如果启用了产线筛选，则只显示当前产线的关联设备和主设备
                     if (this.filterCurrentLine && this.lineId) {
                         return {
                             ...item,
+                            // 过滤主设备：只保留当前产线的主设备
+                            machineId: (item.machineId && item.machineId.lineId === this.lineId) ? item.machineId : null,
+                            // 过滤关联设备：只保留当前产线的关联设备
                             machineIds: item.machineIds ? item.machineIds.filter(machine => machine.lineId === this.lineId) : []
                         };
                     }

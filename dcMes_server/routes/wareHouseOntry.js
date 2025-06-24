@@ -553,7 +553,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 
           // 更新出库单数量和进度
           latestEntry.outNumber = latestEntry.entryItems.reduce(
-            (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+            (sum, item) => {
+              if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+                return sum + item.palletBarcodes.length;
+              } else if (item.quantity) {
+                return sum + item.quantity;
+              } else {
+                console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+                return sum;
+              }
+            },
             0
           );
           latestEntry.actualQuantity = latestEntry.outNumber;
@@ -654,7 +663,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     
     // 预先计算添加该托盘后的总出库数量
     const currentTotalQuantity = entry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      (sum, item) => {
+        if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+          return sum + item.palletBarcodes.length;
+        } else if (item.quantity) {
+          return sum + item.quantity;
+        } else {
+          console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+          return sum;
+        }
+      },
       0
     );
     const newTotalQuantity = currentTotalQuantity + unOutBarcodes.length;
@@ -746,7 +764,16 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
 
     // 6. 更新出库单数量信息和完成进度
     updatedEntry.outNumber = updatedEntry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      (sum, item) => {
+        if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+          return sum + item.palletBarcodes.length;
+        } else if (item.quantity) {
+          return sum + item.quantity;
+        } else {
+          console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+          return sum;
+        }
+      },
       0
     );
     updatedEntry.actualQuantity = updatedEntry.outNumber;
@@ -1451,7 +1478,16 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
     // 更新出库数量
     currentPalletItem.quantity = currentPalletItem.palletBarcodes.length;
     entry.outNumber = entry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      (sum, item) => {
+        if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+          return sum + item.palletBarcodes.length;
+        } else if (item.quantity) {
+          return sum + item.quantity;
+        } else {
+          console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+          return sum;
+        }
+      },
       0
     );
     entry.actualQuantity = entry.outNumber;
@@ -1724,7 +1760,16 @@ router.post("/api/v1/warehouse_entry/clean_duplicate_pallets", async (req, res) 
     
     // 重新计算数量和进度
     entry.outNumber = entry.entryItems.reduce(
-      (sum, item) => sum + (item.palletBarcodes ? item.palletBarcodes.length : item.quantity),
+      (sum, item) => {
+        if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+          return sum + item.palletBarcodes.length;
+        } else if (item.quantity) {
+          return sum + item.quantity;
+        } else {
+          console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+          return sum;
+        }
+      },
       0
     );
     entry.actualQuantity = entry.outNumber;
@@ -1851,6 +1896,95 @@ router.post("/api/v1/warehouse_entry/batch_clean_duplicates", async (req, res) =
     });
   } catch (error) {
     console.error("批量清理重复托盘项失败:", error);
+    return res.status(200).json({
+      code: 500,
+      message: error.message
+    });
+  }
+});
+
+// 修复出库单数量计算错误
+router.post("/api/v1/warehouse_entry/fix_quantities", async (req, res) => {
+  try {
+    const { entryId, entryNo } = req.body;
+
+    let query = {};
+    if (entryId) {
+      query._id = entryId;
+    } else if (entryNo) {
+      query.entryNo = entryNo;
+    } else {
+      // 如果没有指定，修复所有状态为 IN_PROGRESS 的出库单
+      query.status = "IN_PROGRESS";
+    }
+
+    const entries = await wareHouseOntry.find(query);
+    
+    if (entries.length === 0) {
+      return res.status(200).json({
+        code: 404,
+        message: "未找到符合条件的出库单",
+      });
+    }
+
+    const fixResults = [];
+
+    for (const entry of entries) {
+      const originalOutNumber = entry.outNumber;
+      const originalActualQuantity = entry.actualQuantity;
+
+      // 重新计算正确的出库数量
+      const correctOutNumber = entry.entryItems.reduce((sum, item) => {
+        if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+          return sum + item.palletBarcodes.length;
+        } else if (item.quantity) {
+          return sum + item.quantity;
+        } else {
+          console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+          return sum;
+        }
+      }, 0);
+
+      // 更新出库单数量信息
+      entry.outNumber = correctOutNumber;
+      entry.actualQuantity = correctOutNumber;
+      entry.palletCount = entry.entryItems.length;
+      entry.progress = Math.round((correctOutNumber / entry.outboundQuantity) * 100);
+
+      // 检查是否需要更新状态
+      if (correctOutNumber >= entry.outboundQuantity && entry.status !== "COMPLETED") {
+        entry.status = "COMPLETED";
+        entry.completedTime = new Date();
+      } else if (correctOutNumber < entry.outboundQuantity && entry.status === "COMPLETED") {
+        entry.status = "IN_PROGRESS";
+        entry.completedTime = null;
+      }
+
+      entry.updateAt = new Date();
+      await entry.save();
+
+      fixResults.push({
+        entryNo: entry.entryNo,
+        entryId: entry._id,
+        originalOutNumber,
+        correctOutNumber,
+        originalActualQuantity,
+        difference: correctOutNumber - originalOutNumber,
+        status: entry.status,
+        progress: entry.progress
+      });
+    }
+
+    return res.status(200).json({
+      code: 200,
+      message: "出库单数量修复完成",
+      data: {
+        fixedCount: fixResults.length,
+        results: fixResults
+      }
+    });
+  } catch (error) {
+    console.error("修复出库单数量失败:", error);
     return res.status(200).json({
       code: 500,
       message: error.message

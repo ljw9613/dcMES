@@ -8,7 +8,7 @@
           包装箱条码校验
         </span>
       </div>
-      
+
       <el-form :model="boxForm" label-width="120px" class="box-form">
         <div class="scan-input-section">
           <el-form-item label="包装箱条码:">
@@ -45,16 +45,16 @@
                 <i class="el-icon-info"></i>
                 包装箱信息
               </span>
-              <el-button 
-                type="text" 
+              <el-button
+                type="text"
                 @click="resetVerification"
-                style="color: #409eff;"
+                style="color: #409eff"
               >
                 <i class="el-icon-refresh"></i>
                 重新查询
               </el-button>
             </div>
-            
+
             <div class="box-details">
               <div class="detail-item">
                 <span class="label">包装箱条码：</span>
@@ -86,7 +86,7 @@
                   {{ verifiedCount }}/{{ boxData.productBarcodes.length }}
                 </span>
               </div>
-              <el-progress 
+              <el-progress
                 :percentage="progressPercentage"
                 :status="progressStatus"
               />
@@ -125,7 +125,7 @@
                 产品条码扫描
               </span>
             </div>
-            
+
             <div class="scan-input-section">
               <el-input
                 v-model="scanInput"
@@ -140,7 +140,7 @@
                   <i class="el-icon-camera"></i>
                 </template>
               </el-input>
-              
+
               <div class="scan-tips" v-if="!allVerified">
                 <i class="el-icon-info"></i>
                 请扫描产品条码进行逐一校验
@@ -180,9 +180,18 @@
                 stripe
                 class="product-table"
               >
-                <el-table-column type="index" label="序号" width="60" align="center" />
-                
-                <el-table-column prop="barcode" label="产品条码" min-width="200">
+                <el-table-column
+                  type="index"
+                  label="序号"
+                  width="60"
+                  align="center"
+                />
+
+                <el-table-column
+                  prop="barcode"
+                  label="产品条码"
+                  min-width="200"
+                >
                   <template slot-scope="scope">
                     <div class="barcode-cell">
                       <span class="barcode-text">{{ scope.row.barcode }}</span>
@@ -198,7 +207,11 @@
 
                 <el-table-column prop="verifyTime" label="校验时间" width="180">
                   <template slot-scope="scope">
-                    {{ scope.row.verifyTime ? formatDate(scope.row.verifyTime) : '-' }}
+                    {{
+                      scope.row.verifyTime
+                        ? formatDate(scope.row.verifyTime)
+                        : "-"
+                    }}
                   </template>
                 </el-table-column>
 
@@ -270,52 +283,59 @@ export default {
     // 显示的产品列表（添加状态信息）
     displayProductList() {
       if (!this.boxData) return [];
-      
-      return this.boxData.productBarcodes.map(barcode => {
-        const result = this.verificationResults.find(r => r.barcode === barcode);
+
+      return this.boxData.productBarcodes.map((barcode) => {
+        const result = this.verificationResults.find(
+          (r) => r.barcode === barcode
+        );
         return {
           barcode,
-          status: result ? result.status : 'pending',
+          status: result ? result.status : "pending",
           verifyTime: result ? result.verifyTime : null,
           message: result ? result.message : null,
         };
       });
     },
-    
+
     // 已校验数量
     verifiedCount() {
-      return this.verificationResults.filter(r => r.status !== 'pending').length;
+      return this.verificationResults.filter((r) => r.status !== "pending")
+        .length;
     },
-    
+
     // 校验成功数量
     verifiedSuccessCount() {
-      return this.verificationResults.filter(r => r.status === 'success').length;
+      return this.verificationResults.filter((r) => r.status === "success")
+        .length;
     },
-    
+
     // 校验失败数量
     verifiedErrorCount() {
-      return this.verificationResults.filter(r => r.status === 'error').length;
+      return this.verificationResults.filter((r) => r.status === "error")
+        .length;
     },
-    
+
     // 待校验数量
     pendingCount() {
       if (!this.boxData) return 0;
       return this.boxData.productBarcodes.length - this.verifiedCount;
     },
-    
+
     // 进度百分比
     progressPercentage() {
       if (!this.boxData || this.boxData.productBarcodes.length === 0) return 0;
-      return Math.round((this.verifiedCount / this.boxData.productBarcodes.length) * 100);
+      return Math.round(
+        (this.verifiedCount / this.boxData.productBarcodes.length) * 100
+      );
     },
-    
+
     // 进度状态
     progressStatus() {
-      if (this.verifiedErrorCount > 0) return 'exception';
-      if (this.allVerified) return 'success';
+      if (this.verifiedErrorCount > 0) return "exception";
+      if (this.allVerified) return "success";
       return null;
     },
-    
+
     // 是否全部校验完成
     allVerified() {
       if (!this.boxData) return false;
@@ -325,10 +345,15 @@ export default {
   methods: {
     // 处理包装箱条码输入
     async handleBoxBarcodeInput() {
-      const boxBarcode = this.boxForm.boxBarcode.trim();
+      let boxBarcode = this.boxForm.boxBarcode.trim();
       if (!boxBarcode) {
         this.$message.warning("请输入包装箱条码");
         return;
+      }
+
+      // 如果条码包含","，则取第一个逗号前的部分作为条码
+      if (boxBarcode.includes(",")) {
+        boxBarcode = boxBarcode.split(",")[0];
       }
 
       this.loading = true;
@@ -355,11 +380,11 @@ export default {
 
         // 提取包装箱信息和产品条码列表
         const boxProducts = response.data;
-        const productBarcodes = boxProducts.map(item => item.barcode);
-        
+        const productBarcodes = boxProducts.map((item) => item.barcode);
+
         // 获取第一个产品的基本信息作为包装箱信息
         const firstProduct = boxProducts[0];
-        
+
         this.boxData = {
           boxBarcode: boxBarcode,
           materialCode: firstProduct.materialCode || "未知",
@@ -369,14 +394,16 @@ export default {
         };
 
         // 初始化校验结果
-        this.verificationResults = productBarcodes.map(barcode => ({
+        this.verificationResults = productBarcodes.map((barcode) => ({
           barcode,
-          status: 'pending',
+          status: "pending",
           verifyTime: null,
           message: null,
         }));
 
-        this.$message.success(`成功加载包装箱数据，共${productBarcodes.length}个产品条码`);
+        this.$message.success(
+          `成功加载包装箱数据，共${productBarcodes.length}个产品条码`
+        );
         this.popupType = "ok";
         this.showPopup = true;
         tone(smcg);
@@ -385,7 +412,6 @@ export default {
         this.$nextTick(() => {
           this.$refs.scanInput && this.$refs.scanInput.focus();
         });
-
       } catch (error) {
         console.error("查询包装箱失败:", error);
         this.$message.error("查询包装箱失败: " + error.message);
@@ -405,24 +431,28 @@ export default {
       try {
         // 检查是否在包装箱的产品列表中
         const isInBox = this.boxData.productBarcodes.includes(scannedBarcode);
-        
+
         if (isInBox) {
           // 检查是否已经校验过
-          const existingResult = this.verificationResults.find(r => r.barcode === scannedBarcode);
-          if (existingResult && existingResult.status !== 'pending') {
+          const existingResult = this.verificationResults.find(
+            (r) => r.barcode === scannedBarcode
+          );
+          if (existingResult && existingResult.status !== "pending") {
             this.$message.warning("该产品条码已校验过");
             this.scanInput = "";
             return;
           }
 
           // 更新校验结果
-          const resultIndex = this.verificationResults.findIndex(r => r.barcode === scannedBarcode);
+          const resultIndex = this.verificationResults.findIndex(
+            (r) => r.barcode === scannedBarcode
+          );
           if (resultIndex !== -1) {
             this.$set(this.verificationResults, resultIndex, {
               barcode: scannedBarcode,
-              status: 'success',
+              status: "success",
               verifyTime: new Date(),
-              message: '校验通过',
+              message: "校验通过",
             });
           }
 
@@ -430,14 +460,12 @@ export default {
           this.popupType = "ok";
           this.showPopup = true;
           tone(smcg);
-
         } else {
           this.$message.error("校验失败！产品条码不在此包装箱中");
           this.popupType = "ng";
           this.showPopup = true;
           tone(tmyw);
         }
-
       } catch (error) {
         console.error("产品条码校验失败:", error);
         this.$message.error("校验过程发生错误");
@@ -459,7 +487,7 @@ export default {
       this.verificationResults = [];
       this.boxForm.boxBarcode = "";
       this.scanInput = "";
-      
+
       this.$nextTick(() => {
         this.$refs.boxInput && this.$refs.boxInput.focus();
       });
@@ -467,11 +495,13 @@ export default {
 
     // 重试校验
     retryVerification(row) {
-      const resultIndex = this.verificationResults.findIndex(r => r.barcode === row.barcode);
+      const resultIndex = this.verificationResults.findIndex(
+        (r) => r.barcode === row.barcode
+      );
       if (resultIndex !== -1) {
         this.$set(this.verificationResults, resultIndex, {
           barcode: row.barcode,
-          status: 'pending',
+          status: "pending",
           verifyTime: null,
           message: null,
         });
@@ -481,13 +511,15 @@ export default {
 
     // 跳过校验
     skipVerification(row) {
-      const resultIndex = this.verificationResults.findIndex(r => r.barcode === row.barcode);
+      const resultIndex = this.verificationResults.findIndex(
+        (r) => r.barcode === row.barcode
+      );
       if (resultIndex !== -1) {
         this.$set(this.verificationResults, resultIndex, {
           barcode: row.barcode,
-          status: 'error',
+          status: "error",
           verifyTime: new Date(),
-          message: '用户跳过校验',
+          message: "用户跳过校验",
         });
       }
       this.$message.warning("已跳过该条码校验");
@@ -500,22 +532,26 @@ export default {
         序号: index + 1,
         产品条码: item.barcode,
         校验状态: this.getStatusText(item.status),
-        校验时间: item.verifyTime ? this.formatDate(item.verifyTime) : '-',
-        备注: item.message || '-',
+        校验时间: item.verifyTime ? this.formatDate(item.verifyTime) : "-",
+        备注: item.message || "-",
       }));
 
       // 创建CSV内容
       const headers = Object.keys(exportData[0]);
       const csvContent = [
-        headers.join(','),
-        ...exportData.map(row => headers.map(h => `"${row[h]}"`).join(','))
-      ].join('\n');
+        headers.join(","),
+        ...exportData.map((row) => headers.map((h) => `"${row[h]}"`).join(",")),
+      ].join("\n");
 
       // 下载文件
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob(["\ufeff" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `包装箱校验结果_${this.boxData.boxBarcode}_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `包装箱校验结果_${this.boxData.boxBarcode}_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
       link.click();
 
       this.$message.success("校验结果已导出");
@@ -524,27 +560,35 @@ export default {
     // 获取状态类型
     getStatusType(status) {
       switch (status) {
-        case 'success': return 'success';
-        case 'error': return 'danger';
-        case 'pending': return 'info';
-        default: return 'info';
+        case "success":
+          return "success";
+        case "error":
+          return "danger";
+        case "pending":
+          return "info";
+        default:
+          return "info";
       }
     },
 
     // 获取状态文本
     getStatusText(status) {
       switch (status) {
-        case 'success': return '校验通过';
-        case 'error': return '校验失败';
-        case 'pending': return '待校验';
-        default: return '未知';
+        case "success":
+          return "校验通过";
+        case "error":
+          return "校验失败";
+        case "pending":
+          return "待校验";
+        default:
+          return "未知";
       }
     },
 
     // 格式化日期
     formatDate(date) {
-      if (!date) return '-';
-      return new Date(date).toLocaleString('zh-CN');
+      if (!date) return "-";
+      return new Date(date).toLocaleString("zh-CN");
     },
   },
   mounted() {
@@ -561,7 +605,10 @@ export default {
   padding: 20px;
 }
 
-.box-input-card, .box-info-card, .scan-card, .product-list-card {
+.box-input-card,
+.box-info-card,
+.scan-card,
+.product-list-card {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   margin-bottom: 20px;
@@ -735,7 +782,7 @@ export default {
     span: 24;
     margin-bottom: 20px;
   }
-  
+
   .box-verification-container .el-col-16 {
     span: 24;
   }

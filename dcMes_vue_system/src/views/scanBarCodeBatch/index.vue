@@ -6,12 +6,12 @@
         <div class="card-header">
           <span>
             <i class="el-icon-setting"></i>
-            工序设置</span
+            {{ $t('scanBarCodeBatch.processSettings.title') }}</span
           >
           <el-switch
             v-model="autoInit"
-            active-text="自动"
-            inactive-text="手动"
+            :active-text="$t('scanBarCodeBatch.processSettings.auto')"
+            :inactive-text="$t('scanBarCodeBatch.processSettings.manual')"
             class="print-switch"
             @change="handleAutoInitChange"
           >
@@ -24,12 +24,12 @@
             <div class="section-header">
               <el-tag :type="websocketConnected ? 'success' : 'danger'">
                 <i class="el-icon-goods"></i>
-                {{ websocketConnected ? "已连接" : "未连接" }}</el-tag
+                {{ websocketConnected ? $t('scanBarCodeBatch.processSettings.connected') : $t('scanBarCodeBatch.processSettings.disconnected') }}</el-tag
               >
-              <span> 基础信息 </span>
+              <span> {{ $t('scanBarCodeBatch.processSettings.basicInfo') }} </span>
             </div>
 
-            <el-form-item label="产品型号">
+            <el-form-item :label="$t('scanBarCodeBatch.processSettings.productModel')">
               <zr-select
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
@@ -39,7 +39,7 @@
                 label-key="FName"
                 sub-key="FMATERIALID"
                 :multiple="false"
-                placeholder="请输入物料编码/名称搜索"
+                :placeholder="$t('scanBarCodeBatch.processSettings.productModelPlaceholder')"
                 @select="handleProductChange"
               >
                 <template #option="{ item }">
@@ -58,15 +58,15 @@
               <el-input
                 v-else
                 v-model="formData.productName"
-                placeholder="请输入物料编码/名称搜索"
+                :placeholder="$t('scanBarCodeBatch.processSettings.productModelPlaceholder')"
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
 
-            <el-form-item label="产品工序">
+            <el-form-item :label="$t('scanBarCodeBatch.processSettings.processStep')">
               <el-select
                 v-model="formData.processStep"
-                placeholder="请选择产品工序"
+                :placeholder="$t('scanBarCodeBatch.processSettings.processStepPlaceholder')"
                 @change="handleProcessChange"
                 class="custom-select"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -89,7 +89,7 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="产线编码">
+            <el-form-item :label="$t('scanBarCodeBatch.processSettings.productionLine')">
               <zr-select
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -100,13 +100,13 @@
                 tag-key="lineCode"
                 sub-key="workshop"
                 :multiple="false"
-                placeholder="请输入产线信息搜索"
+                :placeholder="$t('scanBarCodeBatch.processSettings.productionLinePlaceholder')"
                 @select="handleProductionLineSelect"
               />
               <el-input
                 v-else
                 v-model="formData.lineName"
-                placeholder="请输入产线信息搜索"
+                :placeholder="$t('scanBarCodeBatch.processSettings.productionLinePlaceholder')"
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
@@ -120,7 +120,7 @@
               icon="el-icon-close"
               v-if="mainMaterialId && processStepId"
             >
-              取消设置
+              {{ $t('scanBarCodeBatch.processSettings.cancelSettings') }}
             </el-button>
             <el-button
               type="primary"
@@ -128,7 +128,7 @@
               @click="handleSave"
               icon="el-icon-check"
             >
-              保存设置
+              {{ $t('scanBarCodeBatch.processSettings.saveSettings') }}
             </el-button>
           </div>
         </el-form>
@@ -145,7 +145,7 @@
           <div class="card-header">
             <div class="header-left">
               <i class="el-icon-box"></i>
-              <span>托盘管理</span>
+              <span>{{ $t('scanBarCodeBatch.batchScanning.title') }}</span>
               <el-button type="text" @click="toggleCollapse">
                 <i
                   :class="
@@ -154,11 +154,11 @@
                       : 'el-icon-d-arrow-left'
                   "
                 ></i>
-                {{ isCollapsed ? "展开" : "收起" }}
+                {{ isCollapsed ? $t('scanBarCodeBatch.batchScanning.expand') : $t('scanBarCodeBatch.batchScanning.collapse') }}
               </el-button>
             </div>
             <el-form :model="batchForm" label-width="100px">
-              <el-form-item label="产品数量">
+              <el-form-item :label="$t('scanBarCodeBatch.batchScanning.batchSize')">
                 <div class="batch-size-control">
                   <el-input-number
                     size="mini"
@@ -177,7 +177,7 @@
                         @click="handleSaveBatchSize"
                         icon="el-icon-check"
                       >
-                        保存
+                        {{ $t('scanBarCodeBatch.buttons.confirm') }}
                       </el-button>
                     </template>
                     <template v-else>
@@ -187,7 +187,7 @@
                         @click="handleCancelBatchSize"
                         icon="el-icon-close"
                       >
-                        取消
+                        {{ $t('scanBarCodeBatch.buttons.reset') }}
                       </el-button>
                     </template>
                   </div>
@@ -200,7 +200,7 @@
             <div class="section-header">
               <div class="header-left">
                 <i class="el-icon-camera"></i>
-                <span>统一扫描区域</span>
+                <span>{{ $t('scanBarCodeBatch.batchScanning.scanPlaceholder') }}</span>
               </div>
               <hir-input
                 ref="hirInput"
@@ -216,11 +216,11 @@
               <!-- 添加扫描模式切换 -->
               <div class="scan-mode-switch">
                 <el-radio-group v-model="scanMode" size="small">
-                  <el-radio-button label="normal">普通模式</el-radio-button>
-                  <el-radio-button label="rfid">RFID模式</el-radio-button>
+                  <el-radio-button label="normal">{{ $t('scanBarCodeBatch.scanning.normalMode') }}</el-radio-button>
+                  <el-radio-button label="rfid">{{ $t('scanBarCodeBatch.scanning.rfidMode') }}</el-radio-button>
                 </el-radio-group>
                 <el-tooltip
-                  content="普通模式用于扫描条码，RFID模式用于读取RFID标签"
+                  :content="$t('scanBarCode.scanning.modeTooltip')"
                   placement="top"
                 >
                   <i class="el-icon-question"></i>
@@ -231,7 +231,7 @@
               <el-input
                 v-model="unifiedScanInput"
                 :placeholder="
-                  scanMode === 'normal' ? '请扫描条码' : '请读取RFID标签'
+                  scanMode === 'normal' ? $t('scanBarCodeBatch.batchScanning.scanPlaceholder') : $t('scanBarCode.scanning.rfidPlaceholder')
                 "
                 @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
                 ref="scanInput"
@@ -253,7 +253,7 @@
               <!-- 包装箱处理进度显示 -->
               <div v-if="isProcessingBox" class="box-process-indicator">
                 <el-alert
-                  title="正在处理包装箱条码，请稍候..."
+                  :title="$t('scanBarCode.scanning.processingBox')"
                   type="warning"
                   :closable="false"
                   show-icon
@@ -261,7 +261,7 @@
                   <template slot="default">
                     <div class="process-content">
                       <div class="process-text">
-                        处理进度: {{ boxProcessProgress.current }}/{{ boxProcessProgress.total }}
+                        {{ $t('scanBarCode.scanning.processProgress') }}: {{ boxProcessProgress.current }}/{{ boxProcessProgress.total }}
                       </div>
                       <el-progress
                         :percentage="Math.floor((boxProcessProgress.current / boxProcessProgress.total) * 100)"
@@ -280,7 +280,7 @@
                   <div class="section-header">
                     <div class="header-left">
                       <i class="el-icon-document"></i>
-                      <span>单据信息</span>
+                      <span>{{ $t('scanBarCodeBatch.documentInfo.title') }}</span>
                     </div>
                   </div>
                   <el-form :model="palletForm" class="pallet-form">
@@ -288,15 +288,15 @@
                       <el-col :span="8">
                         <el-card class="info-card" shadow="hover">
                           <div class="info-item">
-                            <span class="label">销售单号：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.saleOrderNo') }}</span>
                             <span class="value">{{
                               palletForm.saleOrderNo
                             }}</span>
                           </div>
                           <div class="info-item">
-                            <span class="label">托盘单据编号：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.palletDocumentNo') }}</span>
                             <span class="value">{{
-                              palletForm.palletCode || "未生成"
+                              palletForm.palletCode || $t('scanBarCodeBatch.documentInfo.notGenerated')
                             }}</span>
                           </div>
                         </el-card>
@@ -304,13 +304,13 @@
                       <el-col :span="8">
                         <el-card class="info-card" shadow="hover">
                           <div class="info-item">
-                            <span class="label">生产工单：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.workOrderNo') }}</span>
                             <span class="value">{{
                               palletForm.workOrderNo
                             }}</span>
                           </div>
                           <div class="info-item">
-                            <span class="label">托盘单据数量：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.palletDocumentQuantity') }}</span>
                             <span class="value">{{
                               palletForm.totalQuantity
                             }}</span>
@@ -320,15 +320,15 @@
                       <el-col :span="8">
                         <el-card class="info-card" shadow="hover">
                           <div class="info-item">
-                            <span class="label">物料编号：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.materialNumber') }}</span>
                             <span class="value">{{ mainMaterialCode }}</span>
                           </div>
                           <div class="info-item">
-                            <span class="label">物料名称：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.materialName') }}</span>
                             <span class="value">{{ mainMaterialName }}</span>
                           </div>
                           <div class="info-item">
-                            <span class="label">物料规格：</span>
+                            <span class="label">{{ $t('scanBarCodeBatch.documentInfo.materialSpec') }}</span>
                             <span class="value">{{ mainMaterialSpec }}</span>
                           </div>
                         </el-card>
@@ -342,7 +342,7 @@
               <div class="section-header" v-if="processMaterials.length > 0">
                 <div class="header-left">
                   <i class="el-icon-box"></i>
-                  <span>子物料扫描</span>
+                  <span>{{ $t('scanBarCodeBatch.subMaterialScanning.title') }}</span>
                 </div>
               </div>
 
@@ -376,8 +376,8 @@
                           v-model="scanForm.barcodes[material._id]"
                           :placeholder="
                             !material.scanOperation
-                              ? '无需扫码'
-                              : '请扫描子物料条码'
+                              ? $t('scanBarCodeBatch.subMaterialScanning.noScanRequired')
+                              : $t('scanBarCodeBatch.subMaterialScanning.scanSubMaterialPlaceholder')
                           "
                           :class="{ 'valid-input': validateStatus[material._id] }"
                           :readonly="material.scanOperation"
@@ -388,10 +388,10 @@
                           </template>
                           <template slot="suffix">
                             <template v-if="!material.scanOperation">
-                              <el-tag type="info">无需扫码</el-tag>
+                              <el-tag type="info">{{ $t('scanBarCodeBatch.subMaterialScanning.noScanRequired') }}</el-tag>
                             </template>
                             <template v-else-if="material.isBatch">
-                              <el-tag type="warning">批次物料</el-tag>
+                              <el-tag type="warning">{{ $t('scanBarCodeBatch.subMaterialScanning.batchMaterial') }}</el-tag>
                             </template>
                           </template>
                         </el-input>
@@ -413,11 +413,11 @@
                 <div class="section-header">
                   <div class="header-left">
                     <i class="el-icon-document"></i>
-                    <span>已扫描条码</span>
+                    <span>{{ $t('scanBarCodeBatch.scannedList.title') }}</span>
                   </div>
                   <div class="progress-container">
                     <div class="progress-text">
-                      当前进度: {{ scannedList.length }}/{{ batchForm.batchSize }}
+                      {{ $t('scanBarCodeBatch.scannedList.currentProgress') }}: {{ scannedList.length }}/{{ batchForm.batchSize }}
                     </div>
                     <el-progress :percentage="progressPercentage"> </el-progress>
                   </div>
@@ -432,12 +432,12 @@
                     <el-card class="barcode-card" shadow="hover">
                       <div class="barcode-content">
                         <div class="barcode-info">
-                          <div class="scan-time">条码：</div>
+                          <div class="scan-time">{{ $t('scanBarCodeBatch.scannedList.barcodeLabel') }}</div>
                           <div class="scan-time">
                             <el-tag> {{ item.barcode }}</el-tag>
                           </div>
                           <div class="scan-time">
-                            扫描时间：{{ formatDate(item.scanTime) }}
+                            {{ $t('scanBarCodeBatch.scannedList.scanTimeLabel') }}{{ formatDate(item.scanTime) }}
                           </div>
                         </div>
                       </div>
@@ -453,7 +453,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>请先初始化工序设置,检测当前工序是否为托盘工序</p>
+            <p>{{ $t('scanBarCodeBatch.initTip.message') }}</p>
           </div>
         </div>
       </template>
@@ -474,13 +474,7 @@ import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import { createBatch } from "@/api/materialBarcodeBatch";
 import { handlePalletBarcode } from "@/api/materialPalletizing";
 import ZrSelect from "@/components/ZrSelect";
-import { tone } from "@/utils/tone.js";
-import smcg from "@/assets/tone/smcg.mp3";
-import tmyw from "@/assets/tone/tmyw.mp3";
-import cxwgd from "@/assets/tone/cxwgd.mp3";
-import cfbd from "@/assets/tone/cfbd.mp3";
-import dwx from "@/assets/tone/dwx.mp3";
-import wxsb from "@/assets/tone/wxsb.mp3";
+import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
 import hirInput from "@/components/hirInput";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
@@ -584,6 +578,10 @@ export default {
         current: 0,
         total: 0,
       }, // 包装箱处理进度
+      
+      // 新增：条码处理锁，防止并发重复提交
+      processingBarcodes: new Set(), // 正在处理的条码集合
+      requestTimeouts: new Map(), // 请求超时管理
     };
   },
   computed: {
@@ -753,7 +751,9 @@ export default {
         });
         // 提示模式切换
         this.$message.success(
-          `已切换至${newMode === "normal" ? "普通" : "RFID"}模式`
+          newMode === "normal"
+            ? this.$t('scanBarCodeBatch.messages.switchToNormalMode')
+            : this.$t('scanBarCodeBatch.messages.switchToRfidMode')
         );
       },
     },
@@ -763,7 +763,11 @@ export default {
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
-      this.$message.success(`已${value ? "开启" : "关闭"}自动初始化模式`);
+      this.$message.success(
+        value
+          ? this.$t('scanBarCodeBatch.messages.autoInitEnabled')
+          : this.$t('scanBarCodeBatch.messages.autoInitDisabled')
+      );
 
       if (value) {
         //刷新页面
@@ -776,7 +780,9 @@ export default {
       this.autoInit = !this.autoInit;
       this.autoInitMode = this.autoInit;
       this.$message.success(
-        `已${this.autoInit ? "开启" : "关闭"}自动初始化模式`
+        this.autoInit
+          ? this.$t('scanBarCodeBatch.messages.autoInitEnabled')
+          : this.$t('scanBarCodeBatch.messages.autoInitDisabled')
       );
 
       if (this.autoInit) {
@@ -787,13 +793,13 @@ export default {
     // 产品型号处理
     handleProductModel() {
       if (!this.mainMaterialName || !this.mainMaterialCode) {
-        this.$message.warning("当前没有设置产品型号");
+        this.$message.warning(this.$t('scanBarCodeBatch.messages.noProductModelSet'));
         return;
       }
 
       this.$message({
         type: "info",
-        message: `当前产品型号：${this.mainMaterialCode} - ${this.mainMaterialName}`,
+        message: `${this.$t('scanBarCodeBatch.messages.currentProductModel')}：${this.mainMaterialCode} - ${this.mainMaterialName}`,
         duration: 3000,
       });
     },
@@ -801,13 +807,13 @@ export default {
     // 产品工序处理
     handleProductProcess() {
       if (!this.processName) {
-        this.$message.warning("当前没有设置产品工序");
+        this.$message.warning(this.$t('scanBarCodeBatch.messages.noProcessStepSet'));
         return;
       }
 
       this.$message({
         type: "info",
-        message: `当前产品工序：${this.processName}`,
+        message: `${this.$t('scanBarCodeBatch.messages.currentProcessStep')}：${this.processName}`,
         duration: 3000,
       });
     },
@@ -815,13 +821,13 @@ export default {
     // 产线编码处理
     handleLineCode() {
       if (!this.productLineId || !this.productLineName) {
-        this.$message.warning("当前没有设置产线");
+        this.$message.warning(this.$t('scanBarCodeBatch.messages.noProductionLineSet'));
         return;
       }
 
       this.$message({
         type: "info",
-        message: `当前产线：${this.productLineName}`,
+        message: `${this.$t('scanBarCodeBatch.messages.currentProductionLine')}：${this.productLineName}`,
         duration: 3000,
       });
     },
@@ -829,7 +835,7 @@ export default {
     // 保存设置处理
     handleSaveSettings() {
       if (this.mainMaterialId && this.processStepId) {
-        this.$message.warning("已经设置好了产品和工序");
+        this.$message.warning(this.$t('scanBarCodeBatch.messages.productAndProcessAlreadySet'));
       } else {
         this.handleSave();
       }
@@ -885,17 +891,17 @@ export default {
               this.productLineName = lineId.lineName;
               this.formData.lineName = lineId.lineName;
             }
-            this.$message.success("自动初始化工序成功");
+            this.$message.success(this.$t('scanBarCodeBatch.messages.autoInitSuccess'));
 
             // 对比当前设置的工序和缓存工序是否一致，不一致时调用handleSave()
             if (processStepIdValue !== this.processStepId) {
               this.handleSave();
             }
           } else {
-            this.$message.warning("未获取到机器进度配置");
+            this.$message.warning(this.$t('scanBarCodeBatch.messages.noMachineProgressConfig'));
           }
         } else {
-          throw new Error(response.message || "获取机器进度失败");
+          throw new Error(response.message || this.$t('scanBarCodeBatch.messages.getMachineProgressFailed'));
         }
       } catch (error) {
         localStorage.removeItem("mainMaterialId");
@@ -905,7 +911,7 @@ export default {
         this.formData.productModel = "";
         this.formData.processStep = "";
         console.error("自动初始化失败:", error);
-        this.$message.error("自动初始化失败: " + error.message);
+        this.$message.error(this.$t('scanBarCodeBatch.messages.autoInitFailed') + ": " + error.message);
       }
     },
 
@@ -1031,7 +1037,7 @@ export default {
         !this.formData.processStep ||
         !this.formData.productLine
       ) {
-        this.$message.warning("请选择产品型号、工序和产线");
+        this.$message.warning(this.$t('scanBarCodeBatch.messages.pleaseSelectProductProcessLine'));
         return;
       }
 
@@ -1074,7 +1080,7 @@ export default {
           this.processName = processStep.processName;
         }
 
-        this.$message.success("保存成功");
+        this.$message.success(this.$t('scanBarCodeBatch.messages.saveSuccess'));
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -1085,7 +1091,7 @@ export default {
         }, 500);
       } catch (error) {
         console.error("保存失败:", error);
-        this.$message.error("保存失败");
+        this.$message.error(this.$t('scanBarCodeBatch.messages.saveFailed'));
         loading.close(); // 确保在错误情况下关闭加载动画
       }
     },
@@ -1653,29 +1659,42 @@ export default {
     async handleUnifiedScan(value) {
       if (!value) return;
 
-      // 检查是否正在处理包装箱条码
-      if (this.isProcessingBox) {
-        this.$message.warning("正在处理包装箱条码，请等待处理完成...");
+      let cleanValue = value.trim().replace(/[\r\n]/g, "");
+      if (!cleanValue) return;
+
+      // 如果条码包含","，则取第一个逗号前的部分作为条码
+      if (cleanValue.includes(",")) {
+        cleanValue = cleanValue.split(",")[0];
+      }
+
+      // 添加条码处理锁定机制，防止并发重复提交
+      if (this.processingBarcodes.has(cleanValue)) {
+        this.$message.warning(`条码 ${cleanValue} 正在处理中，请勿重复扫描`);
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
         return;
       }
 
-      //当打印模板未选择时提醒
-      if (!this.$refs.hirInput.selectedTemplate) {
-        this.unifiedScanInput = "";
-        this.$refs.scanInput.focus();
-        this.$message.warning("请先选择打印模板");
-        return;
-      }
+      // 锁定当前条码
+      this.processingBarcodes.add(cleanValue);
+      
+      // 设置超时清理，防止异常情况下锁定无法释放
+      const timeoutId = setTimeout(() => {
+        this.processingBarcodes.delete(cleanValue);
+        this.requestTimeouts.delete(cleanValue);
+      }, 30000); // 30秒超时
+      
+      this.requestTimeouts.set(cleanValue, timeoutId);
 
       try {
-        let cleanValue = value.trim().replace(/[\r\n]/g, "");
-        if (!cleanValue) return;
+        // 检查是否正在处理包装箱条码
+        if (this.isProcessingBox) {
+          throw new Error("正在处理包装箱条码，请等待处理完成...");
+        }
 
-        // 如果条码包含","，则取第一个逗号前的部分作为条码
-        if (cleanValue.includes(",")) {
-          cleanValue = cleanValue.split(",")[0];
+        //当打印模板未选择时提醒
+        if (!this.$refs.hirInput.selectedTemplate) {
+          throw new Error("请先选择打印模板");
         }
 
         //查询是否有过托盘解绑记录
@@ -2045,6 +2064,19 @@ export default {
         this.showPopup = true;
         tone(tmyw);
       } finally {
+        // 清理条码锁定状态
+        if (cleanValue) {
+          // 清除处理锁定
+          this.processingBarcodes.delete(cleanValue);
+          
+          // 清除对应的超时器
+          const timeoutId = this.requestTimeouts.get(cleanValue);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            this.requestTimeouts.delete(cleanValue);
+          }
+        }
+        
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
       }

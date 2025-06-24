@@ -1,0 +1,3568 @@
+{
+    "_id": ObjectId("685267b77366ace1235e3579"),
+    "palletCode": "YDC-SN-1750230967170",
+    "saleOrderId": ObjectId("67dda931e4e960eee93213f1"),
+    "saleOrderNo": "2025-NO.ZMHD028",
+    "productionOrderId": ObjectId("67e2e284e4e960eee96449ef"),
+    "productionOrderNo": "MO2304423",
+    "processStepId": ObjectId("67db75795b07d8bc7a0fb7b7"),
+    "workOrders": [
+        {
+            "productionOrderId": ObjectId("67e2e284e4e960eee96449ef"),
+            "productionOrderNo": "MO2304423",
+            "workOrderNo": "P202505261748242263796",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("184"),
+            "_id": ObjectId("685267b77366ace1235e357a")
+        }
+    ],
+    "workOrderNo": "P202505261748242263796",
+    "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+    "productLineId": ObjectId("67c950ad922f3d3b13166817"),
+    "productLineName": "德昌追觅C线包装",
+    "materialId": ObjectId("67c5fc34ec33d3a13e3aae69"),
+    "materialCode": "1108301009",
+    "materialName": "P2306追觅折叠高速吹风机-东北欧版金色-单棒",
+    "materialSpec": " ",
+    "isLastPallet": false,
+    "status": "STACKING",
+    "inWarehouseStatus": "PENDING",
+    "repairStatus": "PENDING",
+    "totalQuantity": NumberInt("192"),
+    "boxCount": NumberInt("24"),
+    "barcodeCount": NumberInt("185"),
+    "boxItems": [
+        {
+            "boxBarcode": "1001998506001418",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852568c54a1f8ac1d643f8d"),
+                    "barcode": "P2306A54NEU0020126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:07.227Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526562805e17f40ef5aa67"),
+                    "barcode": "P2306A54NEU0259126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:07.682Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852656b805e17f40ef5affd"),
+                    "barcode": "P2306A54MEU0119126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:08.113Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526579805e17f40ef5b654"),
+                    "barcode": "P2306A54NEU0297126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:08.526Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526584805e17f40ef5b84e"),
+                    "barcode": "P2306A54NEU0516126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:08.977Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526592805e17f40ef5c378"),
+                    "barcode": "P2306A54NEU0546126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:09.409Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685265a1805e17f40ef5c55b"),
+                    "barcode": "P2306A54NEU0333126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:09.851Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685265b17366ace1235d38c4"),
+                    "barcode": "P2306A54NEU0548126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:10.281Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:07.227Z")
+        },
+        {
+            "boxBarcode": "1001998506001417",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68525418805e17f40ee5dd0b"),
+                    "barcode": "P2306A54NEU0060126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:13.427Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685254f654a1f8ac1d6336d0"),
+                    "barcode": "P2306A54NEU0102126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:13.853Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852552f805e17f40ee6471f"),
+                    "barcode": "P2306A54NEU0106126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:14.283Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525550805e17f40ee68439"),
+                    "barcode": "P2306A54NEU0032126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:14.713Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852556e54a1f8ac1d63594c"),
+                    "barcode": "P2306A54NEU0095126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:15.114Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685255a2805e17f40ee6f755"),
+                    "barcode": "P2306A54NEU0076126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:15.584Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852652a805e17f40ef5664d"),
+                    "barcode": "P2306A54NEU0843126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:16.106Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526546805e17f40ef59e9e"),
+                    "barcode": "P2306A54NEU0813126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:16.645Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:13.427Z")
+        },
+        {
+            "boxBarcode": "1001998506001416",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852549b54a1f8ac1d6273ec"),
+                    "barcode": "P2306A54NEU1045126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:20.085Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685254d554a1f8ac1d62fb4d"),
+                    "barcode": "P2306A54NEU1255126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:20.532Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525581805e17f40ee6d1f3"),
+                    "barcode": "P2306A54NEU0081126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:21.024Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264757366ace1235c706e"),
+                    "barcode": "P2306A54NEU0506126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:21.46Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526507805e17f40ef5150e"),
+                    "barcode": "P2306A54NEU0868126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:21.934Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526512805e17f40ef52e5a"),
+                    "barcode": "P2306A54NEU0853126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:22.348Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852651d805e17f40ef54de1"),
+                    "barcode": "P2306A54NEU0773126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:22.785Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852653b805e17f40ef585b7"),
+                    "barcode": "P2306A54NEU0282126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:23.219Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:20.085Z")
+        },
+        {
+            "boxBarcode": "1001998506001413",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68526365805e17f40ef4263f"),
+                    "barcode": "P2306A54NEU0016126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:26.282Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852638e805e17f40ef44b1e"),
+                    "barcode": "P2306A54NEU0291126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:26.747Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263b57366ace1235c065f"),
+                    "barcode": "P2306A54NEU0860126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:27.17Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263d37366ace1235c2b02"),
+                    "barcode": "P2306A54NEU0851126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:27.608Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263e2805e17f40ef48ce7"),
+                    "barcode": "P2306A54NEU0829126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:28.07Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263f2805e17f40ef4935b"),
+                    "barcode": "P2306A54NEU0789126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:28.497Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263ff805e17f40ef49847"),
+                    "barcode": "P2306A54NEU0894126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:28.983Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852640d805e17f40ef49bd2"),
+                    "barcode": "P2306A54NEU0848126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:29.427Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:26.282Z")
+        },
+        {
+            "boxBarcode": "1001998506001414",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68525594805e17f40ee6dba6"),
+                    "barcode": "P2306A54NEU0083126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:33.758Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852639a805e17f40ef45220"),
+                    "barcode": "P2306A54NEU0839126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:34.426Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852641b805e17f40ef4bb05"),
+                    "barcode": "P2306A54NEU0817126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:34.868Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852642c805e17f40ef4df9b"),
+                    "barcode": "P2306A54NEU0819126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:35.307Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852643b805e17f40ef4f682"),
+                    "barcode": "P2306A54NEU0827126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:35.758Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852644b7366ace1235c3595"),
+                    "barcode": "P2306A54NEU0837126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:36.172Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852645b7366ace1235c3731"),
+                    "barcode": "P2306A54NEU0588126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:36.606Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264847366ace1235c7be2"),
+                    "barcode": "P2306A54NEU0545126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:37.042Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:33.758Z")
+        },
+        {
+            "boxBarcode": "1001998506001415",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("685264697366ace1235c5466"),
+                    "barcode": "P2306A54NEU0571126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:40.35Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264937366ace1235c828e"),
+                    "barcode": "P2306A54NEU0824126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:40.852Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264a37366ace1235c8cec"),
+                    "barcode": "P2306A54NEU0498126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:41.36Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264b07366ace1235ca761"),
+                    "barcode": "P2306A54NEU0845126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:41.842Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264c07366ace1235cc67e"),
+                    "barcode": "P2306A54NEU0778126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:42.294Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264d67366ace1235cfc49"),
+                    "barcode": "P2306A54NEU0763126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:42.762Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264e17366ace1235d00e1"),
+                    "barcode": "P2306A54NEU0895126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:43.236Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685264ed7366ace1235d19d9"),
+                    "barcode": "P2306A54NEU0885126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:43.701Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:40.35Z")
+        },
+        {
+            "boxBarcode": "1001998506001410",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68526227805e17f40ef178dc"),
+                    "barcode": "P2306A54NEU0017126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:47.236Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852623a805e17f40ef2a8e9"),
+                    "barcode": "P2306A54NEU0096126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:47.704Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852625554a1f8ac1d6e6b94"),
+                    "barcode": "P2306A54NEU0050126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:48.194Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852626354a1f8ac1d6f28fa"),
+                    "barcode": "P2306A54NEU0105126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:48.651Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852627b54a1f8ac1d6f3290"),
+                    "barcode": "P2306A54NEU0052126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:49.121Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852628654a1f8ac1d6f374e"),
+                    "barcode": "P2306A54NEU0044126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:49.576Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262a4805e17f40ef3e36a"),
+                    "barcode": "P2306A54NEU0160126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:50.029Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262b47366ace1235b591f"),
+                    "barcode": "P2306A54NEU0038126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:50.497Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:47.236Z")
+        },
+        {
+            "boxBarcode": "1001998506001409",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68526149805e17f40eeab2aa"),
+                    "barcode": "P2306A54NEU1268126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:55.585Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852617b805e17f40eecfe07"),
+                    "barcode": "P2306A54NEU0818126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:56.028Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685261da805e17f40eef182e"),
+                    "barcode": "P2306A54NEU1175126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:56.481Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685261f254a1f8ac1d6d5179"),
+                    "barcode": "P2306A54NEU0043126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:56.981Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685261fe805e17f40eef67ec"),
+                    "barcode": "P2306A54NEU0039126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:57.588Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526211805e17f40ef0a9e4"),
+                    "barcode": "P2306A54NEU0072126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:58.065Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526231805e17f40ef206e7"),
+                    "barcode": "P2306A54NEU0085126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:58.561Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852624d805e17f40ef3e051"),
+                    "barcode": "P2306A54NEU0027126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:16:59.086Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:16:55.585Z")
+        },
+        {
+            "boxBarcode": "1001998506001407",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68525af954a1f8ac1d6723c1"),
+                    "barcode": "P2306A54NEU1212126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:02.794Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b4c54a1f8ac1d67bdd9"),
+                    "barcode": "P2306A54NEU1284126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:03.263Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b67805e17f40ee909dc"),
+                    "barcode": "P2306A54NEU1239126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:03.763Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b76805e17f40ee90fd4"),
+                    "barcode": "P2306A54NEU1289126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:04.236Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525bd7805e17f40ee999d9"),
+                    "barcode": "P2306A54NEU1221126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:04.726Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525bf4805e17f40ee9d42e"),
+                    "barcode": "P2306A54NEU1286126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:05.187Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525c7f805e17f40eea2e1b"),
+                    "barcode": "P2306A54NEU1259126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:05.649Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525c8f805e17f40eea333d"),
+                    "barcode": "P2306A54NEU1290126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:06.154Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:17:02.794Z")
+        },
+        {
+            "boxBarcode": "1001998506001406",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68525b5a805e17f40ee90510"),
+                    "barcode": "P2306A54NEU1210126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:13.646Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b8a805e17f40ee91904"),
+                    "barcode": "P2306A54NEU1262126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:14.444Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525ba0805e17f40ee951f7"),
+                    "barcode": "P2306A54NEU1276126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:15.033Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525bb6805e17f40ee988f3"),
+                    "barcode": "P2306A54NEU1278126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:15.605Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525be3805e17f40ee9a003"),
+                    "barcode": "P2306A54NEU1277126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:16.055Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525c00805e17f40ee9ec48"),
+                    "barcode": "P2306A54NEU1274126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:16.481Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525c0b805e17f40ee9f4ea"),
+                    "barcode": "P2306A54NEU1247126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:16.915Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525c2054a1f8ac1d67c236"),
+                    "barcode": "P2306A54NEU1240126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:17.394Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:17:13.646Z")
+        },
+        {
+            "boxBarcode": "1001998506001406",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68525b5a805e17f40ee90510"),
+                    "barcode": "P2306A54NEU1210126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:13.86Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("1"),
+            "scanTime": ISODate("2025-06-18T07:17:13.86Z")
+        },
+        {
+            "boxBarcode": "1001998506001398",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852584554a1f8ac1d64cca5"),
+                    "barcode": "P2306A54NEU0008126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:22.828Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525895805e17f40ee7eb0b"),
+                    "barcode": "P2306A54NEU0031126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:23.315Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685258ae805e17f40ee7f710"),
+                    "barcode": "P2306A54NEU1136126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:23.821Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685258bc805e17f40ee7fc08"),
+                    "barcode": "P2306A54NEU0088126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:24.34Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685258cf805e17f40ee80828"),
+                    "barcode": "P2306A54NEU1103126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:24.825Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685258f354a1f8ac1d652de6"),
+                    "barcode": "P2306A54NEU1107126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:25.335Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685258fb54a1f8ac1d6531fc"),
+                    "barcode": "P2306A54NEU1154126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:25.858Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852590854a1f8ac1d654ed8"),
+                    "barcode": "P2306A54NEU1101126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:26.375Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:17:22.828Z")
+        },
+        {
+            "boxBarcode": "1001998506001405",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852565854a1f8ac1d64009a"),
+                    "barcode": "P2306A54NEU1237126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:32.772Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525abb54a1f8ac1d66c391"),
+                    "barcode": "P2306A54NEU1169126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:33.251Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525ad954a1f8ac1d66fcf9"),
+                    "barcode": "P2306A54NEU1256126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:33.772Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b2154a1f8ac1d67627c"),
+                    "barcode": "P2306A54NEU1273126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:34.259Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b3a54a1f8ac1d678552"),
+                    "barcode": "P2306A54NEU0570126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:34.761Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b96805e17f40ee93531"),
+                    "barcode": "P2306A54NEU1258126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:35.315Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525bac805e17f40ee96abc"),
+                    "barcode": "P2306A54NEU1280126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:35.803Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525bc2805e17f40ee990a7"),
+                    "barcode": "P2306A54NEU1254126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:36.297Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:17:32.772Z")
+        },
+        {
+            "boxBarcode": "1001998506001402",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852562a54a1f8ac1d63d3f7"),
+                    "barcode": "P2306A54NEU0089126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:43.251Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685259e554a1f8ac1d65f029"),
+                    "barcode": "P2306A54NEU1238126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:43.74Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a0054a1f8ac1d660d29"),
+                    "barcode": "P2306A54NEU1270126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:44.237Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a0d54a1f8ac1d66295b"),
+                    "barcode": "P2306A54NEU1114126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:44.788Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a15805e17f40ee84e93"),
+                    "barcode": "P2306A54NEU1285126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:45.296Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a3f805e17f40ee8a42d"),
+                    "barcode": "P2306A54NEU1224126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:45.806Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a67805e17f40ee8e3ad"),
+                    "barcode": "P2306A54NEU1217126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:46.282Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a7a54a1f8ac1d66357c"),
+                    "barcode": "P2306A54NEU1249126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:46.814Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:17:43.251Z")
+        },
+        {
+            "boxBarcode": "1001998506001401",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("685253a654a1f8ac1d61e2d2"),
+                    "barcode": "P2306A54NEU1017126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:55.439Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685253ae54a1f8ac1d61e357"),
+                    "barcode": "P2306A54NEU1061126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:55.928Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685253b754a1f8ac1d61e7fd"),
+                    "barcode": "P2306A54NEU0023126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:56.399Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685253cc54a1f8ac1d61eece"),
+                    "barcode": "P2306A54NEU1225126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:56.928Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685256da54a1f8ac1d649cb2"),
+                    "barcode": "P2306A54NEU0361126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:57.433Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685259a554a1f8ac1d65a2db"),
+                    "barcode": "P2306A54NEU0555126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:58.012Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685259d354a1f8ac1d65d2c0"),
+                    "barcode": "P2306A54NEU1246126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:58.477Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685259f254a1f8ac1d660b1e"),
+                    "barcode": "P2306A54NEU1272126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:17:59.027Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:17:55.439Z")
+        },
+        {
+            "boxBarcode": "1001998506001399",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852587c805e17f40ee7cd37"),
+                    "barcode": "P2306A54NEU0086126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:05.919Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685258da805e17f40ee81fb8"),
+                    "barcode": "P2306A54NEU1148126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:06.426Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852591554a1f8ac1d6569f3"),
+                    "barcode": "P2306A54NEU1135126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:06.931Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525922805e17f40ee83bd5"),
+                    "barcode": "P2306A54NEU0195126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:07.481Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525937805e17f40ee84485"),
+                    "barcode": "P2306A54NEU1191126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:08.053Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852594154a1f8ac1d657152"),
+                    "barcode": "P2306A54NEU0054126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:08.614Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852595c54a1f8ac1d6578aa"),
+                    "barcode": "P2306A54NEU0030126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:09.133Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852597a54a1f8ac1d658ad0"),
+                    "barcode": "P2306A54NEU1141126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:09.651Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:18:05.919Z")
+        },
+        {
+            "boxBarcode": "1001998506001403",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("685255e554a1f8ac1d6375a1"),
+                    "barcode": "P2306A54NEU0058126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:29.174Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852560754a1f8ac1d63c348"),
+                    "barcode": "P2306A54NEU0084126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:29.76Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852568554a1f8ac1d64270d"),
+                    "barcode": "P2306A54NEU0034126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:30.308Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852569554a1f8ac1d64468d"),
+                    "barcode": "P2306A54NEU0015126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:30.812Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a8854a1f8ac1d666441"),
+                    "barcode": "P2306A54NEU1252126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:31.335Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525a9754a1f8ac1d668409"),
+                    "barcode": "P2306A54NEU1196126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:31.923Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525ac854a1f8ac1d66de22"),
+                    "barcode": "P2306A54NEU0593126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:32.419Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525ae454a1f8ac1d67163d"),
+                    "barcode": "P2306A54NEU1250126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:32.928Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:18:29.174Z")
+        },
+        {
+            "boxBarcode": "1001998506001404",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("685255ae54a1f8ac1d6362be"),
+                    "barcode": "P2306A54NEU0524126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:41.38Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685255ca54a1f8ac1d636b48"),
+                    "barcode": "P2306A54NEU0051126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:41.893Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852566e54a1f8ac1d64086d"),
+                    "barcode": "P2306A54NEU0090126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:42.44Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685256ad54a1f8ac1d644db3"),
+                    "barcode": "P2306A54NEU0048126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:42.95Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685256bc54a1f8ac1d64674c"),
+                    "barcode": "P2306A54NEU1102126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:43.476Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b0254a1f8ac1d6727de"),
+                    "barcode": "P2306A54NEU0162126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:43.975Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b1854a1f8ac1d67478a"),
+                    "barcode": "P2306A54NEU1243126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:44.547Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525b2b54a1f8ac1d676728"),
+                    "barcode": "P2306A54NEU1264126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:45.046Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:18:41.38Z")
+        },
+        {
+            "boxBarcode": "1001998506001400",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("685256b354a1f8ac1d644ed2"),
+                    "barcode": "P2306A54NEU1118126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:52.062Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685256cc54a1f8ac1d64829b"),
+                    "barcode": "P2306A54NEU0078126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:52.571Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852585854a1f8ac1d64ede5"),
+                    "barcode": "P2306A54NEU0014126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:53.097Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852594c805e17f40ee8493c"),
+                    "barcode": "P2306A54NEU0073126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:53.638Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852598854a1f8ac1d659339"),
+                    "barcode": "P2306A54NEU1187126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:54.236Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852599754a1f8ac1d659c18"),
+                    "barcode": "P2306A54NEU0011126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:54.753Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685259b454a1f8ac1d65c374"),
+                    "barcode": "P2306A54NEU0790126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:55.288Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685259c354a1f8ac1d65ca7f"),
+                    "barcode": "P2306A54NEU1137126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:18:55.803Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:18:52.062Z")
+        },
+        {
+            "boxBarcode": "1001998506001412",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852630a7366ace1235b9ead"),
+                    "barcode": "P2306A54NEU0101126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:03.437Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263157366ace1235ba23b"),
+                    "barcode": "P2306A54NEU0093126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:03.958Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852633c805e17f40ef4117d"),
+                    "barcode": "P2306A54NEU0059126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:04.474Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526359805e17f40ef42060"),
+                    "barcode": "P2306A54NEU0021126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:04.998Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263737366ace1235be93b"),
+                    "barcode": "P2306A54NEU1253126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:05.526Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526381805e17f40ef42f04"),
+                    "barcode": "P2306A54NEU0242126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:06.024Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263a6805e17f40ef46ccd"),
+                    "barcode": "P2306A54NEU0275126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:06.535Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263c87366ace1235c257d"),
+                    "barcode": "P2306A54NEU0800126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:07.08Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:19:03.437Z")
+        },
+        {
+            "boxBarcode": "1001998506001411",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852629554a1f8ac1d6f690d"),
+                    "barcode": "P2306A54NEU0513126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:14.187Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262c17366ace1235b5e29"),
+                    "barcode": "P2306A54NEU0037126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:14.692Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262d3805e17f40ef3ff6f"),
+                    "barcode": "P2306A54NEU1287126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:15.25Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262de805e17f40ef403df"),
+                    "barcode": "P2306A54NEU0094126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:15.8Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262ee7366ace1235b7c22"),
+                    "barcode": "P2306A54NEU0149126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:16.42Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685262fd7366ace1235b98a4"),
+                    "barcode": "P2306A54NEU0069126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:17.008Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685263227366ace1235bbe2c"),
+                    "barcode": "P2306A54NEU0091126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:17.605Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852632e7366ace1235bdd93"),
+                    "barcode": "P2306A54NEU0042126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:18.17Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:19:14.187Z")
+        },
+        {
+            "boxBarcode": "1001998506001408",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("68525b1054a1f8ac1d672eba"),
+                    "barcode": "P2306A54NEU1288126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:26.508Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525cac805e17f40eea6f25"),
+                    "barcode": "P2306A54NEU1215126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:27.078Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525cb9805e17f40eea7590"),
+                    "barcode": "P2306A54NEU1251126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:27.697Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68525cc9805e17f40eea7dfe"),
+                    "barcode": "P2306A54NEU1261126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:28.323Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852615c805e17f40eead252"),
+                    "barcode": "P2306A54NEU1234126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:28.888Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("6852616b805e17f40eeb8a86"),
+                    "barcode": "P2306A54NEU0277126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:29.483Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526188805e17f40eedf150"),
+                    "barcode": "P2306A54NEU1207126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:30.037Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685261e654a1f8ac1d6c9ba0"),
+                    "barcode": "P2306A54NEU0064126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:30.613Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:19:26.508Z")
+        },
+        {
+            "boxBarcode": "1001998506001419",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("685265c57366ace1235d6f04"),
+                    "barcode": "P2306A54NEU0565126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:38.349Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685265d07366ace1235d756d"),
+                    "barcode": "P2306A54NEU0274126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:38.895Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685265eb805e17f40ef5d4bb"),
+                    "barcode": "P2306A54NEU0316126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:39.557Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526600805e17f40ef5fc66"),
+                    "barcode": "P2306A54NEU0289126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:40.105Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526619805e17f40ef6201b"),
+                    "barcode": "P2306A54NEU0500126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:40.698Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526627805e17f40ef626cc"),
+                    "barcode": "P2306A54NEU0816126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:41.27Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526637805e17f40ef643d3"),
+                    "barcode": "P2306A54NEU0840126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:41.812Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526647805e17f40ef678f3"),
+                    "barcode": "P2306A54NEU0098126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:42.357Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:19:38.349Z")
+        },
+        {
+            "boxBarcode": "1001998506001420",
+            "boxBarcodes": [
+                {
+                    "materialProcessFlowId": ObjectId("6852660e805e17f40ef61a73"),
+                    "barcode": "P2306A54NEU0348126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:50.019Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526658805e17f40ef69bab"),
+                    "barcode": "P2306A54NEU1133126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:50.567Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526666805e17f40ef6b5b5"),
+                    "barcode": "P2306A54NEU1151126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:51.25Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526672805e17f40ef6d0d1"),
+                    "barcode": "P2306A54NEU1377126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:51.832Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("68526697805e17f40ef70f37"),
+                    "barcode": "P2306A54NEU0803126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:52.368Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685266a8805e17f40ef72f43"),
+                    "barcode": "P2306A54NEU0478126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:53.051Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685266b9805e17f40ef73ab1"),
+                    "barcode": "P2306A54NEU0884126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:53.602Z")
+                },
+                {
+                    "materialProcessFlowId": ObjectId("685266d77366ace1235d9976"),
+                    "barcode": "P2306A54NEU0802126",
+                    "barcodeType": "MAIN",
+                    "scanTime": ISODate("2025-06-18T07:19:54.245Z")
+                }
+            ],
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "quantity": NumberInt("8"),
+            "scanTime": ISODate("2025-06-18T07:19:50.019Z")
+        }
+    ],
+    "palletBarcodes": [
+        {
+            "materialProcessFlowId": ObjectId("6852568c54a1f8ac1d643f8d"),
+            "barcode": "P2306A54NEU0020126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:07.225Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b77366ace1235e357d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526562805e17f40ef5aa67"),
+            "barcode": "P2306A54NEU0259126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:07.682Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b77366ace1235e48bb")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852656b805e17f40ef5affd"),
+            "barcode": "P2306A54MEU0119126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:08.113Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b87366ace1235e5c3d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526579805e17f40ef5b654"),
+            "barcode": "P2306A54NEU0297126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:08.526Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b87366ace1235e6f8e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526584805e17f40ef5b84e"),
+            "barcode": "P2306A54NEU0516126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:08.976Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b87366ace1235e82f0")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526592805e17f40ef5c378"),
+            "barcode": "P2306A54NEU0546126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:09.409Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b97366ace1235e9642")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685265a1805e17f40ef5c55b"),
+            "barcode": "P2306A54NEU0333126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:09.85Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267b97366ace1235ea990")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685265b17366ace1235d38c4"),
+            "barcode": "P2306A54NEU0548126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:10.281Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ba7366ace1235ebce8")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525418805e17f40ee5dd0b"),
+            "barcode": "P2306A54NEU0060126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:13.427Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267bd7366ace1235ed0c5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685254f654a1f8ac1d6336d0"),
+            "barcode": "P2306A54NEU0102126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:13.852Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267bd7366ace1235ee41c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852552f805e17f40ee6471f"),
+            "barcode": "P2306A54NEU0106126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:14.283Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267be7366ace1235ef776")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525550805e17f40ee68439"),
+            "barcode": "P2306A54NEU0032126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:14.712Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267be7366ace1235f0ad3")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852556e54a1f8ac1d63594c"),
+            "barcode": "P2306A54NEU0095126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:15.113Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267bf7366ace1235f1edf")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685255a2805e17f40ee6f755"),
+            "barcode": "P2306A54NEU0076126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:15.583Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267bf7366ace1235f3242")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852652a805e17f40ef5664d"),
+            "barcode": "P2306A54NEU0843126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:16.105Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c07366ace1235f46dd")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526546805e17f40ef59e9e"),
+            "barcode": "P2306A54NEU0813126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:16.643Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c0f406eca10c4620b1")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852549b54a1f8ac1d6273ec"),
+            "barcode": "P2306A54NEU1045126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:20.084Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c47366ace1235f72f7")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685254d554a1f8ac1d62fb4d"),
+            "barcode": "P2306A54NEU1255126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:20.531Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c47366ace1235f8666")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525581805e17f40ee6d1f3"),
+            "barcode": "P2306A54NEU0081126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:21.024Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c57366ace1235f99d8")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264757366ace1235c706e"),
+            "barcode": "P2306A54NEU0506126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:21.459Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c57366ace1235fad4d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526507805e17f40ef5150e"),
+            "barcode": "P2306A54NEU0868126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:21.934Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c57366ace1235fc0d9")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526512805e17f40ef52e5a"),
+            "barcode": "P2306A54NEU0853126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:22.348Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c67366ace1235fd514")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852651d805e17f40ef54de1"),
+            "barcode": "P2306A54NEU0773126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:22.784Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c67366ace1235fe898")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852653b805e17f40ef585b7"),
+            "barcode": "P2306A54NEU0282126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:23.219Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267c77366ace1235ffc3a")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526365805e17f40ef4263f"),
+            "barcode": "P2306A54NEU0016126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:26.281Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ca7366ace12360104d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852638e805e17f40ef44b1e"),
+            "barcode": "P2306A54NEU0291126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:26.747Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ca7366ace12360246d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263b57366ace1235c065f"),
+            "barcode": "P2306A54NEU0860126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:27.17Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267cb7366ace123603802")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263d37366ace1235c2b02"),
+            "barcode": "P2306A54NEU0851126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:27.608Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267cb7366ace123604b96")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263e2805e17f40ef48ce7"),
+            "barcode": "P2306A54NEU0829126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:28.07Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267cc7366ace123605f33")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263f2805e17f40ef4935b"),
+            "barcode": "P2306A54NEU0789126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:28.497Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267cc7366ace1236072c6")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263ff805e17f40ef49847"),
+            "barcode": "P2306A54NEU0894126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:28.982Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267cc7366ace12360865c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852640d805e17f40ef49bd2"),
+            "barcode": "P2306A54NEU0848126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:29.426Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267cd7366ace1236099f5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525594805e17f40ee6dba6"),
+            "barcode": "P2306A54NEU0083126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:33.758Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d17366ace12360bb0c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852639a805e17f40ef45220"),
+            "barcode": "P2306A54NEU0839126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:34.426Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d27366ace12360db0b")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852641b805e17f40ef4bb05"),
+            "barcode": "P2306A54NEU0817126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:34.868Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d27366ace12360eec7")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852642c805e17f40ef4df9b"),
+            "barcode": "P2306A54NEU0819126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:35.307Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d37366ace12361026c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852643b805e17f40ef4f682"),
+            "barcode": "P2306A54NEU0827126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:35.758Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d37366ace123611628")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852644b7366ace1235c3595"),
+            "barcode": "P2306A54NEU0837126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:36.172Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d47366ace123612a0e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852645b7366ace1235c3731"),
+            "barcode": "P2306A54NEU0588126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:36.606Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d47366ace123613eee")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264847366ace1235c7be2"),
+            "barcode": "P2306A54NEU0545126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:37.042Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d57366ace12361529f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264697366ace1235c5466"),
+            "barcode": "P2306A54NEU0571126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:40.35Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d87366ace1236166d5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264937366ace1235c828e"),
+            "barcode": "P2306A54NEU0824126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:40.851Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d87366ace123617b3d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264a37366ace1235c8cec"),
+            "barcode": "P2306A54NEU0498126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:41.359Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d97366ace123618f2e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264b07366ace1235ca761"),
+            "barcode": "P2306A54NEU0845126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:41.842Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267d97366ace12361a2eb")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264c07366ace1235cc67e"),
+            "barcode": "P2306A54NEU0778126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:42.294Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267da7366ace12361b6ab")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264d67366ace1235cfc49"),
+            "barcode": "P2306A54NEU0763126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:42.762Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267da7366ace12361ca7b")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264e17366ace1235d00e1"),
+            "barcode": "P2306A54NEU0895126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:43.235Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267db7366ace12361df73")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685264ed7366ace1235d19d9"),
+            "barcode": "P2306A54NEU0885126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:43.7Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267db7366ace12361f33c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526227805e17f40ef178dc"),
+            "barcode": "P2306A54NEU0017126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:47.235Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267df7366ace12362074b")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852623a805e17f40ef2a8e9"),
+            "barcode": "P2306A54NEU0096126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:47.704Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267df7366ace123621b1a")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852625554a1f8ac1d6e6b94"),
+            "barcode": "P2306A54NEU0050126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:48.194Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e07366ace123622eec")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852626354a1f8ac1d6f28fa"),
+            "barcode": "P2306A54NEU0105126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:48.651Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e07366ace1236242cc")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852627b54a1f8ac1d6f3290"),
+            "barcode": "P2306A54NEU0052126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:49.121Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e17366ace1236256a6")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852628654a1f8ac1d6f374e"),
+            "barcode": "P2306A54NEU0044126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:49.575Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e17366ace123626a81")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262a4805e17f40ef3e36a"),
+            "barcode": "P2306A54NEU0160126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:50.029Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e27366ace123627e5f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262b47366ace1235b591f"),
+            "barcode": "P2306A54NEU0038126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:50.497Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e27366ace123629240")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526149805e17f40eeab2aa"),
+            "barcode": "P2306A54NEU1268126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:55.585Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e77366ace12362be38")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852617b805e17f40eecfe07"),
+            "barcode": "P2306A54NEU0818126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:56.028Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e87366ace12362d249")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685261da805e17f40eef182e"),
+            "barcode": "P2306A54NEU1175126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:56.48Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e87366ace12362e640")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685261f254a1f8ac1d6d5179"),
+            "barcode": "P2306A54NEU0043126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:56.981Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e87366ace12362fa3f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685261fe805e17f40eef67ec"),
+            "barcode": "P2306A54NEU0039126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:57.587Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267e97366ace123630f96")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526211805e17f40ef0a9e4"),
+            "barcode": "P2306A54NEU0072126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:58.064Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ea7366ace1236323a5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526231805e17f40ef206e7"),
+            "barcode": "P2306A54NEU0085126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:58.561Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ea7366ace1236337b7")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852624d805e17f40ef3e051"),
+            "barcode": "P2306A54NEU0027126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:16:59.085Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267eb7366ace123634e11")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525af954a1f8ac1d6723c1"),
+            "barcode": "P2306A54NEU1212126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:02.794Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ee7366ace12363658f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b4c54a1f8ac1d67bdd9"),
+            "barcode": "P2306A54NEU1284126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:03.263Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ef7366ace12363799d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b67805e17f40ee909dc"),
+            "barcode": "P2306A54NEU1239126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:03.763Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267ef7366ace123638e47")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b76805e17f40ee90fd4"),
+            "barcode": "P2306A54NEU1289126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:04.235Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f07366ace12363a24c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525bd7805e17f40ee999d9"),
+            "barcode": "P2306A54NEU1221126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:04.725Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f07366ace12363b654")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525bf4805e17f40ee9d42e"),
+            "barcode": "P2306A54NEU1286126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:05.186Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f17366ace12363ca5f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525c7f805e17f40eea2e1b"),
+            "barcode": "P2306A54NEU1259126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:05.649Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f17366ace12363de6d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525c8f805e17f40eea333d"),
+            "barcode": "P2306A54NEU1290126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:06.153Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f27366ace12363f27e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b5a805e17f40ee90510"),
+            "barcode": "P2306A54NEU1210126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:13.645Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f97366ace1236407e4")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b5a805e17f40ee90510"),
+            "barcode": "P2306A54NEU1210126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:13.859Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267f97366ace123641b9c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b8a805e17f40ee91904"),
+            "barcode": "P2306A54NEU1262126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:14.443Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fa7366ace1236439f3")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525ba0805e17f40ee951f7"),
+            "barcode": "P2306A54NEU1276126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:15.033Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fb7366ace123645800")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525bb6805e17f40ee988f3"),
+            "barcode": "P2306A54NEU1278126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:15.605Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fb7366ace123646df2")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525be3805e17f40ee9a003"),
+            "barcode": "P2306A54NEU1277126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:16.055Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fc7366ace123648224")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525c00805e17f40ee9ec48"),
+            "barcode": "P2306A54NEU1274126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:16.48Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fc7366ace12364964a")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525c0b805e17f40ee9f4ea"),
+            "barcode": "P2306A54NEU1247126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:16.915Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fc7366ace12364aa73")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525c2054a1f8ac1d67c236"),
+            "barcode": "P2306A54NEU1240126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:17.394Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685267fd7366ace12364beb4")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852584554a1f8ac1d64cca5"),
+            "barcode": "P2306A54NEU0008126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:22.828Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268027366ace12364d491")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525895805e17f40ee7eb0b"),
+            "barcode": "P2306A54NEU0031126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:23.315Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268037366ace12364e8c3")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685258ae805e17f40ee7f710"),
+            "barcode": "P2306A54NEU1136126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:23.821Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268037366ace12364fd02")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685258bc805e17f40ee7fc08"),
+            "barcode": "P2306A54NEU0088126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:24.339Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268047366ace12365115d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685258cf805e17f40ee80828"),
+            "barcode": "P2306A54NEU1103126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:24.825Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268047366ace1236525a2")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685258f354a1f8ac1d652de6"),
+            "barcode": "P2306A54NEU1107126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:25.335Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268057366ace1236539fa")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685258fb54a1f8ac1d6531fc"),
+            "barcode": "P2306A54NEU1154126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:25.858Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268057366ace123654e43")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852590854a1f8ac1d654ed8"),
+            "barcode": "P2306A54NEU1101126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:26.375Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268067366ace123656347")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852565854a1f8ac1d64009a"),
+            "barcode": "P2306A54NEU1237126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:32.772Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680c7366ace123657c07")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525abb54a1f8ac1d66c391"),
+            "barcode": "P2306A54NEU1169126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:33.25Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680d7366ace12365905f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525ad954a1f8ac1d66fcf9"),
+            "barcode": "P2306A54NEU1256126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:33.772Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680d7366ace12365a602")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b2154a1f8ac1d67627c"),
+            "barcode": "P2306A54NEU1273126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:34.259Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680e7366ace12365ba52")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b3a54a1f8ac1d678552"),
+            "barcode": "P2306A54NEU0570126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:34.761Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680e7366ace12365cea8")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b96805e17f40ee93531"),
+            "barcode": "P2306A54NEU1258126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:35.315Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680f7366ace12365e31d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525bac805e17f40ee96abc"),
+            "barcode": "P2306A54NEU1280126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:35.803Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852680f7366ace12365f776")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525bc2805e17f40ee990a7"),
+            "barcode": "P2306A54NEU1254126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:36.297Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268107366ace123660c29")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852562a54a1f8ac1d63d3f7"),
+            "barcode": "P2306A54NEU0089126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:43.251Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268177366ace1236623e7")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685259e554a1f8ac1d65f029"),
+            "barcode": "P2306A54NEU1238126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:43.74Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268177366ace123663849")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a0054a1f8ac1d660d29"),
+            "barcode": "P2306A54NEU1270126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:44.237Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268187366ace123664cae")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a0d54a1f8ac1d66295b"),
+            "barcode": "P2306A54NEU1114126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:44.788Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268187366ace12366611d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a15805e17f40ee84e93"),
+            "barcode": "P2306A54NEU1285126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:45.296Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268197366ace12366763c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a3f805e17f40ee8a42d"),
+            "barcode": "P2306A54NEU1224126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:45.806Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268197366ace123668ab1")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a67805e17f40ee8e3ad"),
+            "barcode": "P2306A54NEU1217126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:46.281Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852681a7366ace123669f22")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a7a54a1f8ac1d66357c"),
+            "barcode": "P2306A54NEU1249126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:46.813Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852681a7366ace12366b396")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685253a654a1f8ac1d61e2d2"),
+            "barcode": "P2306A54NEU1017126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:55.439Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268237366ace12366cb40")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685253ae54a1f8ac1d61e357"),
+            "barcode": "P2306A54NEU1061126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:55.928Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268237366ace12366dfba")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685253b754a1f8ac1d61e7fd"),
+            "barcode": "P2306A54NEU0023126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:56.399Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268247366ace12366f4e6")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685253cc54a1f8ac1d61eece"),
+            "barcode": "P2306A54NEU1225126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:56.928Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268247366ace123670a9b")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685256da54a1f8ac1d649cb2"),
+            "barcode": "P2306A54NEU0361126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:57.433Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268257366ace123671f2d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685259a554a1f8ac1d65a2db"),
+            "barcode": "P2306A54NEU0555126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:58.012Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268267366ace1236735d5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685259d354a1f8ac1d65d2c0"),
+            "barcode": "P2306A54NEU1246126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:58.477Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268267366ace123674b11")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685259f254a1f8ac1d660b1e"),
+            "barcode": "P2306A54NEU1272126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:17:59.026Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268277366ace123675f9d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852587c805e17f40ee7cd37"),
+            "barcode": "P2306A54NEU0086126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:05.918Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852682d7366ace123678f94")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685258da805e17f40ee81fb8"),
+            "barcode": "P2306A54NEU1148126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:06.426Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852682e7366ace12367a426")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852591554a1f8ac1d6569f3"),
+            "barcode": "P2306A54NEU1135126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:06.931Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852682e7366ace12367b8bb")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525922805e17f40ee83bd5"),
+            "barcode": "P2306A54NEU0195126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:07.48Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852682f7366ace12367cd63")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525937805e17f40ee84485"),
+            "barcode": "P2306A54NEU1191126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:08.052Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268307366ace12367e2a9")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852594154a1f8ac1d657152"),
+            "barcode": "P2306A54NEU0054126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:08.614Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268307366ace12367f884")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852595c54a1f8ac1d6578aa"),
+            "barcode": "P2306A54NEU0030126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:09.133Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268317366ace123680d25")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852597a54a1f8ac1d658ad0"),
+            "barcode": "P2306A54NEU1141126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:09.651Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268317366ace1236821d6")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685255e554a1f8ac1d6375a1"),
+            "barcode": "P2306A54NEU0058126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:29.174Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268457366ace123685699")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852560754a1f8ac1d63c348"),
+            "barcode": "P2306A54NEU0084126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:29.76Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268457366ace123686b55")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852568554a1f8ac1d64270d"),
+            "barcode": "P2306A54NEU0034126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:30.308Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268467366ace12368800c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852569554a1f8ac1d64468d"),
+            "barcode": "P2306A54NEU0015126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:30.811Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268467366ace12368955c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a8854a1f8ac1d666441"),
+            "barcode": "P2306A54NEU1252126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:31.334Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268477366ace12368aa18")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525a9754a1f8ac1d668409"),
+            "barcode": "P2306A54NEU1196126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:31.923Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268477366ace12368bf7e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525ac854a1f8ac1d66de22"),
+            "barcode": "P2306A54NEU0593126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:32.418Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268487366ace12368d437")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525ae454a1f8ac1d67163d"),
+            "barcode": "P2306A54NEU1250126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:32.928Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268487366ace12368e8fa")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685255ae54a1f8ac1d6362be"),
+            "barcode": "P2306A54NEU0524126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:41.38Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268517366ace123690148")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685255ca54a1f8ac1d636b48"),
+            "barcode": "P2306A54NEU0051126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:41.893Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268517366ace12369160a")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852566e54a1f8ac1d64086d"),
+            "barcode": "P2306A54NEU0090126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:42.44Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268527366ace123692acf")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685256ad54a1f8ac1d644db3"),
+            "barcode": "P2306A54NEU0048126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:42.95Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268527366ace123693f9e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685256bc54a1f8ac1d64674c"),
+            "barcode": "P2306A54NEU1102126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:43.476Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268537366ace123695470")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b0254a1f8ac1d6727de"),
+            "barcode": "P2306A54NEU0162126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:43.975Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268537366ace12369693e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b1854a1f8ac1d67478a"),
+            "barcode": "P2306A54NEU1243126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:44.547Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268547366ace123697eb9")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b2b54a1f8ac1d676728"),
+            "barcode": "P2306A54NEU1264126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:45.046Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268557366ace1236993b2")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685256b354a1f8ac1d644ed2"),
+            "barcode": "P2306A54NEU1118126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:52.062Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685c7366ace12369acb5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685256cc54a1f8ac1d64829b"),
+            "barcode": "P2306A54NEU0078126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:52.57Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685c7366ace12369c18f")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852585854a1f8ac1d64ede5"),
+            "barcode": "P2306A54NEU0014126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:53.096Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685d7366ace12369d680")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852594c805e17f40ee8493c"),
+            "barcode": "P2306A54NEU0073126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:53.638Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685d7366ace12369eb67")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852598854a1f8ac1d659339"),
+            "barcode": "P2306A54NEU1187126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:54.235Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685e7366ace1236a005e")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852599754a1f8ac1d659c18"),
+            "barcode": "P2306A54NEU0011126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:54.753Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685e7366ace1236a1544")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685259b454a1f8ac1d65c374"),
+            "barcode": "P2306A54NEU0790126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:55.288Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685f7366ace1236a2a34")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685259c354a1f8ac1d65ca7f"),
+            "barcode": "P2306A54NEU1137126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:18:55.803Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852685f7366ace1236a4051")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852630a7366ace1235b9ead"),
+            "barcode": "P2306A54NEU0101126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:03.437Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268677366ace1236a58fb")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263157366ace1235ba23b"),
+            "barcode": "P2306A54NEU0093126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:03.957Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268677366ace1236a6df4")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852633c805e17f40ef4117d"),
+            "barcode": "P2306A54NEU0059126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:04.473Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268687366ace1236a82e9")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526359805e17f40ef42060"),
+            "barcode": "P2306A54NEU0021126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:04.997Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268687366ace1236a97e1")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263737366ace1235be93b"),
+            "barcode": "P2306A54NEU1253126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:05.526Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268697366ace1236aacf4")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526381805e17f40ef42f04"),
+            "barcode": "P2306A54NEU0242126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:06.024Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852686a7366ace1236ac207")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263a6805e17f40ef46ccd"),
+            "barcode": "P2306A54NEU0275126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:06.535Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852686a7366ace1236ad708")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263c87366ace1235c257d"),
+            "barcode": "P2306A54NEU0800126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:07.079Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852686b7366ace1236aec13")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852629554a1f8ac1d6f690d"),
+            "barcode": "P2306A54NEU0513126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:14.186Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268727366ace1236b02be")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262c17366ace1235b5e29"),
+            "barcode": "P2306A54NEU0037126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:14.692Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268727366ace1236b17f5")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262d3805e17f40ef3ff6f"),
+            "barcode": "P2306A54NEU1287126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:15.249Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268737366ace1236b2d02")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262de805e17f40ef403df"),
+            "barcode": "P2306A54NEU0094126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:15.8Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268737366ace1236b4219")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262ee7366ace1235b7c22"),
+            "barcode": "P2306A54NEU0149126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:16.42Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268747366ace1236b5741")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685262fd7366ace1235b98a4"),
+            "barcode": "P2306A54NEU0069126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:17.008Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("68526875f406eca10c46359d")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685263227366ace1235bbe2c"),
+            "barcode": "P2306A54NEU0091126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:17.604Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("68526875f406eca10c464ae1")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852632e7366ace1235bdd93"),
+            "barcode": "P2306A54NEU0042126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:18.17Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("68526876f406eca10c465ffd")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525b1054a1f8ac1d672eba"),
+            "barcode": "P2306A54NEU1288126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:26.508Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852687e7366ace1236b7237")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525cac805e17f40eea6f25"),
+            "barcode": "P2306A54NEU1215126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:27.077Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852687f7366ace1236b8760")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525cb9805e17f40eea7590"),
+            "barcode": "P2306A54NEU1251126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:27.697Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852687f7366ace1236b9d40")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68525cc9805e17f40eea7dfe"),
+            "barcode": "P2306A54NEU1261126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:28.323Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268807366ace1236bb268")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852615c805e17f40eead252"),
+            "barcode": "P2306A54NEU1234126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:28.888Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268807366ace1236bc793")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852616b805e17f40eeb8a86"),
+            "barcode": "P2306A54NEU0277126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:29.483Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268817366ace1236bdd05")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526188805e17f40eedf150"),
+            "barcode": "P2306A54NEU1207126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:30.037Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268827366ace1236bf38b")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685261e654a1f8ac1d6c9ba0"),
+            "barcode": "P2306A54NEU0064126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:30.613Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268827366ace1236c08c7")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685265c57366ace1235d6f04"),
+            "barcode": "P2306A54NEU0565126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:38.349Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688a7366ace1236c1fcc")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685265d07366ace1235d756d"),
+            "barcode": "P2306A54NEU0274126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:38.894Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688a7366ace1236c355a")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685265eb805e17f40ef5d4bb"),
+            "barcode": "P2306A54NEU0316126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:39.557Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688b7366ace1236c4c42")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526600805e17f40ef5fc66"),
+            "barcode": "P2306A54NEU0289126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:40.105Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688c7366ace1236c61a3")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526619805e17f40ef6201b"),
+            "barcode": "P2306A54NEU0500126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:40.698Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688c7366ace1236c76e6")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526627805e17f40ef626cc"),
+            "barcode": "P2306A54NEU0816126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:41.27Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688d7366ace1236c8c2c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526637805e17f40ef643d3"),
+            "barcode": "P2306A54NEU0840126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:41.811Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688d7366ace1236ca175")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526647805e17f40ef678f3"),
+            "barcode": "P2306A54NEU0098126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:42.357Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852688e7366ace1236cb6df")
+        },
+        {
+            "materialProcessFlowId": ObjectId("6852660e805e17f40ef61a73"),
+            "barcode": "P2306A54NEU0348126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:50.019Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268967366ace1236ccea2")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526658805e17f40ef69bab"),
+            "barcode": "P2306A54NEU1133126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:50.567Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268967366ace1236ce3fe")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526666805e17f40ef6b5b5"),
+            "barcode": "P2306A54NEU1151126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:51.25Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268977366ace1236cfa1c")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526672805e17f40ef6d0d1"),
+            "barcode": "P2306A54NEU1377126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:51.832Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268977366ace1236d10a6")
+        },
+        {
+            "materialProcessFlowId": ObjectId("68526697805e17f40ef70f37"),
+            "barcode": "P2306A54NEU0803126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:52.367Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268987366ace1236d2642")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685266a8805e17f40ef72f43"),
+            "barcode": "P2306A54NEU0478126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:53.051Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268997366ace1236d3e37")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685266b9805e17f40ef73ab1"),
+            "barcode": "P2306A54NEU0884126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:53.602Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("685268997366ace1236d53a2")
+        },
+        {
+            "materialProcessFlowId": ObjectId("685266d77366ace1235d9976"),
+            "barcode": "P2306A54NEU0802126",
+            "barcodeType": "MAIN",
+            "scanTime": ISODate("2025-06-18T07:19:54.245Z"),
+            "inWarehouseStatus": "PENDING",
+            "outWarehouseStatus": "PENDING",
+            "inspectionStatus": "PENDING",
+            "inspectionResult": "PENDING",
+            "productionPlanWorkOrderId": ObjectId("68340f8507ee0b3530714e21"),
+            "_id": ObjectId("6852689a7366ace1236d6ae7")
+        }
+    ],
+    "inWarehouseState": "PENDING",
+    "outWarehouseState": "PENDING",
+    "inspectionStatus": "PENDING",
+    "createBy": ObjectId("67d792c54f31c06c540915cf"),
+    "createAt": ISODate("2025-06-18T07:16:07.17Z"),
+    "updateAt": ISODate("2025-06-18T07:19:54.246Z"),
+    "updateBy": ObjectId("67d792c54f31c06c540915cf"),
+    "__v": NumberInt("184")
+}

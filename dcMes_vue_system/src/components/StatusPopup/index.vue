@@ -13,7 +13,7 @@
 
         <!-- 状态文本 -->
         <div v-if="type != 'ok'" class="status-text">
-          {{ text }}
+          {{ localizedText }}
         </div>
 
         <!-- 补充信息 -->
@@ -62,62 +62,130 @@ export default {
   data() {
     return {
       matchedErrorCode: "",
+      // 错误消息键名到错误码的映射
       errorCodeMap: {
-        "该DI编码不存在本系统": "LINE-A-001",
-        "该DI编码未关联有效物料": "LINE-A-002",
-        "该DI编码对应的物料与当前工序不匹配": "LINE-A-003",
-        "该条码不符合任何已配置的规则或物料不匹配": "LINE-A-004",
-        "未找到对应的主条码流程记录": "LINE-B-001",
-        "未找到对应的工序节点": "LINE-B-002",
-        "工序节点已完成或处于异常状态": "LINE-B-003",
-        "该条码存在未完成的维修记录": "LINE-B-004",
-        "该条码已完成维修,但维修结果为不合格": "LINE-B-005",
-        "该条码已作废": "LINE-B-006",
-        "条码不匹配主物料": "LINE-B-007",
-        "重复扫码": "LINE-B-008",
-        "存在未完成的前置工序": "LINE-C-001",
-        "扫码数量与要求不符": "LINE-C-002",
-        "存在重复扫描的条码": "LINE-C-003",
-        "物料不属于当前工序要求扫描的物料": "LINE-C-004",
-        "批次物料条码已达到使用次数限制": "LINE-D-001",
-        "未找到条码为的子物料流程记录": "LINE-D-002",
-        "该物料条码的子物料工序未完成": "LINE-D-003",
-        "关键物料重复使用错误": "LINE-E-001",
-        "已被其他流程使用": "LINE-E-002",
-        "关键物料必须先扫描主条码": "LINE-E-003",
-        "未查询到生产工单": "LINE-F-001",
-        "工单已达到计划数量": "LINE-F-002",
-        "缺少必要参数": "LINE-G-001",
-        "未找到物料编码为": "LINE-G-002",
-        "未找到物料对应的工艺信息": "LINE-G-003",
-        "条码参数不能为空": "LINE-G-004",
-        "成品工艺未查询到产线计划": "LINE-F-003",
-        "未找到有效的产线工单": "LINE-F-004",
-        "产品条码未绑定工单": "LINE-F-005",
-        "当前产线工单与产品条码工单不一致": "LINE-F-006",
-        "更新工单投入量失败": "LINE-F-007",
-        "条码与物料不匹配": "LINE-H-001",
-        "未找到对应的设备信息": "LINE-H-002",
-        "未找到对应的工序信息": "LINE-H-003",
-        "未找到对应的工艺信息": "LINE-H-004",
-        "未找到对应的物料信息": "LINE-H-005",
-        "未找到指定的物料节点或物料节点不属于指定工序": "LINE-I-001",
-        "原物料条码不匹配": "LINE-I-002",
-        "未找到对应的部件替换维修记录": "LINE-I-003",
-        "新条码物料类型": "LINE-I-004",
-        "新条码的流程未完成": "LINE-I-005",
-        "新条码验证失败": "LINE-I-006",
-        "验证流程数据失败": "LINE-J-001",
-        "创建工艺流程记录失败": "LINE-J-002",
-        "处理扫码请求失败": "LINE-J-003",
-        "修复条码物料异常数据失败": "LINE-J-004",
-        "未找到该RFID标签对应的条码": "LINE-K-001",
+        "diCodeNotExists": "LINE-A-001",
+        "diCodeNoMaterial": "LINE-A-002",
+        "diCodeMaterialMismatch": "LINE-A-003",
+        "barcodeRuleMismatch": "LINE-A-004",
+        "mainBarcodeNotFound": "LINE-B-001",
+        "processNodeNotFound": "LINE-B-002",
+        "processNodeCompleted": "LINE-B-003",
+        "repairRecordExists": "LINE-B-004",
+        "repairResultFailed": "LINE-B-005",
+        "barcodeVoided": "LINE-B-006",
+        "barcodeMaterialMismatch": "LINE-B-007",
+        "duplicateBarcode": "LINE-B-008",
+        "prerequisiteIncomplete": "LINE-C-001",
+        "quantityMismatch": "LINE-C-002",
+        "duplicateScan": "LINE-C-003",
+        "materialNotRequired": "LINE-C-004",
+        "batchLimitReached": "LINE-D-001",
+        "subMaterialNotFound": "LINE-D-002",
+        "subMaterialIncomplete": "LINE-D-003",
+        "keyMaterialDuplicate": "LINE-E-001",
+        "usedByOtherProcess": "LINE-E-002",
+        "keyMaterialMainRequired": "LINE-E-003",
+        "workOrderNotFound": "LINE-F-001",
+        "workOrderQuantityReached": "LINE-F-002",
+        "missingParameters": "LINE-G-001",
+        "materialCodeNotFound": "LINE-G-002",
+        "craftInfoNotFound": "LINE-G-003",
+        "barcodeParameterEmpty": "LINE-G-004",
+        "productionPlanNotFound": "LINE-F-003",
+        "validWorkOrderNotFound": "LINE-F-004",
+        "productBarcodeNotBound": "LINE-F-005",
+        "workOrderMismatch": "LINE-F-006",
+        "updateWorkOrderFailed": "LINE-F-007",
+        "barcodeMaterialNotMatch": "LINE-H-001",
+        "equipmentInfoNotFound": "LINE-H-002",
+        "processInfoNotFound": "LINE-H-003",
+        "craftInfoNotFound2": "LINE-H-004",
+        "materialInfoNotFound": "LINE-H-005",
+        "materialNodeNotFound": "LINE-I-001",
+        "originalBarcodeMismatch": "LINE-I-002",
+        "repairRecordNotFound": "LINE-I-003",
+        "newBarcodeType": "LINE-I-004",
+        "newBarcodeIncomplete": "LINE-I-005",
+        "newBarcodeValidationFailed": "LINE-I-006",
+        "processDataValidationFailed": "LINE-J-001",
+        "createProcessRecordFailed": "LINE-J-002",
+        "scanRequestFailed": "LINE-J-003",
+        "fixBarcodeDataFailed": "LINE-J-004",
+        "rfidBarcodeNotFound": "LINE-K-001",
+      },
+      // 中文错误消息到键名的映射（用于向后兼容）
+      chineseErrorMap: {
+        "该DI编码不存在本系统": "diCodeNotExists",
+        "该DI编码未关联有效物料": "diCodeNoMaterial",
+        "该DI编码对应的物料与当前工序不匹配": "diCodeMaterialMismatch",
+        "该条码不符合任何已配置的规则或物料不匹配": "barcodeRuleMismatch",
+        "未找到对应的主条码流程记录": "mainBarcodeNotFound",
+        "未找到对应的工序节点": "processNodeNotFound",
+        "工序节点已完成或处于异常状态": "processNodeCompleted",
+        "该条码存在未完成的维修记录": "repairRecordExists",
+        "该条码已完成维修,但维修结果为不合格": "repairResultFailed",
+        "该条码已作废": "barcodeVoided",
+        "条码不匹配主物料": "barcodeMaterialMismatch",
+        "重复扫码": "duplicateBarcode",
+        "存在未完成的前置工序": "prerequisiteIncomplete",
+        "扫码数量与要求不符": "quantityMismatch",
+        "存在重复扫描的条码": "duplicateScan",
+        "物料不属于当前工序要求扫描的物料": "materialNotRequired",
+        "批次物料条码已达到使用次数限制": "batchLimitReached",
+        "未找到条码为的子物料流程记录": "subMaterialNotFound",
+        "该物料条码的子物料工序未完成": "subMaterialIncomplete",
+        "关键物料重复使用错误": "keyMaterialDuplicate",
+        "已被其他流程使用": "usedByOtherProcess",
+        "关键物料必须先扫描主条码": "keyMaterialMainRequired",
+        "未查询到生产工单": "workOrderNotFound",
+        "工单已达到计划数量": "workOrderQuantityReached",
+        "缺少必要参数": "missingParameters",
+        "未找到物料编码为": "materialCodeNotFound",
+        "未找到物料对应的工艺信息": "craftInfoNotFound",
+        "条码参数不能为空": "barcodeParameterEmpty",
+        "成品工艺未查询到产线计划": "productionPlanNotFound",
+        "未找到有效的产线工单": "validWorkOrderNotFound",
+        "产品条码未绑定工单": "productBarcodeNotBound",
+        "当前产线工单与产品条码工单不一致": "workOrderMismatch",
+        "更新工单投入量失败": "updateWorkOrderFailed",
+        "条码与物料不匹配": "barcodeMaterialNotMatch",
+        "未找到对应的设备信息": "equipmentInfoNotFound",
+        "未找到对应的工序信息": "processInfoNotFound",
+        "未找到对应的工艺信息": "craftInfoNotFound2",
+        "未找到对应的物料信息": "materialInfoNotFound",
+        "未找到指定的物料节点或物料节点不属于指定工序": "materialNodeNotFound",
+        "原物料条码不匹配": "originalBarcodeMismatch",
+        "未找到对应的部件替换维修记录": "repairRecordNotFound",
+        "新条码物料类型": "newBarcodeType",
+        "新条码的流程未完成": "newBarcodeIncomplete",
+        "新条码验证失败": "newBarcodeValidationFailed",
+        "验证流程数据失败": "processDataValidationFailed",
+        "创建工艺流程记录失败": "createProcessRecordFailed",
+        "处理扫码请求失败": "scanRequestFailed",
+        "修复条码物料异常数据失败": "fixBarcodeDataFailed",
+        "未找到该RFID标签对应的条码": "rfidBarcodeNotFound",
       },
     };
   },
   computed: {
     iconClass() {
       return this.type === "ok" ? "el-icon-check" : "el-icon-close";
+    },
+    // 获取国际化的错误消息
+    localizedText() {
+      if (this.type === "ok") {
+        return this.text;
+      }
+
+      // 尝试从错误消息映射中获取键名
+      const errorKey = this.getErrorKey(this.text);
+      if (errorKey) {
+        return this.$t(`statusPopup.errorMessages.${errorKey}`);
+      }
+
+      // 如果没有找到对应的键名，返回原始文本
+      return this.text;
     },
   },
   watch: {
@@ -130,13 +198,33 @@ export default {
         this.matchErrorCode();
       }
     },
-    text(val) {
+    text() {
       if (this.type === "ng") {
         this.matchErrorCode();
       }
     },
   },
   methods: {
+    // 根据错误消息获取错误键名
+    getErrorKey(errorMessage) {
+      if (!errorMessage) return null;
+
+      // 首先检查是否是中文错误消息
+      const chineseKey = this.chineseErrorMap[errorMessage];
+      if (chineseKey) {
+        return chineseKey;
+      }
+
+      // 检查是否包含中文错误消息的部分匹配
+      for (const [chineseMsg, key] of Object.entries(this.chineseErrorMap)) {
+        if (errorMessage.includes(chineseMsg)) {
+          return key;
+        }
+      }
+
+      return null;
+    },
+
     matchErrorCode() {
       // 如果已经有errorCode属性，直接使用
       if (this.errorCode) {
@@ -150,12 +238,11 @@ export default {
         return;
       }
 
-      // 遍历错误映射对象，查找匹配项
-      for (const [message, code] of Object.entries(this.errorCodeMap)) {
-        if (this.text.includes(message)) {
-          this.matchedErrorCode = code;
-          return;
-        }
+      // 首先尝试通过错误键名获取错误码
+      const errorKey = this.getErrorKey(this.text);
+      if (errorKey && this.errorCodeMap[errorKey]) {
+        this.matchedErrorCode = this.errorCodeMap[errorKey];
+        return;
       }
 
       // 如果没有找到匹配的错误编码，设置为空

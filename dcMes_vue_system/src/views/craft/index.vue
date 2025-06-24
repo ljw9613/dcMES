@@ -1941,18 +1941,38 @@ export default {
       }
 
       try {
-        // 获取当前工艺下所有工序
-        const result = await getData("processStep", {
-          query: { craftId: this.tempCraftId },
-          sort: { sort: -1 },
-          limit: 1,
+        // ========== 修改：托盘工序前置校验逻辑 ==========
+        // 检查当前工艺是否已存在托盘工序（工序类型为F）
+        const trayProcessResult = await getData("processStep", {
+          query: { 
+            craftId: this.tempCraftId,
+            processType: "F" // F代表托盘工序
+          }
         });
 
-        // 计算新工序的次序
         let nextSort = 1;
-        if (result.data && result.data.length > 0) {
-          nextSort = result.data[0].sort + 1;
+        let hasTrayProcess = false;
+        let trayProcessSort = 0;
+
+        if (trayProcessResult.data && trayProcessResult.data.length > 0) {
+          hasTrayProcess = true;
+          trayProcessSort = trayProcessResult.data[0].sort;
+          // 新工序插入到托盘工序之前
+          nextSort = trayProcessSort;
+          this.$message.info("检测到托盘工序，新增工序将自动插入到托盘工序之前");
+        } else {
+          // 如果没有托盘工序，按原逻辑计算次序
+          const result = await getData("processStep", {
+            query: { craftId: this.tempCraftId },
+            sort: { sort: -1 },
+            limit: 1,
+          });
+
+          if (result.data && result.data.length > 0) {
+            nextSort = result.data[0].sort + 1;
+          }
         }
+        // ========== 托盘工序前置校验逻辑结束 ==========
 
         // 生成工序编码
         const processCode = await this.generateProcessCode();
@@ -1969,18 +1989,23 @@ export default {
           processDesc: "",
           processStage: "",
           processType: "",
-          // printTemplateId: "",
           businessType: this.craftForm.businessType,
           status: "CREATE",
           materials: [],
           remark: "",
           sort: nextSort,
           isMES: true,
+          // 添加标记，用于在保存时判断是否需要调整托盘工序顺序
+          _hasTrayProcess: hasTrayProcess,
+          _trayProcessSort: trayProcessSort,
         };
 
         // 重置物料列表
         this.materialTableData.tableList = [];
         this.materialTableData.total = 0;
+        
+        // 重置设备列表
+        this.devicesList = [];
       } catch (error) {
         console.error("初始化工序失败:", error);
         this.$message.error("初始化工序失败");
@@ -2077,6 +2102,58 @@ export default {
             // 复制表单数据，避免修改原始表单
             const formData = JSON.parse(JSON.stringify(this.processForm));
 
+            // ========== 新增：处理machineId字段 ==========
+            // 如果machineId为空字符串，将其设置为null或删除该字段
+            if (formData.machineId === "" || formData.machineId === null || formData.machineId === undefined) {
+              delete formData.machineId;
+            }
+            // ========== machineId字段处理结束 ==========
+
+            // ========== 新增：托盘工序保存校验 ==========
+            // 检查当前要保存的工序是否为托盘工序
+            if (formData.processType === "F") {
+              // 如果是托盘工序，检查是否已存在其他托盘工序
+              const existingTrayProcess = await getData("processStep", {
+                query: {
+                  craftId: this.tempCraftId,
+                  processType: "F",
+                  _id: { $ne: this.tempProcessId } // 排除当前正在编辑的工序
+                }
+              });
+
+              if (existingTrayProcess.data && existingTrayProcess.data.length > 0) {
+                this.$message.warning("当前工艺已存在托盘工序，不能重复添加托盘工序");
+                return;
+              }
+            } else if (this.processOperationType === "create") {
+              // 新增非托盘工序时，检查是否需要调整托盘工序顺序
+              if (this.processForm._hasTrayProcess) {
+                // 存在托盘工序，需要将托盘工序的顺序往后移动
+                const trayProcessResult = await getData("processStep", {
+                  query: {
+                    craftId: this.tempCraftId,
+                    processType: "F"
+                  }
+                });
+
+                if (trayProcessResult.data && trayProcessResult.data.length > 0) {
+                  const trayProcess = trayProcessResult.data[0];
+                  // 将托盘工序的sort值+1
+                  await updateData("processStep", {
+                    query: { _id: trayProcess._id },
+                    update: {
+                      sort: trayProcess.sort + 1,
+                      updateBy: this.$store.getters.name,
+                      updateAt: new Date(),
+                    },
+                  });
+                  
+                  console.log(`托盘工序顺序已从 ${trayProcess.sort} 调整为 ${trayProcess.sort + 1}`);
+                }
+              }
+            }
+            // ========== 托盘工序保存校验结束 ==========
+
             // 处理打印模板ID，仅当工序类型为G(打印工序)时保留，否则删除该字段
             if (formData.processType !== "G") {
               delete formData.printTemplateId;
@@ -2164,18 +2241,15 @@ export default {
             }
 
             // 构建工序数据
-
-            // 确保machineIds是数组
-            if (!Array.isArray(formData.machineIds)) {
-              formData.machineIds = [];
-            }
-
-            // 构建工序数据
             const processData = {
               ...formData,
               craftId: this.tempCraftId,
               materials: materialIds,
             };
+
+            // 移除临时标记字段
+            delete processData._hasTrayProcess;
+            delete processData._trayProcessSort;
 
             if (this.processOperationType === "create") {
               // 新增操作
@@ -2183,7 +2257,12 @@ export default {
               processData.createBy = this.$store.getters.name;
               processData.createAt = new Date();
               await addData("processStep", processData);
-              this.$message.success("添加成功");
+              
+              if (this.processForm._hasTrayProcess) {
+                this.$message.success("工序添加成功，托盘工序已自动调整到最后位置");
+              } else {
+                this.$message.success("添加成功");
+              }
             } else {
               // 编辑操作
               processData.updateBy = this.$store.getters.name;
@@ -2618,7 +2697,29 @@ export default {
     //设备选择绑定
     handleMachineSelect(value) {
       console.log(value, "value");
-      this.devicesList = value;
+      // 修改：不直接赋值，而是根据已选中的设备ID获取设备详情
+      this.updateDevicesList();
+    },
+    // 新增方法：根据已选中的设备ID更新设备列表
+    async updateDevicesList() {
+      try {
+        if (this.processForm.machineIds && this.processForm.machineIds.length > 0) {
+          const devicesResult = await getData("machine", {
+            query: { _id: { $in: this.processForm.machineIds } },
+          });
+          
+          if (devicesResult.data && devicesResult.data.length > 0) {
+            this.devicesList = devicesResult.data;
+          } else {
+            this.devicesList = [];
+          }
+        } else {
+          this.devicesList = [];
+        }
+      } catch (error) {
+        console.error("获取设备详情失败:", error);
+        this.devicesList = [];
+      }
     },
     // 获取物料列表
     async getMaterialList(query) {
@@ -2838,6 +2939,21 @@ export default {
     async handleMoveUp(row, index) {
       if (index === 0) return; // 如果是第一个，不能上移
 
+      // ========== 新增：托盘工序移动校验 ==========
+      // 检查当前工序是否为托盘工序，托盘工序不能上移
+      if (row.processType === "F") {
+        this.$message.warning("托盘工序应为最后一道工序，不能上移");
+        return;
+      }
+      
+      // 检查上一个工序是否为托盘工序，不能移动到托盘工序之后
+      const prevProcess = this.processTableData.tableList[index - 1];
+      if (prevProcess && prevProcess.processType === "F") {
+        this.$message.warning("不能移动到托盘工序之后，托盘工序应为最后一道工序");
+        return;
+      }
+      // ========== 托盘工序移动校验结束 ==========
+
       try {
         const currentProcess = this.processTableData.tableList[index];
         const prevProcess = this.processTableData.tableList[index - 1];
@@ -2875,6 +2991,21 @@ export default {
 
     async handleMoveDown(row, index) {
       if (index === this.processTableData.tableList.length - 1) return; // 如果是最后一个，不能下移
+
+      // ========== 新增：托盘工序移动校验 ==========
+      // 检查下一个工序是否为托盘工序，不能移动到托盘工序之后
+      const nextProcess = this.processTableData.tableList[index + 1];
+      if (nextProcess && nextProcess.processType === "F") {
+        this.$message.warning("不能移动到托盘工序之后，托盘工序应为最后一道工序");
+        return;
+      }
+      
+      // 如果当前工序是托盘工序，则不能下移（虽然按钮已禁用，但增加代码保护）
+      if (row.processType === "F") {
+        this.$message.warning("托盘工序已是最后一道工序，不能下移");
+        return;
+      }
+      // ========== 托盘工序移动校验结束 ==========
 
       try {
         const currentProcess = this.processTableData.tableList[index];
@@ -3598,22 +3729,8 @@ export default {
     // 获取设备详情
     async fetchDeviceDetails() {
       try {
-        // 获取关联设备详情
-        if (
-          this.processForm.machineIds &&
-          this.processForm.machineIds.length > 0
-        ) {
-          const relatedDevicesResult = await getData("machine", {
-            query: { _id: { $in: this.processForm.machineIds } },
-          });
-
-          if (
-            relatedDevicesResult.data &&
-            relatedDevicesResult.data.length > 0
-          ) {
-            this.devicesList = relatedDevicesResult.data;
-          }
-        }
+        // 使用新的updateDevicesList方法来获取设备详情
+        await this.updateDevicesList();
       } catch (error) {
         console.error("获取设备详情失败:", error);
       }

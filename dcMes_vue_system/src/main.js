@@ -17,6 +17,7 @@ import "babel-polyfill";
 import App from "./App";
 import store from "./store";
 import router from "./router";
+import i18n from "@/lang"; // 导入国际化配置
 import moment from "moment";
 import VideoPlayer from "vue-video-player";
 import "vue-video-player/src/custom-theme.css";
@@ -67,7 +68,10 @@ import { getData } from '@/api/data' // 假设这是获取字典数据的API
 // set ElementUI lang to EN
 // Vue.use(ElementUI, { locale })
 // 如果想要中文版 element-ui，按如下方式声明
-Vue.use(ElementUI);
+// 使用i18n配置ElementUI
+Vue.use(ElementUI, {
+  i18n: (key, value) => i18n.t(key, value)
+});
 Vue.use(plugins);
 Vue.use(VideoPlayer);
 
@@ -129,5 +133,9 @@ Vue.prototype.$checkPermission = permission.checkPermission
 Vue.use(directives)
 
 new Vue({
-  el: "#app", router, store, render: h => h(App)
+  el: "#app",
+  router,
+  store,
+  i18n, // 添加国际化支持
+  render: h => h(App)
 });

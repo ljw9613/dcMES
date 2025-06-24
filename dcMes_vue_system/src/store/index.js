@@ -13,6 +13,7 @@ import settings from './modules/settings'
 import user from './modules/user'
 import tagsView from './modules/tagsView'
 import permission from './modules/permission'
+import language from './modules/language'
 
 Vue.use(Vuex)
 
@@ -23,7 +24,8 @@ const store = new Vuex.Store({
     dict,
     user,
     tagsView,
-    permission
+    permission,
+    language
   },
   getters
 })

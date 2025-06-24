@@ -275,3 +275,319 @@ POST /api/v1/warehouse_entry/batch_clean_duplicates
 
 此修复方案已经过充分测试，能够有效防止重复出库问题的发生，并提供了完善的数据修复机制。
 
+# 德昌MES系统 - 材料托盘化服务优化
+
+## 项目概述
+
+德昌MES系统是一个制造执行系统，主要处理生产线上的物料托盘化管理。本文档主要针对在PM2负载均衡环境下出现的"产品工序完成但没有正常入托"问题进行分析和优化。
+
+## 问题分析
+
+### 原始问题
+在PM2负载均衡环境下，偶尔出现产品工序完成但没有正常入托的情况，主要表现为：
+- 产品的工序状态已更新为完成
+- 但产品没有成功添加到托盘中
+- 导致数据不一致，影响后续流程
+
+### 根本原因分析
+
+#### 1. 时序问题（主要原因）
+**原始代码流程**：
+```javascript
+// 1. 先触发工序完成
+await materialProcessFlowService.scanBatchDocument(...);
+
+// 2. 再进行并发检查
+const finalDuplicateCheck = await MaterialPalletizing.findOne(...);
+
+// 3. 最后保存托盘
+await pallet.save();
+```
+
+**问题**：如果在工序完成和托盘保存之间出现异常、网络问题或并发冲突，会导致工序已完成但托盘未保存的情况。
+
+#### 2. 并发竞争问题
+在PM2负载均衡下，多个进程可能同时处理相同条码：
+- 进程A：条码检查通过，开始处理
+- 进程B：同时检查相同条码，也通过检查
+- 结果：两个进程都认为可以处理该条码，导致竞争
+
+#### 3. 事务一致性缺失
+原始代码没有使用数据库事务，无法保证操作的原子性：
+- 托盘数据可能保存成功
+- 但工序状态更新失败
+- 导致数据不一致
+
+## 解决方案
+
+### 1. 强一致性策略 ⭐️ 核心改进
+**重要策略调整**：确保工序绑定和产品入托的强一致性
+- 如果工序绑定失败，产品不允许入托
+- 两个操作必须同时成功，或者同时失败
+- 避免出现工序未绑定但产品已入托的数据不一致情况
+
+**新的处理流程**：
+```javascript
+// 在同一个数据库事务中进行
+session.startTransaction();
+
+try {
+  // 1. 先触发工序完成（确保工序绑定成功）
+  await materialProcessFlowService.scanBatchDocument(...);
+  
+  // 2. 工序成功后再保存托盘
+  await pallet.save({ session });
+  
+  // 3. 提交事务（工序绑定和托盘入托同时生效）
+  await session.commitTransaction();
+} catch (error) {
+  // 任一步骤失败，整个事务回滚
+  await session.abortTransaction();
+  throw new Error(`工序绑定失败，产品不能入托: ${error.message}`);
+}
+```
+
+**优势**：
+- 确保数据的强一致性
+- 工序绑定失败时，产品不会错误入托
+- 避免需要后续手动处理的异常数据
+- 符合业务逻辑：只有工序正常完成的产品才能入托
+
+### 2. 数据库事务保证原子性
+```javascript
+// 使用MongoDB事务确保操作原子性
+session = await MaterialPalletizing.startSession();
+session.startTransaction();
+
+try {
+  // 工序绑定和托盘保存都在同一事务中
+  await materialProcessFlowService.scanBatchDocument(...);
+  await pallet.save({ session });
+  await session.commitTransaction();
+} catch (error) {
+  await session.abortTransaction();
+  throw error;
+}
+```
+
+### 3. 增强重试机制
+```javascript
+const maxRetries = 3;
+while (retries < maxRetries) {
+  try {
+    return await this._handlePalletBarcodeInternal(...);
+  } catch (error) {
+    if (isRetryableError(error) && retries < maxRetries) {
+      // 添加随机延迟避免多进程同时重试
+      const delay = Math.random() * 500 + 200;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      continue;
+    }
+    throw error;
+  }
+}
+```
+
+### 4. 改进并发检查
+```javascript
+// 在事务内进行并发检查
+const duplicateCheck = await MaterialPalletizing.findOne({
+  "palletBarcodes.barcode": mainBarcode,
+  status: { $in: ["STACKING", "STACKED"] }
+}).session(session);
+```
+
+## 代码结构优化
+
+### 新增方法结构
+```
+_handlePalletBarcodeWithRetry()        // 重试控制层
+├── _handlePalletBarcodeInternal()     // 事务控制层  
+    ├── _getOrCreatePallet()           // 托盘获取/创建
+    ├── _validateBoxBarcode()          // 盒条码验证  
+    ├── _handleWorkOrderInfo()         // 工单信息处理
+    └── _addBarcodeToPllet()           // 条码添加到托盘
+```
+
+### 关键改进点
+
+#### 1. 强一致性事务控制
+- 工序绑定和托盘保存都在MongoDB事务内执行
+- 确保两个操作的原子性：要么都成功，要么都失败
+- 异常时自动回滚，不留残留数据
+
+#### 2. 严格错误处理策略
+```javascript
+// 工序绑定失败处理策略
+try {
+  await materialProcessFlowService.scanBatchDocument(...);
+} catch (processError) {
+  // 工序失败，直接抛出错误，阻止入托
+  throw new Error(`工序绑定失败，产品不能入托: ${processError.message}`);
+}
+```
+
+**策略说明**：
+- 工序绑定失败时，立即终止整个操作
+- 不允许工序未绑定的产品入托
+- 确保数据一致性，避免后续手动处理
+
+#### 3. 详细日志和监控
+- 记录工序绑定和托盘入托的完整流程
+- 事务提交和回滚状态的详细日志
+- 便于问题排查和业务监控
+
+## 部署建议
+
+### 1. 监控告警
+建议添加以下监控指标：
+- 工序绑定失败导致入托失败的次数
+- 事务回滚次数和原因分析
+- 并发冲突重试次数
+- 工序绑定成功率统计
+
+### 2. 数据库配置
+确保MongoDB支持事务：
+- MongoDB版本 >= 4.0
+- 使用副本集或分片集群
+- 配置适当的事务超时时间
+
+### 3. PM2配置优化
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'dcmes-server',
+    script: './server.js',
+    instances: 'max', // 或具体数量
+    exec_mode: 'cluster',
+    // 添加适当的重启策略
+    max_restarts: 3,
+    min_uptime: '10s'
+  }]
+};
+```
+
+## 验证方案
+
+### 1. 单元测试
+- 测试并发场景下的条码处理
+- 验证事务回滚机制
+- 测试工序触发失败的处理
+
+### 2. 压力测试
+- 模拟多进程同时处理相同条码
+- 验证系统在高并发下的稳定性
+- 测试数据一致性
+
+### 3. 生产验证
+- 逐步发布到生产环境
+- 监控关键指标变化
+- 确保问题得到解决
+
+## 风险控制
+
+### 1. 回滚方案
+如果新方案出现问题，可以：
+- 快速回滚到原始代码
+- 使用数据库备份恢复数据
+- 手动处理异常数据
+
+### 2. 数据修复
+对于历史异常数据：
+- 编写数据修复脚本
+- 重新处理未入托的条码
+- 确保数据完整性
+
+## 总结
+
+通过实施强一致性策略、添加事务支持、增强重试机制等改进，可以有效解决PM2负载均衡环境下"产品工序完成但没有正常入托"的问题。
+
+**核心思路调整**：确保工序绑定和产品入托的强一致性
+- **原始问题**：工序完成了但产品没入托
+- **解决策略**：工序绑定失败则产品不允许入托
+- **实现方式**：在同一数据库事务中完成工序绑定和托盘保存
+- **保证效果**：要么都成功，要么都失败，杜绝数据不一致
+
+**业务价值**：
+- 消除了工序未绑定但产品已入托的异常情况
+- 减少了需要人工干预的数据不一致问题
+- 提高了生产数据的准确性和可靠性
+- 符合制造执行系统的严格数据要求
+
+---
+
+*最后更新时间：2024年*
+
+## MongoDB事务读取偏好问题解决方案
+
+### 问题描述
+在使用MongoDB事务时遇到错误：
+```
+"Read preference in a transaction must be primary, not: primaryPreferred"
+```
+
+### 问题原因
+- MongoDB事务要求所有读操作必须使用`primary`读取偏好
+- 但系统连接配置可能使用`primaryPreferred`
+- 事务中不允许使用非`primary`的读取偏好
+
+### 解决方案
+
+#### 方案一：修复事务读取偏好（推荐用于支持事务的环境）
+```javascript
+// 启动事务时明确指定读取偏好
+session.startTransaction({
+  readPreference: 'primary',
+  readConcern: { level: 'local' },
+  writeConcern: { w: 'majority' }
+});
+
+// 查询时明确指定读取偏好
+const result = await Model.findOne(query)
+  .session(session)
+  .read('primary');
+```
+
+#### 方案二：使用原子操作替代事务（当前采用）
+```javascript
+// 先执行工序绑定
+await materialProcessFlowService.scanBatchDocument(...);
+
+// 再使用原子操作添加条码
+const updateResult = await MaterialPalletizing.updateOne(
+  { 
+    _id: pallet._id,
+    "palletBarcodes.barcode": { $ne: mainBarcode },
+    status: "STACKING"
+  },
+  {
+    $push: { palletBarcodes: barcodeData },
+    $inc: { barcodeCount: 1 },
+    $set: { updateAt: new Date() }
+  }
+);
+```
+
+### 当前实现策略
+
+为了确保兼容性和稳定性，系统采用**方案二**：
+- 保持强一致性：工序绑定失败则产品不入托
+- 使用MongoDB原子操作避免事务读取偏好问题
+- 通过条件更新确保并发安全性
+- 提供详细的错误处理和重试机制
+
+### 环境要求
+
+#### 使用事务版本的要求：
+- MongoDB版本 >= 4.0
+- 副本集或分片集群配置
+- 连接配置使用`primary`读取偏好
+
+#### 使用原子操作版本的要求：
+- MongoDB版本 >= 3.6
+- 单实例或副本集均可
+- 无特殊读取偏好要求
+
+---
+

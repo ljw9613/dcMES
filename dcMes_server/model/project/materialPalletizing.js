@@ -208,9 +208,49 @@ const materialPalletizingSchema = new mongoose.Schema({
 
 // 添加索引
 materialPalletizingSchema.index({ palletCode: 1 }, { unique: true });
-materialPalletizingSchema.index({ "palletItems.barcode": 1 });
+
+// 修正字段名：从 palletItems.barcode 改为 palletBarcodes.barcode
+materialPalletizingSchema.index({ "palletBarcodes.barcode": 1 });
 materialPalletizingSchema.index({ status: 1 });
 materialPalletizingSchema.index({ createAt: -1 });
+
+// 新增：防重复唯一索引 - 确保在活跃托盘中条码不重复
+materialPalletizingSchema.index(
+  { 
+    "palletBarcodes.barcode": 1,
+    "status": 1 
+  }, 
+  { 
+    unique: true,
+    partialFilterExpression: { 
+      "status": { $in: ["STACKING", "STACKED"] },
+      "palletBarcodes.barcode": { $exists: true, $ne: null }
+    },
+    name: "unique_barcode_in_active_pallets"
+  }
+);
+
+// 新增：防重复唯一索引 - 确保在活跃托盘中包装箱条码不重复
+materialPalletizingSchema.index(
+  { 
+    "boxItems.boxBarcode": 1,
+    "status": 1 
+  }, 
+  { 
+    unique: true,
+    partialFilterExpression: { 
+      "status": { $in: ["STACKING", "STACKED"] },
+      "boxItems.boxBarcode": { $exists: true, $ne: null }
+    },
+    name: "unique_box_barcode_in_active_pallets"
+  }
+);
+
+// 新增：性能优化索引
+materialPalletizingSchema.index({ "boxItems.boxBarcode": 1, "status": 1 });
+materialPalletizingSchema.index({ "productLineId": 1, "status": 1, "materialId": 1 });
+materialPalletizingSchema.index({ "saleOrderId": 1, "materialId": 1 });
+materialPalletizingSchema.index({ "productionPlanWorkOrderId": 1, "status": 1 });
 
 module.exports = mongoose.model(
   "material_palletizing",

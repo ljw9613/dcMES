@@ -2,9 +2,13 @@ var mongoose = require("mongoose");
 
 var saleOrderExtSchema = new mongoose.Schema({
   // 关联主表ID
-  FSaleOrderId: { type: mongoose.Schema.Types.ObjectId, ref: 'k3_SAL_SaleOrder', required: true },
+  FSaleOrderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "k3_SAL_SaleOrder",
+    required: true,
+  },
   FBillNo: { type: String }, // 销售订单号
-  
+
   // 基本信息
   FCustNo: { type: String }, // 客户型号
   FCustCode: { type: String }, // 客户代码
@@ -13,6 +17,7 @@ var saleOrderExtSchema = new mongoose.Schema({
   FCustOrderNo: { type: String }, // 客户订单号
   FProductName: { type: String }, // 产品名称
   FProductModel: { type: String }, // 产品型号
+  FProductTypeName: { type: String }, // 产品类型名称
 
   // 产品详细信息
   FSaleCountry: { type: String, required: true }, // 销售国家地区
@@ -22,14 +27,13 @@ var saleOrderExtSchema = new mongoose.Schema({
   FBatterySpec: { type: String, required: true }, // 锂电池规格
   FProductUrl: { type: String }, // 产品网址
 
-  
   // 印刷和包装信息
   FPrintPosition: { type: String, required: true }, // 印刷位置
   FPrintColor: { type: String, required: true }, // 印刷颜色
   FAccessories: { type: String }, // 备损件
   FManual: { type: String, required: true }, // 说明书
   FSelfSeal: { type: String, required: true }, // 自封袋
-  
+
   // 认证和标识信息
   FCertification: { type: String, required: true }, // 认证要求
   FProductColor: { type: String, required: true }, // 产品颜色
@@ -41,8 +45,7 @@ var saleOrderExtSchema = new mongoose.Schema({
   FUDI: { type: String, required: true }, // UDI
   FUDISerialNoRule: { type: String, required: true }, // 序列号规则
   FUDIType: { type: String, required: true }, // 形制
-  
-  
+
   // 包装要求
   FPEBagReq: { type: String, required: true }, // PE袋要求
   FBoxLabel: { type: String, required: true }, // 托盘标贴
@@ -66,7 +69,7 @@ var saleOrderExtSchema = new mongoose.Schema({
 });
 
 // 更新时间中间件
-saleOrderExtSchema.pre('save', function(next) {
+saleOrderExtSchema.pre("save", function (next) {
   this.FUpdateTime = Date.now();
   next();
 });
