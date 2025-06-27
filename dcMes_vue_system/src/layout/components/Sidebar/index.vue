@@ -17,8 +17,9 @@
         :active-text-color="variables.menuActiveText"
         :collapse-transition="false"
         mode="vertical"
+        :key="$i18n.locale"
       >
-        <sidebar-item v-for="route in routes" :key="route.path" :item="route" :base-path="route.path" />
+        <sidebar-item v-for="route in routes" :key="route.path + $i18n.locale" :item="route" :base-path="route.path" />
       </el-menu>
     </el-scrollbar>
   </div>
@@ -60,6 +61,18 @@ export default {
     },
     isCollapse() {
       return !this.sidebar.opened
+    }
+  },
+  watch: {
+    // 监听语言变化，强制重新渲染菜单
+    '$i18n.locale': {
+      handler() {
+        this.$nextTick(() => {
+          // 触发菜单重新渲染
+          this.$forceUpdate()
+        })
+      },
+      immediate: false
     }
   }
 }

@@ -1,3 +1,9 @@
+<!--
+  仓库出库单主页面
+  @author ljw
+  @email 1798245303@qq.com
+  @description 优化后的出库单主页面，支持添可销售订单类型的特殊标识显示
+-->
 <template>
   <div class="app-container">
     <el-card class="filter-container">
@@ -316,7 +322,17 @@
         <el-table-column label="订单信息" align="center">
           <template slot-scope="scope">
             <div>生产单号: {{ scope.row.productionOrderNo }}</div>
-            <div>销售单号: {{ scope.row.saleOrderNo }}</div>
+            <div>
+              销售单号: {{ scope.row.saleOrderNo }}
+              <el-tag
+                v-if="isTiankeOrder(scope.row)"
+                type="warning"
+                size="mini"
+                style="margin-left: 5px;"
+              >
+                添可
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
 
@@ -354,6 +370,23 @@
             <el-tag :type="getStatusType(scope.row.status)">
               {{ getStatusText(scope.row.status) }}
             </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="工单限制" align="center" width="120">
+          <template slot-scope="scope">
+            <div v-if="scope.row.currentWorkOrderNo">
+              <div style="font-size: 12px;">当前工单:</div>
+              <div style="font-weight: bold;">{{ scope.row.currentWorkOrderNo }}</div>
+            </div>
+            <div v-if="scope.row.whitelistLocked" style="margin-top: 5px;">
+              <el-tag type="warning" size="mini">白名单已锁定</el-tag>
+            </div>
+            <div v-if="scope.row.workOrderWhitelist && scope.row.workOrderWhitelist.length > 0" style="margin-top: 5px;">
+              <el-tag type="info" size="mini">
+                白名单: {{ scope.row.workOrderWhitelist.length }}个工单
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
 
@@ -663,6 +696,17 @@ export default {
     };
   },
   methods: {
+    /**
+     * 判断是否为添可销售订单类型
+     * @param {Object} row - 出库单数据
+     * @returns {Boolean} 是否为添可订单
+     */
+    isTiankeOrder(row) {
+      // 这里可以根据实际的销售订单信息判断
+      // 暂时通过销售订单号或其他字段判断
+      // 实际项目中可能需要调用接口获取销售订单详情
+      return false; // 暂时返回false，后续可以根据实际需求完善
+    },
     handleUpdateNumber(row) {
       // 检查出库单状态，如果已完成则不允许修改
       if (row.status === "COMPLETED") {

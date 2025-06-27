@@ -1,0 +1,65 @@
+_id	sortNum	visible	status	type	menuName	parentId	component	icon	createBy	createAt	updateAt	__v	updateBy	path	componentName	isCache	perms	query
+656d94d4d25b3e7264d2ccce	1	true	true	菜单	用户列表	6572908506396f128b6128ba	/user/index	el-icon-user	null	2023-12-04 08:59:00.167	2023-12-08 04:28:17.442	0	null	/user	user	true		
+65713388efc8033d6ea668fa	1	true	true	菜单	通知列表	657132c2efc8033d6ea668f3	/notice/index	el-icon-message	null	2023-12-07 02:52:56.934	2023-12-07 02:57:59.931	0	null	/notice/notice				
+6572911b06396f128b6128d1	1	true	true	菜单	菜单管理	6572908506396f128b6128ba	/menu/index	el-icon-setting	null	2023-12-08 03:44:27.398	2023-12-08 03:44:27.399	0		/menu	menu	true		
+6572913706396f128b6128d5	1	true	true	菜单	角色管理	6572908506396f128b6128ba	/role/index	el-icon-setting	null	2023-12-08 03:44:55.885	2023-12-08 03:44:55.886	0		/role	role	true		
+6572dae804bfef8d2003c86e	1	true	true	菜单	字典管理	6572908506396f128b6128ba	/dictionary/index	el-icon-document-copy	null	2023-12-08 08:59:20.108	2023-12-08 09:05:37.735	0	null	/dict/index	Dict	true		
+6572e2b223fc851983be1c76	1	false	true	菜单	字典数据	6572908506396f128b6128ba	/dictionary/data		null	2023-12-08 09:32:34.741	2023-12-08 10:06:45.368	0	null	/dict/data	Data	true		
+6621e449423a9d538ae58cd2	1	true	true	菜单	招聘管理	6621e411423a9d538ae58cce	/recruitment/index	el-icon-finished		2024-04-19 03:26:01.032	2024-04-19 03:26:01.032	0		/recruitment/index				
+6621e497423a9d538ae58cda	1	true	true	菜单	留言管理	6621e46d423a9d538ae58cd6	/message/index	el-icon-notebook-1		2024-04-19 03:27:19.553	2024-04-19 03:27:19.553	0		/message/index				
+6621e4f939235897dfc394e2	1	true	true	菜单	荣誉管理	6621e4c639235897dfc394de		el-icon-trophy-1		2024-04-19 03:28:57.54	2024-04-19 03:28:57.54	0		/honor/index				
+662763eb3291626dd9bb0185	1	true	true	菜单	素材库管理	6627635d3291626dd9bb017a	/materiallibrary/index	el-icon-picture-outline		2024-04-23 07:31:55.469	2024-04-23 07:31:55.469	0		/materiallibrary/index				
+6628b45ffbaa7c69b17aba5b	1	true	true	菜单	产品分类管理	6628b3fefbaa7c69b17aba50	/productCate/index	el-icon-s-grid		2024-04-24 07:27:27.286	2024-04-24 07:27:27.286	0		/productCate/index				
+674c1fabd9732efb4a7f935e	1	true	true	菜单	生产订单	674c1fabd9732efb4a7f935e	/productionManagement/index	el-icon-monitor		2024-12-01 08:34:51.324	2024-12-01 08:34:51.324	0		/productionManagement				
+674c2020d9732efb4a7f9372	1	true	true	菜单	生产订单	67527c0f105643b663849c85	/productionManagement/index	el-icon-s-order		2024-12-01 08:36:48.598	2024-12-01 08:36:48.598	0		/productionManagement/index	productionManagement	true		
+674d17f70526e215ce3f4877	1	true	true	菜单	物料信息	67527c0f105643b663849c85	/material/index	el-icon-notebook-2		2024-12-02 02:14:15.227	2024-12-02 02:14:15.227	0		/material/index	material	true		
+67505f63a7da039e2357295e	1	true	true	菜单	产线扫码	67505f46a7da039e2357295a	/scanBarCode/index	el-icon-camera-solid		2024-12-04 13:55:47.257	2024-12-04 13:55:47.257	0		/scanBarCode/index	ScanBarCode	true		
+67527c25105643b663849c89	1	true	true	菜单	销售订单	67527c0f105643b663849c85	/saleOrder/index	el-icon-s-goods		2024-12-06 04:23:01.364	2024-12-06 04:23:01.364	0		/saleOrder/index	saleOrder	true		
+67540932b1f0b25686502ce1	2	true	true	菜单	条码记录	6773b7465dd8c2a97b1fa0e7	/materialProcessFlow/index	el-icon-s-order		2024-12-07 08:37:06.931	2024-12-07 08:37:06.931	0		/materialProcessFlow/index	materialProcessFlow	true		
+67552c8a742904b1cf71b7ad	1	true	true	菜单	生产计划	674c1ff3d9732efb4a7f936e	/productionPlanWorkOrder/index	el-icon-data-line		2024-12-08 05:20:10.996	2024-12-08 05:20:10.996	0		/productionPlanWorkOrder/index	ProductionOrder	true		
+675534c3dbc29646a6ce7621	1	true	true	菜单	生产产线	674c1ff3d9732efb4a7f936e	/productionLine/index	el-icon-s-flag		2024-12-08 05:55:15.233	2024-12-08 05:55:15.233	0		/productionLine/index	ProductionLine	true		
+67557ae9272cd0e6dc5454b0	1	true	true	菜单	设备信息	67557acb272cd0e6dc5454ac	/equipmentInformation/index	el-icon-cpu		2024-12-08 10:54:33.42	2024-12-08 10:54:33.42	0		/equipmentInformation/index	machine	true		
+6764ca99f24d0dd895faeebb	1	true	true	菜单	检测数据	67557acb272cd0e6dc5454ac	/detectedData/index	el-icon-finished		2024-12-20 01:38:33.874	2024-12-20 01:38:33.874	0		/detectedData	InspectionLastData	true		
+676cbbeaf78dda99baaf94fe	3	true	true	菜单	打包托盘	67505f46a7da039e2357295a	/scanBarCodeBatch/index	el-icon-camera-solid		2024-12-26 02:14:02.66	2024-12-26 02:14:02.66	0		/scanBarCodeBatch/index	scanBarCodeBatch	true		
+676cdcacca167768c5cbb2cc	1	true	true	菜单	打印模板	6781e645978a446bf6980b7d	/printTemplate/index	el-icon-notebook-2		2024-12-26 04:33:48.22	2024-12-26 04:33:48.22	0		/printTemplate/index	printTemplate	true		
+676e0cb6946626395d873852	4	true	true	菜单	托盘单据	67701c87d3fd70ffd0821a13	/materialPalletizing/index	el-icon-s-claim		2024-12-27 02:11:02.584	2024-12-27 02:11:02.584	0		/materialPalletizing/index	MaterialPalletizing	true		
+67701cb3d3fd70ffd0821a17	1	true	true	菜单	生产入库单	67701c87d3fd70ffd0821a13	/warehouseEntry/index	el-icon-s-order		2024-12-28 15:43:47.694	2024-12-28 15:43:47.694	0		/warehouseEntry/index	warehouseEntry	true		
+677171d4caeaea05f58133ee	1	true	true	菜单	仓库信息	67527c0f105643b663849c85	/stock/index	el-icon-s-order		2024-12-29 15:59:16.125	2024-12-29 15:59:16.125	0		/stock/index	stock	true		
+677234478058fde26021674a	1	true	true	菜单	条码匹配规则	6781e645978a446bf6980b7d	/barcodeRule/index	el-icon-s-operation		2024-12-30 05:48:55.5	2024-12-30 05:48:55.5	0		/barcodeRule/index	barcodeRule	true		
+6772c9cdc4fb76f1e535a801	2	true	true	菜单	生产出库单	67701c87d3fd70ffd0821a13	/warehouseOntry/index	el-icon-document		2024-12-30 16:26:53.585	2024-12-30 16:26:53.585	0		/warehouseOntry/index	warehouseOntry	true		
+677ff11dcc79a724ea35d705	3	true	true	菜单	产品维修	67505f46a7da039e2357295a	/productRepair/index	el-icon-attract		2025-01-09 15:54:05.562	2025-01-09 15:54:05.562	0		/productRepair/index	productRepair	true		
+6784aa4019a0b8fa9d5b7573	1	true	true	菜单	扫码转换	67505f46a7da039e2357295a	/scanBarCodeConver/index	el-icon-camera-solid		2025-01-13 05:53:04.307	2025-01-13 05:53:04.307	0		/scanBarCodeConver	scanBarCodeConver	true		
+67868829ca4c9486bc6297ef	1	true	true	菜单	采购订单	67527c0f105643b663849c85	/purchaseOrder/index	el-icon-s-order		2025-01-14 15:52:09.438	2025-01-14 15:52:09.438	0		/purchaseOrder/index	purchaseOrder	true		
+6787e86ff7ae07393db10164	1	true	true	菜单	生产领料	67527c0f105643b663849c85	/pickMtrl/index	el-icon-s-order		2025-01-15 16:55:11.72	2025-01-15 16:55:11.72	0		/pickMtrl/index	PickMtrl	true		
+6787f1d3a5f1daca8d521077	1	true	true	菜单	发货通知单	67527c0f105643b663849c85	/deliveryNotice/index	el-icon-document-copy		2025-01-15 17:35:15.669	2025-01-15 17:35:15.669	0		/deliveryNotice/index	DeliveryNotice	true		
+6788629d71114674d63cee53	1	true	true	菜单	成品追溯	6773b7465dd8c2a97b1fa0e7	/productTraceability/index	el-icon-sort		2025-01-16 01:36:29.085	2025-01-16 01:36:29.085	0		/productTraceability/index	ProductTraceability	true		
+67890a70b0bab00a1e98a18e	1	true	true	菜单	生产入库单	67527c0f105643b663849c85	/InStock/index	el-icon-s-order		2025-01-16 13:32:32.612	2025-01-16 13:32:32.612	0		/InStock/index	ProductionInStock	true		
+6789264e9261cc6cd7b67478	1	true	true	菜单	采购申请单	67527c0f105643b663849c85	/requisitionBill/index	el-icon-s-claim		2025-01-16 15:31:26.631	2025-01-16 15:31:26.632	0		/requisitionBill/index	RequisitionBill	true		
+678c8247a5ef7eb072e1e8a5	1	true	true	菜单	销售出库单	67527c0f105643b663849c85	/outStock/index	el-icon-s-order		2025-01-19 04:40:39.217	2025-01-19 04:40:39.217	0		/outStock/index	OutStock	true		
+67a5b96a0c745fc9efc91750	1	true	true	菜单	条码生成规则	6781e645978a446bf6980b7d	/barcodeSegmentRule/index	el-icon-notebook-2		2025-02-07 07:42:34.944	2025-02-07 07:42:34.944	0		/barcodeSegmentRule/index	barcodeSegmentRule	true		
+67b48888f474eaccc6f27ce4	3	true	true	菜单	条码抽检	67ce37045ffb1486ac8ed84a	/SamplingInspectionFlow/index	el-icon-tickets		2025-02-18 13:18:00.27	2025-02-18 13:18:00.27	0		/SamplingInspectionFlow/index	SamplingInspectionFlow	true		
+67b4ac086d038adb20cf3f55	1	true	true	菜单	生产条码	674c1ff3d9732efb4a7f936e	/preProductionBarcode/index	el-icon-s-order		2025-02-18 15:49:28.857	2025-02-18 15:49:28.857	0		/preProductionBarcode/index	PreProductionBarcode	true		
+67b932700e4ed186e47514c8	1	true	true	菜单	打包托盘（包含子物料）	67505f46a7da039e2357295a	/scanBarCodeBatchNew/index	el-icon-camera-solid		2025-02-22 02:12:00.897	2025-02-22 02:12:00.897	0		/scanBarCodeBatchNew/index	scanBarCodeBatchNew	true		
+67bbe42161b1a6b95cde5ef4	1	true	true	菜单	UDI抽检	67ce37045ffb1486ac8ed84a	/udiSamplingInspectionFlow/index	el-icon-document-checked		2025-02-24 03:14:41.375	2025-02-24 03:14:41.375	0		/udiSamplingInspectionFlow/index	udiSamplingInspectionFlow	true		
+67c033a7bcfee00e2aef77be	1	true	true	菜单	打包装箱	67505f46a7da039e2357295a	/scanBarCodePack/index	el-icon-files		2025-02-27 09:43:03.019	2025-02-27 09:43:03.019	0		/scanBarCodePack/index	scanBarCodePack	true		
+67c6b33ac2d8f632859d4828	1	true	true	菜单	装箱条码	6773b7465dd8c2a97b1fa0e7	/packBarcode/index	el-icon-files		2025-03-04 08:00:58.694	2025-03-04 08:00:58.694	0		/packBarcode/index	PackBarcode	true		
+67cf154ecf9b50802ca2223c	1	true	true	菜单	产线校验	67505f46a7da039e2357295a	/scanBarCodeCheck/index	el-icon-camera-solid		2025-03-10 16:37:34.37	2025-03-10 16:37:34.37	0		/scanBarCodeCheck/index	ScanBarCodeCheck	true		
+67cfe0973badf828ad4f1a68	1	true	true	菜单	SN-SFTP条码列表	67cfe0443badf828ad4f1a58	/udiDataManagement/index	el-icon-s-order		2025-03-11 07:04:55.5	2025-03-11 07:04:55.5	0		/udiDataManagement/index	UdiDataManagement	true		
+67d7a1b7fa7db30cc96ef5f7	1	true	true	菜单	自定义扫码	67505f46a7da039e2357295a	/customScanCheck/index	el-icon-camera-solid		2025-03-17 04:14:47.686	2025-03-17 04:14:47.686	0		/customScanCheck/index	CustomScanCheck	true		
+67d999a1faded3fc107e406a	1	true	true	菜单	产线大屏	67505f46a7da039e2357295a	/scBigView/index	el-icon-s-marketing		2025-03-18 16:04:49.738	2025-03-18 16:04:49.738	0		/scBigView/index	scBigView	true		
+67dad562a54a74f11cf1f880	1	true	true	菜单	托盘校验	67505f46a7da039e2357295a	/palletBarcodeVerification/index	el-icon-document-checked		2025-03-19 14:32:02.011	2025-03-19 14:32:02.011	0		/palletBarcodeVerification/index	PalletBarcodeVerification	true		
+67dbf34f5e5ad9b03bb4193c	1	true	true	菜单	简单扫码	67505f46a7da039e2357295a	/scanBarCodeSimple/index	el-icon-camera-solid		2025-03-20 10:51:59.925	2025-03-20 10:51:59.925	0		/scanBarCodeSimple/index	scanBarCodeSimple	true		
+6808c53beefadd7eb3c7c7fc	1	true	true	菜单	托盘组装	67505f46a7da039e2357295a	/palletAssembly/index	el-icon-sold-out		2025-04-23 10:47:23.056	2025-04-23 10:47:23.056	0		/palletAssembly/index		true		
+680e48faa25cde3470897de4	1	true	true	菜单	扫码维修	67505f46a7da039e2357295a	/scanBarCodeRepair/index	el-icon-first-aid-kit		2025-04-27 15:10:50.949	2025-04-27 15:10:50.949	0		/scanBarCodeRepair/index	ScanBarCodeRepair	true		
+6811053ba028615a9c1c55ef	1	true	true	菜单	日志管理	6572908506396f128b6128ba	/apiLog/index	el-icon-document		2025-04-29 16:58:35.611	2025-04-29 16:58:35.612	0		/apiLog/index	apiLog	true		
+674d8c5fa685db9420c7c4ac	1	true	true	菜单	生产工艺	674c1ff3d9732efb4a7f936e	/craft/index	el-icon-scissors		2024-12-02 10:30:55.395	2024-12-02 10:30:55.395	0		/craft/index	craft	true		
+6572908506396f128b6128ba	7	true	true	目录	系统管理			el-icon-s-tools	null	2023-12-08 03:41:57.683	2023-12-08 03:41:57.684	0		/system				
+674c1ff3d9732efb4a7f936e	2	true	true	目录	生产管理			el-icon-tickets		2024-12-01 08:36:03.116	2024-12-01 08:36:03.116	0		/productionManagement				
+67505f46a7da039e2357295a	3	true	true	目录	产线管理			el-icon-camera-solid		2024-12-04 13:55:18.44	2024-12-04 13:55:18.44	0		/scanBarCode/index				
+67527c0f105643b663849c85	1	true	true	目录	金蝶云数据			el-icon-s-unfold		2024-12-06 04:22:39.396	2024-12-06 04:22:39.396	0		/saleOrder				
+67557acb272cd0e6dc5454ac	1	true	true	目录	设备管理			el-icon-cpu		2024-12-08 10:54:03.232	2024-12-08 10:54:03.232	0		/equipmentInformation				
+67701c87d3fd70ffd0821a13	1	true	true	目录	仓库管理			el-icon-box		2024-12-28 15:43:03.693	2024-12-28 15:43:03.693	0		/warehouse				
+6773b7465dd8c2a97b1fa0e7	1	true	true	目录	产品追溯			el-icon-document-copy		2024-12-31 09:20:06.115	2024-12-31 09:20:06.115	0		/materialProcessFlow				
+6781e645978a446bf6980b7d	1	true	true	目录	基础设置		/setting	el-icon-edit		2025-01-11 03:32:21.281	2025-01-11 03:32:21.281	0		/setting				
+67ce37045ffb1486ac8ed84a	1	true	true	目录	品质成品抽检			el-icon-s-claim		2025-03-10 00:49:08.399	2025-03-10 00:49:08.399	0		/Quality				
+67cfe0443badf828ad4f1a58	1	true	true	目录	客户条码			el-icon-s-order		2025-03-11 07:03:32.955	2025-03-11 07:03:32.955	0		/udiDataManagement				

@@ -388,8 +388,8 @@
           v-if="!isScrapRepair"
         >
           <el-radio-group v-model="reviewForm.repairResult">
-            <el-radio label="QUALIFIED">{{ $t('productRepair.status.qualified') }}</el-radio>
-            <el-radio label="UNQUALIFIED">{{ $t('productRepair.status.unqualified') }}</el-radio>
+            <el-radio label="QUALIFIED">{{ $t('productRepair.repairResult.qualified') }}</el-radio>
+            <el-radio label="UNQUALIFIED">{{ $t('productRepair.repairResult.unqualified') }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item :label="$t('productRepair.dialogs.adverseEffect')" prop="adverseEffect">
@@ -423,8 +423,8 @@
           v-if="!hasOnlyScrapRepairs"
         >
           <el-radio-group v-model="batchReviewForm.repairResult">
-            <el-radio label="QUALIFIED">{{ $t('productRepair.status.qualified') }}</el-radio>
-            <el-radio label="UNQUALIFIED">{{ $t('productRepair.status.unqualified') }}</el-radio>
+            <el-radio label="QUALIFIED">{{ $t('productRepair.repairResult.qualified') }}</el-radio>
+            <el-radio label="UNQUALIFIED">{{ $t('productRepair.repairResult.unqualified') }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item :label="$t('productRepair.dialogs.adverseEffect')" prop="adverseEffect">
@@ -679,31 +679,31 @@ export default {
       const row = this.tableList.find(
         (item) => item._id === this.reviewForm._id
       );
-      return row && row.solution === "报废";
+      return row && row.solution === this.$t('productRepair.solutionOptions.scrap');
     },
     hasOnlyScrapRepairs() {
       // 检查是否所有选中的都是报废工单
       if (!this.selection || this.selection.length === 0) return false;
-      return this.selection.every((item) => item.solution === "报废");
+      return this.selection.every((item) => item.solution === this.$t('productRepair.solutionOptions.scrap'));
     },
   },
   methods: {
     getLineTypeText(type) {
       const typeMap = {
-        ASSEMBLY: "组装线",
-        SMT: "SMT线",
-        TESTING: "测试线",
-        PACKAGING: "包装线",
-        OTHER: "其他",
+        ASSEMBLY: this.$t('productRepair.lineTypes.assembly'),
+        SMT: this.$t('productRepair.lineTypes.smt'),
+        TESTING: this.$t('productRepair.lineTypes.testing'),
+        PACKAGING: this.$t('productRepair.lineTypes.packaging'),
+        OTHER: this.$t('productRepair.lineTypes.other'),
       };
       return typeMap[type] || type;
     },
 
     getStatusText(status) {
       const statusMap = {
-        PENDING_REVIEW: "待审核",
-        REVIEWED: "已审核",
-        VOIDED: "已作废",
+        PENDING_REVIEW: this.$t('productRepair.status.pendingReview'),
+        REVIEWED: this.$t('productRepair.status.reviewed'),
+        VOIDED: this.$t('productRepair.status.voided'),
       };
       return statusMap[status] || status;
     },
@@ -845,7 +845,7 @@ export default {
     },
 
     formatDate(date) {
-      if (!date) return "暂无数据";
+      if (!date) return this.$t('productRepair.table.noData');
       const dateObj = new Date(date);
       if (isNaN(dateObj.getTime())) {
         return "无效日期";
@@ -988,8 +988,8 @@ export default {
 
     getRepairResultText(result) {
       const resultMap = {
-        QUALIFIED: "合格",
-        UNQUALIFIED: "不合格",
+        QUALIFIED: this.$t('productRepair.repairResult.qualified'),
+        UNQUALIFIED: this.$t('productRepair.repairResult.unqualified'),
       };
       return resultMap[result] || result;
     },
@@ -1022,7 +1022,7 @@ export default {
         );
 
         // 如果是报废处理方案，不需要选择维修结果
-        if (row && row.solution === "报废") {
+        if (row && row.solution === this.$t('productRepair.solutionOptions.scrap')) {
           // 直接审核通过，不需要维修结果
           const response = await reviewRepair({
             repairId: this.reviewForm._id,
@@ -1209,17 +1209,17 @@ export default {
       try {
         // 检查是否包含报废处理方案的记录
         const hasScrapItems = this.selection.some(
-          (item) => item.solution === "报废"
+          (item) => item.solution === this.$t('productRepair.solutionOptions.scrap')
         );
 
         // 如果包含报废记录，可以不要求选择维修结果
         if (hasScrapItems && !this.batchReviewForm.repairResult) {
           const scrapIds = this.selection
-            .filter((item) => item.solution === "报废")
+            .filter((item) => item.solution === this.$t('productRepair.solutionOptions.scrap'))
             .map((item) => item._id);
 
           const nonScrapIds = this.selection
-            .filter((item) => item.solution !== "报废")
+            .filter((item) => item.solution !== this.$t('productRepair.solutionOptions.scrap'))
             .map((item) => item._id);
 
           // 先处理非报废记录
@@ -1459,18 +1459,18 @@ export default {
             return [
               item.barcode,
               item.materialCode,
-              item.materialSpec || "暂无数据",
+              item.materialSpec || this.$t('productRepair.table.noData'),
               item.saleOrderNo,
               item.productionOrderNo,
               item.workOrderNo,
-              item.repairPerson ? item.repairPerson.nickName : "暂无数据",
+              item.repairPerson ? item.repairPerson.nickName : this.$t('productRepair.table.noData'),
               this.formatDate(item.repairTime),
               businessTypeLabel,
               item.solution,
-              item.defectDescription || "暂无数据",
-              item.causeAnalysis || "暂无数据",
-              item.repairDescription || "暂无数据",
-              item.reviewer ? item.reviewer.nickName : "暂无数据",
+              item.defectDescription || this.$t('productRepair.table.noData'),
+              item.causeAnalysis || this.$t('productRepair.table.noData'),
+              item.repairDescription || this.$t('productRepair.table.noData'),
+              item.reviewer ? item.reviewer.nickName : this.$t('productRepair.table.noData'),
               this.formatDate(item.reviewTime),
               this.getRepairResultText(item.repairResult),
               this.getStatusText(item.status),
@@ -1639,9 +1639,9 @@ export default {
 
     getProductStatusText(status) {
       const statusMap = {
-        NORMAL: "正常",
-        REPAIRING: "维修中",
-        SCRAP: "报废",
+        NORMAL: this.$t('productRepair.productStatus.normal'),
+        REPAIRING: this.$t('productRepair.productStatus.repairing'),
+        SCRAP: this.$t('productRepair.productStatus.scrap'),
       };
       return statusMap[status] || status;
     },

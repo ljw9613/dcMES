@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 
 const MenuSchema = new mongoose.Schema({
     menuName: {type: String},//名称（目录名称、菜单名称、权限名称）
+    i18nKey: {type: String},//国际化键值，用于前端国际化显示
     parentId: {type: mongoose.Schema.ObjectId, ref: "menu"}, //父级id
     sortNum: {type: Number, default: 0},//顺序
     path: {type: String},//路由路径

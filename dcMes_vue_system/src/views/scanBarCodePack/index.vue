@@ -2564,7 +2564,7 @@ export default {
 
       const packBarcode = await getData("packBarcode", {
         query: {
-          productionLineId: this.formData.productLine, // 关联产线
+          // productionLineId: this.formData.productLine, // 关联产线
           status: { $ne: "VOIDED" },
           // 按月查询
           createAt: {

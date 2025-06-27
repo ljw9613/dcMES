@@ -1573,7 +1573,7 @@ export default {
         console.error("处理主条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        playAudio('tmyw');
         throw error;
       }
     },
@@ -1605,7 +1605,7 @@ export default {
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        playAudio('tmyw');
         throw error;
       }
     },
@@ -1720,7 +1720,7 @@ export default {
           );
           this.popupType = "ng";
           this.showPopup = true;
-          tone(tmyw);
+          playAudio('tmyw');
           return;
         }
 
@@ -1747,7 +1747,7 @@ export default {
             this.$message.error("未找到该RFID标签对应的条码");
             this.popupType = "ng";
             this.showPopup = true;
-            tone(tmyw);
+            playAudio('tmyw');
             return;
           }
           // RFID模式下的特殊处理
@@ -1755,7 +1755,7 @@ export default {
           //     this.$message.error('无效的RFID标签格式');
           //     this.popupType = 'ng';
           //     this.showPopup = true;
-          //     tone(tmyw);
+          //     playAudio('tmyw');
           //     return;
           // }
           // 可以在这里添加RFID特有的验证逻辑
@@ -1767,7 +1767,7 @@ export default {
             this.$message.error("条码格式不正确，未在系统中注册");
             this.popupType = "ng";
             this.showPopup = true;
-            tone(tmyw);
+            playAudio('tmyw');
             return;
           }
           let materialCode = isValidResult.materialCode;
@@ -1791,7 +1791,7 @@ export default {
                     this.$message.error(
                       `请按顺序使用批次条码，应使用条码: ${expectedBatchId}`
                     );
-                    tone(pcwlxz);
+                    playAudio('pcwlxz');
                     return;
                   }
                 }
@@ -1824,7 +1824,7 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    tone(pcwlxz);
+                    playAudio('pcwlxz');
                     this.popupType = "ng";
                     this.showPopup = true;
                     return;
@@ -1853,7 +1853,7 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    tone(pcwlxz);
+                    playAudio('pcwlxz');
 
                     return;
                   }
@@ -1866,7 +1866,7 @@ export default {
               // 处理子物料条码
               await this.handleSubBarcode(material._id, materialCode);
 
-              tone(smcg);
+              playAudio('smcg');
               this.$notify({
                 title: "子物料扫描成功",
                 dangerouslyUseHTMLString: true,
@@ -1900,7 +1900,7 @@ export default {
           this.$message.warning("该条码已扫描");
           this.popupType = "ng";
           this.showPopup = true;
-          tone(cfbd);
+          playAudio('cfbd');
           return;
         }
 
@@ -1922,7 +1922,7 @@ export default {
           this.$message.error("当前工艺包含装箱工序，必须扫描包装箱条码。");
           this.popupType = "ng";
           this.showPopup = true;
-          tone(tmyw);
+          playAudio('tmyw');
           this.unifiedScanInput = ""; // 清空输入框
           this.$refs.scanInput.focus(); // 重新聚焦
           return; // 终止处理
@@ -1938,7 +1938,7 @@ export default {
             this.$message.error("条码格式不正确，未在系统中注册");
             this.popupType = "ng";
             this.showPopup = true;
-            tone(tmyw);
+            playAudio('tmyw');
             return;
           }
           // 检查主物料是否匹配
@@ -1946,7 +1946,7 @@ export default {
             this.$message.error("条码对应物料与当前工序所需物料不匹配");
             this.popupType = "ng";
             this.showPopup = true;
-            tone(tmyw);
+            playAudio('tmyw');
             return;
           }
 
@@ -1969,7 +1969,7 @@ export default {
               this.$message.error("该条码存在未完成的维修记录");
               this.popupType = "ng";
               this.showPopup = true;
-              tone(dwx);
+              playAudio('dwx');
               return;
             }
             if (
@@ -1982,7 +1982,7 @@ export default {
                 this.$message.error("该条码已完成报废处理");
                 this.popupType = "ng";
                 this.showPopup = true;
-                tone(tmyw);
+                playAudio('tmyw');
                 return;
               }
               this.unifiedScanInput = "";
@@ -1990,7 +1990,7 @@ export default {
               this.$message.error("该条码已完成维修,但维修结果为不合格");
               this.popupType = "ng";
               this.showPopup = true;
-              tone(wxsb);
+              playAudio('wxsb');
               return;
             }
           }
@@ -2004,7 +2004,7 @@ export default {
             this.$message.error("条码对应物料与当前工序所需物料不匹配");
             this.popupType = "ng";
             this.showPopup = true;
-            tone(tmyw);
+            playAudio('tmyw');
             return;
           }
           // 检查主物料是否匹配
@@ -2012,7 +2012,7 @@ export default {
             this.$message.error("条码对应物料与当前工序所需物料不匹配");
             this.popupType = "ng";
             this.showPopup = true;
-            tone(tmyw);
+            playAudio('tmyw');
             return;
           }
 
@@ -2035,7 +2035,7 @@ export default {
               this.$message.error("该条码存在未完成的维修记录");
               this.popupType = "ng";
               this.showPopup = true;
-              tone(dwx);
+              playAudio('dwx');
               return;
             }
             if (
@@ -2047,7 +2047,7 @@ export default {
               this.$message.error("该条码已完成维修,但维修结果为不合格");
               this.popupType = "ng";
               this.showPopup = true;
-              tone(wxsb);
+              playAudio('wxsb');
               return;
             }
           }
@@ -2062,7 +2062,7 @@ export default {
         this.$message.error(error.message || "扫描处理失败");
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        playAudio('tmyw');
       } finally {
         // 清理条码锁定状态
         if (cleanValue) {
@@ -2099,7 +2099,7 @@ export default {
           );
           this.popupType = "ng";
           this.showPopup = true;
-          tone(tmyw);
+          playAudio('tmyw');
           return;
         }
 
@@ -2154,13 +2154,13 @@ export default {
             this.popupType = "ng";
             this.showPopup = true;
             if (res.message == "该工序节点已完成或处于异常状态") {
-              tone(cfbd);
+              playAudio('cfbd');
             } else if (res.message == "未查询到生产工单") {
-              tone(cxwgd);
+              playAudio('cxwgd');
             } else if (res.message == "重复扫码") {
-              tone(cfbd);
+              playAudio('cfbd');
             } else {
-              tone(tmyw);
+              playAudio('tmyw');
             }
             return;
           }
@@ -2346,7 +2346,7 @@ export default {
           }
         }
 
-        tone(smcg);
+        playAudio('smcg');
         this.popupType = "ok";
         this.showPopup = true;
         this.$message.success(`包装箱扫描成功，新增${boxData.length}个条码`);
@@ -2474,7 +2474,7 @@ export default {
             this.scannedList = [];
           }
 
-          tone(smcg);
+          playAudio('smcg');
           this.popupType = "ok";
           this.showPopup = true;
           this.$message.success("条码扫描成功");
@@ -2483,11 +2483,11 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           if (res.message == "该工序节点已完成或处于异常状态") {
-            tone(cfbd);
+            playAudio('cfbd');
           } else if (res.message == "未查询到生产工单") {
-            tone(cxwgd);
+            playAudio('cxwgd');
           } else {
-            tone(tmyw);
+            playAudio('tmyw');
           }
           return;
         }

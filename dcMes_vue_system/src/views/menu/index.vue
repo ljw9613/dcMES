@@ -37,6 +37,22 @@
           <span>{{ scope.row.menuName }}</span>
         </template>
       </el-table-column>
+      
+      <!-- 国际化键值列 -->
+      <el-table-column align="center" label="国际化键值" width="250px">
+        <template slot-scope="scope">
+          <el-tag 
+            v-if="scope.row.i18nKey" 
+            size="mini" 
+            type="info"
+            style="font-family: 'Courier New', monospace;"
+          >
+            {{ scope.row.i18nKey }}
+          </el-tag>
+          <span v-else style="color: #C0C4CC;">未设置</span>
+        </template>
+      </el-table-column>
+      
       <el-table-column align="center" label="图标">
         <template slot-scope="scope">
           <i v-if="scope.row.icon" :class="scope.row.icon"></i>

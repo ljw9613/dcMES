@@ -1,3 +1,9 @@
+<!--
+  仓库出库单扫描组件
+  @author ljw
+  @email 1798245303@qq.com
+  @description 优化后的扫描组件，支持添可销售订单类型的特殊限制规则
+-->
 <template>
   <el-dialog
     :title="title"
@@ -18,8 +24,8 @@
             <el-form-item label="销售单号">
               <el-input
                 v-model="entryInfo.saleOrderNo"
-                @blur="saleOrderNoInput"
-                @keyup.enter.native="saleOrderNoInput"
+                readonly
+                placeholder="通过托盘单据自动带出"
               ></el-input>
             </el-form-item>
           </el-col>
@@ -29,6 +35,7 @@
                 v-model="entryInfo.saleNumber"
                 type="number"
                 readonly
+                placeholder="通过托盘单据自动带出"
               ></el-input>
             </el-form-item>
           </el-col>
@@ -37,12 +44,20 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="产品名称">
-              <el-input v-model="entryInfo.materialName" readonly></el-input>
+              <el-input
+                v-model="entryInfo.materialName"
+                readonly
+                placeholder="通过托盘单据自动带出"
+              ></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="产品型号">
-              <el-input v-model="entryInfo.materialSpec" readonly></el-input>
+              <el-input
+                v-model="entryInfo.materialSpec"
+                readonly
+                placeholder="通过托盘单据自动带出"
+              ></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -66,7 +81,18 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="工单白名单">
+            <el-form-item>
+              <template slot="label">
+                工单白名单
+                <el-tag
+                  v-if="entryInfo.whitelistLocked"
+                  type="warning"
+                  size="mini"
+                  style="margin-left: 5px;"
+                >
+                  已锁定
+                </el-tag>
+              </template>
               <zr-select
                 v-model="entryInfo.workOrderWhitelist"
                 collection="production_plan_work_order"
@@ -78,6 +104,7 @@
                 label-key="workOrderNo"
                 value-key="workOrderNo"
                 :multiple="true"
+                :disabled="entryInfo.whitelistLocked"
                 placeholder="请选择工单白名单"
                 clearable
                 style="width: 100%"
@@ -127,6 +154,20 @@
                 type="number"
               ></el-input>
             </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 工单限制提示信息 -->
+        <el-row v-if="entryInfo.currentWorkOrderNo || entryInfo.whitelistLocked">
+          <el-col :span="24">
+            <el-alert
+              :title="getWorkOrderLimitMessage()"
+              type="info"
+              :closable="false"
+              show-icon
+              style="margin-top: 10px;"
+            >
+            </el-alert>
           </el-col>
         </el-row>
       </el-form>
@@ -407,7 +448,9 @@ export default {
       if (this.scanData) {
         this.entryInfo = {
           ...this.scanData,
-          workOrderWhitelist: [],
+          workOrderWhitelist: this.scanData.workOrderWhitelist || [],
+          whitelistLocked: this.scanData.whitelistLocked || false,
+          whitelistLockedAt: this.scanData.whitelistLockedAt || null,
           outboundMode: this.scanData.outboundMode || "PALLET",
         };
 
@@ -638,7 +681,7 @@ export default {
                 this.$nextTick(() => {
                   this.$refs.scanInput.focus();
                 });
-                this.$message.error(response.message);
+                this.handleScanError(response.message, response.code);
                 return;
               }
             }
@@ -646,11 +689,10 @@ export default {
             this.isScanning = false;
             loading.close();
             
-            if (response.mode === "init") {
-              this.$message.success("出库单初始化成功");
-            } else {
-              this.$message.success("托盘扫码出库成功");
-            }
+            this.showSuccessMessage(
+              response.mode === "init" ? "出库单初始化成功" : "托盘扫码出库成功",
+              response.mode
+            );
 
             // 清空输入框并聚焦
             this.scanForm.barcode = "";
@@ -1089,26 +1131,7 @@ export default {
       }
     },
 
-    async saleOrderNoInput() {
-      // 调用托盘出库API
-      const response = await scanPalletOn({
-        palletCode: null,
-        userId: this.$store.state.user.id,
-        entryInfo: this.entryInfo,
-      });
 
-      // 更新出库单信息
-      if (response.data) {
-        this.entryInfo = response.data;
-      }
-
-      if (response.code !== 200) {
-        this.$message.error(response.message);
-        return;
-      }
-
-      this.$message.success("获取销售单信息成功");
-    },
 
     async handleComplete() {
       try {
@@ -1180,14 +1203,134 @@ export default {
     },
 
     handleWorkOrderSelect(selected) {
-      if (selected.length > 1) {
-        this.$message.warning("白名单只能设置一个工单");
+      // 检查是否为添可销售订单类型
+      const isTiankeOrder = this.checkIfTiankeOrder();
+
+      // 添可订单限制白名单只能设置1个工单
+      if (isTiankeOrder && selected.length > 1) {
+        this.$message.warning("添可销售订单的白名单只能设置1个工单");
+        // 只保留第一个选择的工单
+        selected = [selected[0]];
+      }
+
+      // 检查白名单是否已锁定
+      if (this.entryInfo.whitelistLocked) {
+        this.$message.warning("白名单已锁定，无法修改");
         return;
       }
+
       this.entryInfo.workOrderWhitelist = selected.map((item) => ({
         workOrderNo: item.workOrderNo,
         workOrderId: item._id,
+        productionOrderNo: item.productionOrderNo,
       }));
+    },
+
+    /**
+     * 检查是否为添可销售订单类型
+     */
+    checkIfTiankeOrder() {
+      // 这里可以根据实际的销售订单信息判断
+      // 暂时返回false，后续可以根据实际需求完善
+      return false;
+    },
+
+    /**
+     * 检查白名单是否可以修改
+     */
+    canModifyWhitelist() {
+      return !this.entryInfo.whitelistLocked;
+    },
+
+    /**
+     * 更新白名单锁定状态
+     */
+    updateWhitelistLockStatus(locked = true) {
+      if (locked && !this.entryInfo.whitelistLocked) {
+        this.entryInfo.whitelistLocked = true;
+        this.entryInfo.whitelistLockedAt = new Date();
+        this.$message.info("白名单已锁定，无法再次修改");
+      }
+    },
+
+    /**
+     * 获取工单限制提示信息
+     */
+    getWorkOrderLimitMessage() {
+      let messages = [];
+
+      if (this.entryInfo.currentWorkOrderNo) {
+        messages.push(`当前出库单限制工单：${this.entryInfo.currentWorkOrderNo}`);
+      }
+
+      if (this.entryInfo.whitelistLocked) {
+        messages.push("白名单已锁定，无法修改");
+      }
+
+      if (this.entryInfo.workOrderWhitelist && this.entryInfo.workOrderWhitelist.length > 0) {
+        const workOrderNos = this.entryInfo.workOrderWhitelist.map(item => item.workOrderNo).join(', ');
+        messages.push(`白名单工单：${workOrderNos}`);
+      }
+
+      return messages.join(' | ');
+    },
+
+    /**
+     * 处理扫描错误信息
+     * @param {String} message - 错误信息
+     * @param {Number} code - 错误代码
+     */
+    handleScanError(message, code) {
+      // 根据错误类型显示不同的提示
+      if (message.includes('添可订单限制') || message.includes('白名单')) {
+        this.$message({
+          type: 'warning',
+          message: message,
+          duration: 5000,
+          showClose: true
+        });
+      } else if (message.includes('工单一致性') || message.includes('工单限制')) {
+        this.$message({
+          type: 'error',
+          message: message,
+          duration: 6000,
+          showClose: true
+        });
+      } else if (message.includes('已锁定')) {
+        this.$message({
+          type: 'info',
+          message: message,
+          duration: 4000,
+          showClose: true
+        });
+      } else {
+        this.$message({
+          type: 'error',
+          message: message,
+          duration: 3000
+        });
+      }
+    },
+
+    /**
+     * 显示操作成功提示
+     * @param {String} message - 成功信息
+     * @param {String} mode - 操作模式
+     */
+    showSuccessMessage(message, mode) {
+      if (mode === 'init') {
+        this.$message({
+          type: 'success',
+          message: '出库单初始化成功',
+          duration: 2000
+        });
+      } else {
+        this.$message({
+          type: 'success',
+          message: message || '操作成功',
+          duration: 2000
+        });
+      }
     },
   },
 };

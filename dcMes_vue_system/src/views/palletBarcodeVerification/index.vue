@@ -1,14 +1,14 @@
 <template>
   <div class="pallet-barcode-container">
     <div class="scan-header">
-      <h2>托盘条码校验</h2>
+      <h2>{{ $t('palletBarcodeVerification.title') }}</h2>
     </div>
 
     <!-- 托盘单据输入区域 -->
     <div class="scan-input-area" v-if="!palletLoaded">
       <!-- 已完成托盘记录 -->
       <div v-if="completedPallets.length > 0" class="completed-pallets-container">
-        <div class="completed-pallets-header">已完成托盘</div>
+        <div class="completed-pallets-header">{{ $t('palletBarcodeVerification.completedPallets.title') }}</div>
         <div class="completed-pallets-list">
           <el-tag
             v-for="(pallet, index) in completedPallets"
@@ -26,18 +26,18 @@
           type="text"
           size="small"
           @click="handlePalletInput">
-          <i class="el-icon-document"></i>请输入入托盘单据编号
+          <i class="el-icon-document"></i>{{ $t('palletBarcodeVerification.palletInput.inputPrompt') }}
         </el-button>
       </div>
 
       <div class="input-wrapper">
-        <el-input ref="palletInput" v-model="palletCode" placeholder="请扫描托盘单据编号" class="barcode-input"
+        <el-input ref="palletInput" v-model="palletCode" :placeholder="$t('palletBarcodeVerification.palletInput.placeholder')" class="barcode-input"
           @keyup.enter.native="handlePalletCodeInput" @focus="handleFocus">
           <i slot="prefix" class="el-icon-document"></i>
-          <el-button slot="suffix" type="primary" @click="handlePalletCodeInput">加载托盘</el-button>
+          <el-button slot="suffix" type="primary" @click="handlePalletCodeInput">{{ $t('palletBarcodeVerification.palletInput.loadPallet') }}</el-button>
         </el-input>
       </div>
-      <div class="scan-tip">请将托盘单据条码对准扫描枪，或在输入框中输入托盘编号后按Enter键</div>
+      <div class="scan-tip">{{ $t('palletBarcodeVerification.palletInput.scanTip') }}</div>
     </div>
 
     <!-- 托盘信息和条码输入区域 -->
@@ -45,35 +45,35 @@
       <div class="left-column">
         <el-card class="pallet-info-card">
           <div slot="header" class="clearfix">
-            <span>托盘信息</span>
-            <el-button style="float: right" type="text" @click="resetPallet">更换托盘</el-button>
+            <span>{{ $t('palletBarcodeVerification.palletInfo.title') }}</span>
+            <el-button style="float: right" type="text" @click="resetPallet">{{ $t('palletBarcodeVerification.palletInfo.changePallet') }}</el-button>
           </div>
           <div class="pallet-info-grid">
             <div class="info-item">
-              <div class="info-label">托盘编号</div>
+              <div class="info-label">{{ $t('palletBarcodeVerification.palletInfo.palletCode') }}</div>
               <div class="info-value">{{ palletInfo.palletCode }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">物料信息</div>
+              <div class="info-label">{{ $t('palletBarcodeVerification.palletInfo.materialInfo') }}</div>
               <div class="info-value">{{ palletInfo.materialName }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">总条码数</div>
+              <div class="info-label">{{ $t('palletBarcodeVerification.palletInfo.totalBarcodes') }}</div>
               <div class="info-value">{{ palletInfo.totalBarcodes }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">已校验条码</div>
+              <div class="info-label">{{ $t('palletBarcodeVerification.palletInfo.verifiedBarcodes') }}</div>
               <div class="info-value">{{ palletInfo.verifiedBarcodes }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">未校验条码</div>
+              <div class="info-label">{{ $t('palletBarcodeVerification.palletInfo.remainingBarcodes') }}</div>
               <div class="info-value">{{ palletInfo.remainingBarcodes }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">组托状态</div>
+              <div class="info-label">{{ $t('palletBarcodeVerification.palletInfo.palletStatus') }}</div>
               <div class="info-value">
                 <el-tag :type="palletInfo.status === 'STACKED' ? 'success' : 'warning'">
-                  {{ palletInfo.status === 'STACKED' ? '组托完成' : '组托中' }}
+                  {{ palletInfo.status === 'STACKED' ? $t('palletBarcodeVerification.palletInfo.statusStacked') : $t('palletBarcodeVerification.palletInfo.statusStacking') }}
                 </el-tag>
               </div>
             </div>
@@ -89,13 +89,13 @@
         <!-- 条码扫描区域 -->
         <div class="scan-input-area" style="margin-top: 20px;">
           <div class="input-wrapper">
-            <el-input ref="barcodeInput" v-model="barcode" placeholder="请扫描条码或手动输入" class="barcode-input"
+            <el-input ref="barcodeInput" v-model="barcode" :placeholder="$t('palletBarcodeVerification.barcodeInput.placeholder')" class="barcode-input"
               @keyup.enter.native="verifyBarcode" @focus="handleFocus">
               <i slot="prefix" class="el-icon-search"></i>
-              <el-button slot="suffix" type="primary" @click="verifyBarcode">校验</el-button>
+              <el-button slot="suffix" type="primary" @click="verifyBarcode">{{ $t('palletBarcodeVerification.barcodeInput.verify') }}</el-button>
             </el-input>
           </div>
-          <div class="scan-tip">请将条码对准扫描枪，或在输入框中输入条码后按下Enter键</div>
+          <div class="scan-tip">{{ $t('palletBarcodeVerification.barcodeInput.scanTip') }}</div>
         </div>
 
         <!-- 条码校验结果 -->
@@ -103,28 +103,28 @@
           <div class="result-header">
             <div class="status-badge" :class="getBadgeClass">
               <i :class="scanResult.isCompleted ? 'el-icon-success' : 'el-icon-warning'" class="status-icon"></i>
-              <span>{{ scanResult.status === 'COMPLETED' ? '流程已完成' : '流程未完成' }}</span>
+              <span>{{ scanResult.status === 'COMPLETED' ? $t('palletBarcodeVerification.verificationResult.processCompleted') : $t('palletBarcodeVerification.verificationResult.processIncomplete') }}</span>
             </div>
           </div>
 
           <el-card class="result-card" shadow="hover">
             <div class="info-section">
-              <el-descriptions title="条码基本信息" :column="1" border>
-                <el-descriptions-item label="条码">
+              <el-descriptions :title="$t('palletBarcodeVerification.verificationResult.barcodeInfo')" :column="1" border>
+                <el-descriptions-item :label="$t('palletBarcodeVerification.verificationResult.barcode')">
                   {{ scanResult.barcode }}
                 </el-descriptions-item>
-                <el-descriptions-item label="物料编码">
+                <el-descriptions-item :label="$t('palletBarcodeVerification.verificationResult.materialCode')">
                   {{ scanResult.materialCode }}
                 </el-descriptions-item>
-                <el-descriptions-item label="物料名称">
+                <el-descriptions-item :label="$t('palletBarcodeVerification.verificationResult.materialName')">
                   {{ scanResult.materialName }}
                 </el-descriptions-item>
-                <el-descriptions-item label="状态">
+                <el-descriptions-item :label="$t('palletBarcodeVerification.verificationResult.status')">
                   <el-tag :type="scanResult.status === 'COMPLETED' ? 'success' : 'warning'">
-                    {{ scanResult.status === 'COMPLETED' ? '已完成' : '未完成' }}
+                    {{ scanResult.status === 'COMPLETED' ? $t('palletBarcodeVerification.verificationResult.completed') : $t('palletBarcodeVerification.verificationResult.incomplete') }}
                   </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="完成进度">
+                <el-descriptions-item :label="$t('palletBarcodeVerification.verificationResult.progress')">
                   <el-progress :percentage="scanResult.progress"
                     :status="scanResult.status === 'COMPLETED' ? 'success' : ''"></el-progress>
                 </el-descriptions-item>
@@ -133,15 +133,15 @@
 
             <div class="node-statistics">
               <div class="statistic-item">
-                <div class="statistic-title">总节点数</div>
+                <div class="statistic-title">{{ $t('palletBarcodeVerification.verificationResult.nodeStatistics.totalNodes') }}</div>
                 <div class="statistic-value">{{ scanResult.totalNodes }}</div>
               </div>
               <div class="statistic-item">
-                <div class="statistic-title">已完成</div>
+                <div class="statistic-title">{{ $t('palletBarcodeVerification.verificationResult.nodeStatistics.completedNodes') }}</div>
                 <div class="statistic-value success">{{ scanResult.completedNodes }}</div>
               </div>
               <div class="statistic-item">
-                <div class="statistic-title">未完成</div>
+                <div class="statistic-title">{{ $t('palletBarcodeVerification.verificationResult.nodeStatistics.pendingNodes') }}</div>
                 <div class="statistic-value" :class="{ warning: scanResult.pendingNodes > 0 }">
                   {{ scanResult.pendingNodes }}
                 </div>
@@ -149,15 +149,15 @@
             </div>
 
             <div v-if="scanResult.pendingNodes > 0 && scanResult.pendingNodesList.length > 0" class="pending-nodes-section">
-              <h3>未完成节点列表</h3>
+              <h3>{{ $t('palletBarcodeVerification.verificationResult.pendingNodesList.title') }}</h3>
               <el-table :data="scanResult.pendingNodesList" style="width: 100%" size="medium" :row-key="getRowKey">
-                <el-table-column prop="nodeName" label="节点名称"></el-table-column>
-                <el-table-column prop="nodeType" label="节点类型">
+                <el-table-column prop="nodeName" :label="$t('palletBarcodeVerification.verificationResult.pendingNodesList.nodeName')"></el-table-column>
+                <el-table-column prop="nodeType" :label="$t('palletBarcodeVerification.verificationResult.pendingNodesList.nodeType')">
                   <template slot-scope="scope">
                     {{ getNodeTypeText(scope.row.nodeType) }}
                   </template>
                 </el-table-column>
-                <el-table-column prop="status" label="状态">
+                <el-table-column prop="status" :label="$t('palletBarcodeVerification.verificationResult.pendingNodesList.status')">
                   <template slot-scope="scope">
                     <el-tag :type="getStatusType(scope.row.status)">
                       {{ getStatusText(scope.row.status) }}
@@ -175,14 +175,14 @@
         <div v-if="palletInfo.barcodes.length > 0" class="barcode-list-section">
           <el-card class="barcode-list-card">
             <div slot="header">
-              <span>托盘条码列表</span>
+              <span>{{ $t('palletBarcodeVerification.barcodeList.title') }}</span>
               <div style="float: right; display: flex; align-items: center;">
                 <el-radio-group v-model="barcodeFilter" size="small" style="margin-right: 15px;">
-                  <el-radio-button label="all">全部条码</el-radio-button>
-                  <el-radio-button label="unverified">待校验条码</el-radio-button>
+                  <el-radio-button label="all">{{ $t('palletBarcodeVerification.barcodeList.allBarcodes') }}</el-radio-button>
+                  <el-radio-button label="unverified">{{ $t('palletBarcodeVerification.barcodeList.unverifiedBarcodes') }}</el-radio-button>
                 </el-radio-group>
                 <span style="color: #909399; font-size: 13px;">
-                  共 {{ filteredBarcodes.length }} 个条码
+                  {{ $t('palletBarcodeVerification.barcodeList.totalCount', { count: filteredBarcodes.length }) }}
                 </span>
               </div>
             </div>
@@ -192,15 +192,15 @@
               size="small"
               :row-key="row => row.barcode"
               height="calc(100vh - 200px)">
-              <el-table-column prop="barcode" label="条码" width="180"></el-table-column>
-              <el-table-column label="校验状态" width="100" align="center">
+              <el-table-column prop="barcode" :label="$t('palletBarcodeVerification.barcodeList.barcode')" width="180"></el-table-column>
+              <el-table-column :label="$t('palletBarcodeVerification.barcodeList.verificationStatus')" width="100" align="center">
                 <template slot-scope="scope">
                   <el-tag :type="scope.row.verified ? 'success' : 'info'" size="mini">
-                    {{ scope.row.verified ? '已校验' : '未校验' }}
+                    {{ scope.row.verified ? $t('palletBarcodeVerification.barcodeList.verified') : $t('palletBarcodeVerification.barcodeList.unverified') }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="流程状态" width="100" align="center">
+              <el-table-column :label="$t('palletBarcodeVerification.barcodeList.processStatus')" width="100" align="center">
                 <template slot-scope="scope">
                   <el-tag v-if="scope.row.verified" :type="getStatusType(scope.row.status)" size="mini">
                     {{ getStatusText(scope.row.status) }}
@@ -208,7 +208,7 @@
                   <span v-else>-</span>
                 </template>
               </el-table-column>
-              <el-table-column label="扫描时间" min-width="150">
+              <el-table-column :label="$t('palletBarcodeVerification.barcodeList.scanTime')" min-width="150">
                 <template slot-scope="scope">
                   {{ formatDate(scope.row.scanTime) }}
                 </template>
@@ -248,12 +248,6 @@
 import { getData } from '@/api/data'
 import { checkBarcodeCompletion } from '@/api/materialProcessFlowService'
 import StatusPopup from '@/components/StatusPopup/index.vue'
-import {
-  tone
-} from "@/utils/tone.js";
-import lcywc from "@/assets/tone/lcywc.mp3";
-import lcyw from "@/assets/tone/lcyw.mp3";
-import tmyw from "@/assets/tone/tmyw.mp3";
 
 export default {
   name: 'PalletBarcodeVerification',
@@ -321,6 +315,32 @@ export default {
   },
 
   methods: {
+    /**
+     * 播放音频 - 支持多语言
+     * @param {string} audioType - 音频类型
+     */
+    playAudio(audioType) {
+      try {
+        const currentLanguage = this.$store.getters.language;
+        let audioFile;
+
+        // 根据当前语言选择音频文件
+        if (currentLanguage === 'vi-VN') {
+          // 越南语音频文件路径
+          audioFile = require(`@/assets/toneVN/${audioType}.wav`);
+        } else {
+          // 中文音频文件路径（默认）
+          audioFile = require(`@/assets/tone/${audioType}.wav`);
+        }
+
+        const audio = new Audio(audioFile);
+        audio.play().catch(error => {
+          console.warn('音频播放失败:', error);
+        });
+      } catch (error) {
+        console.warn('音频文件加载失败:', error);
+      }
+    },
     // 自动聚焦输入框
     focusInput() {
       this.$nextTick(() => {
@@ -360,23 +380,23 @@ export default {
     getStatusText(status) {
       if (status) {
         const statusMap = {
-          'PENDING': '待处理',
-          'IN_PROGRESS': '进行中',
-          'COMPLETED': '已完成',
-          'SKIPPED': '已跳过',
-          'ERROR': '异常'
+          'PENDING': this.$t('palletBarcodeVerification.status.pending'),
+          'IN_PROGRESS': this.$t('palletBarcodeVerification.status.inProgress'),
+          'COMPLETED': this.$t('palletBarcodeVerification.status.completed'),
+          'SKIPPED': this.$t('palletBarcodeVerification.status.skipped'),
+          'ERROR': this.$t('palletBarcodeVerification.status.error')
         }
         return statusMap[status] || status
       }
       if (!this.scanResult) return ''
-      return this.scanResult.isCompleted ? '流程已完成' : '流程未完成'
+      return this.scanResult.isCompleted ? this.$t('palletBarcodeVerification.status.processCompleted') : this.$t('palletBarcodeVerification.status.processIncomplete')
     },
 
     // 获取节点类型文本
     getNodeTypeText(type) {
       const typeMap = {
-        'PROCESS_STEP': '工序',
-        'MATERIAL': '物料'
+        'PROCESS_STEP': this.$t('palletBarcodeVerification.nodeType.processStep'),
+        'MATERIAL': this.$t('palletBarcodeVerification.nodeType.material')
       }
       return typeMap[type] || type
     },
@@ -400,10 +420,10 @@ export default {
 
     // 格式化日期
     formatDate(date) {
-      if (!date) return '暂无数据';
+      if (!date) return this.$t('palletBarcodeVerification.messages.noData');
       const dateObj = new Date(date);
       if (isNaN(dateObj.getTime())) {
-        return '无效日期';
+        return this.$t('palletBarcodeVerification.messages.invalidDate');
       }
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -438,7 +458,7 @@ export default {
     // 添加处理托盘条码的方法
     handlePalletCodeInput() {
       if (!this.palletCode) {
-        this.$message.warning('请输入托盘单据编号')
+        this.$message.warning(this.$t('palletBarcodeVerification.messages.enterPalletCode'))
         return
       }
 
@@ -453,13 +473,13 @@ export default {
     // 加载托盘数据
     async loadPalletData() {
       if (!this.palletCode) {
-        this.$message.warning('请输入托盘单据编号')
+        this.$message.warning(this.$t('palletBarcodeVerification.messages.enterPalletCode'))
         return
       }
 
       this.errorMessage = ''
       this.isLoading = true
-      this.loadingText = '正在加载托盘数据...'
+      this.loadingText = this.$t('palletBarcodeVerification.messages.loadingPalletData')
 
       try {
         // 使用getData方法获取托盘数据
@@ -498,7 +518,7 @@ export default {
           // 更新托盘信息
           this.palletInfo = {
             palletCode: palletData.palletCode,
-            materialName: palletData.materialName || '未知物料',
+            materialName: palletData.materialName || this.$t('palletBarcodeVerification.messages.unknownMaterial'),
             materialCode: palletData.materialCode || '',
             status: palletData.status || 'STACKING',
             totalBarcodes: allBarcodes.length,
@@ -508,23 +528,23 @@ export default {
           }
 
           this.palletLoaded = true
-          this.$message.success('托盘数据加载成功')
+          this.$message.success(this.$t('palletBarcodeVerification.messages.palletDataLoadSuccess'))
           this.showPopup = true
           this.popupType = 'ok'
-        //   tone(lcywc)
+        //   this.playAudio('lcywc')
         } else {
-          this.errorMessage = '未找到托盘数据'
+          this.errorMessage = this.$t('palletBarcodeVerification.messages.palletDataNotFound')
           this.$message.error(this.errorMessage)
           this.showPopup = true
           this.popupType = 'ng'
-          tone(tmyw)
+          this.playAudio('tmyw')
         }
       } catch (error) {
-        this.errorMessage = '系统错误，请重试'
+        this.errorMessage = this.$t('palletBarcodeVerification.messages.systemError')
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        tone(tmyw)
+        this.playAudio('tmyw')
         console.error('加载托盘出错:', error)
       } finally {
         this.isLoading = false
@@ -536,7 +556,7 @@ export default {
     // 条码校验
     async verifyBarcode() {
       if (!this.barcode) {
-        this.$message.warning('请输入条码')
+        this.$message.warning(this.$t('palletBarcodeVerification.messages.enterBarcode'))
         return
       }
 
@@ -544,11 +564,11 @@ export default {
       const barcodeInPallet = this.palletInfo.barcodes.find(item => item.barcode === this.barcode)
 
       if (!barcodeInPallet) {
-        this.errorMessage = '该条码不存在于当前托盘中'
+        this.errorMessage = this.$t('palletBarcodeVerification.messages.barcodeNotInPallet')
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        tone(tmyw)
+        this.playAudio('tmyw')
         this.barcode = '' // 清空输入框
         this.focusInput() // 重新聚焦
         return
@@ -556,7 +576,7 @@ export default {
 
       this.errorMessage = ''
       this.isLoading = true
-      this.loadingText = '正在校验条码...'
+      this.loadingText = this.$t('palletBarcodeVerification.messages.verifyingBarcode')
       this.scanResult = null
 
       try {
@@ -585,10 +605,10 @@ export default {
 
           // 检查是否所有条码都已校验完成
           if (this.palletInfo.verifiedBarcodes === this.palletInfo.totalBarcodes) {
-            this.$message.success('所有条码已完成校验，托盘校验完成')
+            this.$message.success(this.$t('palletBarcodeVerification.messages.allBarcodesVerified'))
             this.showPopup = true
             this.popupType = 'ok'
-            tone(lcywc)
+            this.playAudio('lcywc')
 
             // 记录已完成的托盘
             this.completedPallets.push({
@@ -609,29 +629,29 @@ export default {
               this.resetPallet()
             }, 1500)
           } else if (this.scanResult.isCompleted) {
-            this.$message.success('条码检查完成')
+            this.$message.success(this.$t('palletBarcodeVerification.messages.barcodeCheckComplete'))
             this.showPopup = true
             this.popupType = 'ok'
-            tone(lcywc)
+            this.playAudio('lcywc')
           } else {
-            this.$message.warning('流程尚未完成')
+            this.$message.warning(this.$t('palletBarcodeVerification.messages.processNotComplete'))
             this.showPopup = true
             this.popupType = 'ng'
-            tone(lcyw)
+            this.playAudio('lcyw')
           }
         } else {
-          this.errorMessage = response.message || '查询失败'
+          this.errorMessage = response.message || this.$t('palletBarcodeVerification.messages.queryFailed')
           this.$message.error(this.errorMessage)
           this.showPopup = true
           this.popupType = 'ng'
-          tone(tmyw)
+          this.playAudio('tmyw')
         }
       } catch (error) {
-        this.errorMessage = '系统错误，请重试'
+        this.errorMessage = this.$t('palletBarcodeVerification.messages.systemError')
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        tone(tmyw)
+        this.playAudio('tmyw')
         console.error('校验条码出错:', error)
       } finally {
         this.isLoading = false
@@ -644,7 +664,7 @@ export default {
     handlePalletInput() {
       this.$message({
         type: 'info',
-        message: '请在下方输入托盘单据编号',
+        message: this.$t('palletBarcodeVerification.messages.inputPalletPrompt'),
         duration: 3000
       })
 

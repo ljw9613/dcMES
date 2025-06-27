@@ -1,3 +1,9 @@
+/**
+ * 仓库出库单模型
+ * @author ljw
+ * @email 1798245303@qq.com
+ * @description 优化后的仓库出库单模型，支持添可销售订单类型的特殊限制规则
+ */
 const mongoose = require("mongoose");
 
 // 托盘内装箱/产品明细结构
@@ -120,8 +126,29 @@ const warehouseOntrySchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: "production_plan_work_order",
       }, // 工单ID
+      productionOrderNo: { type: String }, // 生产订单号
+      addedAt: { type: Date, default: Date.now }, // 添加时间
     },
   ],
+
+  // 白名单锁定状态（针对添可销售订单类型）
+  whitelistLocked: {
+    type: Boolean,
+    default: false,
+    description: "白名单是否已锁定，一旦锁定不可修改"
+  },
+
+  // 白名单锁定时间
+  whitelistLockedAt: {
+    type: Date,
+    description: "白名单锁定时间"
+  },
+
+  // 当前出库单关联的工单号（用于托盘工单一致性验证）
+  currentWorkOrderNo: {
+    type: String,
+    description: "当前出库单中托盘所属的工单号，确保同一出库单中托盘来自同一工单"
+  },
 
   // 出库模式
   outboundMode: {
@@ -157,11 +184,65 @@ const warehouseOntrySchema = new mongoose.Schema({
   updateAt: { type: Date, default: Date.now },
 });
 
+// 添加实例方法
+warehouseOntrySchema.methods = {
+  /**
+   * 检查是否为添可销售订单类型
+   * @param {Object} saleOrder - 销售订单对象
+   * @returns {Boolean} 是否为添可销售订单
+   */
+  isTiankeOrder: function(saleOrder) {
+    return saleOrder && saleOrder.FSettleId_FNumber === "CUST0199";
+  },
+
+  /**
+   * 验证白名单工单数量限制（添可订单限制为1个）
+   * @param {Object} saleOrder - 销售订单对象
+   * @returns {Boolean} 是否符合数量限制
+   */
+  validateWhitelistCount: function(saleOrder) {
+    if (this.isTiankeOrder(saleOrder)) {
+      return this.workOrderWhitelist.length <= 1;
+    }
+    return true; // 非添可订单不限制
+  },
+
+  /**
+   * 验证托盘工单一致性
+   * @param {String} workOrderNo - 新托盘的工单号
+   * @returns {Boolean} 是否符合工单一致性要求
+   */
+  validatePalletWorkOrderConsistency: function(workOrderNo) {
+    if (!this.currentWorkOrderNo) {
+      return true; // 第一个托盘，允许
+    }
+    return this.currentWorkOrderNo === workOrderNo;
+  },
+
+  /**
+   * 锁定白名单
+   */
+  lockWhitelist: function() {
+    this.whitelistLocked = true;
+    this.whitelistLockedAt = new Date();
+  },
+
+  /**
+   * 检查白名单是否可以修改
+   * @returns {Boolean} 是否可以修改
+   */
+  canModifyWhitelist: function() {
+    return !this.whitelistLocked;
+  }
+};
+
 // 添加索引
 warehouseOntrySchema.index({ entryNo: 1 }, { unique: true });
 warehouseOntrySchema.index({ productionOrderNo: 1 });
 warehouseOntrySchema.index({ status: 1 });
 warehouseOntrySchema.index({ createAt: -1 });
 warehouseOntrySchema.index({ "entryItems.palletCode": 1 }); // 新增：托盘编号索引
+warehouseOntrySchema.index({ whitelistLocked: 1 }); // 新增：白名单锁定状态索引
+warehouseOntrySchema.index({ currentWorkOrderNo: 1 }); // 新增：当前工单号索引
 
 module.exports = mongoose.model("warehouse_ontry", warehouseOntrySchema);

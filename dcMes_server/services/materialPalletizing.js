@@ -220,6 +220,13 @@ class MaterialPalletizingService {
         session
       );
 
+      // 关键验证：确保托盘编号不为空
+      if (!pallet || !pallet.palletCode) {
+        throw new Error("托盘初始化失败，托盘编号为空");
+      }
+
+      console.log(`使用托盘: ${pallet.palletCode}`);
+
       // 步骤3：处理盒条码验证（如果存在）
       if (boxBarcode) {
         await this._validateBoxBarcode(boxBarcode, materialId, userId, pallet.productLineId, session);
@@ -250,7 +257,7 @@ class MaterialPalletizingService {
       }
 
       // 步骤7：**先触发工序完成**（在事务内进行，确保工序绑定成功）
-      console.log(`开始触发工序完成: ${mainBarcode}`);
+      console.log(`开始触发工序完成: ${mainBarcode}, 托盘编号: ${pallet.palletCode}`);
       try {
         await materialProcessFlowService.scanBatchDocument(
           mainBarcode,
@@ -1566,6 +1573,13 @@ class MaterialPalletizingService {
         throw new Error("未找到指定的托盘");
       }
 
+      // 关键验证：确保托盘编号不为空
+      if (!pallet.palletCode) {
+        throw new Error("托盘编号为空，无法进行工序绑定");
+      }
+
+      console.log(`使用指定托盘: ${pallet.palletCode}`);
+
       // 检查托盘状态，只有组托中的托盘才能添加条码
       if (pallet.status !== "STACKING") {
         throw new Error("只有组托中状态的托盘才能添加条码");
@@ -1732,7 +1746,7 @@ class MaterialPalletizingService {
       }
 
       // **先触发工序完成**（在事务内进行，确保工序绑定成功）
-      console.log(`开始触发工序完成: ${mainBarcode}`);
+      console.log(`开始触发工序完成: ${mainBarcode}, 托盘编号: ${pallet.palletCode}`);
       try {
         await materialProcessFlowService.scanBatchDocument(
           mainBarcode,
@@ -2032,6 +2046,13 @@ class MaterialPalletizingService {
         fromRepairStation
       );
 
+      // 关键验证：确保托盘编号不为空
+      if (!pallet || !pallet.palletCode) {
+        throw new Error("托盘初始化失败，托盘编号为空");
+      }
+
+      console.log(`使用托盘: ${pallet.palletCode}`);
+
       // 步骤3：处理盒条码验证（如果存在）
       if (boxBarcode) {
         await this._validateBoxBarcodeSimple(boxBarcode, materialId, userId, pallet.productLineId);
@@ -2045,7 +2066,7 @@ class MaterialPalletizingService {
       );
 
       // 步骤5：**先触发工序完成**（确保工序绑定成功）
-      console.log(`开始触发工序完成: ${mainBarcode}`);
+      console.log(`开始触发工序完成: ${mainBarcode}, 托盘编号: ${pallet.palletCode}`);
       try {
         await materialProcessFlowService.scanBatchDocument(
           mainBarcode,

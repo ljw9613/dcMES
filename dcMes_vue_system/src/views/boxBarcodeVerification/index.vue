@@ -259,6 +259,7 @@ import { getData } from "@/api/data";
 import { tone } from "@/utils/tone.js";
 import smcg from "@/assets/tone/smcg.mp3";
 import tmyw from "@/assets/tone/tmyw.mp3";
+import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
 export default {
   name: "BoxBarcodeVerification",
@@ -374,7 +375,7 @@ export default {
           this.$message.error("未找到该包装箱条码对应的数据");
           this.popupType = "ng";
           this.showPopup = true;
-          tone(tmyw);
+          playAudio("tmyw");
           return;
         }
 
@@ -406,7 +407,7 @@ export default {
         );
         this.popupType = "ok";
         this.showPopup = true;
-        tone(smcg);
+        playAudio("smcg");
 
         // 自动聚焦到扫描输入框
         this.$nextTick(() => {
@@ -417,7 +418,7 @@ export default {
         this.$message.error("查询包装箱失败: " + error.message);
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        playAudio("tmyw");
       } finally {
         this.loading = false;
       }
@@ -459,19 +460,19 @@ export default {
           this.$message.success("校验通过！产品条码在包装箱中");
           this.popupType = "ok";
           this.showPopup = true;
-          tone(smcg);
+          playAudio("smcg");
         } else {
           this.$message.error("校验失败！产品条码不在此包装箱中");
           this.popupType = "ng";
           this.showPopup = true;
-          tone(tmyw);
+          playAudio("tmyw");
         }
       } catch (error) {
         console.error("产品条码校验失败:", error);
         this.$message.error("校验过程发生错误");
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        playAudio("tmyw");
       } finally {
         this.scanInput = "";
         // 重新聚焦

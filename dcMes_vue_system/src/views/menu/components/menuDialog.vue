@@ -28,6 +28,20 @@
           <el-input v-model="postList.menuName" placeholder="请输入节点标题" />
         </el-form-item>
 
+        <!-- 国际化键值字段 -->
+        <el-form-item label="国际化键值" label-width="100px">
+          <el-input 
+            v-model="postList.i18nKey" 
+            placeholder="请输入国际化键值，如: menu.systemManagement.userList"
+          >
+            <template slot="prepend">i18n</template>
+          </el-input>
+          <div class="field-help">
+            <i class="el-icon-info"></i>
+            <span>用于多语言显示的键值，格式如：menu.模块名.菜单名</span>
+          </div>
+        </el-form-item>
+
         <el-form-item label="上级节点" label-width="100px">
           <el-cascader
             v-model="postList.parentId"
@@ -166,6 +180,7 @@ export default {
         sortNum: 1,
         visible: false,
         status: true,
+        i18nKey: '' // 初始化国际化键值字段
       },
       optionsList: null,
       isShow: false,
@@ -193,6 +208,7 @@ export default {
         type: "目录",
         sortNum: 1,
         status: true,
+        i18nKey: '' // 重置国际化键值
       };
       this.add = true;
       this.dialogFormVisible = true;
@@ -206,7 +222,11 @@ export default {
       this.add = false;
       this.isShow = true;
       this._id = item._id;
-      this.postList = item;
+      // 确保包含国际化键值字段
+      this.postList = {
+        ...item,
+        i18nKey: item.i18nKey || '' // 如果没有i18nKey，设置为空字符串
+      };
       this.dialogFormVisible = true;
       this.getSelectData();
       this.$nextTick(() => {
@@ -222,8 +242,19 @@ export default {
         this.$message.warning("节点标题不能为空");
         return;
       }
+
+      // 验证国际化键值格式
+      if (this.postList.i18nKey && this.postList.i18nKey.trim()) {
+        const i18nKeyPattern = /^[a-zA-Z][a-zA-Z0-9._]*$/;
+        if (!i18nKeyPattern.test(this.postList.i18nKey.trim())) {
+          this.$message.warning("国际化键值格式不正确，只能包含字母、数字、点号和下划线，且必须以字母开头");
+          return;
+        }
+      }
+
       const todata = {
         ...this.postList,
+        i18nKey: this.postList.i18nKey ? this.postList.i18nKey.trim() : null
       };
       console.log(todata);
       let response = await addData("menu", todata);
@@ -237,6 +268,7 @@ export default {
           type: "目录",
           sortNum: 1,
           status: true,
+          i18nKey: ''
         };
         this.$notify({
           title: "添加菜单成功",
@@ -262,11 +294,22 @@ export default {
         this.$message.warning("节点标题不能为空");
         return;
       }
+
+      // 验证国际化键值格式
+      if (this.postList.i18nKey && this.postList.i18nKey.trim()) {
+        const i18nKeyPattern = /^[a-zA-Z][a-zA-Z0-9._]*$/;
+        if (!i18nKeyPattern.test(this.postList.i18nKey.trim())) {
+          this.$message.warning("国际化键值格式不正确，只能包含字母、数字、点号和下划线，且必须以字母开头");
+          return;
+        }
+      }
+
       delete this.postList._id;
       var data = {
         query: { _id: this._id },
         update: {
           ...this.postList,
+          i18nKey: this.postList.i18nKey ? this.postList.i18nKey.trim() : null
         },
       };
       console.log(data);
@@ -331,5 +374,24 @@ export default {
       }
     }
   }
+}
+
+.field-help {
+  margin-top: 5px;
+  color: #909399;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+
+  i {
+    margin-right: 5px;
+    color: #409EFF;
+  }
+}
+
+.el-input-group__prepend {
+  background-color: #f5f7fa;
+  color: #909399;
+  border-right: none;
 }
 </style>

@@ -193,7 +193,7 @@
               :type="form.repairResult === 'QUALIFIED' ? 'success' : 'danger'"
               v-if="form.repairResult"
             >
-              {{ form.repairResult === "QUALIFIED" ? $t('productRepair.status.qualified') : $t('productRepair.status.unqualified') }}
+              {{ form.repairResult === "QUALIFIED" ? $t('productRepair.repairResult.qualified') : $t('productRepair.repairResult.unqualified') }}
             </el-tag>
           </el-form-item>
         </el-col>

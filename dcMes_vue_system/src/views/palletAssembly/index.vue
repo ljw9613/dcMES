@@ -12,7 +12,7 @@
     />
     <el-card class="main-card">
       <div slot="header" class="card-header">
-        <span>托盘组装操作</span>
+        <span>{{ $t('palletAssembly.title') }}</span>
       </div>
 
       <el-form
@@ -23,20 +23,20 @@
       >
         <!-- 托盘编号输入区域 -->
         <el-form-item
-          label="托盘编号"
+          :label="$t('palletAssembly.palletCode')"
           prop="palletCode"
           :rules="[
-            { required: true, message: '请输入托盘编号', trigger: 'blur' },
+            { required: true, message: $t('palletAssembly.validation.palletCodeRequired'), trigger: 'blur' },
           ]"
         >
           <el-input
             v-model="palletForm.palletCode"
-            placeholder="请输入或扫描托盘编号"
+            :placeholder="$t('palletAssembly.palletCodePlaceholder')"
             @keyup.enter.native="validatePalletCode"
             size="large"
           >
             <el-button slot="append" type="primary" @click="validatePalletCode">
-              确认托盘
+              {{ $t('palletAssembly.confirmPallet') }}
             </el-button>
           </el-input>
         </el-form-item>
@@ -45,15 +45,15 @@
           <!-- 托盘信息展示区域 -->
           <el-alert
             type="success"
-            :title="'托盘编号: ' + palletInfo.palletCode"
+            :title="$t('palletAssembly.palletInfo.palletNumber') + ': ' + palletInfo.palletCode"
             :description="
-              '托盘状态: ' +
-              (palletInfo.status === 'STACKED' ? '组托完成' : '组托中') +
-              ' | 当前数量: ' +
+              $t('palletAssembly.palletInfo.palletStatus') + ': ' +
+              (palletInfo.status === 'STACKED' ? $t('palletAssembly.status.stacked') : $t('palletAssembly.status.stacking')) +
+              ' | ' + $t('palletAssembly.palletInfo.currentCount') + ': ' +
               currentCount +
-              ' | 总数量: ' +
-              (palletInfo.totalQuantity || '未设置') +
-              ' | 剩余: ' +
+              ' | ' + $t('palletAssembly.palletInfo.totalQuantity') + ': ' +
+              (palletInfo.totalQuantity || $t('palletAssembly.palletInfo.notSet')) +
+              ' | ' + $t('palletAssembly.palletInfo.remaining') + ': ' +
               remainingCapacity
             "
             show-icon
@@ -64,39 +64,39 @@
           <!-- 原生HTML替代 el-descriptions -->
           <div class="native-info-descriptions">
             <div class="info-entry">
-              <span class="info-label">产线:</span>
+              <span class="info-label">{{ $t('palletAssembly.palletInfo.productLine') }}:</span>
               <span class="info-value">{{
-                palletInfo.productLineName || "未设置"
+                palletInfo.productLineName || $t('palletAssembly.palletInfo.notSet')
               }}</span>
             </div>
             <div class="info-entry">
-              <span class="info-label">物料信息:</span>
-              <span class="info-value">{{ materialInfo || "未设置" }}</span>
+              <span class="info-label">{{ $t('palletAssembly.palletInfo.materialInfo') }}:</span>
+              <span class="info-value">{{ materialInfo || $t('palletAssembly.palletInfo.notSet') }}</span>
             </div>
             <div class="info-entry">
-              <span class="info-label">订单信息:</span>
+              <span class="info-label">{{ $t('palletAssembly.palletInfo.orderInfo') }}:</span>
               <span class="info-value">{{
-                palletInfo.saleOrderNo || "未设置"
+                palletInfo.saleOrderNo || $t('palletAssembly.palletInfo.notSet')
               }}</span>
             </div>
             <div class="info-entry">
-              <span class="info-label">工单信息:</span>
+              <span class="info-label">{{ $t('palletAssembly.palletInfo.workOrderInfo') }}:</span>
               <span class="info-value">{{
-                palletInfo.workOrderNo || "未设置"
+                palletInfo.workOrderNo || $t('palletAssembly.palletInfo.notSet')
               }}</span>
             </div>
           </div>
 
           <!-- 统一扫描区域 & 物料状态展示 -->
           <div class="unified-scan-and-material-status-section">
-            <el-divider content-position="center">条码扫描与状态</el-divider>
+            <el-divider content-position="center">{{ $t('palletAssembly.sections.scanAndStatus') }}</el-divider>
 
             <!-- 统一扫描输入框 -->
-            <el-form-item label="统一扫描" :label-width="formLabelWidth">
+            <el-form-item :label="$t('palletAssembly.unifiedScan')" :label-width="formLabelWidth">
               <el-input
                 ref="unifiedScanInputRef"
                 v-model="unifiedScanInput"
-                placeholder="请扫描条码 (成品/包装箱/子物料)"
+                :placeholder="$t('palletAssembly.unifiedScanPlaceholder')"
                 @keyup.enter.native="handleUnifiedScan"
                 size="large"
                 clearable
@@ -108,7 +108,7 @@
                   @click="handleUnifiedScan"
                   :disabled="!unifiedScanInput.trim()"
                 >
-                  <i class="el-icon-camera"></i> 处理扫描
+                  <i class="el-icon-camera"></i> {{ $t('palletAssembly.processScan') }}
                 </el-button>
               </el-input>
             </el-form-item>
@@ -129,7 +129,7 @@
                   <div class="input-with-status">
                     <el-input
                       v-model="mainMaterialScanState.scannedBarcode"
-                      placeholder="待扫描主物料条码"
+                      :placeholder="$t('palletAssembly.messages.mainMaterialPending')"
                       readonly
                       :class="{
                         'valid-input': mainMaterialScanState.validated,
@@ -181,7 +181,7 @@
                     <el-input
                       v-model="subMaterial.scannedBarcode"
                       :placeholder="
-                        subMaterial.scanOperation ? '待扫描' : '无需扫描'
+                        subMaterial.scanOperation ? $t('palletAssembly.messages.subMaterialPending') : $t('palletAssembly.messages.noScanRequired')
                       "
                       readonly
                       :class="{ 'valid-input': subMaterial.validated }"
@@ -226,7 +226,7 @@
           <!-- 条码列表展示区域 -->
           <div class="barcode-list-section">
             <div class="section-header">
-              <h3>已扫描条码列表 ({{ scannedBarcodes.length }}条)</h3>
+              <h3>{{ $t('palletAssembly.barcodeList.title', { count: scannedBarcodes.length }) }}</h3>
               <div class="section-actions">
                 <el-button
                   type="danger"
@@ -234,7 +234,7 @@
                   @click="clearScannedBarcodes"
                   :disabled="scannedBarcodes.length === 0"
                 >
-                  清空列表
+                  {{ $t('palletAssembly.barcodeList.clearList') }}
                 </el-button>
               </div>
             </div>
@@ -247,27 +247,27 @@
               style="width: 100%"
             >
               <el-table-column
-                label="序号"
+                :label="$t('palletAssembly.barcodeList.serialNumber')"
                 type="index"
                 width="50"
                 align="center"
               ></el-table-column>
               <el-table-column
-                label="条码"
+                :label="$t('palletAssembly.barcodeList.barcode')"
                 prop="barcode"
                 align="center"
               ></el-table-column>
-              <el-table-column label="类型" align="center" width="120">
+              <el-table-column :label="$t('palletAssembly.barcodeList.type')" align="center" width="120">
                 <template slot-scope="scope">
                   <el-tag
                     size="medium"
                     :type="scope.row.type === 'single' ? 'primary' : 'success'"
                   >
-                    {{ scope.row.type === "single" ? "单产品" : "包装箱" }}
+                    {{ scope.row.type === "single" ? $t('palletAssembly.barcodeList.singleProduct') : $t('palletAssembly.barcodeList.packagingBox') }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="箱条码" align="center" width="150">
+              <el-table-column :label="$t('palletAssembly.barcodeList.boxBarcode')" align="center" width="150">
                 <template slot-scope="scope">
                   <span v-if="scope.row.boxBarcode">{{
                     scope.row.boxBarcode
@@ -275,7 +275,7 @@
                   <span v-else>-</span>
                 </template>
               </el-table-column>
-              <el-table-column label="扫描时间" align="center" width="180">
+              <el-table-column :label="$t('palletAssembly.barcodeList.scanTime')" align="center" width="180">
                 <template slot-scope="scope">
                   {{ formatDate(scope.row.scanTime) }}
                 </template>
@@ -286,8 +286,8 @@
           <!-- 操作提示区域 -->
           <el-alert
             type="info"
-            title="操作提示"
-            description="1. 扫描托盘编号确认托盘信息 2. 扫描产品条码或包装箱条码 3. 系统自动提交，无需手动保存"
+            :title="$t('palletAssembly.operationTips.title')"
+            :description="$t('palletAssembly.operationTips.description')"
             show-icon
             :closable="false"
             style="margin-top: 20px"
@@ -296,7 +296,7 @@
           <!-- 操作按钮区域 -->
           <div class="action-buttons">
             <el-button type="primary" size="large" @click="resetForm">
-              <i class="el-icon-refresh-right"></i> 重置页面
+              <i class="el-icon-refresh-right"></i> {{ $t('palletAssembly.resetPage') }}
             </el-button>
             <!-- <el-button
               type="success"
@@ -324,6 +324,9 @@ import {
   handleForceCompletePallet,
 } from "@/api/materialPalletizing";
 import hirInput from "@/components/hirInput";
+
+// 音频文件导入
+// import tmyw from "@/assets/tone/tmyw.mp3";
 
 export default {
   name: "PalletAssembly",
@@ -411,6 +414,32 @@ export default {
   },
   methods: {
     /**
+     * 播放音频 - 支持多语言
+     * @param {string} audioType - 音频类型
+     */
+    playAudio(audioType) {
+      try {
+        const currentLanguage = this.$store.getters.language;
+        let audioFile;
+
+        // 根据当前语言选择音频文件
+        if (currentLanguage === 'vi-VN') {
+          // 越南语音频文件路径
+          audioFile = require(`@/assets/toneVN/${audioType}.wav`);
+        } else {
+          // 中文音频文件路径（默认）
+          audioFile = require(`@/assets/tone/${audioType}.wav`);
+        }
+
+        const audio = new Audio(audioFile);
+        audio.play().catch(error => {
+          console.warn('音频播放失败:', error);
+        });
+      } catch (error) {
+        console.warn('音频文件加载失败:', error);
+      }
+    },
+    /**
      * 重置表单
      */
     resetForm() {
@@ -475,7 +504,7 @@ export default {
         });
 
         if (!woRes.data || woRes.data.length === 0) {
-          this.$message.error(`工单 ${workOrderNo} 未找到`);
+          this.$message.error(this.$t('palletAssembly.messages.workOrderNotFound', { workOrderNo }));
           this.workOrderInfo = null;
           return;
         }
@@ -483,7 +512,7 @@ export default {
         const orderMainMaterial = this.workOrderInfo.materialId;
 
         if (!orderMainMaterial || !orderMainMaterial._id) {
-          this.$message.error("工单未关联主物料信息");
+          this.$message.error(this.$t('palletAssembly.messages.workOrderNoMaterial'));
           return;
         }
 
@@ -524,7 +553,7 @@ export default {
 
         if (!craftRes.data || craftRes.data.length === 0) {
           this.$message.info(
-            `物料 ${this.mainMaterialScanState.expectedMaterialName} 未配置工艺`
+            this.$t('palletAssembly.messages.materialNoCraft', { materialName: this.mainMaterialScanState.expectedMaterialName })
           );
           this.currentProcessStep = null;
           return;
@@ -544,7 +573,7 @@ export default {
 
         if (!processStepRes.data || processStepRes.data.length === 0) {
           this.$message.info(
-            `物料 ${this.mainMaterialScanState.expectedMaterialName} 未配置托盘相关工序 (如 F 类型)`
+            this.$t('palletAssembly.messages.materialNoProcess', { materialName: this.mainMaterialScanState.expectedMaterialName })
           );
           this.currentProcessStep = null;
           return;
@@ -595,9 +624,9 @@ export default {
         }
 
         if (this.subMaterials.length > 0) {
-          this.$message.success("工单及子物料信息获取成功，请开始扫描");
+          this.$message.success(this.$t('palletAssembly.messages.workOrderInfoSuccess'));
         } else {
-          this.$message.info("当前工序无需额外扫描子物料，请直接扫描主物料");
+          this.$message.info(this.$t('palletAssembly.messages.noSubMaterialRequired'));
         }
 
         // 获取条码规则
@@ -621,7 +650,7 @@ export default {
         }
       } catch (error) {
         console.error("获取工单/工序/子物料信息失败:", error);
-        this.$message.error("获取工单/工序/子物料信息失败: " + error.message);
+        this.$message.error(this.$t('palletAssembly.messages.workOrderInfoFailed') + ": " + error.message);
         this.workOrderInfo = null;
         this.currentProcessStep = null;
       }
@@ -682,12 +711,12 @@ export default {
         console.log("条码规则列表加载完成:", this.materialBarcodeRules);
         if (this.materialBarcodeRules.length === 0) {
           this.$message.info(
-            "未找到适用于当前物料的条码规则，将使用基本匹配逻辑。"
+            this.$t('palletAssembly.messages.noBarcodeRules')
           );
         }
       } catch (error) {
         console.error("获取条码规则失败:", error);
-        this.$message.error("获取条码规则失败: " + error.message);
+        this.$message.error(this.$t('palletAssembly.messages.barcodeRulesLoadFailed') + ": " + error.message);
         this.materialBarcodeRules = [];
       }
     },
@@ -708,7 +737,7 @@ export default {
         });
 
         if (response.data.length === 0) {
-          this.$message.error("该DI编码不存在本系统");
+          this.$message.error(this.$t('palletAssembly.messages.diCodeNotExists'));
           return { isValid: false };
         }
 
@@ -718,7 +747,7 @@ export default {
           .map((item) => item.productId.FNumber);
 
         if (possibleMaterialCodes.length === 0) {
-          this.$message.error("该DI编码未关联有效物料");
+          this.$message.error(this.$t('palletAssembly.messages.diCodeNoMaterial'));
           return { isValid: false };
         }
 
@@ -736,7 +765,7 @@ export default {
         );
 
         if (!matchedMaterialCode) {
-          this.$message.error("该DI编码对应的物料与当前工序不匹配");
+          this.$message.error(this.$t('palletAssembly.messages.diCodeMaterialMismatch'));
           return { isValid: false };
         }
 
@@ -747,7 +776,7 @@ export default {
         };
       } catch (error) {
         console.error("DI码验证失败:", error);
-        this.$message.error("DI码验证失败: " + error.message);
+        this.$message.error(this.$t('palletAssembly.messages.diCodeValidationFailed') + ": " + error.message);
         return { isValid: false };
       }
     },
@@ -757,7 +786,7 @@ export default {
      */
     async validatePalletCode() {
       if (!this.palletForm.palletCode.trim()) {
-        this.$message.warning("请输入托盘编号");
+        this.$message.warning(this.$t('palletAssembly.messages.enterPalletCode'));
         return;
       }
 
@@ -785,7 +814,7 @@ export default {
           this.palletForm.palletCode = palletCode; // 成功后，将有效的托盘号重新填入输入框
 
           if (this.palletInfo.status === "STACKED") {
-            this.$message.warning("该托盘已组托完成，不能继续添加条码");
+            this.$message.warning(this.$t('palletAssembly.messages.palletCompleted'));
             // 即使组托完成，也加载下信息用于展示
             await this.fetchWorkOrderAndProcessInfo(
               this.palletInfo.workOrderNo,
@@ -832,18 +861,18 @@ export default {
               this.palletInfo.materialId ? this.palletInfo.materialId._id : null
             );
           } else {
-            this.$message.warning("托盘未关联工单，可能无法获取子物料需求");
+            this.$message.warning(this.$t('palletAssembly.messages.palletNoWorkOrder'));
           }
 
           this.focusUnifiedInput();
-          this.$message.success("托盘信息获取成功，请开始扫描");
+          this.$message.success(this.$t('palletAssembly.messages.palletInfoSuccess'));
         } else {
-          this.$message.error("未找到指定托盘");
+          this.$message.error(this.$t('palletAssembly.messages.palletNotFound'));
           this.palletInfo = null; // 确保清空
         }
       } catch (error) {
         console.error("验证托盘编号失败:", error);
-        this.$message.error("验证托盘编号失败: " + error.message);
+        this.$message.error(this.$t('palletAssembly.messages.palletValidationFailed') + ": " + error.message);
         this.palletInfo = null;
       }
     },
@@ -860,7 +889,7 @@ export default {
       try {
         let rules = this.materialBarcodeRules;
         if (!rules || rules.length === 0) {
-          this.$message.info("未加载条码规则，将尝试直接匹配物料编码。");
+          this.$message.info(this.$t('palletAssembly.messages.noBarcodeRulesLoaded'));
           // 降级逻辑：如果规则为空，尝试直接看条码是否等于某个期望的物料编码
           // 这部分不是 validateBarcode 的标准做法，但在 palletAssembly 中可能需要这种兼容
           if (barcode === this.mainMaterialScanState.expectedMaterialCode) {
@@ -882,7 +911,7 @@ export default {
               };
             }
           }
-          this.$message.error("条码与任何预期物料编码不直接匹配（无规则）。");
+          this.$message.error(this.$t('palletAssembly.messages.barcodeNotMatchDirectly'));
           return { materialCode: null, isValid: false };
         }
 
@@ -1040,12 +1069,12 @@ export default {
 
         // 所有规则都未匹配成功
         this.$message.error(
-          "该条码不符合任何已配置的规则，或解析出的物料与当前工序不匹配"
+          this.$t('palletAssembly.messages.barcodeNotMatchRules')
         );
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证过程发生错误:", error);
-        this.$message.error("条码验证过程发生错误: " + error.message);
+        this.$message.error(this.$t('palletAssembly.messages.barcodeValidationError') + ": " + error.message);
         return { materialCode: null, isValid: false };
       }
     },
@@ -1056,12 +1085,12 @@ export default {
     async handleUnifiedScan() {
       let barcode = this.unifiedScanInput.trim();
       if (!barcode) {
-        this.$message.warning("请输入或扫描条码");
+        this.$message.warning(this.$t('palletAssembly.messages.enterOrScanBarcode'));
         return;
       }
 
       if (!this.palletInfo) {
-        this.$message.warning("请先验证托盘编号");
+        this.$message.warning(this.$t('palletAssembly.messages.validatePalletFirst'));
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
         return;
@@ -1071,7 +1100,7 @@ export default {
       if (!this.$refs.hirInput.selectedTemplate) {
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
-        this.$message.warning("请先选择打印模板");
+        this.$message.warning(this.$t('palletAssembly.messages.selectPrintTemplate'));
         return;
       }
 
@@ -1122,13 +1151,13 @@ export default {
         //如果解绑记录存在，并且解绑记录的托盘编码不等于当前托盘编码，则提示错误
         let palletUnbindData = palletUnbindResponse.data[0];
         this.$message.error(
-          `当前条码${barcode}应该入托盘到${palletUnbindData.palletCode}`
+          this.$t('palletAssembly.messages.palletUnbindError', { barcode, palletCode: palletUnbindData.palletCode })
         );
         return;
       }
 
       if (this.palletInfo.status === "STACKED") {
-        this.$message.warning("该托盘已组托完成，不能继续添加");
+        this.$message.warning(this.$t('palletAssembly.messages.palletCompletedCannotAdd'));
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
         return;
@@ -1158,10 +1187,10 @@ export default {
 
       // 新增前置校验：如果当前工艺包含装箱工序，则必须扫描包装箱条码
       if (this.craftHasPackingProcess && !isBoxBarcode) {
-        this.$message.error("当前工艺包含装箱工序，必须扫描包装箱条码。");
+        this.$message.error(this.$t('palletAssembly.messages.packingProcessRequired'));
         this.popupType = "ng";
         this.showPopup = true;
-        tone(tmyw);
+        this.playAudio('tmyw');
         this.unifiedScanInput = ""; // 清空输入框
         this.$refs.scanInput.focus(); // 重新聚焦
         return; // 终止处理
@@ -1172,7 +1201,7 @@ export default {
 
       if (!validationResult.isValid || !validationResult.materialCode) {
         this.$message.error(
-          validationResult.message || "条码验证失败或未匹配到物料"
+          validationResult.message || this.$t('palletAssembly.messages.barcodeValidationFailed')
         );
         this.unifiedScanInput = "";
         this.focusUnifiedInput();
@@ -1189,7 +1218,7 @@ export default {
       ) {
         // 检查是否已在成品列表中 (避免重复添加同一个成品/箱)
         if (this.scannedBarcodes.some((item) => item.barcode === barcode)) {
-          this.$message.warning(`主物料条码 ${barcode} 已在托盘列表中。`);
+          this.$message.warning(this.$t('palletAssembly.messages.barcodeAlreadyInPallet', { barcode }));
           this.unifiedScanInput = "";
           this.focusUnifiedInput();
           return;
@@ -1198,9 +1227,11 @@ export default {
         this.mainMaterialScanState.scannedBarcode = barcode;
         this.mainMaterialScanState.validated = true;
         this.$message.success(
-          `主物料 ${
-            this.mainMaterialScanState.expectedMaterialName
-          } (${barcode}) 扫描成功 (规则: ${validationResult.ruleName || "N/A"})`
+          this.$t('palletAssembly.messages.mainMaterialScanned', {
+            materialName: this.mainMaterialScanState.expectedMaterialName,
+            barcode,
+            ruleName: validationResult.ruleName || "N/A"
+          })
         );
         successfullyMatched = true;
       }
@@ -1222,7 +1253,7 @@ export default {
                   sm.scannedBarcode === barcode && sm._id !== subMaterial._id
               )
             ) {
-              this.$message.warning(`条码 ${barcode} 已被扫描用于其他物料项`);
+              this.$message.warning(this.$t('palletAssembly.messages.barcodeAlreadyScanned', { barcode }));
               this.unifiedScanInput = "";
               this.focusUnifiedInput();
               return;
@@ -1230,11 +1261,11 @@ export default {
             subMaterial.scannedBarcode = barcode;
             subMaterial.validated = true;
             this.$message.success(
-              `子物料 ${
-                subMaterial.materialName
-              } (${barcode}) 扫描成功 (规则: ${
-                validationResult.ruleName || "N/A"
-              })`
+              this.$t('palletAssembly.messages.subMaterialScanned', {
+                materialName: subMaterial.materialName,
+                barcode,
+                ruleName: validationResult.ruleName || "N/A"
+              })
             );
             successfullyMatched = true;
             break;
@@ -1246,7 +1277,7 @@ export default {
         // 如果条码通过了 validateBarcode 但没有匹配到任何当前期望的物料
         // (例如，条码有效，但其 materialCode 不等于主物料的，也不等于任何待扫描子物料的)
         this.$message.error(
-          `条码 ${barcode} (物料: ${matchedMaterialCode}) 与当前待扫项不匹配。`
+          this.$t('palletAssembly.messages.barcodeNotMatchExpected', { barcode, materialCode: matchedMaterialCode })
         );
       }
 
@@ -1272,7 +1303,7 @@ export default {
         this.subMaterials.every((sm) => !sm.scanOperation || sm.validated);
 
       if (allRequiredScanned) {
-        this.$message.info("所有物料已扫描，准备提交...");
+        this.$message.info(this.$t('palletAssembly.messages.allMaterialsScanned'));
 
         const componentScans = this.subMaterials
           .filter((sm) => sm.scanOperation && sm.validated && sm.scannedBarcode)
@@ -1295,7 +1326,7 @@ export default {
           )
         ) {
           this.$message.warning(
-            `主条码 ${mainBarcodeToSubmit} 已存在于此托盘中，本次扫描组不重复提交。`
+            this.$t('palletAssembly.messages.barcodeAlreadyExists', { barcode: mainBarcodeToSubmit })
           );
           // 重置扫描状态以便下一轮
           this.resetAllScanStates();
@@ -1310,7 +1341,7 @@ export default {
         try {
           const loading = this.$loading({
             lock: true,
-            text: "提交数据中...",
+            text: this.$t('palletAssembly.messages.submittingData'),
             spinner: "el-icon-loading",
             background: "rgba(0, 0, 0, 0.7)",
           });
@@ -1352,12 +1383,18 @@ export default {
           loading.close();
 
           if (res.code === 200) {
-            this.$message.success(
-              `条码 ${mainBarcodeToSubmit} 及子物料关联成功` +
-                (res.data.addedCount
-                  ? ` (共添加${res.data.addedCount}个条码)`
-                  : "")
-            );
+            if (res.data.addedCount) {
+              this.$message.success(
+                this.$t('palletAssembly.messages.submitSuccessWithCount', {
+                  barcode: mainBarcodeToSubmit,
+                  count: res.data.addedCount
+                })
+              );
+            } else {
+              this.$message.success(
+                this.$t('palletAssembly.messages.submitSuccess', { barcode: mainBarcodeToSubmit })
+              );
+            }
 
             // 刷新整个托盘信息，包括已扫描列表和子物料需求（如果工单更新）
             // validatePalletCode 会重置扫描状态
@@ -1367,14 +1404,14 @@ export default {
 
             if (this.palletInfo && this.palletInfo.status === "STACKED") {
               this.$message({
-                message: "托盘已组托完成!",
+                message: this.$t('palletAssembly.messages.palletCompleteSuccess'),
                 type: "success",
                 duration: 3000,
               });
               this.handlePalletComplete(res.data._id);
             }
           } else {
-            this.$message.error(res.message || "提交失败");
+            this.$message.error(res.message || this.$t('palletAssembly.messages.submitFailed'));
             // 提交失败，是否需要重置部分扫描状态让用户重试？
             // 或者保留当前状态让用户修正？当前选择保留。
             this.resetAllScanStates(); // 清空所有扫描状态以便重新扫描
@@ -1383,7 +1420,7 @@ export default {
         } catch (error) {
           loading && loading.close();
           console.error("提交失败:", error);
-          this.$message.error("提交失败: " + error.message);
+          this.$message.error(this.$t('palletAssembly.messages.submitFailed') + ": " + error.message);
           this.resetAllScanStates(); // 清空所有扫描状态以便重新扫描
           this.focusUnifiedInput(); // 聚焦到输入框
         }
@@ -1415,14 +1452,14 @@ export default {
      * 清空已扫描条码列表
      */
     clearScannedBarcodes() {
-      this.$confirm("确定要清空已扫描条码列表吗?", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
+      this.$confirm(this.$t('palletAssembly.messages.clearBarcodeListConfirm'), this.$t('common.hint'), {
+        confirmButtonText: this.$t('common.confirm'),
+        cancelButtonText: this.$t('common.cancel'),
         type: "warning",
       })
         .then(() => {
           this.scannedBarcodes = [];
-          this.$message.success("已清空条码列表");
+          this.$message.success(this.$t('palletAssembly.messages.barcodeListCleared'));
         })
         .catch(() => {});
     },
@@ -1431,9 +1468,9 @@ export default {
      * 格式化日期
      */
     formatDate(date) {
-      if (!date) return "未知";
+      if (!date) return this.$t('palletAssembly.messages.unknownDate');
       const dateObj = new Date(date);
-      if (isNaN(dateObj.getTime())) return "无效日期";
+      if (isNaN(dateObj.getTime())) return this.$t('palletAssembly.messages.invalidDate');
 
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -1496,10 +1533,10 @@ export default {
       try {
         // 保存完整的模板对象到本地存储
         this.localPrintTemplate = template;
-        this.$message.success("打印模板已保存到本地");
+        this.$message.success(this.$t('palletAssembly.messages.printTemplateSuccess'));
       } catch (error) {
         console.error("保存打印模板失败:", error);
-        this.$message.error("保存打印模板失败");
+        this.$message.error(this.$t('palletAssembly.messages.printTemplateFailed'));
       }
     },
 
@@ -1515,14 +1552,14 @@ export default {
         printData.workshop =
           (printData.productionOrderId &&
             printData.productionOrderId.FWorkShopID_FName) ||
-          "未记录生产车间";
+          this.$t('palletAssembly.messages.unrecordedWorkshop');
 
         // 设置二维码数据
         printData.qrcode = `${printData.palletCode}#${printData.saleOrderNo}#${
           printData.materialCode
         }#${printData.totalQuantity}#${
           (printData.productLineId && printData.productLineId.lineCode) ||
-          "未记录生产线"
+          this.$t('palletAssembly.messages.unrecordedProductLine')
         }`;
 
         // 格式化托盘条码列表
@@ -1546,7 +1583,7 @@ export default {
         }
 
         // 处理尾数托盘标记
-        printData.isLastPallet = printData.isLastPallet ? "尾数托盘" : "";
+        printData.isLastPallet = printData.isLastPallet ? this.$t('palletAssembly.messages.lastPallet') : "";
 
         return printData;
       } catch (error) {
@@ -1582,7 +1619,7 @@ export default {
         // ... existing code ...
       } catch (error) {
         console.error("组托完成处理失败:", error);
-        this.$message.error("组托完成处理失败");
+        this.$message.error(this.$t('palletAssembly.messages.palletCompleteHandleFailed'));
       }
     },
   },

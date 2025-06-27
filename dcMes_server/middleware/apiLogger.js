@@ -160,7 +160,8 @@ const apiLogger = (serviceName) => {
         const executionTime = endTime - startTime;
 
         // 如果路径包含健康检查或其他不需要记录的路径，可以在这里过滤
-        if (req.path.includes("/health") || req.path.includes("/ping")) {
+        if (req.path.includes("/health") || req.path.includes("/ping") || 
+            req.path.includes("/InspectionLastData") || req.path.includes("/InspectionData")) {
           return;
         }
 

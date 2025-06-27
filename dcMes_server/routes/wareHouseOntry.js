@@ -1,3 +1,9 @@
+/**
+ * 仓库出库单路由
+ * @author ljw
+ * @email 1798245303@qq.com
+ * @description 优化后的仓库出库单路由，支持添可销售订单类型的特殊限制规则
+ */
 const express = require("express");
 const router = express.Router();
 const wareHouseOntry = require("../model/warehouse/warehouseOntry");
@@ -11,6 +17,169 @@ const warehouseService = require("../services/warehouseService"); // 导入仓�
 
 // 使用API日志中间件，指定服务名称
 router.use(apiLogger("wareHouseOntry"));
+
+// 更新出库单白名单接口
+router.post("/api/v1/warehouse_entry/update_whitelist", async (req, res) => {
+  try {
+    const { entryId, workOrderWhitelist, userId } = req.body;
+
+    if (!entryId) {
+      return res.status(200).json({
+        code: 400,
+        message: "出库单ID不能为空",
+      });
+    }
+
+    // 查找出库单
+    const entry = await wareHouseOntry.findById(entryId);
+    if (!entry) {
+      return res.status(200).json({
+        code: 404,
+        message: "出库单不存在",
+      });
+    }
+
+    // 检查白名单是否已锁定
+    if (entry.whitelistLocked) {
+      return res.status(200).json({
+        code: 403,
+        message: "白名单已锁定，无法修改",
+      });
+    }
+
+    // 获取销售订单信息用于验证
+    const saleOrder = await K3SaleOrder.findOne({
+      FBillNo: entry.saleOrderNo,
+    });
+
+    // 验证白名单数量限制
+    const whitelistValidation = TiankeOrderValidator.validateWhitelist(
+      saleOrder,
+      workOrderWhitelist
+    );
+    if (!whitelistValidation.isValid) {
+      return res.status(200).json({
+        code: 400,
+        message: whitelistValidation.message,
+      });
+    }
+
+    // 更新白名单
+    entry.workOrderWhitelist = workOrderWhitelist || [];
+    entry.updateBy = userId;
+    entry.updateAt = new Date();
+
+    // 如果是添可订单，立即锁定白名单
+    if (TiankeOrderValidator.isTiankeOrder(saleOrder)) {
+      entry.whitelistLocked = true;
+      entry.whitelistLockedAt = new Date();
+    }
+
+    await entry.save();
+
+    return res.status(200).json({
+      code: 200,
+      message: "白名单更新成功",
+      data: entry,
+    });
+  } catch (error) {
+    console.error("更新白名单失败:", error);
+    return res.status(200).json({
+      code: 500,
+      message: "更新白名单失败: " + error.message,
+    });
+  }
+});
+
+/**
+ * 添可销售订单验证工具函数
+ */
+const TiankeOrderValidator = {
+  /**
+   * 检查是否为添可销售订单
+   * @param {Object} saleOrder - 销售订单对象
+   * @returns {Boolean} 是否为添可销售订单
+   */
+  isTiankeOrder(saleOrder) {
+    return saleOrder && saleOrder.FSettleId_FNumber === "CUST0199";
+  },
+
+  /**
+   * 验证添可订单的白名单要求
+   * @param {Object} saleOrder - 销售订单对象
+   * @param {Array} workOrderWhitelist - 工单白名单
+   * @returns {Object} 验证结果 {isValid: boolean, message: string}
+   */
+  validateWhitelist(saleOrder, workOrderWhitelist) {
+    if (!this.isTiankeOrder(saleOrder)) {
+      return { isValid: true, message: "" };
+    }
+
+    // 添可订单必须有白名单
+    if (!workOrderWhitelist || workOrderWhitelist.length === 0) {
+      return {
+        isValid: false,
+        message: "添可的销售订单必须添加工单白名单"
+      };
+    }
+
+    // 添可订单白名单只能有1个工单
+    if (workOrderWhitelist.length > 1) {
+      return {
+        isValid: false,
+        message: "添可销售订单的白名单只能设置1个工单"
+      };
+    }
+
+    return { isValid: true, message: "" };
+  },
+
+  /**
+   * 验证托盘工单一致性（仅对添可订单）
+   * @param {Object} saleOrder - 销售订单对象
+   * @param {String} currentWorkOrderNo - 当前出库单的工单号
+   * @param {String} palletWorkOrderNo - 新托盘的工单号
+   * @returns {Object} 验证结果 {isValid: boolean, message: string}
+   */
+  validatePalletWorkOrderConsistency(saleOrder, currentWorkOrderNo, palletWorkOrderNo) {
+    if (!this.isTiankeOrder(saleOrder)) {
+      return { isValid: true, message: "" };
+    }
+
+    // 如果是第一个托盘，允许
+    if (!currentWorkOrderNo) {
+      return { isValid: true, message: "" };
+    }
+
+    // 检查工单一致性
+    if (currentWorkOrderNo !== palletWorkOrderNo) {
+      return {
+        isValid: false,
+        message: `【添可订单工单限制】出库单中的托盘必须来自同一工单。当前出库单工单：${currentWorkOrderNo}，扫描托盘工单：${palletWorkOrderNo}。请扫描工单号为 ${currentWorkOrderNo} 的托盘。`
+      };
+    }
+
+    return { isValid: true, message: "" };
+  },
+
+  /**
+   * 获取友好的错误提示信息
+   * @param {String} errorType - 错误类型
+   * @param {Object} params - 错误参数
+   * @returns {String} 友好的错误信息
+   */
+  getErrorMessage(errorType, params = {}) {
+    const messages = {
+      WHITELIST_REQUIRED: "【添可订单限制】添可销售订单必须设置工单白名单才能进行出库操作。",
+      WHITELIST_COUNT_EXCEEDED: `【添可订单限制】添可销售订单的白名单只能设置1个工单，当前设置了${params.count}个工单。`,
+      WHITELIST_LOCKED: "【白名单已锁定】白名单已锁定，无法修改。如需修改请联系系统管理员。",
+      WORK_ORDER_INCONSISTENT: `【工单一致性限制】出库单中的托盘必须来自同一工单。当前工单：${params.currentWorkOrder}，托盘工单：${params.palletWorkOrder}。`,
+      PALLET_NOT_IN_WHITELIST: `【白名单限制】托盘所属工单 ${params.palletWorkOrder} 不在白名单中。请检查白名单设置或扫描正确的托盘。`
+    };
+
+    return messages[errorType] || "操作失败，请联系系统管理员。";
+  }
+};
 
 // 创建一个生成出库单号的辅助函数（按日期生成流水号）
 async function generateEntryNoByProductionOrder(productionOrderNo) {
@@ -81,30 +250,34 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
-    //特殊逻辑 添可的销售订单必须添加白名单
+    // 获取销售订单信息用于验证
     let k3_SAL_SaleOrder = await K3SaleOrder.findOne({
       FBillNo: pallet.saleOrderNo,
     });
-    if (k3_SAL_SaleOrder && k3_SAL_SaleOrder.FSettleId_FNumber === "CUST0199") {
-      if (entryInfo.workOrderWhitelist.length === 0) {
-        return res.status(200).json({
-          code: 201,
-          message: "添可的销售订单必须添加工单白名单",
-        });
-      }
+
+    // 使用新的添可订单验证逻辑
+    const whitelistValidation = TiankeOrderValidator.validateWhitelist(
+      k3_SAL_SaleOrder,
+      entryInfo.workOrderWhitelist
+    );
+    if (!whitelistValidation.isValid) {
+      return res.status(200).json({
+        code: 201,
+        message: whitelistValidation.message,
+      });
     }
 
-    //检查白名单
+    // 检查白名单（通用逻辑）
     let checkwhite = false;
-    for await (const element of entryInfo.workOrderWhitelist) {
-      if (element.workOrderNo === pallet.workOrderNo) {
-        checkwhite = true;
-        break;
+    if (entryInfo.workOrderWhitelist && entryInfo.workOrderWhitelist.length > 0) {
+      for (const element of entryInfo.workOrderWhitelist) {
+        if (element.workOrderNo === pallet.workOrderNo) {
+          checkwhite = true;
+          break;
+        }
       }
-    }
-
-    if (entryInfo.workOrderWhitelist.length === 0) {
-      checkwhite = true;
+    } else {
+      checkwhite = true; // 没有白名单限制时允许
     }
 
     if (!checkwhite) {
@@ -287,6 +460,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createAt: new Date(),
             updateAt: new Date(),
             workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+            currentWorkOrderNo: pallet.workOrderNo, // 设置当前工单号
+            whitelistLocked: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder), // 添可订单立即锁定白名单
+            whitelistLockedAt: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder) ? new Date() : null,
             outboundMode: entryInfo.outboundMode, // 添加出库模式
           });
         } else {
@@ -325,6 +501,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createAt: new Date(),
             updateAt: new Date(),
             workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+            currentWorkOrderNo: pallet.workOrderNo, // 设置当前工单号
+            whitelistLocked: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder), // 添可订单立即锁定白名单
+            whitelistLockedAt: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder) ? new Date() : null,
           });
         }
       } else {
@@ -377,6 +556,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createAt: new Date(),
             updateAt: new Date(),
             workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+            currentWorkOrderNo: pallet.workOrderNo, // 设置当前工单号
+            whitelistLocked: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder), // 添可订单立即锁定白名单
+            whitelistLockedAt: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder) ? new Date() : null,
           });
         } else {
           //等于0则返回,该销售单号销售数量为x,剩余出库数量为x;
@@ -414,6 +596,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             createAt: new Date(),
             updateAt: new Date(),
             workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+            currentWorkOrderNo: pallet.workOrderNo, // 设置当前工单号
+            whitelistLocked: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder), // 添可订单立即锁定白名单
+            whitelistLockedAt: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder) ? new Date() : null,
           });
         }
       }
@@ -647,6 +832,19 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     }
     //托盘出库
 
+    // 验证托盘工单一致性（针对添可订单）
+    const workOrderConsistencyValidation = TiankeOrderValidator.validatePalletWorkOrderConsistency(
+      k3_SAL_SaleOrder,
+      entry.currentWorkOrderNo,
+      pallet.workOrderNo
+    );
+    if (!workOrderConsistencyValidation.isValid) {
+      return res.status(200).json({
+        code: 404,
+        message: workOrderConsistencyValidation.message,
+      });
+    }
+
     // 5. 添加托盘到出库单 - 增强重复检查
     // 获取未出库的条码
     const unOutBarcodes = pallet.palletBarcodes.filter(
@@ -734,14 +932,23 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     };
 
     // 使用 MongoDB 的原子操作确保不会重复添加
+    const updateFields = {
+      updateAt: new Date()
+    };
+
+    // 如果是第一个托盘，设置当前工单号
+    if (!entry.currentWorkOrderNo) {
+      updateFields.currentWorkOrderNo = pallet.workOrderNo;
+    }
+
     const updateResult = await wareHouseOntry.updateOne(
-      { 
+      {
         _id: entry._id,
         "entryItems.palletCode": { $ne: palletCode } // 确保托盘不存在
       },
-      { 
+      {
         $push: { entryItems: palletItem },
-        $set: { updateAt: new Date() }
+        $set: updateFields
       }
     );
 
@@ -1154,31 +1361,26 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           });
         }
 
-        //特殊逻辑 添可的销售订单必须添加白名单
+        // 获取销售订单信息用于验证
         let k3_SAL_SaleOrder = await K3SaleOrder.findOne({
           FBillNo: pallet.saleOrderNo,
         });
-        if (
-          k3_SAL_SaleOrder &&
-          k3_SAL_SaleOrder.FSettleId_FNumber === "CUST0199"
-        ) {
-          if (
-            !entryInfo.workOrderWhitelist ||
-            entryInfo.workOrderWhitelist.length === 0
-          ) {
-            return res.status(200).json({
-              code: 201,
-              message: "添可的销售订单必须添加工单白名单",
-            });
-          }
+
+        // 使用新的添可订单验证逻辑
+        const whitelistValidation = TiankeOrderValidator.validateWhitelist(
+          k3_SAL_SaleOrder,
+          entryInfo.workOrderWhitelist
+        );
+        if (!whitelistValidation.isValid) {
+          return res.status(200).json({
+            code: 201,
+            message: whitelistValidation.message,
+          });
         }
 
-        //检查白名单
+        // 检查白名单（通用逻辑）
         let checkwhite = false;
-        if (
-          entryInfo.workOrderWhitelist &&
-          entryInfo.workOrderWhitelist.length > 0
-        ) {
+        if (entryInfo.workOrderWhitelist && entryInfo.workOrderWhitelist.length > 0) {
           for (const element of entryInfo.workOrderWhitelist) {
             if (element.workOrderNo === pallet.workOrderNo) {
               checkwhite = true;
@@ -1186,7 +1388,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
             }
           }
         } else {
-          checkwhite = true;
+          checkwhite = true; // 没有白名单限制时允许
         }
 
         if (!checkwhite) {
@@ -1310,6 +1512,9 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           createAt: new Date(),
           updateAt: new Date(),
           workOrderWhitelist: entryInfo.workOrderWhitelist || [], // 添加工单白名单
+          currentWorkOrderNo: pallet.workOrderNo, // 设置当前工单号
+          whitelistLocked: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder), // 添可订单立即锁定白名单
+          whitelistLockedAt: TiankeOrderValidator.isTiankeOrder(k3_SAL_SaleOrder) ? new Date() : null,
           entryItems: [currentPalletItem], // 直接添加托盘条目到出库单
         });
 
@@ -1398,6 +1603,24 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       });
     }
 
+    // 获取销售订单信息用于验证
+    const saleOrderForValidation = await K3SaleOrder.findOne({
+      FBillNo: pallet.saleOrderNo,
+    });
+
+    // 验证托盘工单一致性（针对添可订单）
+    const workOrderConsistencyValidation = TiankeOrderValidator.validatePalletWorkOrderConsistency(
+      saleOrderForValidation,
+      entry.currentWorkOrderNo,
+      pallet.workOrderNo
+    );
+    if (!workOrderConsistencyValidation.isValid) {
+      return res.status(200).json({
+        code: 404,
+        message: workOrderConsistencyValidation.message,
+      });
+    }
+
     // 6. 检查托盘是否已经在当前出库单中
     let currentPalletItem = entry.entryItems.find(
       (item) =>
@@ -1436,6 +1659,11 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       }
 
       entry.entryItems.push(currentPalletItem);
+
+      // 更新出库单的当前工单号（如果是第一个托盘）
+      if (!entry.currentWorkOrderNo) {
+        entry.currentWorkOrderNo = pallet.workOrderNo;
+      }
     } else {
       // 7. 检查产品条码是否已经提交过
       const existingBarcode = currentPalletItem.palletBarcodes.find(

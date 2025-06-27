@@ -10,6 +10,8 @@ import store from '@/store'
 import {
   formatMenu2Tree,formatRole2Auth
 } from '@/utils/format2Tree'
+import i18n from '@/lang'
+
 const permission = {
   state: {
     routes: [],
@@ -70,18 +72,37 @@ const permission = {
   }
 }
 
+/**
+ * 获取菜单的国际化标题
+ * @param {Object} menuItem 菜单项
+ * @returns {String} 国际化后的标题
+ */
+function getMenuI18nTitle(menuItem) {
+  // 如果有i18nKey，使用国际化翻译
+  if (menuItem.i18nKey && i18n.te && i18n.te(menuItem.i18nKey)) {
+    return i18n.t(menuItem.i18nKey)
+  }
+  
+  // 如果没有i18nKey或翻译不存在，使用原始menuName作为后备
+  return menuItem.menuName || ''
+}
+
 function tree2Routes(menuList) {
   console.log('menuListmenuListmenuList: ', menuList);
   return menuList.filter(item => item.type !== '权限').map(item => {
+    // 获取国际化标题
+    const i18nTitle = getMenuI18nTitle(item)
+    
     if (item.type == '目录') {
       if (item.children && item.children.length) {
         return {
           type: item.type,
           path: item.path,
           meta: {
-            title: item.menuName,
+            title: i18nTitle, // 使用国际化标题
             icon: item.icon,
-            noCache: !item.isCache
+            noCache: !item.isCache,
+            i18nKey: item.i18nKey // 保存i18nKey用于后续更新
           },
           component: Layout,
           sortNum: item.sortNum,
@@ -95,9 +116,10 @@ function tree2Routes(menuList) {
           component: Layout,
           name: item.componentName || (item.component ? item.component.split('/').pop().replace(/\.vue$/, '') : ''),
           meta: {
-            title: item.menuName,
+            title: i18nTitle, // 使用国际化标题
             icon: item.icon,
-            noCache: !item.isCache
+            noCache: !item.isCache,
+            i18nKey: item.i18nKey // 保存i18nKey用于后续更新
           },
           sortNum: item.sortNum,
           hidden:!item.visible
@@ -113,9 +135,10 @@ function tree2Routes(menuList) {
           component:(resolve) => require([`@/views${item.component}`], resolve),
           name: item.componentName || item.path,
           meta: {
-            title: item.menuName,
+            title: i18nTitle, // 使用国际化标题
             icon: item.icon,
-            noCache: !item.isCache
+            noCache: !item.isCache,
+            i18nKey: item.i18nKey // 保存i18nKey用于后续更新
           },
           sortNum: item.sortNum,
           children: tree2Routes(item.children).length > 0 ? tree2Routes(item.children) : [],
@@ -128,9 +151,10 @@ function tree2Routes(menuList) {
           component: (resolve) => require([`@/views${item.component}`], resolve),
           name: item.componentName || item.path,
           meta: {
-            title: item.menuName,
+            title: i18nTitle, // 使用国际化标题
             icon: item.icon,
-            noCache: !item.isCache
+            noCache: !item.isCache,
+            i18nKey: item.i18nKey // 保存i18nKey用于后续更新
           },
           sortNum: item.sortNum,
           hidden:!item.visible
@@ -236,9 +260,10 @@ function generateRoutes(menus) {
       name: name, // 确保这里的名称与组件中定义的name一致
       component: loadComponent(menu.component),
       meta: {
-        title: menu.menuName,
+        title: getMenuI18nTitle(menu), // 使用国际化标题
         icon: menu.icon,
-        noCache: !menu.isCache
+        noCache: !menu.isCache,
+        i18nKey: menu.i18nKey // 保存i18nKey
       }
     };
     
@@ -246,6 +271,35 @@ function generateRoutes(menus) {
     
     return route;
   });
+}
+
+/**
+ * 更新路由标题的国际化
+ * 当语言切换时调用此方法
+ */
+export function updateRouteI18nTitles() {
+  const updateRouteTitle = (routes) => {
+    routes.forEach(route => {
+      if (route.meta && route.meta.i18nKey) {
+        // 根据i18nKey更新标题
+        route.meta.title = getMenuI18nTitle({ 
+          i18nKey: route.meta.i18nKey, 
+          menuName: route.meta.title 
+        })
+      }
+      
+      // 递归更新子路由
+      if (route.children && route.children.length > 0) {
+        updateRouteTitle(route.children)
+      }
+    })
+  }
+  
+  // 更新动态路由
+  const sidebarRouters = store.getters.sidebarRouters
+  if (sidebarRouters && sidebarRouters.length > 0) {
+    updateRouteTitle(sidebarRouters)
+  }
 }
 
 export default permission

@@ -223,26 +223,26 @@ export default {
             this.$message.success('条码检查完成')
             this.showPopup = true
             this.popupType = 'ok'
-            tone(lcywc)
+            playAudio("lcywc")
           } else {
             this.$message.warning('流程尚未完成')
             this.showPopup = true
             this.popupType = 'ng'
-            tone(lcyw)
+            playAudio("lcyw")
           }
         } else {
           this.errorMessage = response.message || '查询失败'
           this.$message.error(this.errorMessage)
           this.showPopup = true
           this.popupType = 'ng'
-          tone(tmyw)
+          playAudio("tmyw")
         }
       } catch (error) {
         this.errorMessage = '系统错误，请重试'
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        tone(tmyw)
+        playAudio("tmyw")
         console.error('查询条码出错:', error)
       } finally {
         this.isLoading = false
