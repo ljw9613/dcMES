@@ -5,16 +5,16 @@
       <div class="card-header">
         <span>
           <i class="el-icon-box"></i>
-          包装箱条码校验
+          {{ $t('boxBarcodeVerification.title') }}
         </span>
       </div>
 
       <el-form :model="boxForm" label-width="120px" class="box-form">
         <div class="scan-input-section">
-          <el-form-item label="包装箱条码:">
+          <el-form-item :label="$t('boxBarcodeVerification.form.boxBarcodeLabel')">
             <el-input
               v-model="boxForm.boxBarcode"
-              placeholder="请扫描或输入包装箱条码"
+              :placeholder="$t('boxBarcodeVerification.form.boxBarcodePlaceholder')"
               @keyup.enter.native="handleBoxBarcodeInput"
               ref="boxInput"
               clearable
@@ -25,7 +25,7 @@
               </template>
               <template slot="append">
                 <el-button @click="handleBoxBarcodeInput" type="primary">
-                  查询
+                  {{ $t('boxBarcodeVerification.buttons.query') }}
                 </el-button>
               </template>
             </el-input>
@@ -43,7 +43,7 @@
             <div class="card-header">
               <span>
                 <i class="el-icon-info"></i>
-                包装箱信息
+                {{ $t('boxBarcodeVerification.boxInfo.title') }}
               </span>
               <el-button
                 type="text"
@@ -51,29 +51,29 @@
                 style="color: #409eff"
               >
                 <i class="el-icon-refresh"></i>
-                重新查询
+                {{ $t('boxBarcodeVerification.buttons.requery') }}
               </el-button>
             </div>
 
             <div class="box-details">
               <div class="detail-item">
-                <span class="label">包装箱条码：</span>
+                <span class="label">{{ $t('boxBarcodeVerification.boxInfo.boxBarcode') }}：</span>
                 <span class="value">{{ boxData.boxBarcode }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">物料编码：</span>
+                <span class="label">{{ $t('boxBarcodeVerification.boxInfo.materialCode') }}：</span>
                 <span class="value">{{ boxData.materialCode }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">物料名称：</span>
+                <span class="label">{{ $t('boxBarcodeVerification.boxInfo.materialName') }}：</span>
                 <span class="value">{{ boxData.materialName }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">包装时间：</span>
+                <span class="label">{{ $t('boxBarcodeVerification.boxInfo.packingTime') }}：</span>
                 <span class="value">{{ formatDate(boxData.packingTime) }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">产品数量：</span>
+                <span class="label">{{ $t('boxBarcodeVerification.boxInfo.productCount') }}：</span>
                 <span class="value">{{ boxData.productBarcodes.length }}</span>
               </div>
             </div>
@@ -81,7 +81,7 @@
             <!-- 校验进度 -->
             <div class="verification-progress">
               <div class="progress-header">
-                <span>校验进度</span>
+                <span>{{ $t('boxBarcodeVerification.progress.title') }}</span>
                 <span class="progress-text">
                   {{ verifiedCount }}/{{ boxData.productBarcodes.length }}
                 </span>
@@ -98,19 +98,19 @@
                 <el-col :span="8">
                   <div class="stat-item success">
                     <div class="stat-number">{{ verifiedSuccessCount }}</div>
-                    <div class="stat-label">校验通过</div>
+                    <div class="stat-label">{{ $t('boxBarcodeVerification.stats.verified') }}</div>
                   </div>
                 </el-col>
                 <el-col :span="8">
                   <div class="stat-item error">
                     <div class="stat-number">{{ verifiedErrorCount }}</div>
-                    <div class="stat-label">校验失败</div>
+                    <div class="stat-label">{{ $t('boxBarcodeVerification.stats.failed') }}</div>
                   </div>
                 </el-col>
                 <el-col :span="8">
                   <div class="stat-item pending">
                     <div class="stat-number">{{ pendingCount }}</div>
-                    <div class="stat-label">待校验</div>
+                    <div class="stat-label">{{ $t('boxBarcodeVerification.stats.pending') }}</div>
                   </div>
                 </el-col>
               </el-row>
@@ -122,14 +122,14 @@
             <div class="card-header">
               <span>
                 <i class="el-icon-camera"></i>
-                产品条码扫描
+                {{ $t('boxBarcodeVerification.scan.title') }}
               </span>
             </div>
 
             <div class="scan-input-section">
               <el-input
                 v-model="scanInput"
-                placeholder="请扫描产品条码进行校验"
+                :placeholder="$t('boxBarcodeVerification.scan.placeholder')"
                 @keyup.enter.native="handleProductScan"
                 ref="scanInput"
                 clearable
@@ -143,11 +143,11 @@
 
               <div class="scan-tips" v-if="!allVerified">
                 <i class="el-icon-info"></i>
-                请扫描产品条码进行逐一校验
+                {{ $t('boxBarcodeVerification.scan.tips') }}
               </div>
               <div class="scan-tips success" v-else>
                 <i class="el-icon-success"></i>
-                所有产品条码校验完成！
+                {{ $t('boxBarcodeVerification.scan.allComplete') }}
               </div>
             </div>
           </el-card>
@@ -159,7 +159,7 @@
             <div class="card-header">
               <span>
                 <i class="el-icon-document"></i>
-                产品条码列表
+                {{ $t('boxBarcodeVerification.productList.title') }}
               </span>
               <div class="header-actions">
                 <el-button
@@ -168,7 +168,7 @@
                   v-if="verifiedCount > 0"
                 >
                   <i class="el-icon-download"></i>
-                  导出结果
+                  {{ $t('boxBarcodeVerification.buttons.export') }}
                 </el-button>
               </div>
             </div>
@@ -182,14 +182,14 @@
               >
                 <el-table-column
                   type="index"
-                  label="序号"
+                  :label="$t('boxBarcodeVerification.productList.index')"
                   width="60"
                   align="center"
                 />
 
                 <el-table-column
                   prop="barcode"
-                  label="产品条码"
+                  :label="$t('boxBarcodeVerification.productList.barcode')"
                   min-width="200"
                 >
                   <template slot-scope="scope">
@@ -205,7 +205,7 @@
                   </template>
                 </el-table-column>
 
-                <el-table-column prop="verifyTime" label="校验时间" width="180">
+                <el-table-column prop="verifyTime" :label="$t('boxBarcodeVerification.productList.verifyTime')" width="180">
                   <template slot-scope="scope">
                     {{
                       scope.row.verifyTime
@@ -215,7 +215,7 @@
                   </template>
                 </el-table-column>
 
-                <el-table-column label="操作" width="120" align="center">
+                <el-table-column :label="$t('boxBarcodeVerification.productList.actions')" width="120" align="center">
                   <template slot-scope="scope">
                     <el-button
                       v-if="scope.row.status === 'error'"
@@ -224,7 +224,7 @@
                       @click="retryVerification(scope.row)"
                     >
                       <i class="el-icon-refresh"></i>
-                      重试
+                      {{ $t('boxBarcodeVerification.buttons.retry') }}
                     </el-button>
                     <el-button
                       v-if="scope.row.status === 'pending'"
@@ -233,7 +233,7 @@
                       @click="skipVerification(scope.row)"
                     >
                       <i class="el-icon-close"></i>
-                      跳过
+                      {{ $t('boxBarcodeVerification.buttons.skip') }}
                     </el-button>
                   </template>
                 </el-table-column>
@@ -256,9 +256,6 @@
 <script>
 import StatusPopup from "@/components/StatusPopup/index.vue";
 import { getData } from "@/api/data";
-import { tone } from "@/utils/tone.js";
-import smcg from "@/assets/tone/smcg.mp3";
-import tmyw from "@/assets/tone/tmyw.mp3";
 import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
 export default {
@@ -348,7 +345,7 @@ export default {
     async handleBoxBarcodeInput() {
       let boxBarcode = this.boxForm.boxBarcode.trim();
       if (!boxBarcode) {
-        this.$message.warning("请输入包装箱条码");
+        this.$message.warning(this.$t('boxBarcodeVerification.messages.pleaseInputBoxBarcode'));
         return;
       }
 
@@ -372,7 +369,7 @@ export default {
         });
 
         if (!response.data || response.data.length === 0) {
-          this.$message.error("未找到该包装箱条码对应的数据");
+          this.$message.error(this.$t('boxBarcodeVerification.messages.boxBarcodeNotFound'));
           this.popupType = "ng";
           this.showPopup = true;
           playAudio("tmyw");
@@ -388,8 +385,8 @@ export default {
 
         this.boxData = {
           boxBarcode: boxBarcode,
-          materialCode: firstProduct.materialCode || "未知",
-          materialName: firstProduct.materialName || "未知",
+          materialCode: firstProduct.materialCode || this.$t('boxBarcodeVerification.common.unknown'),
+          materialName: firstProduct.materialName || this.$t('boxBarcodeVerification.common.unknown'),
           packingTime: firstProduct.updateAt || firstProduct.createAt,
           productBarcodes: productBarcodes,
         };
@@ -403,7 +400,7 @@ export default {
         }));
 
         this.$message.success(
-          `成功加载包装箱数据，共${productBarcodes.length}个产品条码`
+          this.$t('boxBarcodeVerification.messages.boxDataLoadSuccess', { count: productBarcodes.length })
         );
         this.popupType = "ok";
         this.showPopup = true;
@@ -414,8 +411,8 @@ export default {
           this.$refs.scanInput && this.$refs.scanInput.focus();
         });
       } catch (error) {
-        console.error("查询包装箱失败:", error);
-        this.$message.error("查询包装箱失败: " + error.message);
+        console.error("Box query failed:", error);
+        this.$message.error(this.$t('boxBarcodeVerification.messages.boxQueryFailed') + ": " + error.message);
         this.popupType = "ng";
         this.showPopup = true;
         playAudio("tmyw");
@@ -439,7 +436,7 @@ export default {
             (r) => r.barcode === scannedBarcode
           );
           if (existingResult && existingResult.status !== "pending") {
-            this.$message.warning("该产品条码已校验过");
+            this.$message.warning(this.$t('boxBarcodeVerification.messages.alreadyVerified'));
             this.scanInput = "";
             return;
           }
@@ -453,23 +450,23 @@ export default {
               barcode: scannedBarcode,
               status: "success",
               verifyTime: new Date(),
-              message: "校验通过",
+              message: this.$t('boxBarcodeVerification.status.verifySuccess'),
             });
           }
 
-          this.$message.success("校验通过！产品条码在包装箱中");
+          this.$message.success(this.$t('boxBarcodeVerification.messages.verifySuccess'));
           this.popupType = "ok";
           this.showPopup = true;
           playAudio("smcg");
         } else {
-          this.$message.error("校验失败！产品条码不在此包装箱中");
+          this.$message.error(this.$t('boxBarcodeVerification.messages.verifyFailed'));
           this.popupType = "ng";
           this.showPopup = true;
           playAudio("tmyw");
         }
       } catch (error) {
-        console.error("产品条码校验失败:", error);
-        this.$message.error("校验过程发生错误");
+        console.error("Product barcode verification failed:", error);
+        this.$message.error(this.$t('boxBarcodeVerification.messages.verifyError'));
         this.popupType = "ng";
         this.showPopup = true;
         playAudio("tmyw");
@@ -507,7 +504,7 @@ export default {
           message: null,
         });
       }
-      this.$message.info("已重置该条码校验状态");
+      this.$message.info(this.$t('boxBarcodeVerification.messages.resetStatus'));
     },
 
     // 跳过校验
@@ -520,21 +517,21 @@ export default {
           barcode: row.barcode,
           status: "error",
           verifyTime: new Date(),
-          message: "用户跳过校验",
+          message: this.$t('boxBarcodeVerification.status.userSkipped'),
         });
       }
-      this.$message.warning("已跳过该条码校验");
+      this.$message.warning(this.$t('boxBarcodeVerification.messages.skipVerify'));
     },
 
     // 导出校验结果
     exportResults() {
       // 准备导出数据
       const exportData = this.displayProductList.map((item, index) => ({
-        序号: index + 1,
-        产品条码: item.barcode,
-        校验状态: this.getStatusText(item.status),
-        校验时间: item.verifyTime ? this.formatDate(item.verifyTime) : "-",
-        备注: item.message || "-",
+        [this.$t('boxBarcodeVerification.export.index')]: index + 1,
+        [this.$t('boxBarcodeVerification.export.barcode')]: item.barcode,
+        [this.$t('boxBarcodeVerification.export.status')]: this.getStatusText(item.status),
+        [this.$t('boxBarcodeVerification.export.verifyTime')]: item.verifyTime ? this.formatDate(item.verifyTime) : "-",
+        [this.$t('boxBarcodeVerification.export.remark')]: item.message || "-",
       }));
 
       // 创建CSV内容
@@ -550,12 +547,12 @@ export default {
       });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `包装箱校验结果_${this.boxData.boxBarcode}_${new Date()
+      link.download = `${this.$t('boxBarcodeVerification.export.filename')}_${this.boxData.boxBarcode}_${new Date()
         .toISOString()
         .slice(0, 10)}.csv`;
       link.click();
 
-      this.$message.success("校验结果已导出");
+      this.$message.success(this.$t('boxBarcodeVerification.messages.exportSuccess'));
     },
 
     // 获取状态类型
@@ -576,13 +573,13 @@ export default {
     getStatusText(status) {
       switch (status) {
         case "success":
-          return "校验通过";
+          return this.$t('boxBarcodeVerification.status.verifySuccess');
         case "error":
-          return "校验失败";
+          return this.$t('boxBarcodeVerification.status.verifyFailed');
         case "pending":
-          return "待校验";
+          return this.$t('boxBarcodeVerification.status.pending');
         default:
-          return "未知";
+          return this.$t('boxBarcodeVerification.common.unknown');
       }
     },
 

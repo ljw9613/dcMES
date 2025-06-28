@@ -1,0 +1,58 @@
+{
+    "_id": ObjectId("685f8dd585d8584c87b7d544"),
+    "entryNo": "SCCK-MES-20250628-0001",
+    "entryType": "PRODUCTION",
+    "HuoGuiCode": "/",
+    "FaQIaoNo": "/",
+    "outboundQuantity": NumberInt("1"),
+    "outNumber": NumberInt("0"),
+    "saleNumber": NumberInt("500"),
+    "productionOrderNo": "MO2433445",
+    "saleOrderId": ObjectId("6818ee94e4e960eee9d279d1"),
+    "saleOrderNo": "2025-NO.MOVA002",
+    "saleOrderEntryId": "153349",
+    "materialId": ObjectId("680d1112e4e960eee9800325"),
+    "materialCode": "1101502010",
+    "materialName": "MOVA S1整机（日版）V2513",
+    "materialSpec": " ",
+    "actualQuantity": NumberInt("0"),
+    "palletCount": NumberInt("0"),
+    "totalBoxCount": NumberInt("0"),
+    "progress": NumberInt("100"),
+    "unit": "10101",
+    "workShop": "长新配件基地",
+    "productType": "1",
+    "workOrderWhitelist": [ ],
+    "outboundMode": "SINGLE",
+    "status": "IN_PROGRESS",
+    "entryItems": [
+        {
+            "palletId": ObjectId("684feb67acb6402d561f9bbd"),
+            "palletCode": "YDC-SN-1750068071920",
+            "saleOrderNo": "2025-NO.MOVA002",
+            "materialCode": "1101502010",
+            "lineCode": "德昌追觅E线",
+            "quantity": NumberInt("1"),
+            "boxCount": NumberInt("0"),
+            "scanTime": ISODate("2025-06-28T06:38:13.004Z"),
+            "scanBy": ObjectId("6589464152762736ca434000"),
+            "palletBarcodes": [
+                {
+                    "barcode": "V2513B56CJP00493A8",
+                    "barcodeType": "MAIN",
+                    "materialProcessFlowId": ObjectId("684acf2bed13ab5330a6ab5a"),
+                    "productionPlanWorkOrderId": ObjectId("684811f0f32c42e5d7647f50"),
+                    "scanTime": ISODate("2025-06-28T06:38:13.004Z"),
+                    "scanBy": ObjectId("6589464152762736ca434000"),
+                    "outWarehouseStatus": "PENDING"
+                }
+            ],
+            "boxItems": [ ]
+        }
+    ],
+    "startTime": ISODate("2025-06-28T06:38:13.004Z"),
+    "createBy": ObjectId("6589464152762736ca434000"),
+    "createAt": ISODate("2025-06-28T06:38:13.004Z"),
+    "updateAt": ISODate("2025-06-28T06:38:13.004Z"),
+    "__v": NumberInt("0")
+}

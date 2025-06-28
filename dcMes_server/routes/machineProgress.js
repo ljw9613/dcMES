@@ -24,9 +24,11 @@ router.get("/api/v1/machine/progress", async (req, res) => {
     const machineData = await machine
       .findOne({ machineIp: ip })
       .populate("lineId materialId processStepId productionPlanWorkOrderId");
+
     if (!machineData) {
       return res.json({ code: 201, message: "设备不存在" });
     }
+    
     res.json({ code: 200, data: machineData, message: "设备信息获取成功" });
   } catch (error) {
     console.error("获取设备信息失败:", error);

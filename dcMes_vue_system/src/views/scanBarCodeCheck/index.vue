@@ -1,18 +1,18 @@
 <template>
   <div class="scan-barcode-container">
     <div class="scan-header">
-      <h2>条码流程节点检查</h2>
+      <h2>{{ $t('scanBarCodeCheck.title') }}</h2>
     </div>
 
     <div class="scan-input-area">
       <div class="input-wrapper">
-        <el-input ref="barcodeInput" v-model="barcode" placeholder="请扫描条码或手动输入" class="barcode-input"
+        <el-input ref="barcodeInput" v-model="barcode" :placeholder="$t('scanBarCodeCheck.scanning.scanPlaceholder')" class="barcode-input"
           @keyup.enter.native="checkBarcode" @focus="handleFocus">
           <i slot="prefix" class="el-icon-search"></i>
-          <el-button slot="suffix" type="primary" @click="checkBarcode">查询</el-button>
+          <el-button slot="suffix" type="primary" @click="checkBarcode">{{ $t('scanBarCodeCheck.scanning.query') }}</el-button>
         </el-input>
       </div>
-      <div class="scan-tip">请将条码对准扫描枪，或在输入框中输入条码后按下Enter键</div>
+      <div class="scan-tip">{{ $t('scanBarCodeCheck.scanning.scanTip') }}</div>
     </div>
 
     <div class="operation-buttons">
@@ -21,40 +21,40 @@
         @click="handleScan"
 
         icon="el-icon-camera">
-        手动输入查询
+        {{ $t('scanBarCodeCheck.scanning.manualInput') }}
       </el-button>
     </div>
 
     <div v-if="isLoading" class="loading-container">
-      <div v-loading="true" element-loading-text="正在查询条码信息..."></div>
+      <div v-loading="true" :element-loading-text="$t('scanBarCodeCheck.messages.queryingBarcode')"></div>
     </div>
 
     <div v-if="scanResult && !isLoading" class="result-container">
       <div class="result-header">
         <div class="status-badge" :class="getBadgeClass">
           <i :class="scanResult.isCompleted ? 'el-icon-success' : 'el-icon-warning'" class="status-icon"></i>
-          <span>{{ scanResult.status === 'COMPLETED' ? '流程已完成' : '流程未完成' }}</span>
+          <span>{{ scanResult.status === 'COMPLETED' ? $t('scanBarCodeCheck.results.flowCompleted') : $t('scanBarCodeCheck.results.flowIncomplete') }}</span>
         </div>
       </div>
 
       <el-card class="result-card" shadow="hover">
         <div class="info-section">
-          <el-descriptions title="条码基本信息" :column="1" border>
-            <el-descriptions-item label="条码">
+          <el-descriptions :title="$t('scanBarCodeCheck.results.barcodeInfo')" :column="1" border>
+            <el-descriptions-item :label="$t('scanBarCodeCheck.results.barcode')">
               {{ scanResult.barcode }}
             </el-descriptions-item>
-            <el-descriptions-item label="物料编码">
+            <el-descriptions-item :label="$t('scanBarCodeCheck.results.materialCode')">
               {{ scanResult.materialCode }}
             </el-descriptions-item>
-            <el-descriptions-item label="物料名称">
+            <el-descriptions-item :label="$t('scanBarCodeCheck.results.materialName')">
               {{ scanResult.materialName }}
             </el-descriptions-item>
-            <el-descriptions-item label="状态">
+            <el-descriptions-item :label="$t('scanBarCodeCheck.results.status')">
               <el-tag :type="scanResult.status === 'COMPLETED' ? 'success' : 'warning'">
-                {{ scanResult.status === 'COMPLETED' ? '已完成' : '未完成' }}
+                {{ scanResult.status === 'COMPLETED' ? $t('scanBarCodeCheck.results.completed') : $t('scanBarCodeCheck.results.incomplete') }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="完成进度">
+            <el-descriptions-item :label="$t('scanBarCodeCheck.results.progress')">
               <el-progress :percentage="scanResult.progress"
                 :status="scanResult.status === 'COMPLETED' ? 'success' : ''"></el-progress>
             </el-descriptions-item>
@@ -63,15 +63,15 @@
 
         <div class="node-statistics">
           <div class="statistic-item">
-            <div class="statistic-title">总节点数</div>
+            <div class="statistic-title">{{ $t('scanBarCodeCheck.statistics.totalNodes') }}</div>
             <div class="statistic-value">{{ scanResult.totalNodes }}</div>
           </div>
           <div class="statistic-item">
-            <div class="statistic-title">已完成</div>
+            <div class="statistic-title">{{ $t('scanBarCodeCheck.statistics.completedNodes') }}</div>
             <div class="statistic-value success">{{ scanResult.completedNodes }}</div>
           </div>
           <div class="statistic-item">
-            <div class="statistic-title">未完成</div>
+            <div class="statistic-title">{{ $t('scanBarCodeCheck.statistics.pendingNodes') }}</div>
             <div class="statistic-value" :class="{ warning: scanResult.pendingNodes > 0 }">
               {{ scanResult.pendingNodes }}
             </div>
@@ -79,15 +79,15 @@
         </div>
 
         <div v-if="scanResult.pendingNodes > 0 && scanResult.pendingNodesList.length > 0" class="pending-nodes-section">
-          <h3>未完成节点列表</h3>
+          <h3>{{ $t('scanBarCodeCheck.statistics.pendingNodesList') }}</h3>
           <el-table :data="scanResult.pendingNodesList" style="width: 100%" size="medium" :row-key="getRowKey">
-            <el-table-column prop="nodeName" label="节点名称"></el-table-column>
-            <el-table-column prop="nodeType" label="节点类型">
+            <el-table-column prop="nodeName" :label="$t('scanBarCodeCheck.statistics.nodeName')"></el-table-column>
+            <el-table-column prop="nodeType" :label="$t('scanBarCodeCheck.statistics.nodeType')">
               <template slot-scope="scope">
                 {{ getNodeTypeText(scope.row.nodeType) }}
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态">
+            <el-table-column prop="status" :label="$t('scanBarCodeCheck.results.status')">
               <template slot-scope="scope">
                 <el-tag :type="getStatusType(scope.row.status)">
                   {{ getStatusText(scope.row.status) }}
@@ -163,23 +163,23 @@ export default {
     getStatusText(status) {
       if (status) {
         const statusMap = {
-          'PENDING': '待处理',
-          'IN_PROGRESS': '进行中',
-          'COMPLETED': '已完成',
-          'SKIPPED': '已跳过',
-          'ERROR': '异常'
+          'PENDING': this.$t('scanBarCodeCheck.status.pending'),
+          'IN_PROGRESS': this.$t('scanBarCodeCheck.status.inProgress'),
+          'COMPLETED': this.$t('scanBarCodeCheck.status.completed'),
+          'SKIPPED': this.$t('scanBarCodeCheck.status.skipped'),
+          'ERROR': this.$t('scanBarCodeCheck.status.error')
         }
         return statusMap[status] || status
       }
       if (!this.scanResult) return ''
-      return this.scanResult.isCompleted ? '流程已完成' : '流程未完成'
+      return this.scanResult.isCompleted ? this.$t('scanBarCodeCheck.results.flowCompleted') : this.$t('scanBarCodeCheck.results.flowIncomplete')
     },
 
     // 获取节点类型文本
     getNodeTypeText(type) {
       const typeMap = {
-        'PROCESS_STEP': '工序',
-        'MATERIAL': '物料'
+        'PROCESS_STEP': this.$t('scanBarCodeCheck.statistics.processStep'),
+        'MATERIAL': this.$t('scanBarCodeCheck.statistics.material')
       }
       return typeMap[type] || type
     },
@@ -204,7 +204,7 @@ export default {
     // 条码检查
     async checkBarcode() {
       if (!this.barcode) {
-        this.$message.warning('请输入条码')
+        this.$message.warning(this.$t('scanBarCodeCheck.messages.pleaseInputBarcode'))
         return
       }
 
@@ -220,30 +220,30 @@ export default {
           this.tableData = this.scanResult.pendingNodesList || []
 
           if (this.scanResult.isCompleted) {
-            this.$message.success('条码检查完成')
+            this.$message.success(this.$t('scanBarCodeCheck.messages.checkComplete'))
             this.showPopup = true
             this.popupType = 'ok'
             playAudio("lcywc")
           } else {
-            this.$message.warning('流程尚未完成')
+            this.$message.warning(this.$t('scanBarCodeCheck.messages.flowNotComplete'))
             this.showPopup = true
             this.popupType = 'ng'
             playAudio("lcyw")
           }
         } else {
-          this.errorMessage = response.message || '查询失败'
+          this.errorMessage = response.message || this.$t('scanBarCodeCheck.messages.queryFailed')
           this.$message.error(this.errorMessage)
           this.showPopup = true
           this.popupType = 'ng'
           playAudio("tmyw")
         }
       } catch (error) {
-        this.errorMessage = '系统错误，请重试'
+        this.errorMessage = this.$t('scanBarCodeCheck.messages.systemError')
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
         playAudio("tmyw")
-        console.error('查询条码出错:', error)
+        console.error('Barcode query error:', error)
       } finally {
         this.isLoading = false
         this.barcode = '' // 清空输入框
@@ -255,7 +255,7 @@ export default {
     handleScan() {
       // 这里可以调用产线验证的API，目前只是作为示例
       this.$message({
-        message: '开始产线验证流程，请扫描二维码',
+        message: this.$t('scanBarCodeCheck.messages.startVerification'),
         type: 'info',
         duration: 2000
       });

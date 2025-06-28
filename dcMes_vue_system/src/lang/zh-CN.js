@@ -69,6 +69,7 @@ export default {
       customScanCheck: "自定义扫码",
       scBigView: "产线大屏",
       palletBarcodeVerification: "托盘校验",
+      boxBarcodeVerification: "箱码校验",
       scanBarCodeSimple: "简单扫码",
       palletAssembly: "托盘组装",
       scanBarCodePack: "打包装箱",
@@ -1082,7 +1083,8 @@ export default {
       flowNotComplete: "流程尚未完成",
       queryFailed: "查询失败",
       systemError: "系统错误，请重试",
-      startVerification: "开始产线验证流程，请扫描二维码"
+      startVerification: "开始产线验证流程，请扫描二维码",
+      queryingBarcode: "正在查询条码信息..."
     }
   },
 
@@ -1729,6 +1731,81 @@ export default {
       scanRequestFailed: "处理扫码请求失败",
       fixBarcodeDataFailed: "修复条码物料异常数据失败",
       rfidBarcodeNotFound: "未找到该RFID标签对应的条码"
+    }
+  },
+
+  // 包装箱条码校验页面
+  boxBarcodeVerification: {
+    title: "包装箱条码校验",
+    form: {
+      boxBarcodeLabel: "包装箱条码:",
+      boxBarcodePlaceholder: "请扫描或输入包装箱条码"
+    },
+    buttons: {
+      query: "查询",
+      requery: "重新查询",
+      export: "导出结果",
+      retry: "重试",
+      skip: "跳过"
+    },
+    boxInfo: {
+      title: "包装箱信息",
+      boxBarcode: "包装箱条码",
+      materialCode: "物料编码",
+      materialName: "物料名称",
+      packingTime: "包装时间",
+      productCount: "产品数量"
+    },
+    progress: {
+      title: "校验进度"
+    },
+    stats: {
+      verified: "校验通过",
+      failed: "校验失败",
+      pending: "待校验"
+    },
+    scan: {
+      title: "产品条码扫描",
+      placeholder: "请扫描产品条码进行校验",
+      tips: "请扫描产品条码进行逐一校验",
+      allComplete: "所有产品条码校验完成！"
+    },
+    productList: {
+      title: "产品条码列表",
+      index: "序号",
+      barcode: "产品条码",
+      verifyTime: "校验时间",
+      actions: "操作"
+    },
+    status: {
+      verifySuccess: "校验通过",
+      verifyFailed: "校验失败",
+      pending: "待校验",
+      userSkipped: "用户跳过校验"
+    },
+    messages: {
+      pleaseInputBoxBarcode: "请输入包装箱条码",
+      boxBarcodeNotFound: "未找到该包装箱条码对应的数据",
+      boxDataLoadSuccess: "成功加载包装箱数据，共{count}个产品条码",
+      boxQueryFailed: "查询包装箱失败",
+      alreadyVerified: "该产品条码已校验过",
+      verifySuccess: "校验通过！产品条码在包装箱中",
+      verifyFailed: "校验失败！产品条码不在此包装箱中",
+      verifyError: "校验过程发生错误",
+      resetStatus: "已重置该条码校验状态",
+      skipVerify: "已跳过该条码校验",
+      exportSuccess: "校验结果已导出"
+    },
+    export: {
+      index: "序号",
+      barcode: "产品条码",
+      status: "校验状态",
+      verifyTime: "校验时间",
+      remark: "备注",
+      filename: "包装箱校验结果"
+    },
+    common: {
+      unknown: "未知"
     }
   }
 };

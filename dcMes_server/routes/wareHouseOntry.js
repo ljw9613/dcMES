@@ -1506,7 +1506,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           correspondOrgId: order.FCorrespondOrgId,
           outboundMode: entryInfo.outboundMode || "SINGLE", // 默认单一产品出库
           status: "IN_PROGRESS",
-          progress: Math.round((1 / outboundQuantity) * 100), // 计算初始进度
+          progress: 0, // 修复：初始进度应该为0，而不是错误的计算
           startTime: new Date(),
           createBy: userId,
           createAt: new Date(),
@@ -1549,6 +1549,29 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
           pallet.outWarehouseBy = userId;
         }
 
+        // 修复：在创建新出库单分支中也要正确更新出库数量和状态
+        // 更新出库数量
+        currentPalletItem.quantity = currentPalletItem.palletBarcodes.length;
+        entry.outNumber = entry.entryItems.reduce(
+          (sum, item) => {
+            if (item.palletBarcodes && item.palletBarcodes.length > 0) {
+              return sum + item.palletBarcodes.length;
+            } else if (item.quantity) {
+              return sum + item.quantity;
+            } else {
+              console.warn(`托盘项缺少数量信息: palletCode=${item.palletCode}, palletId=${item.palletId}`);
+              return sum;
+            }
+          },
+          0
+        );
+        entry.actualQuantity = entry.outNumber;
+
+        // 更新出库进度
+        entry.progress = Math.round(
+          (entry.outNumber / entry.outboundQuantity) * 100
+        );
+
         // 检查是否完成出库
         if (entry.outNumber >= entry.outboundQuantity) {
           entry.status = "COMPLETED";
@@ -1565,8 +1588,12 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
             });
         }
 
+        // 调用服务方法更新托盘出入库状态
+        const materialPalletizingService = require("../services/materialPalletizing");
+        materialPalletizingService.updatePalletOutWarehouseStatus(pallet);
+
         // 保存更新
-        await pallet.save();
+        await Promise.all([entry.save(), pallet.save()]);
 
         return res.status(200).json({
           code: 200,

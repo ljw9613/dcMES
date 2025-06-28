@@ -69,6 +69,7 @@ export default {
       customScanCheck: "Quét mã tùy chỉnh",
       scBigView: "Màn hình lớn dây chuyền",
       palletBarcodeVerification: "Xác minh pallet",
+      boxBarcodeVerification: "Xác minh mã vạch hộp",
       scanBarCodeSimple: "Quét mã đơn giản",
       palletAssembly: "Lắp ráp pallet",
       scanBarCodePack: "Đóng gói quét mã",
@@ -403,40 +404,7 @@ export default {
         "Mã vạch này có bản ghi sửa chữa chưa hoàn thành",
       hasCompletedScrapProcessing: "Mã vạch này đã hoàn thành xử lý phế liệu",
       repairResultUnqualified:
-        "Mã vạch này đã hoàn thành sửa chữa, nhưng kết quả sửa chữa không đạt yêu cầu",
-      // 批次相关消息
-      batchQuantityCannotBeLessThan: "Số lượng lô không thể nhỏ hơn số lượng đã vào pallet",
-      confirmSaveBatchQuantity: "Xác nhận lưu cài đặt số lượng lô hiện tại? Sau khi lưu sẽ không thể sửa đổi.",
-      batchQuantitySettingSaved: "Cài đặt số lượng lô đã được lưu",
-      confirmCancelBatchQuantity: "Xác nhận hủy cài đặt số lượng lô hiện tại?",
-      batchQuantitySettingCancelled: "Đã hủy cài đặt số lượng lô",
-      noEditPermission: "Không có quyền chỉnh sửa cấu hình dây chuyền sản xuất",
-      // 清除缓存消息
-      confirmClearCache: "Xác nhận xóa tất cả dữ liệu cache trang? Thao tác này không thể khôi phục.",
-      clearingCache: "Đang xóa cache...",
-      cacheClearedSuccess: "Xóa cache thành công",
-      clearCacheFailed: "Xóa cache thất bại",
-      // 设备连接消息
-      deviceServerConnected: "Kết nối máy chủ thiết bị thành công",
-      deviceConnectionLost: "Kết nối thiết bị đã bị ngắt",
-      deviceNotConnected: "Thiết bị chưa kết nối",
-      maxReconnectAttemptsReached: "Đã đạt giới hạn số lần kết nối lại, vui lòng kiểm tra kết nối mạng hoặc làm mới trang",
-      deviceConnectionInitFailed: "Khởi tạo kết nối thiết bị thất bại",
-      // 打印相关消息
-      printTemplateRequired: "Vui lòng chọn mẫu in trước",
-      printTemplateSaved: "Mẫu in đã được lưu vào local",
-      printTemplateSaveFailed: "Lưu mẫu in thất bại",
-      batchBarcodePrintSuccess: "In mã vạch lô thành công",
-      printFailed: "In thất bại",
-      autoPrintEnabled: "Đã bật chế độ in tự động",
-      autoPrintDisabled: "Đã tắt chế độ in tự động",
-      // 列表操作消息
-      confirmClearScannedList: "Xác nhận xóa danh sách đã quét?",
-      scannedListCleared: "Danh sách đã được xóa",
-      // 销售单号相关消息
-      currentProductionLineNotSet: "Dây chuyền sản xuất hiện tại chưa được thiết lập",
-      noActiveWorkOrderOnLine: "Dây chuyền hiện tại không có lệnh sản xuất đang hoạt động",
-      getSaleOrderNumberFailed: "Lấy số đơn bán hàng thất bại"
+        "Mã vạch này đã hoàn thành sửa chữa, nhưng kết quả sửa chữa không đạt yêu cầu"
     }
   },
 
@@ -1105,7 +1073,7 @@ export default {
     }
   },
 
-  // 扫码维修页面2
+  // 扫码维修页面
   scanBarCodeRepair2: {
     messages: {
       repairSuccess: "Sửa chữa thành công",
@@ -1174,7 +1142,8 @@ export default {
       queryFailed: "Truy vấn thất bại",
       systemError: "Lỗi hệ thống, vui lòng thử lại",
       startVerification:
-        "Bắt đầu quy trình xác minh dây chuyền, vui lòng quét mã QR"
+        "Bắt đầu quy trình xác minh dây chuyền, vui lòng quét mã QR",
+      queryingBarcode: "Đang truy vấn thông tin mã vạch..."
     }
   },
 
@@ -1492,425 +1461,8 @@ export default {
     }
   },
 
-  // 产品维修编辑对话框
-  editDialog: {
-    titles: {
-      create: "Thêm bản ghi sửa chữa",
-      edit: "Chỉnh sửa bản ghi sửa chữa",
-      view: "Xem bản ghi sửa chữa"
-    },
-    form: {
-      barcode: "Mã vạch sản phẩm",
-      barcodePlaceholder: "Vui lòng quét mã vạch sản phẩm",
-      confirm: "Xác nhận",
-      solution: "Phương án xử lý",
-      solutionPlaceholder: "Vui lòng chọn phương án xử lý",
-      defectDescription: "Hiện tượng bất thường",
-      defectDescriptionPlaceholder: "Vui lòng mô tả hiện tượng bất thường",
-      materialNumber: "Mã sản phẩm",
-      materialNumberPlaceholder: "Vui lòng nhập mã sản phẩm",
-      materialName: "Tên sản phẩm",
-      materialNamePlaceholder: "Vui lòng nhập tên sản phẩm",
-      materialSpec: "Mẫu sản phẩm",
-      materialSpecPlaceholder: "Vui lòng nhập mẫu sản phẩm",
-      workOrderNo: "Lệnh sản xuất",
-      workOrderNoPlaceholder: "Vui lòng nhập lệnh sản xuất",
-      businessType: "Loại hình kinh doanh",
-      businessTypePlaceholder: "Vui lòng chọn loại hình kinh doanh",
-      causeAnalysis: "Phân tích nguyên nhân",
-      causeAnalysisPlaceholder: "Vui lòng nhập phân tích nguyên nhân",
-      repairDescription: "Mô tả sửa chữa",
-      repairDescriptionPlaceholder: "Vui lòng nhập mô tả sửa chữa",
-      repairResult: "Kết quả duyệt",
-      adverseEffect: "Đánh giá tác động bất lợi",
-      adverseEffectPlaceholder: "Vui lòng nhập đánh giá tác động bất lợi",
-      status: "Trạng thái",
-      statusPlaceholder: "Vui lòng chọn trạng thái",
-      remark: "Ghi chú",
-      remarkPlaceholder: "Vui lòng nhập thông tin ghi chú",
-      barcodeList: "Danh sách mã vạch",
-      scannedCount: "Số lượng mã vạch đã quét",
-      serialNumber: "Số thứ tự",
-      productBarcode: "Mã vạch sản phẩm",
-      operation: "Thao tác",
-      delete: "Xóa"
-    },
-    buttons: {
-      saveAndSubmit: "Lưu và gửi",
-      cancel: "Hủy"
-    },
-    tips: {
-      componentReplacementTitle: "Gợi ý thay thế linh kiện",
-      componentReplacementContent:
-        "Khi chọn phương án thay thế linh kiện, vui lòng đảm bảo đã chuẩn bị sẵn linh kiện thay thế tương ứng và ghi lại thông tin linh kiện được thay thế."
-    },
-    messages: {
-      scanBarcodeWarning: "Vui lòng quét mã vạch sản phẩm trước",
-      noDataFound: "Không tìm thấy dữ liệu liên quan",
-      searchFailed: "Tìm kiếm thất bại",
-      maxBarcodeLimit: "Tối đa chỉ có thể quét 100 mã vạch",
-      barcodeExists: "Mã vạch này đã tồn tại",
-      scanSuccess: "Quét thành công",
-      atLeastOneBarcodeRequired: "Vui lòng quét ít nhất một mã vạch sản phẩm",
-      submitFailed: "Gửi thất bại"
-    },
-    validation: {
-      barcodeRequired: "Vui lòng quét ít nhất một mã vạch sản phẩm",
-      materialSpecRequired: "Vui lòng nhập mẫu sản phẩm",
-      batchNumberRequired: "Vui lòng nhập số lô sản xuất",
-      defectDescriptionRequired: "Vui lòng mô tả hiện tượng bất thường",
-      solutionRequired: "Vui lòng chọn phương án xử lý",
-      statusRequired: "Vui lòng chọn trạng thái"
-    }
-  },
-
   // 托盘组装页面
   palletAssembly: {
-    // 页面标题和标签
-    title: "Thao tác lắp ráp pallet",
-    palletCode: "Mã pallet",
-    palletCodePlaceholder: "Vui lòng nhập hoặc quét mã pallet",
-    confirmPallet: "Xác nhận pallet",
-    unifiedScan: "Quét thống nhất",
-    unifiedScanPlaceholder: "Vui lòng quét mã vạch (thành phẩm/thùng đóng gói/vật liệu phụ)",
-    processScan: "Xử lý quét",
-    resetPage: "Đặt lại trang",
-    forceComplete: "Hoàn thành bắt buộc",
-
-    // 托盘信息标签
-    palletInfo: {
-      palletNumber: "Mã pallet",
-      palletStatus: "Trạng thái pallet",
-      currentCount: "Số lượng hiện tại",
-      totalQuantity: "Tổng số lượng",
-      remaining: "Còn lại",
-      productLine: "Dây chuyền sản xuất",
-      materialInfo: "Thông tin vật liệu",
-      orderInfo: "Thông tin đơn hàng",
-      workOrderInfo: "Thông tin lệnh sản xuất",
-      notSet: "Chưa thiết lập"
-    },
-
-    // 托盘状态
-    status: {
-      stacked: "Hoàn thành lắp ráp pallet",
-      stacking: "Đang lắp ráp pallet"
-    },
-
-    // 分隔线标题
-    sections: {
-      scanAndStatus: "Quét mã vạch và trạng thái"
-    },
-
-    // 按钮文本
-    buttons: {
-      confirmPallet: "Xác nhận pallet",
-      processScan: "Xử lý quét",
-      resetPage: "Đặt lại trang",
-      forceComplete: "Hoàn thành bắt buộc"
-    },
-
-    // 验证规则
-    validation: {
-      palletCodeRequired: "Vui lòng nhập mã pallet"
-    },
-
-    // 消息提示
-    messages: {
-      // 输入验证消息
-      enterPalletCode: "Vui lòng nhập mã pallet",
-      enterOrScanBarcode: "Vui lòng nhập hoặc quét mã vạch",
-      selectPrintTemplate: "Vui lòng chọn mẫu in trước",
-      validatePalletFirst: "Vui lòng xác thực mã pallet trước",
-
-      // 工单相关消息
-      workOrderNotFound: "Lệnh sản xuất {workOrderNo} không tìm thấy",
-      workOrderNoMaterial: "Lệnh sản xuất chưa liên kết thông tin vật liệu chính",
-      materialNoCraft: "Vật liệu {materialName} chưa cấu hình quy trình",
-      materialNoProcess: "Vật liệu {materialName} chưa cấu hình quy trình liên quan đến pallet (như loại F)",
-      workOrderInfoSuccess: "Lấy thông tin lệnh sản xuất và vật liệu phụ thành công, vui lòng bắt đầu quét",
-      noSubMaterialRequired: "Quy trình hiện tại không cần quét thêm vật liệu phụ, vui lòng quét trực tiếp vật liệu chính",
-      workOrderInfoFailed: "Lấy thông tin lệnh sản xuất/quy trình/vật liệu phụ thất bại",
-      palletNoWorkOrder: "Pallet chưa liên kết lệnh sản xuất, có thể không lấy được yêu cầu vật liệu phụ",
-
-      // 托盘验证消息
-      palletInfoSuccess: "Lấy thông tin pallet thành công, vui lòng bắt đầu quét",
-      palletNotFound: "Không tìm thấy pallet được chỉ định",
-      palletValidationFailed: "Xác thực mã pallet thất bại",
-      palletCompleted: "Pallet này đã hoàn thành lắp ráp, không thể tiếp tục thêm mã vạch",
-      palletCompletedCannotAdd: "Pallet này đã hoàn thành lắp ráp, không thể tiếp tục thêm",
-
-      // 条码规则相关消息
-      noBarcodeRules: "Không tìm thấy quy tắc mã vạch áp dụng cho vật liệu hiện tại, sẽ sử dụng logic khớp cơ bản.",
-      barcodeRulesLoadFailed: "Lấy quy tắc mã vạch thất bại",
-      noBarcodeRulesLoaded: "Chưa tải quy tắc mã vạch, sẽ thử khớp trực tiếp mã vật liệu.",
-      barcodeNotMatchRules:
-        "Mã vạch này không phù hợp với bất kỳ quy tắc nào đã cấu hình, hoặc vật liệu được phân tích không khớp với quy trình hiện tại",
-      barcodeValidationError: "Quá trình xác thực mã vạch xảy ra lỗi",
-      barcodeNotMatchDirectly: "Mã vạch không khớp trực tiếp với bất kỳ mã vật liệu dự kiến nào (không có quy tắc).",
-
-      // DI码验证消息
-      diCodeNotExists: "Mã DI này không tồn tại trong hệ thống",
-      diCodeNoMaterial: "Mã DI này không liên kết với vật liệu hợp lệ",
-      diCodeMaterialMismatch: "Vật liệu tương ứng với mã DI này không khớp với quy trình hiện tại",
-      diCodeValidationFailed: "Xác thực mã DI thất bại",
-
-      // 扫描相关消息
-      mainMaterialScanned:
-        "Vật liệu chính {materialName} ({barcode}) quét thành công (quy tắc: {ruleName})",
-      subMaterialScanned:
-        "Vật liệu phụ {materialName} ({barcode}) quét thành công (quy tắc: {ruleName})",
-      barcodeAlreadyInPallet: "Mã vạch vật liệu chính {barcode} đã có trong danh sách pallet.",
-      barcodeAlreadyScanned: "Mã vạch {barcode} đã được quét để sử dụng cho mục vật liệu khác",
-      barcodeNotMatchExpected:
-        "Mã vạch {barcode} (vật liệu: {materialCode}) không khớp với mục cần quét hiện tại.",
-      barcodeValidationFailed: "Xác thực mã vạch thất bại hoặc không khớp với vật liệu",
-
-      // 包装箱相关消息
-      packingProcessRequired: "Quy trình hiện tại bao gồm công đoạn đóng thùng, phải quét mã vạch thùng đóng gói.",
-      palletUnbindError: "Mã vạch hiện tại {barcode} nên vào pallet {palletCode}",
-
-      // 提交相关消息
-      allMaterialsScanned: "Tất cả vật liệu đã được quét, chuẩn bị gửi...",
-      barcodeAlreadyExists:
-        "Mã vạch chính {barcode} đã tồn tại trong pallet này, nhóm quét lần này không gửi lại.",
-      submittingData: "Đang gửi dữ liệu...",
-      submitSuccess: "Mã vạch {barcode} và vật liệu phụ liên kết thành công",
-      submitSuccessWithCount:
-        "Mã vạch {barcode} và vật liệu phụ liên kết thành công (đã thêm tổng cộng {count} mã vạch)",
-      submitFailed: "Gửi thất bại",
-      palletCompleteSuccess: "Pallet đã hoàn thành lắp ráp!",
-      palletCompleteHandleFailed: "Xử lý hoàn thành lắp ráp pallet thất bại",
-
-      // 打印相关消息
-      printTemplateSuccess: "Mẫu in đã được lưu vào local",
-      printTemplateFailed: "Lưu mẫu in thất bại",
-      printDataPrepareFailed: "Chuẩn bị dữ liệu in thất bại",
-
-      // 其他消息
-      clearBarcodeListConfirm: "Xác nhận xóa danh sách mã vạch đã quét?",
-      barcodeListCleared: "Đã xóa danh sách mã vạch",
-      unknownDate: "Không xác định",
-      invalidDate: "Ngày không hợp lệ",
-      unrecordedWorkshop: "Chưa ghi nhận xưởng sản xuất",
-      unrecordedProductLine: "Chưa ghi nhận dây chuyền sản xuất",
-      lastPallet: "Pallet cuối",
-
-      // 扫描状态消息
-      mainMaterialPending: "Chờ quét mã vạch vật liệu chính",
-      subMaterialPending: "Chờ quét",
-      noScanRequired: "Không cần quét"
-    },
-
-    // 条码列表
-    barcodeList: {
-      title: "Danh sách mã vạch đã quét ({count} mã)",
-      clearList: "Xóa danh sách",
-      serialNumber: "Số thứ tự",
-      barcode: "Mã vạch",
-      type: "Loại",
-      singleProduct: "Sản phẩm đơn",
-      packagingBox: "Thùng đóng gói",
-      boxBarcode: "Mã vạch thùng",
-      scanTime: "Thời gian quét"
-    },
-
-    // 操作提示
-    operationTips: {
-      title: "Gợi ý thao tác",
-      description:
-        "1. Quét mã pallet để xác nhận thông tin pallet 2. Quét mã vạch sản phẩm hoặc mã vạch thùng đóng gói 3. Hệ thống tự động gửi, không cần lưu thủ công"
-    }
-  },
-
-  // 托盘条码校验页面
-  palletBarcodeVerification: {
-    // 页面标题和标签
-    title: "Xác thực mã vạch pallet",
-
-    // 托盘输入区域
-    palletInput: {
-      inputPrompt: "Vui lòng nhập số chứng từ pallet",
-      placeholder: "Vui lòng quét số chứng từ pallet",
-      loadPallet: "Tải pallet",
-      scanTip: "Vui lòng hướng mã vạch chứng từ pallet vào súng quét, hoặc nhập mã pallet trong ô nhập liệu rồi nhấn Enter"
-    },
-
-    // 已完成托盘
-    completedPallets: {
-      title: "Pallet đã hoàn thành"
-    },
-
-    // 托盘信息
-    palletInfo: {
-      title: "Thông tin pallet",
-      changePallet: "Thay đổi pallet",
-      palletCode: "Mã pallet",
-      materialInfo: "Thông tin vật liệu",
-      totalBarcodes: "Tổng số mã vạch",
-      verifiedBarcodes: "Mã vạch đã xác thực",
-      remainingBarcodes: "Mã vạch chưa xác thực",
-      palletStatus: "Trạng thái lắp ráp pallet",
-      statusStacked: "Hoàn thành lắp ráp pallet",
-      statusStacking: "Đang lắp ráp pallet"
-    },
-
-    // 条码扫描区域
-    barcodeInput: {
-      placeholder: "Vui lòng quét mã vạch hoặc nhập thủ công",
-      verify: "Xác thực",
-      scanTip: "Vui lòng hướng mã vạch vào súng quét, hoặc nhập mã vạch trong ô nhập liệu rồi nhấn Enter"
-    },
-
-    // 条码校验结果
-    verificationResult: {
-      processCompleted: "Quy trình đã hoàn thành",
-      processIncomplete: "Quy trình chưa hoàn thành",
-      barcodeInfo: "Thông tin cơ bản mã vạch",
-      barcode: "Mã vạch",
-      materialCode: "Mã vật liệu",
-      materialName: "Tên vật liệu",
-      status: "Trạng thái",
-      completed: "Đã hoàn thành",
-      incomplete: "Chưa hoàn thành",
-      progress: "Tiến độ hoàn thành",
-
-      // 节点统计
-      nodeStatistics: {
-        totalNodes: "Tổng số nút",
-        completedNodes: "Đã hoàn thành",
-        pendingNodes: "Chưa hoàn thành"
-      },
-
-      // 未完成节点列表
-      pendingNodesList: {
-        title: "Danh sách nút chưa hoàn thành",
-        nodeName: "Tên nút",
-        nodeType: "Loại nút",
-        status: "Trạng thái"
-      }
-    },
-
-    // 托盘条码列表
-    barcodeList: {
-      title: "Danh sách mã vạch pallet",
-      allBarcodes: "Tất cả mã vạch",
-      unverifiedBarcodes: "Mã vạch chờ xác thực",
-      totalCount: "Tổng cộng {count} mã vạch",
-      barcode: "Mã vạch",
-      verificationStatus: "Trạng thái xác thực",
-      verified: "Đã xác thực",
-      unverified: "Chưa xác thực",
-      processStatus: "Trạng thái quy trình",
-      scanTime: "Thời gian quét"
-    },
-
-    // 状态映射
-    status: {
-      pending: "Chờ xử lý",
-      inProgress: "Đang tiến hành",
-      completed: "Đã hoàn thành",
-      skipped: "Đã bỏ qua",
-      error: "Bất thường",
-      processCompleted: "Quy trình đã hoàn thành",
-      processIncomplete: "Quy trình chưa hoàn thành"
-    },
-
-    // 节点类型
-    nodeType: {
-      processStep: "Quy trình",
-      material: "Vật liệu"
-    },
-
-    // 消息提示
-    messages: {
-      // 输入验证消息
-      enterPalletCode: "Vui lòng nhập số chứng từ pallet",
-      enterBarcode: "Vui lòng nhập mã vạch",
-      inputPalletPrompt: "Vui lòng nhập số chứng từ pallet ở bên dưới",
-
-      // 托盘相关消息
-      palletDataLoadSuccess: "Tải dữ liệu pallet thành công",
-      palletDataNotFound: "Không tìm thấy dữ liệu pallet",
-      unknownMaterial: "Vật liệu không xác định",
-
-      // 条码校验消息
-      barcodeNotInPallet: "Mã vạch này không tồn tại trong pallet hiện tại",
-      barcodeCheckComplete: "Kiểm tra mã vạch hoàn thành",
-      processNotComplete: "Quy trình chưa hoàn thành",
-      allBarcodesVerified: "Tất cả mã vạch đã hoàn thành xác thực, xác thực pallet hoàn thành",
-
-      // 系统消息
-      systemError: "Lỗi hệ thống, vui lòng thử lại",
-      queryFailed: "Truy vấn thất bại",
-
-      // 加载状态
-      loadingPalletData: "Đang tải dữ liệu pallet...",
-      verifyingBarcode: "Đang xác thực mã vạch...",
-
-      // 日期格式化
-      noData: "Không có dữ liệu",
-      invalidDate: "Ngày không hợp lệ"
-    }
-  },
-
-  // StatusPopup组件
-  statusPopup: {
-    // 错误消息映射
-    errorMessages: {
-      diCodeNotExists: "Mã DI này không tồn tại trong hệ thống",
-      diCodeNoMaterial: "Mã DI này không liên kết với vật liệu hợp lệ",
-      diCodeMaterialMismatch: "Vật liệu tương ứng với mã DI này không khớp với quy trình hiện tại",
-      barcodeRuleMismatch: "Mã vạch này không phù hợp với bất kỳ quy tắc nào đã cấu hình hoặc vật liệu không khớp",
-      mainBarcodeNotFound: "Không tìm thấy bản ghi quy trình mã vạch chính tương ứng",
-      processNodeNotFound: "Không tìm thấy nút quy trình tương ứng",
-      processNodeCompleted: "Nút quy trình đã hoàn thành hoặc ở trạng thái bất thường",
-      repairRecordExists: "Mã vạch này có bản ghi sửa chữa chưa hoàn thành",
-      repairResultFailed: "Mã vạch này đã hoàn thành sửa chữa, nhưng kết quả sửa chữa không đạt",
-      barcodeVoided: "Mã vạch này đã bị hủy",
-      barcodeMaterialMismatch: "Mã vạch không khớp với vật liệu chính",
-      duplicateBarcode: "Quét trùng lặp",
-      prerequisiteIncomplete: "Tồn tại quy trình tiền đề chưa hoàn thành",
-      quantityMismatch: "Số lượng quét không phù hợp với yêu cầu",
-      duplicateScan: "Tồn tại mã vạch quét trùng lặp",
-      materialNotRequired: "Vật liệu không thuộc vật liệu yêu cầu quét của quy trình hiện tại",
-      batchLimitReached: "Mã vạch vật liệu lô đã đạt giới hạn số lần sử dụng",
-      subMaterialNotFound: "Không tìm thấy bản ghi quy trình vật liệu phụ có mã vạch",
-      subMaterialIncomplete: "Quy trình vật liệu phụ của mã vạch vật liệu này chưa hoàn thành",
-      keyMaterialDuplicate: "Lỗi sử dụng trùng lặp vật liệu quan trọng",
-      usedByOtherProcess: "Đã được sử dụng bởi quy trình khác",
-      keyMaterialMainRequired: "Vật liệu quan trọng phải quét mã vạch chính trước",
-      workOrderNotFound: "Không tìm thấy lệnh sản xuất",
-      workOrderQuantityReached: "Lệnh sản xuất đã đạt số lượng kế hoạch",
-      missingParameters: "Thiếu tham số cần thiết",
-      materialCodeNotFound: "Không tìm thấy mã vật liệu",
-      craftInfoNotFound: "Không tìm thấy thông tin quy trình tương ứng với vật liệu",
-      barcodeParameterEmpty: "Tham số mã vạch không thể trống",
-      productionPlanNotFound: "Quy trình thành phẩm không tìm thấy kế hoạch dây chuyền sản xuất",
-      validWorkOrderNotFound: "Không tìm thấy lệnh sản xuất hợp lệ của dây chuyền sản xuất",
-      productBarcodeNotBound: "Mã vạch sản phẩm chưa ràng buộc lệnh sản xuất",
-      workOrderMismatch: "Lệnh sản xuất dây chuyền hiện tại không khớp với lệnh sản xuất mã vạch sản phẩm",
-      updateWorkOrderFailed: "Cập nhật lượng đầu vào lệnh sản xuất thất bại",
-      barcodeMaterialNotMatch: "Mã vạch không khớp với vật liệu",
-      equipmentInfoNotFound: "Không tìm thấy thông tin thiết bị tương ứng",
-      processInfoNotFound: "Không tìm thấy thông tin quy trình tương ứng",
-      craftInfoNotFound2: "Không tìm thấy thông tin quy trình tương ứng",
-      materialInfoNotFound: "Không tìm thấy thông tin vật liệu tương ứng",
-      materialNodeNotFound: "Không tìm thấy nút vật liệu được chỉ định hoặc nút vật liệu không thuộc quy trình được chỉ định",
-      originalBarcodeMismatch: "Mã vạch vật liệu gốc không khớp",
-      repairRecordNotFound: "Không tìm thấy bản ghi sửa chữa thay thế linh kiện tương ứng",
-      newBarcodeType: "Loại vật liệu mã vạch mới",
-      newBarcodeIncomplete: "Quy trình của mã vạch mới chưa hoàn thành",
-      newBarcodeValidationFailed: "Xác thực mã vạch mới thất bại",
-      processDataValidationFailed: "Xác thực dữ liệu quy trình thất bại",
-      createProcessRecordFailed: "Tạo bản ghi quy trình công nghệ thất bại",
-      scanRequestFailed: "Xử lý yêu cầu quét thất bại",
-      fixBarcodeDataFailed: "Sửa chữa dữ liệu bất thường mã vạch vật liệu thất bại",
-      rfidBarcodeNotFound: "Không tìm thấy mã vạch tương ứng với thẻ RFID này"
-    }
-  },
-
-  // 托盘组装页面（重复部分已删除）
     // 页面标题和标签
     title: "Thao tác lắp ráp pallet",
     palletCode: "Mã pallet",
@@ -2289,6 +1841,81 @@ export default {
       fixBarcodeDataFailed:
         "Sửa chữa dữ liệu bất thường mã vạch vật liệu thất bại",
       rfidBarcodeNotFound: "Không tìm thấy mã vạch tương ứng với thẻ RFID này"
+    }
+  },
+
+  // 包装箱条码校验页面
+  boxBarcodeVerification: {
+    title: "Xác minh mã vạch thùng đóng gói",
+    form: {
+      boxBarcodeLabel: "Mã vạch thùng đóng gói:",
+      boxBarcodePlaceholder: "Vui lòng quét hoặc nhập mã vạch thùng đóng gói"
+    },
+    buttons: {
+      query: "Truy vấn",
+      requery: "Truy vấn lại",
+      export: "Xuất kết quả",
+      retry: "Thử lại",
+      skip: "Bỏ qua"
+    },
+    boxInfo: {
+      title: "Thông tin thùng đóng gói",
+      boxBarcode: "Mã vạch thùng đóng gói",
+      materialCode: "Mã vật liệu",
+      materialName: "Tên vật liệu",
+      packingTime: "Thời gian đóng gói",
+      productCount: "Số lượng sản phẩm"
+    },
+    progress: {
+      title: "Tiến độ xác minh"
+    },
+    stats: {
+      verified: "Xác minh thành công",
+      failed: "Xác minh thất bại",
+      pending: "Chờ xác minh"
+    },
+    scan: {
+      title: "Quét mã vạch sản phẩm",
+      placeholder: "Vui lòng quét mã vạch sản phẩm để xác minh",
+      tips: "Vui lòng quét từng mã vạch sản phẩm để xác minh",
+      allComplete: "Tất cả mã vạch sản phẩm đã được xác minh!"
+    },
+    productList: {
+      title: "Danh sách mã vạch sản phẩm",
+      index: "Số thứ tự",
+      barcode: "Mã vạch sản phẩm",
+      verifyTime: "Thời gian xác minh",
+      actions: "Thao tác"
+    },
+    status: {
+      verifySuccess: "Xác minh thành công",
+      verifyFailed: "Xác minh thất bại",
+      pending: "Chờ xác minh",
+      userSkipped: "Người dùng bỏ qua xác minh"
+    },
+    messages: {
+      pleaseInputBoxBarcode: "Vui lòng nhập mã vạch thùng đóng gói",
+      boxBarcodeNotFound: "Không tìm thấy dữ liệu tương ứng với mã vạch thùng đóng gói này",
+      boxDataLoadSuccess: "Tải dữ liệu thùng đóng gói thành công, có {count} mã vạch sản phẩm",
+      boxQueryFailed: "Truy vấn thùng đóng gói thất bại",
+      alreadyVerified: "Mã vạch sản phẩm này đã được xác minh",
+      verifySuccess: "Xác minh thành công! Mã vạch sản phẩm có trong thùng đóng gói",
+      verifyFailed: "Xác minh thất bại! Mã vạch sản phẩm không có trong thùng đóng gói này",
+      verifyError: "Xảy ra lỗi trong quá trình xác minh",
+      resetStatus: "Đã đặt lại trạng thái xác minh mã vạch",
+      skipVerify: "Đã bỏ qua xác minh mã vạch",
+      exportSuccess: "Kết quả xác minh đã được xuất"
+    },
+    export: {
+      index: "Số thứ tự",
+      barcode: "Mã vạch sản phẩm",
+      status: "Trạng thái xác minh",
+      verifyTime: "Thời gian xác minh",
+      remark: "Ghi chú",
+      filename: "Kết quả xác minh thùng đóng gói"
+    },
+    common: {
+      unknown: "Không rõ"
     }
   }
 };
