@@ -84,13 +84,13 @@
             <!-- <el-form-item label="维修类型">
               <el-select
                 v-model="formData.repairType"
-                placeholder="请选择维修类型"
+                :placeholder="$t('scanBarCodeRepair.processSettings.repairTypePlaceholder')"
                 class="custom-select"
                 :disabled="!!mainMaterialId && !!processStepId"
               >
-                <el-option label="返修" value="rework"></el-option>
-                <el-option label="维修" value="repair"></el-option>
-                <el-option label="更换" value="replace"></el-option>
+                <el-option :label="$t('scanBarCodeRepair.repairTypes.rework')" value="rework"></el-option>
+                <el-option :label="$t('scanBarCodeRepair.repairTypes.repair')" value="repair"></el-option>
+                <el-option :label="$t('scanBarCodeRepair.repairTypes.replace')" value="replace"></el-option>
               </el-select>
             </el-form-item> -->
 
@@ -139,8 +139,8 @@
                         <el-tag size="mini" type="info">{{ item.lineName }}</el-tag>
                       </div>
                       <div>
-                        <small>计划: {{item.planProductionQuantity}}</small>
-                        <small>投入: {{item.inputQuantity}}</small>
+                        <small>{{ $t('scanBarCodeRepair.workOrder.planned') }}: {{item.planProductionQuantity}}</small>
+                        <small>{{ $t('scanBarCodeRepair.workOrder.input') }}: {{item.inputQuantity}}</small>
                       </div>
                     </div>
                   </template>
@@ -226,13 +226,13 @@
               v-if="firstStep && workOrderInfo.workOrderNo !== ''"
             >
               <div class="info-item">
-                <span class="label">维修工单号：</span>
+                <span class="label">{{ $t('scanBarCodeRepair.workOrder.number') }}：</span>
                 <span class="value">{{
-                  workOrderInfo.workOrderNo || "暂无工单"
+                  workOrderInfo.workOrderNo || $t('scanBarCodeRepair.workOrder.noWorkOrder')
                 }}</span>
               </div>
               <div class="info-item">
-                <span class="label">维修数量：</span>
+                <span class="label">{{ $t('scanBarCodeRepair.workOrder.repairQuantity') }}：</span>
                 <span class="value2">{{
                   workOrderInfo.inputQuantity || 0
                 }}</span>
@@ -293,7 +293,7 @@
             </div>
             <div class="material-section repair-material-section">
               <el-form-item
-                :label="`编号：${mainMaterialCode}  名称：${mainMaterialName}`"
+                :label="`${$t('scanBarCodeRepair.material.code')}：${mainMaterialCode}  ${$t('scanBarCodeRepair.material.name')}：${mainMaterialName}`"
                 label-width="100%"
                 class="vertical-form-item"
               >
@@ -331,7 +331,7 @@
                   :key="material._id"
                 >
                   <el-form-item
-                    :label="`编号：${material.materialCode}  名称：${material.materialName}  `"
+                    :label="`${$t('scanBarCodeRepair.material.code')}：${material.materialCode}  ${$t('scanBarCodeRepair.material.name')}：${material.materialName}  `"
                     class="vertical-form-item"
                   >
                     <div class="input-with-status">
@@ -479,12 +479,12 @@ export default {
         {
           _id: "1",
           FNumber: "1",
-          FName: "产线1",
+          FName: this.$t('scanBarCodeRepair.productionLine.line1'),
         },
         {
           _id: "2",
           FNumber: "2",
-          FName: "产线2",
+          FName: this.$t('scanBarCodeRepair.productionLine.line2'),
         },
       ],
       validateStatus: {
@@ -755,7 +755,7 @@ export default {
             this.$message.warning(this.$t('scanBarCodeRepair.messages.noMachineProgressConfig'));
           }
         } else {
-          throw new Error(response.message || "获取机器进度失败");
+          throw new Error(response.message || this.$t('scanBarCodeRepair.messages.getMachineProgressFailed'));
         }
       } catch (error) {
         //先清空缓存
@@ -831,14 +831,14 @@ export default {
     async handlePrintBatch() {
       let loading = this.$loading({
         lock: true,
-        text: "正在生成批次条码...",
+        text: this.$t('scanBarCodeRepair.messages.generatingBatchBarcode'),
         spinner: "el-icon-loading",
         background: "rgba(0, 0, 0, 0.7)",
       });
 
       try {
         if (!this.mainMaterialCode) {
-          throw new Error("未获取到物料编码信息");
+          throw new Error(this.$t('scanBarCodeRepair.messages.materialCodeNotFound'));
         }
 
         const res = await createBatch({
@@ -858,7 +858,7 @@ export default {
               this.unifiedScanInput = this.currentBatchBarcode;
               await this.handleUnifiedScan(this.currentBatchBarcode);
             } else {
-              throw new Error("打印数据未准备就绪");
+              throw new Error(this.$t('scanBarCodeRepair.messages.printDataNotReady'));
             }
           } else {
             this.$refs.tscPrinter.dialogVisible = true;
@@ -868,7 +868,7 @@ export default {
             this.$refs.scanInput.focus();
           });
         } else {
-          throw new Error("批次条码生成失败");
+          throw new Error(this.$t('scanBarCodeRepair.messages.batchBarcodeGenerateFailed'));
         }
       } catch (error) {
         this.$message.error(error.message || this.$t('scanBarCodeRepair.messages.batchBarcodeGenerateFailed'));
@@ -1030,21 +1030,21 @@ export default {
     async handleSave() {
       const missingFields = [];
 
-      if (!this.formData.productModel) missingFields.push('产品型号');
-      if (!this.formData.processStep) missingFields.push('工序');
-      if (!this.formData.productLine) missingFields.push('产线');
-      if (!this.formData.workProductionPlanWorkOrderId) missingFields.push('维修工单');
+      if (!this.formData.productModel) missingFields.push(this.$t('scanBarCodeRepair.processSettings.productModel'));
+      if (!this.formData.processStep) missingFields.push(this.$t('scanBarCodeRepair.processSettings.processStep'));
+      if (!this.formData.productLine) missingFields.push(this.$t('scanBarCodeRepair.processSettings.productionLine'));
+      if (!this.formData.workProductionPlanWorkOrderId) missingFields.push(this.$t('scanBarCodeRepair.processSettings.workOrder'));
 
       if (missingFields.length > 0) {
         this.$notify({
-          title: '缺少必填项',
-          message: `请选择必填项: ${missingFields.join('、')}`,
+          title: this.$t('scanBarCodeRepair.messages.missingRequiredFields'),
+          message: `${this.$t('scanBarCodeRepair.messages.pleaseSelectRequired')}: ${missingFields.join('、')}`,
           type: 'error',
           duration: 3000
         });
 
         // 特别强调工单必填
-        if (missingFields.includes('维修工单')) {
+        if (missingFields.includes(this.$t('scanBarCodeRepair.processSettings.workOrder'))) {
           this.$message.error(this.$t('scanBarCodeRepair.messages.workOrderRequired'));
 
           // 突出显示工单选择区域
@@ -1063,7 +1063,7 @@ export default {
         // 创建全屏加载
         const loading = this.$loading({
           lock: true,
-          text: "保存中...",
+          text: this.$t('scanBarCodeRepair.messages.saving'),
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
@@ -1156,7 +1156,7 @@ export default {
         });
 
         if (!stepResponse.data || !stepResponse.data.length === 0) {
-          throw new Error("未找到工序信息");
+          throw new Error(this.$t('scanBarCodeRepair.messages.processStepNotFound'));
         }
 
         const processStep = stepResponse.data[0];
@@ -1213,7 +1213,7 @@ export default {
         });
 
         if (!craftResponse.data || !craftResponse.data.length === 0) {
-          throw new Error("未找到工艺信息");
+          throw new Error(this.$t('scanBarCodeRepair.messages.craftInfoNotFound'));
         }
 
         const craft = craftResponse.data[0];
@@ -1224,7 +1224,7 @@ export default {
         const material = await this.getMaterialById(craft.materialId);
 
         if (!material) {
-          throw new Error("未找到物料信息");
+          throw new Error(this.$t('scanBarCodeRepair.messages.materialInfoNotFound'));
         }
 
         // 更新工序对应的主物料信息
@@ -1560,9 +1560,9 @@ export default {
             this.$message.success(this.$t('scanBarCodeRepair.messages.flowRecordCreateSuccess'));
           } else {
             this.errorMessage =
-              createResponse.message || "创建成品条码追溯记录失败";
+              createResponse.message || this.$t('scanBarCodeRepair.messages.createFlowRecordFailed');
             throw new Error(
-              createResponse.message || "创建成品条码追溯记录失败"
+              createResponse.message || this.$t('scanBarCodeRepair.messages.createFlowRecordFailed')
             );
           }
         }
@@ -1581,7 +1581,7 @@ export default {
       try {
         // 验证主条码是否已扫描
         // if (!this.scanForm.mainBarcode || !this.validateStatus.mainBarcode) {
-        //     throw new Error('请先扫描主条码');
+        //     throw new Error(this.$t('scanBarCodeRepair.messages.scanMainBarcodeFirst'));
         // }
 
         // 获取对应的物料信息
@@ -1589,12 +1589,12 @@ export default {
           (m) => m._id === materialId
         );
         if (!material) {
-          throw new Error("未找到对应的物料信息");
+          throw new Error(this.$t('scanBarCodeRepair.messages.materialNotFound'));
         }
 
         //对比物料编码是否一致
         if (material.materialCode !== materialCode) {
-          throw new Error("物料编码不一致");
+          throw new Error(this.$t('scanBarCodeRepair.messages.materialCodeMismatch'));
         }
 
         this.validateStatus[materialId] = true;
@@ -1656,7 +1656,7 @@ export default {
         if (!material.scanOperation) {
           // 无需扫码的物料直接设置为验证通过
           this.$set(this.validateStatus, material._id, true);
-          newBarcodes[material._id] = "无需扫码";
+          newBarcodes[material._id] = this.$t('scanBarCodeRepair.status.noScanRequired');
         } else if (material.isBatch) {
           const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
           const usageKey = `${cacheKey}_usage`;
@@ -1734,8 +1734,8 @@ export default {
             playAudio('tmyw'); // 延迟播放错误提示音
           }, 300);
           this.$notify({
-            title: "条码验证失败",
-            message: "条码格式不正确,未在系统中注册",
+            title: this.$t('scanBarCodeRepair.messages.barcodeValidationFailed'),
+            message: this.$t('scanBarCodeRepair.messages.barcodeFormatIncorrect'),
             type: "error",
             duration: 3000,
             position: "top-right",
@@ -1894,7 +1894,7 @@ export default {
 
           playAudio('smcg');
           this.$notify({
-            title: "主物料扫描成功",
+            title: this.$t('scanBarCodeRepair.messages.mainMaterialScanSuccess'),
             dangerouslyUseHTMLString: true,
             message: `
               <div style="line-height: 1.5">
@@ -1955,7 +1955,7 @@ export default {
               //         const expectedBatchId = batchResponse.data[0].batchId;
               //         if (cleanValue !== expectedBatchId) {
               //             this.$message.error(`请按顺序使用批次条码，应使用条码: ${expectedBatchId}`);
-              //             tone(tmyw)
+              //             playAudio('tmyw')
               //             return;
               //         }
               //     }
@@ -2039,20 +2039,20 @@ export default {
 
               playAudio('smcg');
               this.$notify({
-                title: "子物料扫描成功",
+                title: this.$t('scanBarCodeRepair.messages.subMaterialScanSuccess'),
                 dangerouslyUseHTMLString: true,
                 message: `
                                         <div style="line-height: 1.5">
-                                            <div>物料名称: ${
+                                            <div>${this.$t('scanBarCodeRepair.material.name')}: ${
                                               material.materialName
                                             }</div>
-                                            <div>物料编码: ${
+                                            <div>${this.$t('scanBarCodeRepair.material.code')}: ${
                                               material.materialCode
                                             }</div>
-                                            <div>条码: ${cleanValue}</div>
+                                            <div>${this.$t('scanBarCodeRepair.material.barcode')}: ${cleanValue}</div>
                                             ${
                                               isValidResult.relatedBill
-                                                ? `<div>关联单号: ${isValidResult.relatedBill}</div>`
+                                                ? `<div>${this.$t('scanBarCodeRepair.material.relatedBill')}: ${isValidResult.relatedBill}</div>`
                                                 : ""
                                             }
                                         </div>
@@ -2092,12 +2092,12 @@ export default {
 
         if (allScanned) {
           this.$notify({
-            title: "扫描完成",
+            title: this.$t('scanBarCodeRepair.messages.scanComplete'),
             dangerouslyUseHTMLString: true,
             message: `
                                 <div style="line-height: 1.5">
-                                    <div>所有物料已扫描完成</div>
-                                    <div style="color: #67C23A">正在发送确认提交...</div>
+                                    <div>${this.$t('scanBarCodeRepair.messages.allMaterialsScanned')}</div>
+                                    <div style="color: #67C23A">${this.$t('scanBarCodeRepair.messages.sendingConfirmation')}</div>
                                 </div>
                             `,
             type: "success",
@@ -2121,11 +2121,11 @@ export default {
 
           if (remainingMaterials) {
             this.$notify({
-              title: "继续扫描",
+              title: this.$t('scanBarCodeRepair.messages.continueScan'),
               dangerouslyUseHTMLString: true,
               message: `
                                     <div style="line-height: 1.5">
-                                        <div>请继续扫描以下物料：</div>
+                                        <div>${this.$t('scanBarCodeRepair.messages.pleaseContinueScanning')}</div>
                                         <div style="color: #E6A23C; white-space: pre-line">${remainingMaterials}</div>
                                     </div>
                                 `,
@@ -2141,8 +2141,8 @@ export default {
           playAudio('tmyw'); // 延迟播放错误提示音
         }, 1000);
         this.$notify({
-          title: "扫描失败",
-          message: error.message || "扫描处理失败",
+          title: this.$t('scanBarCodeRepair.messages.scanFailed'),
+          message: error.message || this.$t('scanBarCodeRepair.messages.scanProcessFailed'),
           type: "error",
           duration: 3000,
           position: "top-right",
@@ -2173,7 +2173,7 @@ export default {
 
         const loading = this.$loading({
           lock: true,
-          text: "取消设置中...",
+          text: this.$t('scanBarCodeRepair.messages.cancellingSettings'),
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
@@ -2273,19 +2273,19 @@ export default {
             });
 
             if (createResponse.code !== 200) {
-              throw new Error("创建主流程记录失败");
+              throw new Error(this.$t('scanBarCodeRepair.messages.createMainFlowRecordFailed'));
             }
 
             flowRecord = createResponse.data;
           } catch (error) {
-            throw new Error(`创建流程记录失败: ${error.message}`);
+            throw new Error(`${this.$t('scanBarCodeRepair.messages.createFlowRecordFailed')}: ${error.message}`);
           }
         } else {
           flowRecord = response.data[0];
         }
 
         if (!flowRecord) {
-          throw new Error("未能获取或创建有效的工艺流程记录");
+          throw new Error(this.$t('scanBarCodeRepair.messages.invalidFlowRecord'));
         }
 
         let componentScans = [];
@@ -2314,9 +2314,9 @@ export default {
           // this.resetScanForm();
 
           this.errorCode = scanResponse.errorCode;
-          this.errorMessage = scanResponse.message || "扫码失败";
+          this.errorMessage = scanResponse.message || this.$t('scanBarCodeRepair.messages.scanFailed');
 
-          throw new Error(scanResponse.message || "扫码失败");
+          throw new Error(scanResponse.message || this.$t('scanBarCodeRepair.messages.scanFailed'));
         }
 
         if (scanResponse.code == 200) {
@@ -2389,7 +2389,7 @@ export default {
                 }
               );
               if (workOrderResult.data.length === 0) {
-                throw new Error("未查询到生产计划");
+                throw new Error(this.$t('scanBarCodeRepair.messages.productionPlanNotFound'));
               }
               let eanNum = workOrderResult.data[0].custPOLineNo;
               printData.eanNum = eanNum;
@@ -2560,7 +2560,7 @@ export default {
 
         const loading = this.$loading({
           lock: true,
-          text: "清除缓存中...",
+          text: this.$t('scanBarCodeRepair.messages.clearingCache'),
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
@@ -2974,7 +2974,7 @@ export default {
               count === material.batchQuantity &&
               material.batchQuantity > 0
             ) {
-              this.$message.warning("批次条码使用次数已达到上限");
+              this.$message.warning(this.$t('scanBarCodeRepair.messages.batchCodeUsageLimitReached'));
               this.errorMessage = this.$t('scanBarCodeRepair.messages.batchCodeUsageLimitReached');
               this.popupType = "ng";
               this.showPopup = true;

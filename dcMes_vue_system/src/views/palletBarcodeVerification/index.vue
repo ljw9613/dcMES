@@ -248,6 +248,7 @@
 import { getData } from '@/api/data'
 import { checkBarcodeCompletion } from '@/api/materialProcessFlowService'
 import StatusPopup from '@/components/StatusPopup/index.vue'
+import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
 export default {
   name: 'PalletBarcodeVerification',
@@ -315,32 +316,7 @@ export default {
   },
 
   methods: {
-    /**
-     * 播放音频 - 支持多语言
-     * @param {string} audioType - 音频类型
-     */
-    playAudio(audioType) {
-      try {
-        const currentLanguage = this.$store.getters.language;
-        let audioFile;
 
-        // 根据当前语言选择音频文件
-        if (currentLanguage === 'vi-VN') {
-          // 越南语音频文件路径
-          audioFile = require(`@/assets/toneVN/${audioType}.wav`);
-        } else {
-          // 中文音频文件路径（默认）
-          audioFile = require(`@/assets/tone/${audioType}.wav`);
-        }
-
-        const audio = new Audio(audioFile);
-        audio.play().catch(error => {
-          console.warn('音频播放失败:', error);
-        });
-      } catch (error) {
-        console.warn('音频文件加载失败:', error);
-      }
-    },
     // 自动聚焦输入框
     focusInput() {
       this.$nextTick(() => {
@@ -531,20 +507,20 @@ export default {
           this.$message.success(this.$t('palletBarcodeVerification.messages.palletDataLoadSuccess'))
           this.showPopup = true
           this.popupType = 'ok'
-        //   this.playAudio('lcywc')
+          playAudio('lcywc')
         } else {
           this.errorMessage = this.$t('palletBarcodeVerification.messages.palletDataNotFound')
           this.$message.error(this.errorMessage)
           this.showPopup = true
           this.popupType = 'ng'
-          this.playAudio('tmyw')
+          playAudio('tmyw')
         }
       } catch (error) {
         this.errorMessage = this.$t('palletBarcodeVerification.messages.systemError')
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        this.playAudio('tmyw')
+        playAudio('tmyw')
         console.error('加载托盘出错:', error)
       } finally {
         this.isLoading = false
@@ -568,7 +544,7 @@ export default {
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        this.playAudio('tmyw')
+        playAudio('tmyw')
         this.barcode = '' // 清空输入框
         this.focusInput() // 重新聚焦
         return
@@ -608,7 +584,7 @@ export default {
             this.$message.success(this.$t('palletBarcodeVerification.messages.allBarcodesVerified'))
             this.showPopup = true
             this.popupType = 'ok'
-            this.playAudio('lcywc')
+            playAudio('lcywc')
 
             // 记录已完成的托盘
             this.completedPallets.push({
@@ -632,26 +608,26 @@ export default {
             this.$message.success(this.$t('palletBarcodeVerification.messages.barcodeCheckComplete'))
             this.showPopup = true
             this.popupType = 'ok'
-            this.playAudio('lcywc')
+            playAudio('lcywc')
           } else {
             this.$message.warning(this.$t('palletBarcodeVerification.messages.processNotComplete'))
             this.showPopup = true
             this.popupType = 'ng'
-            this.playAudio('lcyw')
+            playAudio('lcyw')
           }
         } else {
           this.errorMessage = response.message || this.$t('palletBarcodeVerification.messages.queryFailed')
           this.$message.error(this.errorMessage)
           this.showPopup = true
           this.popupType = 'ng'
-          this.playAudio('tmyw')
+          playAudio('tmyw')
         }
       } catch (error) {
         this.errorMessage = this.$t('palletBarcodeVerification.messages.systemError')
         this.$message.error(this.errorMessage)
         this.showPopup = true
         this.popupType = 'ng'
-        this.playAudio('tmyw')
+        playAudio('tmyw')
         console.error('校验条码出错:', error)
       } finally {
         this.isLoading = false

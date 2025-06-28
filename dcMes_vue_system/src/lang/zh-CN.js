@@ -632,8 +632,8 @@ export default {
       conversionReason: "转换原因"
     },
     materialInfo: {
-      materialNumber: "编号：",
-      materialName: "名称："
+      materialNumber: "物料编号：",
+      materialName: "物料名称："
     },
     initTip: {
       message: "请先初始化工序设置,请选择打印工序"
@@ -757,8 +757,8 @@ export default {
       packageQuantity: "包装数量"
     },
     materialInfo: {
-      materialNumber: "编号：",
-      materialName: "名称："
+      materialNumber: "物料编号：",
+      materialName: "物料名称："
     },
     initTip: {
       message: "请先初始化工序设置,请选择非托盘工序"
@@ -860,7 +860,30 @@ export default {
       workOrderPlaceholder: "请输入工单号/型号搜索（必填）",
       saveSettings: "保存设置",
       cancelSettings: "取消设置",
-      repairBasicInfo: "维修基础信息"
+      repairBasicInfo: "维修基础信息",
+      repairTypePlaceholder: "请选择维修类型"
+    },
+    repairTypes: {
+      rework: "返修",
+      repair: "维修",
+      replace: "更换"
+    },
+    workOrder: {
+      number: "维修工单号",
+      repairQuantity: "维修数量",
+      noWorkOrder: "暂无工单",
+      planned: "计划",
+      input: "投入"
+    },
+    material: {
+      code: "编号",
+      name: "名称",
+      barcode: "条码",
+      relatedBill: "关联单号"
+    },
+    productionLine: {
+      line1: "产线1",
+      line2: "产线2"
     },
     scanning: {
       title: "维修站点扫描",
@@ -966,6 +989,34 @@ export default {
       maxReconnectAttemptsReached: "重连次数已达上限，请检查网络连接或刷新页面",
       deviceConnectionInitFailed: "设备连接初始化失败",
       deviceNotConnected: "设备未连接",
+      // 新增消息
+      generatingBatchBarcode: "正在生成批次条码...",
+      materialCodeNotFound: "未获取到物料编码信息",
+      printDataNotReady: "打印数据未准备就绪",
+      missingRequiredFields: "缺少必填项",
+      pleaseSelectRequired: "请选择必填项",
+      saving: "保存中...",
+      processStepNotFound: "未找到工序信息",
+      craftInfoNotFound: "未找到工艺信息",
+      materialInfoNotFound: "未找到物料信息",
+      createFlowRecordFailed: "创建成品条码追溯记录失败",
+      materialNotFound: "未找到对应的物料信息",
+      materialCodeMismatch: "物料编码不一致",
+      barcodeValidationFailed: "条码验证失败",
+      barcodeFormatIncorrect: "条码格式不正确,未在系统中注册",
+      scanComplete: "扫描完成",
+      allMaterialsScanned: "所有物料已扫描完成",
+      sendingConfirmation: "正在发送确认提交...",
+      continueScan: "继续扫描",
+      pleaseContinueScanning: "请继续扫描以下物料：",
+      scanProcessFailed: "扫描处理失败",
+      cancellingSettings: "取消设置中...",
+      clearingCache: "清除缓存中...",
+      createMainFlowRecordFailed: "创建主流程记录失败",
+      invalidFlowRecord: "未能获取或创建有效的工艺流程记录",
+      productionPlanNotFound: "未查询到生产计划",
+      getMachineProgressFailed: "获取机器进度失败",
+      scanMainBarcodeFirst: "请先扫描主条码",
       // 确认对话框消息
       confirmCancelSettings:
         "确认取消当前工序设置？这将清除所有批次物料的缓存数据。",

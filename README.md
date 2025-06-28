@@ -591,3 +591,183 @@ const updateResult = await MaterialPalletizing.updateOne(
 
 ---
 
+# 德昌MES系统 - 工单完成状态优化
+
+## 功能概述
+
+本次更新优化了工单完成状态的判断逻辑，解决了报废产品影响工单完成判断的问题。
+
+## 问题背景
+
+### 原有问题
+- **工单完成判断逻辑不准确**：原来使用 `产出数量 >= 计划生产数量 + 报废数量` 的判断方式
+- **报废数量计算混乱**：未区分生产过程中报废的产品和已完成后报废的产品
+- **进度计算错误**：进度计算中包含了报废数量，导致即使达到计划产量，进度也不是100%
+
+### 示例场景
+- 工单计划数量：3000
+- 投入数量：3002  
+- 报废数量：2
+- 产出数量：3000
+- **问题**：产出达到3000时，工单未标记为完成
+
+## 解决方案
+
+### 1. 数据模型优化
+
+在产品维修记录(`productRepair`)中新增字段：
+
+```javascript
+// 报废时产品状态信息
+isCompletedWhenScrapped: { 
+  type: Boolean, 
+  default: null,
+  description: "产品报废时是否已完成生产（用于准确计算工单完成状态）"
+},
+scrapReasonType: {
+  type: String,
+  enum: ["PROCESS_DEFECT", "QUALITY_ISSUE", "DAMAGE", "OTHER"],
+  description: "报废原因类型"
+}
+```
+
+### 2. 报废审核逻辑优化
+
+在报废审核时，系统会：
+1. **检查产品完成状态**：判断产品在报废时是否已完成所有必要的生产流程
+2. **记录完成状态**：将完成状态保存到 `isCompletedWhenScrapped` 字段
+3. **区分报废类型**：记录报废原因类型便于后续分析
+
+### 3. 工单完成判断逻辑优化
+
+新的工单完成判断方式：
+
+```javascript
+// 查询已完成产品的报废数量
+const completedScrapQuantity = await this.getCompletedScrapQuantity(workOrderId);
+
+// 有效产出 = 当前产出 - 已完成产品的报废数量  
+const effectiveOutput = Math.max(0, workOrder.outputQuantity - completedScrapQuantity);
+
+// 当有效产出达到计划生产数量时，工单完成
+if (effectiveOutput >= workOrder.planProductionQuantity) {
+  workOrder.status = "COMPLETED";
+}
+```
+
+### 4. 进度计算优化
+
+新的进度计算方式：
+
+```javascript
+// 有效产出进度 = 有效产出 / 计划生产数量 * 100%
+workOrder.progress = Math.floor(
+  (effectiveOutput / workOrder.planProductionQuantity) * 100
+);
+```
+
+## 主要改进
+
+### ✅ 准确的完成判断
+- 只有当**有效产出**（扣除已完成产品报废）达到计划数量时，工单才标记为完成
+- 生产过程中的报废不影响工单完成判断
+
+### ✅ 精确的进度计算  
+- 进度基于有效产出计算，不受报废数量干扰
+- 达到计划产量时进度正确显示为100%
+
+### ✅ 详细的报废追溯
+- 记录产品报废时的完成状态
+- 区分报废原因类型
+- 便于后续数据分析和质量改进
+
+## 使用场景示例
+
+### 场景1：生产过程中报废
+```
+工单计划：1000个
+当前产出：950个
+生产中报废：50个（isCompletedWhenScrapped: false）
+结果：工单未完成，需要继续生产到1000个
+```
+
+### 场景2：已完成产品报废
+```
+工单计划：1000个  
+当前产出：1000个
+完成后报废：10个（isCompletedWhenScrapped: true）
+有效产出：1000 - 10 = 990个
+结果：工单状态变为暂停，需要补充生产10个
+```
+
+### 场景3：混合报废情况
+```
+工单计划：1000个
+当前产出：1000个
+生产中报废：30个（isCompletedWhenScrapped: false）
+完成后报废：5个（isCompletedWhenScrapped: true）
+有效产出：1000 - 5 = 995个
+结果：工单状态变为暂停，需要补充生产5个
+```
+
+## 数据库迁移
+
+如果系统中已有历史报废记录，建议运行以下迁移脚本：
+
+```javascript
+// 为历史报废记录设置默认值
+db.product_repairs.updateMany(
+  { 
+    solution: "报废",
+    isCompletedWhenScrapped: null 
+  },
+  { 
+    $set: { 
+      isCompletedWhenScrapped: true,  // 历史记录默认为已完成
+      scrapReasonType: "OTHER" 
+    } 
+  }
+);
+```
+
+## 监控和日志
+
+系统会输出详细的工单完成判断日志：
+
+```javascript
+console.log(`工单(ID: ${workOrderId}) 完成判断:`, {
+  outputQuantity: workOrder.outputQuantity,
+  completedScrapQuantity: completedScrapQuantity,
+  effectiveOutput: effectiveOutput,
+  planProductionQuantity: workOrder.planProductionQuantity,
+  shouldComplete: effectiveOutput >= workOrder.planProductionQuantity
+});
+```
+
+## 注意事项
+
+1. **历史数据处理**：升级后需要检查历史报废记录的 `isCompletedWhenScrapped` 字段
+2. **权限控制**：确保只有授权人员可以审核报废记录
+3. **数据一致性**：定期检查工单状态与实际生产情况的一致性
+4. **性能优化**：大批量数据时注意查询性能，可考虑添加适当索引
+
+## 测试建议
+
+### 单元测试场景
+1. 测试生产过程中报废的产品不影响工单完成
+2. 测试已完成产品报废后工单状态正确变更
+3. 测试混合报废情况下的工单完成判断
+4. 测试进度计算的准确性
+
+### 集成测试场景  
+1. 完整的生产流程测试
+2. 报废审核流程测试
+3. 工单状态变更通知测试
+4. 数据一致性验证
+
+---
+
+**更新日期**: 2024年12月
+**版本**: v2.0
+**负责人**: 系统开发团队
+

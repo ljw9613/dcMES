@@ -32,12 +32,12 @@ const vnAudioFiles = {
   cfbd: () => import('@/assets/toneVN/cfbd_VN.mp3'),
   pcwlxz: () => import('@/assets/toneVN/pcwlxz_VN.mp3'),
   cxwgd: () => import('@/assets/toneVN/cxwgd_VN.mp3'),
-  dwx: () => import('@/assets/tone/dwx.mp3'), // 越南语版本不存在，使用中文版本
+  dwx: () => import('@/assets/toneVN/dwx_VN.mp3'), // 越南语版本不存在，使用中文版本
   wxsb: () => import('@/assets/toneVN/wxsb_VN.mp3'),
   smztm: () => import('@/assets/toneVN/smztm_VN.mp3'),
-  lcyw: () => import('@/assets/tone/lcyw.mp3'), // 越南语版本不存在，使用中文版本
-  lcywc: () => import('@/assets/tone/lcywc.mp3'), // 越南语版本不存在，使用中文版本
-  slbpp: () => import('@/assets/tone/slbpp.mp3') // 越南语版本不存在，使用中文版本
+  lcyw: () => import('@/assets/toneVN/lcyw_VN.mp3'), // 越南语版本不存在，使用中文版本
+  lcywc: () => import('@/assets/toneVN/lcywc_VN.mp3'), // 越南语版本不存在，使用中文版本
+  slbpp: () => import('@/assets/toneVN/slbpp_VN.mp3') // 越南语版本不存在，使用中文版本
 }
 
 // 音频文件缓存

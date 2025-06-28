@@ -356,7 +356,23 @@ class MaterialPalletizingService {
       const boxItem = pallet.boxItems.find(
         (item) => item.boxBarcode === barcode
       );
+      
       if (boxItem) {
+        // 检查箱内所有条码的出库状态
+        const outWarehouseBarcodes = boxItem.boxBarcodes.filter((bb) => {
+          const palletBarcode = pallet.palletBarcodes.find(
+            (pb) => pb.barcode === bb.barcode
+          );
+          return palletBarcode && palletBarcode.outWarehouseStatus === "COMPLETED";
+        });
+
+        if (outWarehouseBarcodes.length > 0) {
+          const outBarcodeList = outWarehouseBarcodes.map(bb => bb.barcode).join(", ");
+          throw new Error(
+            `箱条码 ${barcode} 中包含已出库的产品，不能解绑。已出库的条码: ${outBarcodeList}`
+          );
+        }
+
         // 记录所有受影响的条码
         boxItem.boxBarcodes.forEach((bb) => {
           affectedBarcodes.push({
@@ -471,7 +487,6 @@ class MaterialPalletizingService {
           );
         }
 
-
         // 2. 从托盘条码列表中移除箱内所有条码
         pallet.palletBarcodes = pallet.palletBarcodes.filter(
           (pb) => !boxItem.boxBarcodes.some((bb) => bb.barcode === pb.barcode)
@@ -488,6 +503,19 @@ class MaterialPalletizingService {
           boxItem.boxBarcodes.map((bb) => bb.barcode)
         );
       } else {
+        // 检查单个条码的出库状态
+        const palletBarcode = pallet.palletBarcodes.find(
+          (pb) => pb.barcode === barcode
+        );
+        
+        if (!palletBarcode) {
+          throw new Error(`条码 ${barcode} 不在托盘 ${palletCode} 中`);
+        }
+        
+        if (palletBarcode.outWarehouseStatus === "COMPLETED") {
+          throw new Error(`条码 ${barcode} 已出库，不能进行解绑操作`);
+        }
+
         // 检查条码是否在箱内
         const isInBox = pallet.boxItems.some((item) =>
           item.boxBarcodes.some((bb) => bb.barcode === barcode)
@@ -557,11 +585,7 @@ class MaterialPalletizingService {
           );
         }
 
-
         // 找到条码对应的工单记录并减少计数
-        const palletBarcode = pallet.palletBarcodes.find(
-          (pb) => pb.barcode === barcode
-        );
         if (
           palletBarcode &&
           palletBarcode.productionPlanWorkOrderId &&

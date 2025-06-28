@@ -2156,15 +2156,15 @@ class MaterialProcessFlowService {
       }
 
       // 计算进度百分比
-      workOrder.progress =
-        type === "output"
-          ? Math.floor(
-              ((quantity + (workOrder?.outputQuantity || 0)) /
-                (workOrder?.planProductionQuantity +
-                  workOrder?.scrapQuantity)) *
-                100
-            )
-          : undefined; // 投入量不影响进度
+      if (type === "output") {
+        // 直接使用产出量计算进度，不再扣减报废数量
+        workOrder.progress = Math.floor(
+          (workOrder.outputQuantity / workOrder.planProductionQuantity) * 100
+        );
+        
+        // 确保进度不超过100%
+        workOrder.progress = Math.min(100, workOrder.progress);
+      }
 
       // 检查quantity是否为负数且工单状态为已完成，如果是则将工单状态更新为暂停
       if (quantity < 0 && workOrder.status === "COMPLETED") {
@@ -2173,30 +2173,27 @@ class MaterialProcessFlowService {
           `工单(ID: ${workOrderId})因quantity为负数(${quantity})且原状态为已完成，被设置为暂停状态`
         );
       }
-      // 检查工单状态
-      else if (
-        workOrder.outputQuantity >=
-        workOrder.planProductionQuantity + workOrder.scrapQuantity
-      ) {
-        // 更新工单完成状态和时间
-        workOrder.status = "COMPLETED";
-        workOrder.endTime = new Date();
-        workOrder.progress = 100;
+      // 检查工单状态 - 修改完成判断逻辑
+      else if (type === "output") {
+        // 直接使用产出量判断完成，不再扣减报废数量
+        console.log(`工单(ID: ${workOrderId}) 完成判断:`, {
+          outputQuantity: workOrder.outputQuantity,
+          planProductionQuantity: workOrder.planProductionQuantity,
+          shouldComplete: workOrder.outputQuantity >= workOrder.planProductionQuantity
+        });
+        
+        // 当产出达到计划生产数量时，工单完成
+        if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
+          // 更新工单完成状态和时间
+          workOrder.status = "COMPLETED";
+          workOrder.endTime = new Date();
+          workOrder.progress = 100;
 
-        // 使用新方法处理所有关联工单的完成状态
-        await this.completeAllRelatedWorkOrders(workOrder._id);
+          console.log(`工单(ID: ${workOrderId})已完成 - 产出量: ${workOrder.outputQuantity}, 计划数量: ${workOrder.planProductionQuantity}`);
 
-        //自动开启下一个工单计划
-        // const nextWorkOrders = await ProductionPlanWorkOrder.find({
-        //   productionLineId: workOrder.productionLineId,
-        //   materialId: workOrder.materialId,
-        //   status: "PENDING",
-        // }).sort({ planStartTime: 1 });
-        // if (nextWorkOrders.length > 0) {
-        //   nextWorkOrders[0].status = "IN_PROGRESS";
-        //   nextWorkOrders[0].createBy = workOrder.createBy; // 添加 createBy 字段
-        //   await nextWorkOrders[0].save();
-        // }
+          // 使用新方法处理所有关联工单的完成状态
+          await this.completeAllRelatedWorkOrders(workOrder._id);
+        }
       }
 
       await workOrder.save();
@@ -5232,6 +5229,30 @@ class MaterialProcessFlowService {
         console.log('修改节点:', comparison.details.modified);
       `
     };
+  }
+
+  /**
+   * 查询工单中已完成产品的报废数量
+   * @param {string} workOrderId - 工单ID
+   * @returns {Promise<number>} 已完成产品的报废数量
+   */
+  static async getCompletedScrapQuantity(workOrderId) {
+    try {
+      const ProductRepair = mongoose.model("product_repair");
+      
+      // 查询该工单下所有已审核的报废记录中，报废时已完成的产品数量
+      const completedScrapRecords = await ProductRepair.find({
+        productionPlanWorkOrderId: workOrderId,
+        solution: "报废",
+        status: "REVIEWED",
+        isCompletedWhenScrapped: true
+      });
+
+      return completedScrapRecords.length;
+    } catch (error) {
+      console.error("查询已完成报废数量失败:", error);
+      return 0; // 出错时返回0，不影响主流程
+    }
   }
 }
 

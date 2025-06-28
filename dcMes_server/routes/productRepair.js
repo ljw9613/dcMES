@@ -392,6 +392,37 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
           });
         }
       }
+
+      // 检查产品条码是否在活跃托盘中
+      const palletData = await materialPalletizing.findOne({
+        "palletBarcodes.barcode": repairRecord.barcode,
+        status: { $in: ["STACKING", "STACKED"] }
+      });
+
+      // 如果在palletBarcodes中找不到，查找boxItems中的boxBarcodes
+      let boxPalletData = null;
+      if (!palletData) {
+        boxPalletData = await materialPalletizing.findOne({
+          "boxItems.boxBarcodes.barcode": repairRecord.barcode,
+          status: { $in: ["STACKING", "STACKED"] }
+        });
+      }
+
+      // 合并查询结果，优先使用palletData
+      const targetPallet = palletData || boxPalletData;
+
+      if (targetPallet) {
+        return res.status(200).json({
+          code: 401,
+          message: `该产品条码在活跃托盘(${targetPallet.palletCode})中，请先从托盘中解绑该产品后再进行报废审核`,
+          data: {
+            palletCode: targetPallet.palletCode,
+            palletStatus: targetPallet.status,
+            barcode: repairRecord.barcode,
+            requirePalletUnbind: true,
+          },
+        });
+      }
     }
 
     // 检查是否是部件更换处理方案
@@ -624,6 +655,48 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
         message: "部分产品存在已绑定的关键物料，请先解绑关键物料后再进行报废",
         data: {
           barcodeWithKeyMaterials,
+        },
+      });
+    }
+
+    // 检查所有报废记录的托盘情况
+    const barcodeInPallets = [];
+
+    for (const record of scrapRepairs) {
+      // 检查产品条码是否在活跃托盘中
+      const palletData = await materialPalletizing.findOne({
+        "palletBarcodes.barcode": record.barcode,
+        status: { $in: ["STACKING", "STACKED"] }
+      });
+
+      // 如果在palletBarcodes中找不到，查找boxItems中的boxBarcodes
+      let boxPalletData = null;
+      if (!palletData) {
+        boxPalletData = await materialPalletizing.findOne({
+          "boxItems.boxBarcodes.barcode": record.barcode,
+          status: { $in: ["STACKING", "STACKED"] }
+        });
+      }
+
+      // 合并查询结果，优先使用palletData
+      const targetPallet = palletData || boxPalletData;
+
+      if (targetPallet) {
+        barcodeInPallets.push({
+          barcode: record.barcode,
+          palletCode: targetPallet.palletCode,
+          palletStatus: targetPallet.status,
+        });
+      }
+    }
+
+    // 如果存在在活跃托盘中的条码，返回提示信息
+    if (barcodeInPallets.length > 0) {
+      return res.status(200).json({
+        code: 401,
+        message: "部分产品条码在活跃托盘中，请先从托盘中解绑这些产品后再进行报废审核",
+        data: {
+          barcodeInPallets,
         },
       });
     }

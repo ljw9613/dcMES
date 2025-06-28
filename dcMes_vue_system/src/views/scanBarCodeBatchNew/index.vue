@@ -1598,6 +1598,14 @@ export default {
         return;
       }
 
+      // 创建全屏加载状态
+      const loading = this.$loading({
+        lock: true,
+        text: this.$t('scanBarCodeBatchNew.messages.processing') || '正在处理条码，请稍候...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+
       let cleanValue = ""; // 初始化 cleanValue
       try {
         cleanValue = value.trim().replace(/[\r\n]/g, "");
@@ -1896,8 +1904,9 @@ export default {
             }
           });
 
-          // 添加loading效果
-          const loading = this.$loading({
+          // 内部处理时的 loading 效果（这里可以移除，因为外层已经有了）
+          // 但保留现有代码结构以免影响逻辑
+          const innerLoading = this.$loading({
             lock: true,
             text: "正在处理条码数据...",
             spinner: "el-icon-loading",
@@ -2077,8 +2086,8 @@ export default {
             this.showPopup = true;
             playAudio('tmyw');
           } finally {
-            // 关闭loading效果
-            loading.close();
+            // 关闭内部loading效果
+            innerLoading.close();
           }
         }
       } catch (error) {
@@ -2088,6 +2097,8 @@ export default {
         this.showPopup = true;
         playAudio('tmyw');
       } finally {
+        // 关闭外层loading效果
+        loading.close();
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
       }

@@ -1686,6 +1686,14 @@ export default {
       
       this.requestTimeouts.set(cleanValue, timeoutId);
 
+      // 创建全屏加载状态
+      const loading = this.$loading({
+        lock: true,
+        text: this.$t('scanBarCodeBatch.messages.processing') || '正在处理条码，请稍候...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+
       try {
         // 检查是否正在处理包装箱条码
         if (this.isProcessingBox) {
@@ -2064,6 +2072,9 @@ export default {
         this.showPopup = true;
         playAudio('tmyw');
       } finally {
+        // 关闭加载状态
+        loading.close();
+        
         // 清理条码锁定状态
         if (cleanValue) {
           // 清除处理锁定

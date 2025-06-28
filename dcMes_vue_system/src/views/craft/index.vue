@@ -3636,6 +3636,8 @@ export default {
                 processType: sourceProcess.processType,
                 businessType: sourceProcess.businessType,
                 machineId: sourceProcess.machineId,
+                machineIds: sourceProcess.machineIds || [], // 复制关联设备列表
+                printTemplateId: sourceProcess.printTemplateId, // 复制打印模板ID
                 status: "CREATE",
                 materials: [],
                 remark: sourceProcess.remark,
