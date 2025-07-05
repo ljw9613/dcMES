@@ -873,16 +873,40 @@ class MaterialProcessFlowService {
         // 如果是末道工序且所有节点完成，更新工单产出量  && flowRecord.progress === 100
         if (flowRecord.progress === 100 && processPosition.isLast) {
           // 检查该条码是否已经完成过产出统计，防止重复统计
-          const existingOutputRecord = await mongoose.model("workOrderQuantityLog").findOne({
+          // 条码报废后不可再生产，只需处理解绑后重新生产的情况
+          
+          // 1. 查找该条码的最后一次产出增加记录
+          const lastOutputRecord = await mongoose.model("workOrderQuantityLog").findOne({
             workOrderId: planWorkOrder._id,
             relatedBarcode: mainBarcode,
             changeType: "output",
-            reason: { $regex: /末道工序产出|扫描工序组件末道工序产出/ }
-          });
+            changeQuantity: { $gt: 0 } // 只查找增加产出量的记录
+          }).sort({ operateTime: -1 });
           
-          if (existingOutputRecord) {
-            console.log(`条码 ${mainBarcode} 已完成产出统计，跳过重复统计`);
+          // 2. 查找该条码的最后一次解绑减少记录
+          const lastUnbindRecord = await mongoose.model("workOrderQuantityLog").findOne({
+            workOrderId: planWorkOrder._id,
+            relatedBarcode: mainBarcode,
+            changeType: "output",
+            changeQuantity: { $lt: 0 }, // 查找减少产出量的记录
+            barcodeOperation: "UNBIND_PROCESS" // 只查找解绑操作
+          }).sort({ operateTime: -1 });
+          
+          // 3. 判断是否需要更新产出量
+          let shouldUpdateOutput = false;
+          if (!lastOutputRecord) {
+            // 从未有过产出记录，需要统计
+            shouldUpdateOutput = true;
+          } else if (lastUnbindRecord && lastUnbindRecord.operateTime > lastOutputRecord.operateTime) {
+            // 最后一次是解绑记录，说明被解绑过，需要重新统计
+            shouldUpdateOutput = true;
           } else {
+            // 最后一次是增加记录，且没有后续的解绑记录，跳过重复统计
+            console.log(`条码 ${mainBarcode} 已完成产出统计且未被解绑，跳过重复统计`);
+            shouldUpdateOutput = false;
+          }
+          
+          if (shouldUpdateOutput) {
             try {
               await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
                 relatedBarcode: mainBarcode,
@@ -895,6 +919,12 @@ class MaterialProcessFlowService {
                 source: "WEB",
                 isAutomatic: true,
               });
+              
+              if (lastUnbindRecord) {
+                console.log(`条码 ${mainBarcode} 解绑后重新生产完成，产出量+1`);
+              } else {
+                console.log(`条码 ${mainBarcode} 首次完成生产，产出量+1`);
+              }
             } catch (error) {
               console.warn("更新工单产出量失败:", error.message);
               // 这里可以选择继续执行或者其他处理方式
@@ -2027,16 +2057,40 @@ class MaterialProcessFlowService {
         // TODO
         if (processPosition.isLast && flowRecord.progress === 100) {
           // 检查该条码是否已经完成过产出统计，防止重复统计
-          const existingOutputRecord = await mongoose.model("workOrderQuantityLog").findOne({
+          // 条码报废后不可再生产，只需处理解绑后重新生产的情况
+          
+          // 1. 查找该条码的最后一次产出增加记录
+          const lastOutputRecord = await mongoose.model("workOrderQuantityLog").findOne({
             workOrderId: planWorkOrder._id,
             relatedBarcode: mainBarcode,
             changeType: "output",
-            reason: { $regex: /末道工序产出|扫描工序组件末道工序产出/ }
-          });
+            changeQuantity: { $gt: 0 } // 只查找增加产出量的记录
+          }).sort({ operateTime: -1 });
           
-          if (existingOutputRecord) {
-            console.log(`条码 ${mainBarcode} 已完成产出统计，跳过重复统计`);
+          // 2. 查找该条码的最后一次解绑减少记录
+          const lastUnbindRecord = await mongoose.model("workOrderQuantityLog").findOne({
+            workOrderId: planWorkOrder._id,
+            relatedBarcode: mainBarcode,
+            changeType: "output",
+            changeQuantity: { $lt: 0 }, // 查找减少产出量的记录
+            barcodeOperation: "UNBIND_PROCESS" // 只查找解绑操作
+          }).sort({ operateTime: -1 });
+          
+          // 3. 判断是否需要更新产出量
+          let shouldUpdateOutput = false;
+          if (!lastOutputRecord) {
+            // 从未有过产出记录，需要统计
+            shouldUpdateOutput = true;
+          } else if (lastUnbindRecord && lastUnbindRecord.operateTime > lastOutputRecord.operateTime) {
+            // 最后一次是解绑记录，说明被解绑过，需要重新统计
+            shouldUpdateOutput = true;
           } else {
+            // 最后一次是增加记录，且没有后续的解绑记录，跳过重复统计
+            console.log(`条码 ${mainBarcode} 已完成产出统计且未被解绑，跳过重复统计`);
+            shouldUpdateOutput = false;
+          }
+          
+          if (shouldUpdateOutput) {
             try {
               await this.updateWorkOrderQuantity(planWorkOrder._id, "output", 1, {
                 relatedBarcode: mainBarcode,
@@ -2049,6 +2103,12 @@ class MaterialProcessFlowService {
                 source: "WEB",
                 isAutomatic: true,
               });
+              
+              if (lastUnbindRecord) {
+                console.log(`条码 ${mainBarcode} 解绑后重新生产完成，产出量+1`);
+              } else {
+                console.log(`条码 ${mainBarcode} 首次完成生产，产出量+1`);
+              }
             } catch (error) {
               console.warn("更新工单产出量失败:", error.message);
               // 这里可以选择继续执行或者其他处理方式
