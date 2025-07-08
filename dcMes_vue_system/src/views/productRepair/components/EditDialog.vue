@@ -452,6 +452,14 @@ export default {
             mainBarcodeResult.data &&
             mainBarcodeResult.data.length > 0
           ) {
+            // 检查产品进度，如果进度为0则不允许创建维修工单
+            if (mainBarcodeResult.data[0].progress === 0) {
+              this.$message.warning('产品未投入产线不可创建维修工单');
+              this.barcode = '';
+              this.searchLoading = false;
+              return;
+            }
+
             // 检查产品状态是否为完成状态
             if (mainBarcodeResult.data[0].status === 'COMPLETED') {
               try {
@@ -488,6 +496,14 @@ export default {
           currentBarcodeResult.data &&
           currentBarcodeResult.data.length > 0
         ) {
+          // 检查产品进度，如果进度为0则不允许创建维修工单
+          if (currentBarcodeResult.data[0].progress === 0) {
+            this.$message.warning('产品未投入产线不可创建维修工单');
+            this.barcode = '';
+            this.searchLoading = false;
+            return;
+          }
+
           // 检查产品状态是否为完成状态
           if (currentBarcodeResult.data[0].status === 'COMPLETED') {
             try {

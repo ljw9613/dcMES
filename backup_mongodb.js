@@ -6,7 +6,7 @@
  * 功能特性：
  * - 自动备份dcMes数据库
  * - 生成带时间戳的备份文件名
- * - 支持gzip压缩
+ * - 支持跨平台压缩（Windows/Linux/macOS）
  * - 详细的日志记录
  * - 错误处理和重试机制
  * - 自动清理旧备份文件
@@ -28,6 +28,9 @@ const { exec, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const zlib = require('zlib');
+const archiver = require('archiver');
+const os = require('os');
 
 const execAsync = util.promisify(exec);
 
@@ -51,6 +54,9 @@ class MongoDBBackup {
       maxRetries: 3,
       retryDelay: 5000 // 重试延迟5秒
     };
+
+    // 检测操作系统
+    this.isWindows = os.platform() === 'win32';
 
     // 确保备份目录存在
     this.ensureBackupDirectory();
@@ -120,6 +126,54 @@ class MongoDBBackup {
   }
 
   /**
+   * 检查mongodump是否可用
+   * @returns {Promise<boolean>} 是否可用
+   */
+  async checkMongodumpAvailable() {
+    try {
+      // 首先尝试系统路径中的mongodump
+      await execAsync('mongodump --version');
+      this.mongodumpPath = 'mongodump';
+      return true;
+    } catch (error) {
+      // 如果系统路径中没有，尝试本地下载的版本
+      try {
+        const localMongodumpPath = './mongodb-database-tools-macos-arm64-100.12.1/bin/mongodump';
+        if (fs.existsSync(localMongodumpPath)) {
+          await execAsync(`${localMongodumpPath} --version`);
+          this.mongodumpPath = localMongodumpPath;
+          this.log('使用本地MongoDB数据库工具:', localMongodumpPath);
+          return true;
+        }
+      } catch (localError) {
+        // 继续尝试其他可能的路径
+      }
+      
+      // 尝试其他可能的本地路径
+      const possiblePaths = [
+        './mongodb-database-tools/bin/mongodump',
+        './bin/mongodump',
+        '~/mongodb/bin/mongodump'
+      ];
+      
+      for (const testPath of possiblePaths) {
+        try {
+          if (fs.existsSync(testPath)) {
+            await execAsync(`${testPath} --version`);
+            this.mongodumpPath = testPath;
+            this.log('使用本地MongoDB数据库工具:', testPath);
+            return true;
+          }
+        } catch (pathError) {
+          continue;
+        }
+      }
+      
+      return false;
+    }
+  }
+
+  /**
    * 构建mongodump命令
    * @param {string} outputPath - 输出路径
    * @returns {string} mongodump命令
@@ -127,7 +181,10 @@ class MongoDBBackup {
   buildMongodumpCommand(outputPath) {
     const { host, port, database, username, password, authDatabase } = this.config;
     
-    let command = `mongodump`;
+    // 使用检测到的mongodump路径
+    const mongodumpCmd = this.mongodumpPath || 'mongodump';
+    
+    let command = mongodumpCmd;
     command += ` --host ${host}:${port}`;
     command += ` --db ${database}`;
     command += ` --username ${username}`;
@@ -143,16 +200,130 @@ class MongoDBBackup {
   }
 
   /**
-   * 检查mongodump是否可用
-   * @returns {Promise<boolean>} 是否可用
+   * 尝试安装mongodump工具
    */
-  async checkMongodumpAvailable() {
+  async installMongodump() {
+    this.log('正在尝试安装MongoDB数据库工具...');
+    
+    const platform = os.platform();
+    
     try {
-      await execAsync('mongodump --version');
-      return true;
+      if (platform === 'darwin') {
+        // macOS系统尝试使用Homebrew安装
+        this.log('检查Homebrew是否可用...');
+        try {
+          await execAsync('brew --version');
+          this.log('使用Homebrew安装MongoDB数据库工具...');
+          
+          try {
+            // 先尝试添加MongoDB tap
+            await execAsync('brew tap mongodb/brew', { timeout: 30000 });
+          } catch (tapError) {
+            this.log('MongoDB tap可能已存在，继续安装...');
+          }
+          
+          // 安装数据库工具
+          await execAsync('brew install mongodb-database-tools', { timeout: 120000 });
+          this.log('MongoDB数据库工具安装成功！');
+          return true;
+          
+        } catch (brewError) {
+          this.log('Homebrew不可用或安装失败，请手动安装');
+          this.showManualInstallInstructions();
+          return false;
+        }
+      } else if (platform === 'linux') {
+        // Linux系统的安装指导
+        this.log('Linux系统检测到，请手动安装MongoDB数据库工具');
+        this.showLinuxInstallInstructions();
+        return false;
+      } else if (platform === 'win32') {
+        // Windows系统的安装指导
+        this.log('Windows系统检测到，请手动安装MongoDB数据库工具');
+        this.showWindowsInstallInstructions();
+        return false;
+      } else {
+        this.log('未识别的操作系统，请手动安装MongoDB数据库工具');
+        this.showManualInstallInstructions();
+        return false;
+      }
     } catch (error) {
+      this.logError('自动安装MongoDB数据库工具失败', error);
+      this.showManualInstallInstructions();
       return false;
     }
+  }
+
+  /**
+   * 显示手动安装指导（macOS）
+   */
+  showManualInstallInstructions() {
+    console.log('\n=== MongoDB数据库工具安装指导 ===');
+    console.log('请选择以下任一方式安装MongoDB数据库工具：');
+    console.log('\n方式1: 使用Homebrew（推荐）');
+    console.log('1. 如果没有Homebrew，先安装：');
+    console.log('   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"');
+    console.log('2. 安装MongoDB数据库工具：');
+    console.log('   brew tap mongodb/brew');
+    console.log('   brew install mongodb-database-tools');
+    
+    console.log('\n方式2: 手动下载安装');
+    console.log('1. 访问：https://www.mongodb.com/try/download/database-tools');
+    console.log('2. 下载适合您系统的版本');
+    console.log('3. 解压到系统PATH路径中');
+    
+    console.log('\n方式3: 使用Docker（适用于任何系统）');
+    console.log('如果您有Docker，可以使用以下命令进行备份：');
+    console.log('docker run --rm -v $(pwd)/backups:/backup mongo:latest mongodump \\');
+    console.log('  --host 47.115.19.76:27017 \\');
+    console.log('  --db dcMes \\');
+    console.log('  --username dcMes \\');
+    console.log('  --password dcMes123. \\');
+    console.log('  --authenticationDatabase dcMes \\');
+    console.log('  --out /backup');
+    console.log('\n=================================\n');
+  }
+
+  /**
+   * 显示Linux安装指导
+   */
+  showLinuxInstallInstructions() {
+    console.log('\n=== Linux系统MongoDB数据库工具安装指导 ===');
+    console.log('Ubuntu/Debian系统：');
+    console.log('1. 添加MongoDB仓库密钥：');
+    console.log('   wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -');
+    console.log('2. 添加仓库：');
+    console.log('   echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list');
+    console.log('3. 安装工具：');
+    console.log('   sudo apt-get update');
+    console.log('   sudo apt-get install mongodb-database-tools');
+    
+    console.log('\nCentOS/RHEL/Fedora系统：');
+    console.log('1. 创建仓库文件：');
+    console.log('   sudo vi /etc/yum.repos.d/mongodb-org-7.0.repo');
+    console.log('2. 安装工具：');
+    console.log('   sudo yum install mongodb-database-tools');
+    console.log('==========================================\n');
+  }
+
+  /**
+   * 显示Windows安装指导
+   */
+  showWindowsInstallInstructions() {
+    console.log('\n=== Windows系统MongoDB数据库工具安装指导 ===');
+    console.log('方式1: 使用Chocolatey（推荐）');
+    console.log('1. 如果没有Chocolatey，先安装：');
+    console.log('   以管理员身份运行PowerShell，执行：');
+    console.log('   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString("https://chocolatey.org/install.ps1"))');
+    console.log('2. 安装MongoDB数据库工具：');
+    console.log('   choco install mongodb-database-tools');
+    
+    console.log('\n方式2: 手动下载安装');
+    console.log('1. 访问：https://www.mongodb.com/try/download/database-tools');
+    console.log('2. 下载Windows版本');
+    console.log('3. 解压到C:\\mongodb\\bin');
+    console.log('4. 将C:\\mongodb\\bin添加到系统PATH环境变量');
+    console.log('=============================================\n');
   }
 
   /**
@@ -165,7 +336,20 @@ class MongoDBBackup {
     
     // 检查mongodump是否可用
     if (!(await this.checkMongodumpAvailable())) {
-      throw new Error('mongodump命令不可用，请确保已安装MongoDB数据库工具');
+      this.log('mongodump命令不可用，尝试自动安装...');
+      
+      const installSuccess = await this.installMongodump();
+      
+      if (!installSuccess) {
+        throw new Error('mongodump命令不可用，请按照上述指导手动安装MongoDB数据库工具后重新运行备份脚本');
+      }
+      
+      // 重新检查是否安装成功
+      if (!(await this.checkMongodumpAvailable())) {
+        throw new Error('MongoDB数据库工具安装后仍不可用，请检查PATH环境变量或重新启动终端');
+      }
+      
+      this.log('MongoDB数据库工具安装成功，继续备份...');
     }
 
     const backupFileName = this.generateBackupFileName();
@@ -234,20 +418,116 @@ class MongoDBBackup {
   }
 
   /**
-   * 压缩备份文件
+   * 压缩备份文件 - 跨平台实现
    * @param {string} sourcePath - 源路径
    * @param {string} targetPath - 目标路径
    */
   async compressBackup(sourcePath, targetPath) {
     this.log('正在压缩备份文件...');
     
-    const command = `tar -czf "${targetPath}" -C "${sourcePath}" .`;
     const startTime = Date.now();
     
+    try {
+      if (this.isWindows) {
+        // Windows系统使用Node.js archiver库进行压缩
+        await this.compressWithArchiver(sourcePath, targetPath);
+      } else {
+        // Linux/macOS系统可以使用tar命令或archiver库
+        try {
+          await this.compressWithTar(sourcePath, targetPath);
+        } catch (error) {
+          this.log('tar命令失败，改用archiver库...');
+          await this.compressWithArchiver(sourcePath, targetPath);
+        }
+      }
+      
+      const duration = Date.now() - startTime;
+      this.log(`备份文件压缩完成，耗时: ${duration}ms`);
+    } catch (error) {
+      this.logError('压缩备份文件失败', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 使用tar命令压缩（Linux/macOS）
+   * @param {string} sourcePath - 源路径
+   * @param {string} targetPath - 目标路径
+   */
+  async compressWithTar(sourcePath, targetPath) {
+    const command = `tar -czf "${targetPath}" -C "${sourcePath}" .`;
     await execAsync(command);
-    
-    const duration = Date.now() - startTime;
-    this.log(`备份文件压缩完成，耗时: ${duration}ms`);
+  }
+
+  /**
+   * 使用archiver库压缩（跨平台）
+   * @param {string} sourcePath - 源路径
+   * @param {string} targetPath - 目标路径
+   */
+  async compressWithArchiver(sourcePath, targetPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 创建输出流
+        const output = fs.createWriteStream(targetPath);
+        const archive = archiver('tar', {
+          gzip: true,
+          gzipOptions: {
+            level: 9,
+            memLevel: 9
+          }
+        });
+
+        // 监听事件
+        output.on('close', () => {
+          this.log(`压缩完成，文件大小: ${(archive.pointer() / 1024 / 1024).toFixed(2)} MB`);
+          resolve();
+        });
+
+        archive.on('error', (err) => {
+          this.logError('archiver压缩错误', err);
+          reject(err);
+        });
+
+        output.on('error', (err) => {
+          this.logError('输出流错误', err);
+          reject(err);
+        });
+
+        // 连接输出流
+        archive.pipe(output);
+
+        // 添加目录到压缩包
+        archive.directory(sourcePath, false);
+
+        // 完成压缩
+        archive.finalize();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 安装所需依赖
+   */
+  async installDependencies() {
+    try {
+      // 检查是否已安装archiver
+      require.resolve('archiver');
+      return true;
+    } catch (error) {
+      this.log('检测到缺少archiver库，正在安装...');
+      
+      try {
+        await execAsync('npm install archiver --save');
+        this.log('archiver库安装成功');
+        return true;
+      } catch (installError) {
+        this.logError('无法自动安装archiver库', installError);
+        throw new Error('请手动安装archiver库: npm install archiver');
+      }
+    }
   }
 
   /**
@@ -369,9 +649,15 @@ class MongoDBBackup {
     try {
       this.log('='.repeat(60));
       this.log('MongoDB数据库备份任务开始');
+      this.log('操作系统:', os.platform());
       this.log('数据库:', `${this.config.host}:${this.config.port}/${this.config.database}`);
       this.log('备份路径:', this.backupConfig.backupPath);
       this.log('='.repeat(60));
+
+      // 检查并安装依赖
+      if (this.backupConfig.compress) {
+        await this.installDependencies();
+      }
 
       // 显示当前备份状态
       const status = this.getBackupStatus();

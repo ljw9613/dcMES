@@ -2035,6 +2035,7 @@ export default {
             const month = String(now.getMonth() + 1).padStart(2, "0");
             const year = now.getFullYear();
             printData.ProductionDate = `${month}/${year}`;
+            printData.wxxcqProductionDateEn = `${year}-${month}`;
 
             //追觅综合字段
             printData.printBarcodeZH =

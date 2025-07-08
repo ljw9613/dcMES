@@ -1266,7 +1266,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
 
     // 2. 根据工艺流程ID查询托盘信息
     const pallet = await MaterialPallet.findOne({
-      "palletBarcodes.materialProcessFlowId": processFlow._id,
+      "palletBarcodes.barcode": productBarcode,
     });
     if (!pallet) {
       return res.status(200).json({
@@ -1858,21 +1858,32 @@ router.post("/api/v1/warehouse_entry/delete_entry", async (req, res) => {
           
           // 根据剩余已出库条码数量决定托盘状态
           let newStatus;
+          let updateFields = { inWarehouseStatus: null };
+          
           if (outWarehouseBarcodes.length === 0) {
             // 如果没有已出库的条码，则恢复为"已入库"状态
             newStatus = "IN_WAREHOUSE";
+            updateFields.inWarehouseStatus = newStatus;
+            // 完全恢复时，清空托盘级别的出库时间和出库人
+            updateFields.outWarehouseTime = null;
+            updateFields.outWarehouseBy = null;
           } else if (outWarehouseBarcodes.length < updatedPallet.palletBarcodes.length) {
             // 如果有部分条码已出库，则设为"部分出库"状态
             newStatus = "PART_OUT_WAREHOUSE";
+            updateFields.inWarehouseStatus = newStatus;
+            // 部分出库状态保留最后一次出库时间，但可以考虑更新为最新的出库时间
+            // 这里我们保持现有的出库时间不变
           } else {
             // 所有条码都已出库，则状态为"已出库"
             newStatus = "OUT_WAREHOUSE";
+            updateFields.inWarehouseStatus = newStatus;
+            // 保持出库状态的时间信息
           }
           
-          // 更新托盘状态
+          // 更新托盘状态和相关字段
           await MaterialPallet.updateOne(
             { palletCode },
-            { inWarehouseStatus: newStatus }
+            { $set: updateFields }
           );
           
           processResults.push({

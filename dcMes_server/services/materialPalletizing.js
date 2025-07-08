@@ -229,7 +229,7 @@ class MaterialPalletizingService {
 
       // 步骤3：处理盒条码验证（如果存在）
       if (boxBarcode) {
-        await this._validateBoxBarcode(boxBarcode, materialId, userId, pallet.productLineId, session);
+        await this._validateBoxBarcode(boxBarcode, materialId, userId, pallet.productLineId, session, pallet._id);
       }
 
       // 步骤4：处理工单信息
@@ -1108,7 +1108,23 @@ class MaterialPalletizingService {
         await updatedOriginalPallet.save();
       }
 
-      // 检查拆分到新托盘的条码出库状态，确定新托盘的出入库状态
+      // 12. 更新新托盘的顶层工单信息，使其与实际条码关联的工单保持一致
+      if (newPallet.workOrders && newPallet.workOrders.length > 0) {
+        // 找到数量最多的工单作为主工单
+        const mainWorkOrder = newPallet.workOrders.reduce((max, current) => {
+          return current.quantity > max.quantity ? current : max;
+        });
+
+        // 更新新托盘的顶层工单信息
+        newPallet.workOrderNo = mainWorkOrder.workOrderNo;
+        newPallet.productionPlanWorkOrderId = mainWorkOrder.productionPlanWorkOrderId;
+        newPallet.productionOrderId = mainWorkOrder.productionOrderId;
+        newPallet.productionOrderNo = mainWorkOrder.productionOrderNo;
+
+        console.log(`新托盘 ${newPalletCode} 顶层工单信息更新为: workOrderNo=${mainWorkOrder.workOrderNo}, productionPlanWorkOrderId=${mainWorkOrder.productionPlanWorkOrderId}`);
+      }
+
+      // 13. 检查拆分到新托盘的条码出库状态，确定新托盘的出入库状态
       if (newPallet.palletBarcodes.length > 0) {
         // 检查是否所有拆分条码都已出库
         const allNewBarcodesOut = newPallet.palletBarcodes.every(
@@ -1147,12 +1163,12 @@ class MaterialPalletizingService {
         newPallet.inWarehouseStatus = originalPallet.inWarehouseStatus;
       }
 
-      // 8. 创建新托盘记录
+      // 14. 创建新托盘记录
       // 清理数量为0的工单
       this.cleanZeroQuantityWorkOrders(newPallet);
       const createdPallet = await MaterialPalletizing.create(newPallet);
 
-      // 12. 处理入库单中的关联关系
+      // 15. 处理入库单中的关联关系
       await this.updateWarehouseEntryAfterSplit(
         originalPalletCode,
         newPalletCode,
@@ -1562,7 +1578,7 @@ class MaterialPalletizingService {
 
   /**
    * 将产品条码添加到指定托盘
-   * 修改版本：确保工序绑定和托盘入托的强一致性
+   * 修改版本：使用重试机制代替事务，适用于单实例MongoDB
    * @param {String} palletCode - 指定的托盘编号
    * @param {String} mainBarcode - 主条码
    * @param {String} boxBarcode - 箱条码(可选)
@@ -1579,20 +1595,60 @@ class MaterialPalletizingService {
     componentScans = [],
     fromRepairStation = true
   ) {
-    let session = null;
+    // 使用重试机制代替事务，适用于单实例 MongoDB
+    const maxRetries = 3;
+    let retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        return await this._addBarcodeToPalletWithRetry(
+          palletCode,
+          mainBarcode,
+          boxBarcode,
+          userId,
+          componentScans,
+          fromRepairStation
+        );
+      } catch (error) {
+        retryCount++;
+        
+        // 如果是并发冲突错误且还有重试次数，则重试
+        if (retryCount < maxRetries && (
+          error.message.includes('重复') || 
+          error.message.includes('已在') ||
+          error.message.includes('版本冲突') ||
+          error.message.includes('E11000') || // MongoDB重复键错误
+          error.code === 11000 || // MongoDB重复键错误代码
+          error.message.includes('可能已被其他进程处理')
+        )) {
+          console.log(`检测到并发冲突，第 ${retryCount} 次重试...`, error.message);
+          // 短暂延迟后重试，使用指数退避
+          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
+          continue;
+        }
+        
+        // 其他错误或重试次数用完，直接抛出
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * 添加条码到托盘的内部实现（无事务版本）
+   */
+  static async _addBarcodeToPalletWithRetry(
+    palletCode,
+    mainBarcode,
+    boxBarcode = null,
+    userId,
+    componentScans = [],
+    fromRepairStation = true
+  ) {
     try {
       console.log(`开始添加条码到指定托盘: 托盘=${palletCode}, 条码=${mainBarcode}, 来自维修台=${fromRepairStation}`);
 
-      // 使用MongoDB事务确保数据一致性
-      session = await MaterialPalletizing.startSession();
-      session.startTransaction({
-        readPreference: 'primary',
-        readConcern: { level: 'local' },
-        writeConcern: { w: 'majority' }
-      });
-
       // 查找指定托盘
-      const pallet = await MaterialPalletizing.findOne({ palletCode }).session(session).read('primary');
+      const pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
         throw new Error("未找到指定的托盘");
       }
@@ -1623,7 +1679,7 @@ class MaterialPalletizingService {
         "palletBarcodes.barcode": mainBarcode,
         palletCode: { $ne: pallet.palletCode },
         status: { $in: ["STACKING", "STACKED"] }
-      }).session(session).read('primary');
+      });
       if (existingBarcodeInOtherPallet) {
         throw new Error(
           `条码 ${mainBarcode} 已在其他托盘 ${existingBarcodeInOtherPallet.palletCode} 中使用`
@@ -1633,7 +1689,7 @@ class MaterialPalletizingService {
       // 查找条码对应的物料流程记录
       let materialProcessFlow = await MaterialProcessFlow.findOne({
         barcode: mainBarcode,
-      }).session(session).read('primary');
+      });
 
       if (!materialProcessFlow) {
         throw new Error("对应的主条码在系统中不存在");
@@ -1642,7 +1698,7 @@ class MaterialPalletizingService {
       // 查找产线计划
       const productionPlan = await productionPlanWorkOrder.findOne({
         _id: pallet.productionPlanWorkOrderId,
-      }).session(session).read('primary');
+      });
 
       if (!productionPlan) {
         throw new Error("未找到对应的产线计划");
@@ -1653,123 +1709,12 @@ class MaterialPalletizingService {
         throw new Error(`托盘条码数量已达到上限 ${pallet.totalQuantity}`);
       }
 
-      // 准备新的托盘条码记录
-      const newPalletBarcode = {
-        materialProcessFlowId: materialProcessFlow._id,
-        barcode: mainBarcode,
-        barcodeType: "MAIN",
-        scanTime: new Date(),
-        productionPlanWorkOrderId: productionPlan._id,
-        workOrderNo: productionPlan.workOrderNo,
-      };
-
-      // 更新对应工单的数量
-      if (pallet.workOrders && pallet.workOrders.length > 0) {
-        const workOrderIndex = pallet.workOrders.findIndex(
-          (wo) =>
-            wo.productionPlanWorkOrderId &&
-            wo.productionPlanWorkOrderId.toString() ===
-              productionPlan._id.toString()
-        );
-
-        if (workOrderIndex !== -1) {
-          pallet.workOrders[workOrderIndex].quantity += 1;
-        } else {
-          // 如果当前工单不在工单列表中，添加新工单信息
-          pallet.workOrders.push({
-            productionOrderId: productionPlan.productionOrderId,
-            productionOrderNo: productionPlan.productionOrderNo,
-            workOrderNo: productionPlan.workOrderNo,
-            productionPlanWorkOrderId: productionPlan._id,
-            quantity: 1,
-          });
-        }
-      } else {
-        // 如果工单列表不存在，初始化它
-        pallet.workOrders = [
-          {
-            productionOrderId: productionPlan.productionOrderId,
-            productionOrderNo: productionPlan.productionOrderNo,
-            workOrderNo: productionPlan.workOrderNo,
-            productionPlanWorkOrderId: productionPlan._id,
-            quantity: 1,
-          },
-        ];
-      }
-
-      // 处理箱条码（省略详细处理，保持原逻辑）
+      // 处理箱条码验证（如果存在）
       if (boxBarcode) {
-        const boxItem = pallet.boxItems.find(
-          (item) => item.boxBarcode === boxBarcode
-        );
-
-        if (boxItem) {
-          if (!boxItem.boxBarcodes) {
-            boxItem.boxBarcodes = [];
-          }
-          
-          const existingBarcodeInThisBox = boxItem.boxBarcodes.find(
-            (item) => item.barcode === mainBarcode
-          );
-          if (existingBarcodeInThisBox) {
-            throw new Error(
-              `条码 ${mainBarcode} 已在箱子 ${boxBarcode} 中存在，不能重复添加`
-            );
-          }
-          
-          const boxPalletBarcode = {
-            materialProcessFlowId: materialProcessFlow._id,
-            barcode: mainBarcode,
-            barcodeType: "MAIN",
-            scanTime: new Date(),
-            productionPlanWorkOrderId: productionPlan._id,
-            workOrderNo: productionPlan.workOrderNo,
-          };
-
-          boxItem.boxBarcodes.push(boxPalletBarcode);
-          boxItem.quantity = boxItem.boxBarcodes.length;
-        } else {
-          const boxPalletBarcode = {
-            materialProcessFlowId: materialProcessFlow._id,
-            barcode: mainBarcode,
-            barcodeType: "MAIN",
-            scanTime: new Date(),
-            productionPlanWorkOrderId: productionPlan._id,
-            workOrderNo: productionPlan.workOrderNo,
-          };
-
-          pallet.boxItems.push({
-            boxBarcode: boxBarcode,
-            boxBarcodes: [boxPalletBarcode],
-            quantity: 1,
-            scanTime: new Date(),
-          });
-        }
+        await this._validateBoxBarcodeSimple(boxBarcode, pallet.materialId, userId, pallet.productLineId, pallet._id);
       }
 
-      // 添加到palletBarcodes
-      pallet.palletBarcodes.push(newPalletBarcode);
-
-      // 更新计数和状态
-      pallet.barcodeCount = pallet.palletBarcodes.length;
-      pallet.boxCount = pallet.boxItems.length;
-      pallet.updateAt = new Date();
-      pallet.updateBy = userId;
-
-      // 检查是否达到总数量要求
-      if (pallet.barcodeCount === pallet.totalQuantity) {
-        pallet.status = "STACKED";
-
-        // 检查托盘是否处于维修中状态，如果是则更新为维修完成状态
-        if (pallet.repairStatus === "REPAIRING") {
-          pallet.repairStatus = "REPAIRED";
-          console.log(
-            `托盘 ${pallet.palletCode} 组托完成，从维修中状态更新为维修完成状态`
-          );
-        }
-      }
-
-      // **先触发工序完成**（在事务内进行，确保工序绑定成功）
+      // **先触发工序完成**（确保工序绑定成功）
       console.log(`开始触发工序完成: ${mainBarcode}, 托盘编号: ${pallet.palletCode}`);
       try {
         await materialProcessFlowService.scanBatchDocument(
@@ -1779,39 +1724,181 @@ class MaterialPalletizingService {
           componentScans,
           userId,
           pallet.productLineId,
-          fromRepairStation // 传递是否来自维修台
+          fromRepairStation
         );
         console.log(`条码 ${mainBarcode} 工序完成触发成功`);
       } catch (processError) {
         console.error(`条码 ${mainBarcode} 工序完成触发失败:`, processError);
-        // 工序失败，抛出错误，让事务回滚
+        // 工序失败，抛出错误，阻止入托
         throw new Error(`工序绑定失败，产品不能入托: ${processError.message}`);
       }
 
-      // **工序成功后再保存托盘**
-      await pallet.save({ session });
-      console.log(`托盘条码 ${mainBarcode} 已成功保存到托盘 ${pallet.palletCode}`);
+      // **工序成功后使用原子操作添加条码到托盘**
+      let updateOperation;
+      let arrayFilters = [{ 
+        "elem.productionPlanWorkOrderId": productionPlan._id 
+      }];
 
-      // 提交事务，确保工序绑定和托盘保存都成功
-      await session.commitTransaction();
-      console.log(`工序绑定和托盘入托事务提交成功，条码 ${mainBarcode} 已添加到托盘 ${palletCode}`);
+      if (boxBarcode) {
+        // 处理包装箱条码的情况
+        updateOperation = {
+          $push: {
+            palletBarcodes: {
+              materialProcessFlowId: materialProcessFlow._id,
+              barcode: mainBarcode,
+              barcodeType: "MAIN",
+              scanTime: new Date(),
+              productionPlanWorkOrderId: productionPlan._id,
+              workOrderNo: productionPlan.workOrderNo,
+            }
+          },
+          $inc: { 
+            barcodeCount: 1,
+            "workOrders.$[elem].quantity": 1
+          },
+          $set: {
+            updateAt: new Date(),
+            updateBy: userId
+          }
+        };
+
+        // 首先尝试向现有箱子添加条码
+        const existingBoxUpdateResult = await MaterialPalletizing.updateOne(
+          { 
+            _id: pallet._id,
+            "palletBarcodes.barcode": { $ne: mainBarcode },
+            status: "STACKING",
+            "boxItems.boxBarcode": boxBarcode
+          },
+          {
+            ...updateOperation,
+            $push: {
+              ...updateOperation.$push,
+              "boxItems.$.boxBarcodes": {
+                materialProcessFlowId: materialProcessFlow._id,
+                barcode: mainBarcode,
+                barcodeType: "MAIN",
+                scanTime: new Date(),
+                productionPlanWorkOrderId: productionPlan._id,
+                workOrderNo: productionPlan.workOrderNo,
+              }
+            },
+            $inc: {
+              ...updateOperation.$inc,
+              "boxItems.$.quantity": 1
+            }
+          },
+          {
+            arrayFilters
+          }
+        );
+
+        if (existingBoxUpdateResult.modifiedCount === 0) {
+          // 如果没有更新成功（箱子不存在），则创建新箱子
+          const newBoxUpdateResult = await MaterialPalletizing.updateOne(
+            { 
+              _id: pallet._id,
+              "palletBarcodes.barcode": { $ne: mainBarcode },
+              status: "STACKING",
+              "boxItems.boxBarcode": { $ne: boxBarcode }
+            },
+            {
+              ...updateOperation,
+              $push: {
+                ...updateOperation.$push,
+                boxItems: {
+                  boxBarcode: boxBarcode,
+                  boxBarcodes: [{
+                    materialProcessFlowId: materialProcessFlow._id,
+                    barcode: mainBarcode,
+                    barcodeType: "MAIN",
+                    scanTime: new Date(),
+                    productionPlanWorkOrderId: productionPlan._id,
+                    workOrderNo: productionPlan.workOrderNo,
+                  }],
+                  quantity: 1,
+                  scanTime: new Date(),
+                  productionPlanWorkOrderId: productionPlan._id,
+                }
+              },
+              $inc: {
+                ...updateOperation.$inc,
+                boxCount: 1
+              }
+            },
+            {
+              arrayFilters
+            }
+          );
+
+          if (newBoxUpdateResult.modifiedCount === 0) {
+            throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
+          }
+        }
+      } else {
+        // 没有包装箱条码的情况
+        updateOperation = {
+          $push: {
+            palletBarcodes: {
+              materialProcessFlowId: materialProcessFlow._id,
+              barcode: mainBarcode,
+              barcodeType: "MAIN",
+              scanTime: new Date(),
+              productionPlanWorkOrderId: productionPlan._id,
+              workOrderNo: productionPlan.workOrderNo,
+            }
+          },
+          $inc: { 
+            barcodeCount: 1,
+            "workOrders.$[elem].quantity": 1
+          },
+          $set: {
+            updateAt: new Date(),
+            updateBy: userId
+          }
+        };
+
+        const updateResult = await MaterialPalletizing.updateOne(
+          { 
+            _id: pallet._id,
+            "palletBarcodes.barcode": { $ne: mainBarcode },
+            status: "STACKING"
+          },
+          updateOperation,
+          {
+            arrayFilters
+          }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+          throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
+        }
+      }
+
+      // 获取更新后的托盘并检查状态
+      const updatedPallet = await MaterialPalletizing.findById(pallet._id);
       
-      return pallet;
+      // 检查是否达到总数量要求
+      if (updatedPallet.barcodeCount >= updatedPallet.totalQuantity) {
+        await MaterialPalletizing.updateOne(
+          { _id: pallet._id },
+          { 
+            $set: { 
+              status: "STACKED",
+              repairStatus: updatedPallet.repairStatus === "REPAIRING" ? "REPAIRED" : updatedPallet.repairStatus
+            }
+          }
+        );
+        updatedPallet.status = "STACKED";
+        console.log(`托盘 ${updatedPallet.palletCode} 已完成组托`);
+      }
+
+      console.log(`工序绑定和托盘入托完成，条码 ${mainBarcode} 已添加到托盘 ${palletCode}`);
+      
+      return updatedPallet;
     } catch (error) {
       console.error("添加条码到托盘失败:", error);
-      
-      // 如果存在事务，则回滚
-      if (session && session.inTransaction()) {
-        await session.abortTransaction();
-        console.log("工序绑定和托盘入托事务已回滚");
-      }
-      
       throw error;
-    } finally {
-      // 结束会话
-      if (session) {
-        await session.endSession();
-      }
     }
   }
 
@@ -1902,12 +1989,20 @@ class MaterialPalletizingService {
   /**
    * 验证盒条码
    */
-  static async _validateBoxBarcode(boxBarcode, materialId, userId, productLineId, session = null) {
-    // 检查箱条码是否在其他托盘中已存在
-    const existingBoxInOtherPallet = await MaterialPalletizing.findOne({
+  static async _validateBoxBarcode(boxBarcode, materialId, userId, productLineId, session = null, currentPalletId = null) {
+    // 构建查询条件：排除当前托盘，只检查其他托盘中是否使用了相同的包装箱条码
+    const queryCondition = {
       "boxItems.boxBarcode": boxBarcode,
       status: { $in: ["STACKING", "STACKED"] }
-    }).session(session).read('primary');
+    };
+    
+    // 如果提供了当前托盘ID，则排除当前托盘
+    if (currentPalletId) {
+      queryCondition._id = { $ne: currentPalletId };
+    }
+    
+    // 检查箱条码是否在其他托盘中已存在
+    const existingBoxInOtherPallet = await MaterialPalletizing.findOne(queryCondition).session(session).read('primary');
     
     if (existingBoxInOtherPallet) {
       throw new Error(
@@ -2079,7 +2174,7 @@ class MaterialPalletizingService {
 
       // 步骤3：处理盒条码验证（如果存在）
       if (boxBarcode) {
-        await this._validateBoxBarcodeSimple(boxBarcode, materialId, userId, pallet.productLineId);
+        await this._validateBoxBarcodeSimple(boxBarcode, materialId, userId, pallet.productLineId, pallet._id);
       }
 
       // 步骤4：处理工单信息
@@ -2109,13 +2204,14 @@ class MaterialPalletizingService {
       }
 
       // 步骤6：**工序成功后使用原子操作添加条码到托盘**
-      const updateResult = await MaterialPalletizing.updateOne(
-        { 
-          _id: pallet._id,
-          "palletBarcodes.barcode": { $ne: mainBarcode }, // 确保条码不重复
-          status: "STACKING" // 确保托盘状态正确
-        },
-        {
+      let updateOperation;
+      let arrayFilters = [{ 
+        "elem.productionPlanWorkOrderId": productionPlanWorkOrderId 
+      }];
+
+      if (boxBarcode) {
+        // 处理包装箱条码的情况
+        updateOperation = {
           $push: {
             palletBarcodes: {
               barcode: mainBarcode,
@@ -2126,22 +2222,119 @@ class MaterialPalletizingService {
           },
           $inc: { 
             barcodeCount: 1,
-            "workOrders.$[elem].quantity": 1 // 同时更新对应工单的数量
+            "workOrders.$[elem].quantity": 1
           },
           $set: {
             updateAt: new Date(),
             updateBy: userId
           }
-        },
-        {
-          arrayFilters: [{ 
-            "elem.productionPlanWorkOrderId": productionPlanWorkOrderId 
-          }]
-        }
-      );
+        };
 
-      if (updateResult.modifiedCount === 0) {
-        throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
+        // 首先尝试向现有箱子添加条码
+        const existingBoxUpdateResult = await MaterialPalletizing.updateOne(
+          { 
+            _id: pallet._id,
+            "palletBarcodes.barcode": { $ne: mainBarcode },
+            status: "STACKING",
+            "boxItems.boxBarcode": boxBarcode
+          },
+          {
+            ...updateOperation,
+            $push: {
+              ...updateOperation.$push,
+              "boxItems.$.boxBarcodes": {
+                barcode: mainBarcode,
+                barcodeType: "MAIN",
+                scanTime: new Date(),
+                productionPlanWorkOrderId: productionPlanWorkOrderId,
+              }
+            },
+            $inc: {
+              ...updateOperation.$inc,
+              "boxItems.$.quantity": 1
+            }
+          },
+          {
+            arrayFilters
+          }
+        );
+
+        if (existingBoxUpdateResult.modifiedCount === 0) {
+          // 如果没有更新成功（箱子不存在），则创建新箱子
+          const newBoxUpdateResult = await MaterialPalletizing.updateOne(
+            { 
+              _id: pallet._id,
+              "palletBarcodes.barcode": { $ne: mainBarcode },
+              status: "STACKING",
+              "boxItems.boxBarcode": { $ne: boxBarcode }
+            },
+            {
+              ...updateOperation,
+              $push: {
+                ...updateOperation.$push,
+                boxItems: {
+                  boxBarcode: boxBarcode,
+                  boxBarcodes: [{
+                    barcode: mainBarcode,
+                    barcodeType: "MAIN",
+                    scanTime: new Date(),
+                    productionPlanWorkOrderId: productionPlanWorkOrderId,
+                  }],
+                  quantity: 1,
+                  scanTime: new Date(),
+                  productionPlanWorkOrderId: productionPlanWorkOrderId,
+                }
+              },
+              $inc: {
+                ...updateOperation.$inc,
+                boxCount: 1
+              }
+            },
+            {
+              arrayFilters
+            }
+          );
+
+          if (newBoxUpdateResult.modifiedCount === 0) {
+            throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
+          }
+        }
+      } else {
+        // 没有包装箱条码的情况
+        updateOperation = {
+          $push: {
+            palletBarcodes: {
+              barcode: mainBarcode,
+              barcodeType: "MAIN",
+              scanTime: new Date(),
+              productionPlanWorkOrderId: productionPlanWorkOrderId,
+            }
+          },
+          $inc: { 
+            barcodeCount: 1,
+            "workOrders.$[elem].quantity": 1
+          },
+          $set: {
+            updateAt: new Date(),
+            updateBy: userId
+          }
+        };
+
+        const updateResult = await MaterialPalletizing.updateOne(
+          { 
+            _id: pallet._id,
+            "palletBarcodes.barcode": { $ne: mainBarcode },
+            status: "STACKING"
+          },
+          updateOperation,
+          {
+            arrayFilters
+          }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+          throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
+        }
       }
 
       // 步骤7：获取更新后的托盘并检查状态
@@ -2258,11 +2451,19 @@ class MaterialPalletizingService {
   /**
    * 验证盒条码（简化版本）
    */
-  static async _validateBoxBarcodeSimple(boxBarcode, materialId, userId, productLineId) {
-    const existingBoxInOtherPallet = await MaterialPalletizing.findOne({
+  static async _validateBoxBarcodeSimple(boxBarcode, materialId, userId, productLineId, currentPalletId = null) {
+    // 构建查询条件：排除当前托盘，只检查其他托盘中是否使用了相同的包装箱条码
+    const queryCondition = {
       "boxItems.boxBarcode": boxBarcode,
       status: { $in: ["STACKING", "STACKED"] }
-    });
+    };
+    
+    // 如果提供了当前托盘ID，则排除当前托盘
+    if (currentPalletId) {
+      queryCondition._id = { $ne: currentPalletId };
+    }
+    
+    const existingBoxInOtherPallet = await MaterialPalletizing.findOne(queryCondition);
     
     if (existingBoxInOtherPallet) {
       throw new Error(
