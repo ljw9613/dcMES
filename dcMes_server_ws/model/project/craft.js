@@ -30,7 +30,7 @@ var craftSchema = new mongoose.Schema({
     }],
 
     // 工序步骤关联
-    processSteps: [{ type: mongoose.Schema.ObjectId, ref: "process_step" }], // 关联工序步骤
+    processSteps: [{ type: mongoose.Schema.ObjectId, ref: "processStep" }], // 关联工序步骤
     productStage: { type: String }, // 生产阶级
     attachments: [{ type: String }], // 附件文档路径
     remark: { type: String }, // 备注

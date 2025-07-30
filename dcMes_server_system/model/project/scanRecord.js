@@ -11,7 +11,7 @@ var scanRecordSchema = new mongoose.Schema({
   mainBarcode: { type: String, required: true }, // 主物料条码
   mainMaterialId: { type: mongoose.Schema.ObjectId, ref: "k3_material" }, // 主物料ID
   craftId: { type: mongoose.Schema.ObjectId, ref: "craft" }, // 关联工艺ID
-  processStepId: { type: mongoose.Schema.ObjectId, ref: "process_step" }, // 关联工序ID
+  processStepId: { type: mongoose.Schema.ObjectId, ref: "processStep" }, // 关联工序ID
   processStepName: { type: String }, // 工序名称  
   sort: { type: Number }, // 工序顺序
   mainMaterialName: { type: String }, // 主物料名称

@@ -1164,7 +1164,7 @@ class MaterialProcessFlowService {
             }
           }
         }
-
+        console.log("hasFirstProcess");
         // 验证处理的节点中是否包含首道工序
         for (const processNodeToUnbind of processNodesToUnbind) {
           const processPosition = this.checkProcessPosition(
@@ -2379,12 +2379,13 @@ class MaterialProcessFlowService {
    */
   static async validateBarcodeWithMaterial(barcode, material) {
     try {
+      console.log("validateBarcodeWithMaterial", material._id);
       // 1. 获取物料对应的条码规则（包括产品特定规则和全局规则）
       const [productRules, globalRules] = await Promise.all([
         // 获取产品特定规则
         productBarcodeRule
           .find({
-            materialId: material._id,
+            productId: material._id,
           })
           .populate({
             path: "barcodeRule",
@@ -2397,6 +2398,8 @@ class MaterialProcessFlowService {
           enabled: true,
         }),
       ]);
+
+      console.log("productRules===", productRules.length);
 
       // 2. 处理和合并规则
       let rules = [];
@@ -2434,6 +2437,7 @@ class MaterialProcessFlowService {
 
       // 3. 验证条码
       for (const rule of rules) {
+        console.log("rule===", rule.name);
         let isValid = true;
         let currentValue = barcode;
 

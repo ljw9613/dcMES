@@ -7,6 +7,9 @@ const SamplingInspectionFlowSchema = new mongoose.Schema({
     materialProcessFlowId: { type: mongoose.Schema.ObjectId, ref: "material_process_flow" }, // 关联工艺流程
     preProductionBarcodeId: { type: mongoose.Schema.ObjectId, ref: "preProductionBarcode" }, // 关联预生产条码记录
     
+    // 工单信息
+    productionPlanWorkOrderId: { type: mongoose.Schema.ObjectId, ref: "production_plan_work_order" }, // 关联工单计划
+    
     // 物料信息
     materialCode: { type: String, required: true }, // 物料编码
     materialName: { type: String, required: true }, // 物料名称
@@ -57,6 +60,7 @@ SamplingInspectionFlowSchema.index({ createAt: -1 }); // 创建时间降序索�
 SamplingInspectionFlowSchema.index({ 'barcodeValidation.validationTime': -1 }); // 校验时间索引
 SamplingInspectionFlowSchema.index({ isQualified: 1 }); // 合格状态索引
 SamplingInspectionFlowSchema.index({ samplingTime: -1 }); // 抽检时间索引
+SamplingInspectionFlowSchema.index({ productionPlanWorkOrderId: 1 }); // 工单计划索引
 
 // 更新时间中间件
 SamplingInspectionFlowSchema.pre('save', function(next) {

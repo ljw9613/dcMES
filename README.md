@@ -1,3 +1,577 @@
+# 德昌MES系统架构文档
+
+## 系统概述
+
+德昌MES（制造执行系统）是一个基于现代Web技术构建的生产制造执行系统，采用前后端分离架构，专注于制造业的生产过程管控、质量追溯、仓储管理和设备监控。系统支持多厂区、多产线的复杂制造环境，并与金蝶K3 ERP系统深度集成。
+
+## 技术架构
+
+### 整体架构设计
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          客户端层                                │
+├─────────────────────────────────────────────────────────────────┤
+│  Vue.js Web应用    │  移动端应用    │  设备端应用    │  大屏展示   │
+│  (Element UI)      │               │              │             │
+└─────────────────────────────────────────────────────────────────┘
+                                    │
+                               HTTPS/WebSocket
+                                    │
+┌─────────────────────────────────────────────────────────────────┐
+│                          网关层                                  │
+├─────────────────────────────────────────────────────────────────┤
+│              Nginx 反向代理 + 负载均衡                          │
+└─────────────────────────────────────────────────────────────────┘
+                                    │
+┌─────────────────────────────────────────────────────────────────┐
+│                         应用服务层                               │
+├─────────────────────────────────────────────────────────────────┤
+│  dcMes_server     │ dcMes_server_system │ dcMes_server_ws       │
+│  (主业务服务)     │   (系统管理服务)    │  (WebSocket服务)      │
+│  Express + PM2    │   Express + PM2     │   Express + WebSocket │
+└─────────────────────────────────────────────────────────────────┘
+                                    │
+┌─────────────────────────────────────────────────────────────────┐
+│                         数据层                                   │
+├─────────────────────────────────────────────────────────────────┤
+│     MongoDB          │      SQL Server      │     文件存储      │
+│   (业务数据)         │    (K3 ERP数据)      │   (本地/云存储)   │
+└─────────────────────────────────────────────────────────────────┘
+                                    │
+┌─────────────────────────────────────────────────────────────────┐
+│                       外部系统集成                               │
+├─────────────────────────────────────────────────────────────────┤
+│  K3 ERP系统  │  检测设备  │  打印设备  │  其他MES系统  │  IoT设备 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 核心技术栈
+
+#### 前端技术栈
+- **框架**: Vue.js 2.6.10
+- **UI组件库**: Element UI 2.13.0
+- **构建工具**: Vue CLI 3.6.0
+- **状态管理**: Vuex 3.1.0
+- **路由管理**: Vue Router 3.0.6
+- **HTTP客户端**: Axios 0.18.1
+- **图表组件**: ECharts 4.6.0
+- **富文本编辑**: @wangeditor/editor 5.1.23
+- **打印组件**: @sv-print/hiprint 0.2.8
+- **国际化**: Vue-i18n 8.28.2
+- **工具库**: Lodash 4.17.21, Moment.js 2.27.0
+
+#### 后端技术栈
+- **运行环境**: Node.js >= 8.9
+- **Web框架**: Express.js 4.16.1
+- **数据库ORM**: Mongoose 6.6.3
+- **进程管理**: PM2 (支持集群模式)
+- **身份认证**: JSON Web Token (JWT)
+- **文件上传**: Multer 1.4.2
+- **安全防护**: Helmet 3.23.3
+- **数据压缩**: Compression 1.7.4
+- **CORS支持**: CORS 2.8.5
+- **任务调度**: Node-schedule 2.1.1
+
+#### 数据库技术
+- **主数据库**: MongoDB (版本 >= 4.0)
+  - 支持副本集和分片
+  - 连接池优化配置
+  - 事务支持
+- **ERP数据库**: SQL Server
+  - 通过专用连接访问K3数据
+  - 只读访问模式
+
+## 系统部署架构
+
+### 多环境支持
+
+系统支持多个地区和环境的部署：
+
+#### 部署环境配置
+```javascript
+// 国内版本
+publicPath: "/dcMes/",
+outputDir: "../dcMes_server/admin",
+
+// 管理版本
+publicPath: "/dcMesManage/",
+outputDir: "../dcMes_server/adminManage",
+
+// 越南版本
+publicPath: "/dcMesVN/",
+outputDir: "../dcMes_server/adminVN",
+
+// CS版本
+publicPath: "/dcMesCs/",
+outputDir: "../dcMes_server/adminCs",
+```
+
+### 服务部署
+
+#### 前端部署
+```bash
+# 开发环境
+npm run dev  # 启动开发服务器 (端口: 9528)
+
+# 生产环境构建
+npm run build:prod  # 构建生产版本
+npm run build:stage # 构建预发布版本
+```
+
+#### 后端部署
+```bash
+# 开发环境
+npm start  # 使用nodemon启动开发服务器
+
+# 生产环境
+pm2 start ecosystem.config.js  # 使用PM2集群模式部署
+```
+
+#### PM2集群配置
+```javascript
+module.exports = {
+  apps: [{
+    name: 'dcmes-server',
+    script: './bin/www',
+    instances: 'max',
+    exec_mode: 'cluster',
+    max_restarts: 3,
+    min_uptime: '10s',
+    env: {
+      NODE_ENV: 'development',
+      PORT: 2222
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 2222
+    }
+  }]
+};
+```
+
+## 数据库设计架构
+
+### MongoDB数据库结构
+
+#### 核心业务数据模型
+
+1. **生产管理模块**
+   - `production_plan_work_order` - 生产工单
+   - `material_process_flow` - 物料工艺流程
+   - `process_step` - 工序定义
+   - `craft` - 工艺模板
+   - `production_line` - 产线配置
+
+2. **质量管理模块**
+   - `product_repair` - 产品维修记录
+   - `inspection_data` - 检验数据
+   - `sampling_inspection_flow` - 抽样检验流程
+   - `unbind_record` - 解绑记录
+
+3. **仓储管理模块**
+   - `warehouse_entry` - 入库单
+   - `warehouse_ontry` - 出库单
+   - `material_palletizing` - 托盘化管理
+
+4. **设备管理模块**
+   - `machine` - 设备信息
+   - `equipment_information` - 设备档案
+
+5. **系统管理模块**
+   - `user_login` - 用户账户
+   - `role` - 角色权限
+   - `menu` - 菜单配置
+   - `api_log` - API访问日志
+
+#### K3 ERP集成数据模型
+
+1. **基础数据**
+   - `k3_BD_MATERIAL` - 物料主数据
+   - `k3_BD_STOCK` - 仓库主数据
+
+2. **销售模块**
+   - `k3_SAL_SaleOrder` - 销售订单
+   - `k3_SAL_DeliveryNotice` - 发货通知单
+   - `k3_SAL_OutStock` - 销售出库单
+
+3. **生产模块**
+   - `k3_PRD_MO` - 生产订单
+   - `k3_PRD_InStock` - 生产入库单
+   - `k3_PRD_PickMtrl` - 生产领料单
+
+4. **采购模块**
+   - `k3_PUR_RequisitionBill` - 请购单
+
+### 数据库连接配置
+
+#### MongoDB连接优化
+```javascript
+const connectOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 120000,
+  connectTimeoutMS: 30000,
+  maxPoolSize: 50,        // 最大连接数
+  minPoolSize: 10,        // 最小连接数
+  maxConnecting: 20,      // 最大并发连接数
+  retryWrites: true,
+  family: 4,
+  maxIdleTimeMS: 60000,   // 空闲连接超时
+  heartbeatFrequencyMS: 10000,
+  waitQueueTimeoutMS: 10000,
+  writeConcern: { w: 1 },
+  readPreference: 'primaryPreferred'
+};
+```
+
+## 外部系统集成架构
+
+### 1. K3 ERP系统集成
+
+#### 集成方式
+- **Web API集成**: 通过HTTP REST API与K3系统交互
+- **Python SDK**: 使用金蝶官方Python SDK进行数据同步
+- **直连数据库**: 通过SQL Server连接直接读取K3数据
+
+#### 数据同步机制
+```javascript
+// 支持的同步模型
+const syncModels = [
+  'PRD_MO',           // 生产订单
+  'SAL_SaleOrder',    // 销售订单
+  'BD_MATERIAL',      // 物料主数据
+  'BD_STOCK',         // 仓库数据
+  'PRD_InStock',      // 生产入库
+  'SAL_OutStock',     // 销售出库
+  'PUR_RequisitionBill' // 请购单
+];
+```
+
+#### K3 API配置
+```ini
+[config]
+acct_id = 账套ID
+user_name = 用户名
+app_id = 应用ID
+app_secret = 应用密钥
+server_url = http://k3服务器地址:端口/K3Cloud
+```
+
+### 2. 检测设备集成
+
+#### 通信协议
+- **TCP Socket**: 用于实时数据采集
+- **HTTP API**: 用于设备状态查询和控制
+- **WebSocket**: 用于实时数据推送
+
+#### 设备数据处理流程
+```
+设备数据采集 → TCP服务器 → 数据解析 → 业务处理 → 数据库存储 → 实时推送
+```
+
+### 3. 文件存储集成
+
+#### 支持的存储方式
+- **本地存储**: 用于开发和小规模部署
+- **阿里云OSS**: 云端对象存储
+- **腾讯云COS**: 云端对象存储
+
+## API接口架构
+
+### REST API设计规范
+
+#### 接口分层
+```
+/api/v1/
+├── auth/          # 认证相关
+├── user/          # 用户管理
+├── system/        # 系统管理
+├── production/    # 生产管理
+├── quality/       # 质量管理
+├── warehouse/     # 仓储管理
+├── equipment/     # 设备管理
+└── k3/           # K3集成接口
+```
+
+#### 标准响应格式
+```javascript
+{
+  "code": 200,
+  "success": true,
+  "message": "操作成功",
+  "data": {
+    // 业务数据
+  },
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+### WebSocket实时通信
+
+#### 连接管理
+- 支持设备状态实时更新
+- 支持生产进度实时推送
+- 支持系统通知实时发送
+
+#### 消息格式
+```javascript
+{
+  "type": "DEVICE_STATUS",  // 消息类型
+  "deviceId": "设备ID",
+  "data": {
+    // 消息数据
+  },
+  "timestamp": "时间戳"
+}
+```
+
+## 安全架构
+
+### 身份认证与授权
+
+#### JWT令牌认证
+- 使用JWT进行无状态身份认证
+- 支持令牌刷新机制
+- 令牌过期自动重定向登录
+
+#### 基于角色的访问控制(RBAC)
+```
+用户(User) → 角色(Role) → 权限(Permission) → 菜单(Menu)
+```
+
+### 数据安全
+- **传输加密**: 使用HTTPS加密传输
+- **数据加密**: 敏感数据字段加密存储
+- **访问控制**: IP白名单和访问频率限制
+- **操作审计**: 完整的操作日志记录
+
+### 系统安全防护
+```javascript
+// Helmet安全防护
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// CORS跨域配置
+app.use(cors({
+  origin: ["http://localhost:3001"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+```
+
+## 性能优化架构
+
+### 前端性能优化
+
+#### 构建优化
+```javascript
+// webpack代码分割
+optimization: {
+  splitChunks: {
+    chunks: "all",
+    cacheGroups: {
+      libs: {
+        name: "chunk-libs",
+        test: /[\\/]node_modules[\\/]/,
+        priority: 10,
+        chunks: "initial"
+      },
+      elementUI: {
+        name: "chunk-elementUI",
+        priority: 20,
+        test: /[\\/]node_modules[\\/]_?element-ui(.*)/
+      }
+    }
+  }
+}
+```
+
+#### 运行时优化
+- 组件懒加载
+- 图片懒加载
+- 虚拟滚动
+- 防抖和节流
+
+### 后端性能优化
+
+#### 数据库优化
+- 索引优化
+- 查询优化
+- 连接池管理
+- 读写分离
+
+#### 缓存策略
+- 内存缓存
+- Redis缓存(可选)
+- CDN缓存
+
+#### 并发处理
+- PM2集群模式
+- 数据库连接池
+- 请求限流
+
+## 监控与运维架构
+
+### 系统监控
+
+#### 应用层监控
+- API响应时间监控
+- 错误率统计
+- 并发连接数监控
+- 内存使用率监控
+
+#### 数据库监控
+- 连接池状态监控
+- 查询性能监控
+- 存储空间监控
+
+### 日志管理
+
+#### 日志分类
+```javascript
+// API访问日志
+const apiLogSchema = {
+  endpoint: String,      // 接口地址
+  method: String,        // 请求方法
+  requestBody: Object,   // 请求体
+  responseBody: Object,  // 响应体
+  statusCode: Number,    // 状态码
+  responseTime: Number,  // 响应时间
+  userAgent: String,     // 用户代理
+  ip: String,           // 客户端IP
+  userId: String,       // 用户ID
+  timestamp: Date       // 时间戳
+};
+```
+
+#### 日志轮转
+- 按日期自动轮转
+- 日志压缩存储
+- 定期清理过期日志
+
+### 备份与恢复
+
+#### 数据备份策略
+- MongoDB定期备份
+- 文件存储备份
+- 配置文件备份
+
+#### 灾难恢复
+- 数据恢复程序
+- 服务快速重启
+- 故障转移机制
+
+## 扩展性架构
+
+### 水平扩展
+
+#### 应用服务扩展
+- PM2集群模式
+- 负载均衡配置
+- 服务无状态设计
+
+#### 数据库扩展
+- MongoDB分片集群
+- 读写分离
+- 数据分区策略
+
+### 功能扩展
+
+#### 模块化设计
+- 独立的功能模块
+- 插件化架构
+- 微服务化改造
+
+#### API版本管理
+- 版本号控制
+- 向下兼容
+- 平滑升级
+
+## 开发与部署流程
+
+### 开发流程
+
+#### 环境搭建
+```bash
+# 前端开发环境
+cd dcMes_vue_system
+npm install
+npm run dev
+
+# 后端开发环境
+cd dcMes_server
+npm install
+npm start
+```
+
+#### 代码管理
+- Git版本控制
+- 分支管理策略
+- 代码审查流程
+
+### 部署流程
+
+#### 构建脚本
+```bash
+#!/bin/bash
+# 前端构建
+cd dcMes_vue_system
+npm run build:prod
+
+# 后端部署
+cd ../dcMes_server
+pm2 restart dcmes-server
+```
+
+#### 环境配置
+- 开发环境配置
+- 测试环境配置
+- 生产环境配置
+
+## 技术规格总结
+
+### 系统要求
+
+#### 硬件要求
+- **CPU**: 4核心以上
+- **内存**: 8GB以上
+- **存储**: 100GB以上SSD
+- **网络**: 1Gbps以上
+
+#### 软件要求
+- **操作系统**: Linux/Windows Server
+- **Node.js**: >= 8.9
+- **MongoDB**: >= 4.0
+- **Nginx**: >= 1.16
+- **PM2**: 最新版本
+
+### 性能指标
+
+#### 并发能力
+- **用户并发**: 支持1000+并发用户
+- **API并发**: 支持10000+并发请求
+- **数据处理**: 支持实时处理1000+设备数据
+
+#### 响应时间
+- **页面加载**: < 3秒
+- **API响应**: < 500ms
+- **数据查询**: < 1秒
+
+### 可用性要求
+- **系统可用性**: 99.9%以上
+- **数据完整性**: 99.99%
+- **故障恢复**: < 5分钟
+
+---
+
+*该文档详细描述了德昌MES系统的完整技术架构，包括系统设计理念、技术选型、部署方案、集成接口和性能优化等方面的内容。*
+
+---
+
 # 产品维修系统 - 部件更换审核验证功能
 
 ## 功能概述

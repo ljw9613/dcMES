@@ -453,8 +453,8 @@ export default {
             mainBarcodeResult.data.length > 0
           ) {
             // 检查产品进度，如果进度为0则不允许创建维修工单
-            if (mainBarcodeResult.data[0].progress === 0) {
-              this.$message.warning('产品未投入产线不可创建维修工单');
+            if (mainBarcodeResult.data[0].isProduct && mainBarcodeResult.data[0].progress === 0) {
+              this.$message.warning('成品产品未投入产线不可创建维修工单');
               this.barcode = '';
               this.searchLoading = false;
               return;
@@ -496,9 +496,16 @@ export default {
           currentBarcodeResult.data &&
           currentBarcodeResult.data.length > 0
         ) {
+          //如果产品状态为报废状态，不允许创建维修工单
+          if (currentBarcodeResult.data[0].productStatus === 'SCRAP') {
+            this.$message.warning('报废产品不可创建维修工单');
+            this.barcode = '';
+            this.searchLoading = false;
+            return;
+          }
           // 检查产品进度，如果进度为0则不允许创建维修工单
-          if (currentBarcodeResult.data[0].progress === 0) {
-            this.$message.warning('产品未投入产线不可创建维修工单');
+          if (currentBarcodeResult.data[0].isProduct && currentBarcodeResult.data[0].progress === 0) {
+            this.$message.warning('成品产品未投入产线不可创建维修工单');
             this.barcode = '';
             this.searchLoading = false;
             return;

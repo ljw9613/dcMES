@@ -20,7 +20,7 @@ const processNodeSchema = new mongoose.Schema(
     isPackingBox: { type: Boolean, default: false }, // 是否包装箱
 
     // 工序相关信息
-    processStepId: { type: mongoose.Schema.ObjectId, ref: "process_step" }, // 工序ID
+    processStepId: { type: mongoose.Schema.ObjectId, ref: "processStep" }, // 工序ID
     processName: { type: String }, // 工序名称
     processCode: { type: String }, // 工序编码
     processSort: { type: Number }, // 工序顺序

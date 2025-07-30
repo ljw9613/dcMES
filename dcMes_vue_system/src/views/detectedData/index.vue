@@ -232,7 +232,7 @@
         </el-table-column>
         <el-table-column label="检测时间" align="center" width="160">
           <template slot-scope="scope">
-            {{ formatDate(scope.row.createTime) }}
+            {{ formatDate(scope.row.updateTime) }}
           </template>
         </el-table-column>
       </template>
@@ -302,7 +302,7 @@
           </el-table-column>
           <el-table-column label="检测时间" align="center">
             <template slot-scope="scope">
-              {{ formatDate(scope.row.createTime) }}
+              {{ formatDate(scope.row.updateTime) }}
             </template>
           </el-table-column>
         </template>
@@ -581,7 +581,7 @@ export default {
       if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
         const [startDate, endDate] = this.searchForm.dateRange;
         directQueryConditions.query.$and.push({
-          createTime: {
+          updateTime: {
             $gte: new Date(startDate).toISOString(),
             $lte: new Date(endDate + " 23:59:59.999").toISOString(),
           },
@@ -1014,7 +1014,7 @@ export default {
           item.machineId ? item.machineId.machineName : "--",
           item.processId ? item.processId.processName : "--",
           !item.error ? "合格" : "不合格",
-          this.formatDate(item.createTime),
+          this.formatDate(item.updateTime),
           this.inspectionDataHandle(item).join("; "),
         ]);
 
@@ -1190,7 +1190,7 @@ export default {
           item.machineId ? item.machineId.machineName : "--",
           item.processId ? item.processId.processName : "--",
           !item.error ? "合格" : "不合格",
-          this.formatDate(item.createTime),
+          this.formatDate(item.updateTime),
           this.inspectionDataHandle(item).join("; "),
         ]);
 

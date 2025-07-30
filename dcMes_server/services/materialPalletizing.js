@@ -5,6 +5,7 @@ const ProductLine = require("../model/project/productionLine");
 const materialProcessFlowService = require("./materialProcessFlowService");
 const MaterialPalletizingUnbindLog = require("../model/project/materialPalletizingUnbindLog");
 const WarehouseEntry = require("../model/warehouse/warehouseEntry");
+const MaterialPalletizingErrorLog = require("../model/project/materialPalletizingErrorLog");
 const mongoose = require("mongoose");
 
 /**
@@ -1644,11 +1645,14 @@ class MaterialPalletizingService {
     componentScans = [],
     fromRepairStation = true
   ) {
+    let processCompleted = false; // 标记工序是否已完成
+    let pallet = null; // 初始化托盘变量
+    
     try {
       console.log(`开始添加条码到指定托盘: 托盘=${palletCode}, 条码=${mainBarcode}, 来自维修台=${fromRepairStation}`);
 
       // 查找指定托盘
-      const pallet = await MaterialPalletizing.findOne({ palletCode });
+      pallet = await MaterialPalletizing.findOne({ palletCode });
       if (!pallet) {
         throw new Error("未找到指定的托盘");
       }
@@ -1727,8 +1731,39 @@ class MaterialPalletizingService {
           fromRepairStation
         );
         console.log(`条码 ${mainBarcode} 工序完成触发成功`);
+        processCompleted = true; // 标记工序已完成
       } catch (processError) {
         console.error(`条码 ${mainBarcode} 工序完成触发失败:`, processError);
+        
+        // 记录工序失败错误日志
+        await this.logError({
+          errorType: "PROCESS_FAILED",
+          operation: "BIND_PROCESS",
+          error: processError,
+          barcode: mainBarcode,
+          palletCode: pallet.palletCode,
+          palletId: pallet._id,
+          productLineId: pallet.productLineId,
+          productLineName: pallet.productLineName,
+          processStepId: pallet.processStepId,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          workOrderNo: pallet.workOrderNo,
+          productionPlanWorkOrderId: pallet.productionPlanWorkOrderId,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            palletData: pallet.toObject(),
+            totalQuantity
+          },
+          userId,
+          processCompleted: false,
+          palletStatus: pallet.status,
+          impactLevel: "HIGH"
+        });
+        
         // 工序失败，抛出错误，阻止入托
         throw new Error(`工序绑定失败，产品不能入托: ${processError.message}`);
       }
@@ -1744,12 +1779,10 @@ class MaterialPalletizingService {
         updateOperation = {
           $push: {
             palletBarcodes: {
-              materialProcessFlowId: materialProcessFlow._id,
               barcode: mainBarcode,
               barcodeType: "MAIN",
               scanTime: new Date(),
               productionPlanWorkOrderId: productionPlan._id,
-              workOrderNo: productionPlan.workOrderNo,
             }
           },
           $inc: { 
@@ -1775,12 +1808,10 @@ class MaterialPalletizingService {
             $push: {
               ...updateOperation.$push,
               "boxItems.$.boxBarcodes": {
-                materialProcessFlowId: materialProcessFlow._id,
                 barcode: mainBarcode,
                 barcodeType: "MAIN",
                 scanTime: new Date(),
                 productionPlanWorkOrderId: productionPlan._id,
-                workOrderNo: productionPlan.workOrderNo,
               }
             },
             $inc: {
@@ -1809,12 +1840,10 @@ class MaterialPalletizingService {
                 boxItems: {
                   boxBarcode: boxBarcode,
                   boxBarcodes: [{
-                    materialProcessFlowId: materialProcessFlow._id,
                     barcode: mainBarcode,
                     barcodeType: "MAIN",
                     scanTime: new Date(),
                     productionPlanWorkOrderId: productionPlan._id,
-                    workOrderNo: productionPlan.workOrderNo,
                   }],
                   quantity: 1,
                   scanTime: new Date(),
@@ -1832,6 +1861,37 @@ class MaterialPalletizingService {
           );
 
           if (newBoxUpdateResult.modifiedCount === 0) {
+            // 记录原子操作失败错误日志
+            await this.logError({
+              errorType: "ATOMIC_OPERATION_FAILED",
+              operation: "SAVE_PALLET",
+              error: new Error("条码添加失败，可能已被其他进程处理或托盘状态不正确"),
+              barcode: mainBarcode,
+              palletCode: pallet.palletCode,
+              palletId: pallet._id,
+              productLineId: pallet.productLineId,
+              productLineName: pallet.productLineName,
+              processStepId: pallet.processStepId,
+              materialId: pallet.materialId,
+              materialCode: pallet.materialCode,
+              materialName: pallet.materialName,
+              workOrderNo: pallet.workOrderNo,
+              productionPlanWorkOrderId: pallet.productionPlanWorkOrderId,
+              boxBarcode,
+              context: {
+                fromRepairStation,
+                componentScans,
+                palletData: pallet.toObject(),
+                updateOperation,
+                arrayFilters,
+                operationType: "CREATE_NEW_BOX"
+              },
+              userId,
+              processCompleted: true,
+              palletStatus: pallet.status,
+              impactLevel: "HIGH"
+            });
+            
             throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
           }
         }
@@ -1840,12 +1900,10 @@ class MaterialPalletizingService {
         updateOperation = {
           $push: {
             palletBarcodes: {
-              materialProcessFlowId: materialProcessFlow._id,
               barcode: mainBarcode,
               barcodeType: "MAIN",
               scanTime: new Date(),
               productionPlanWorkOrderId: productionPlan._id,
-              workOrderNo: productionPlan.workOrderNo,
             }
           },
           $inc: { 
@@ -1871,6 +1929,37 @@ class MaterialPalletizingService {
         );
 
         if (updateResult.modifiedCount === 0) {
+          // 记录原子操作失败错误日志
+          await this.logError({
+            errorType: "ATOMIC_OPERATION_FAILED",
+            operation: "SAVE_PALLET",
+            error: new Error("条码添加失败，可能已被其他进程处理或托盘状态不正确"),
+            barcode: mainBarcode,
+            palletCode: pallet.palletCode,
+            palletId: pallet._id,
+            productLineId: pallet.productLineId,
+            productLineName: pallet.productLineName,
+            processStepId: pallet.processStepId,
+            materialId: pallet.materialId,
+            materialCode: pallet.materialCode,
+            materialName: pallet.materialName,
+            workOrderNo: pallet.workOrderNo,
+            productionPlanWorkOrderId: pallet.productionPlanWorkOrderId,
+            boxBarcode,
+            context: {
+              fromRepairStation,
+              componentScans,
+              palletData: pallet.toObject(),
+              updateOperation,
+              arrayFilters,
+              operationType: "DIRECT_ADD"
+            },
+            userId,
+            processCompleted: true,
+            palletStatus: pallet.status,
+            impactLevel: "HIGH"
+          });
+          
           throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
         }
       }
@@ -1898,6 +1987,124 @@ class MaterialPalletizingService {
       return updatedPallet;
     } catch (error) {
       console.error("添加条码到托盘失败:", error);
+      
+      // 关键修复：如果工序已完成但托盘保存失败，需要回滚工序状态
+      if (processCompleted && error.message.includes("添加失败")) {
+        console.log(`条码 ${mainBarcode} 工序已完成但托盘保存失败，开始回滚工序状态...`);
+        let rollbackSuccess = false;
+        
+        try {
+          // 调用工序解绑方法回滚工序状态
+          await materialProcessFlowService.unbindProcessComponents(
+            mainBarcode,
+            processStepId,
+            userId,
+            "托盘入托失败自动回滚",
+            false, // 不解绑后续工序
+            false  // 不是来自托盘解绑调用
+          );
+          console.log(`条码 ${mainBarcode} 工序状态回滚成功`);
+          rollbackSuccess = true;
+        } catch (rollbackError) {
+          console.error(`条码 ${mainBarcode} 工序状态回滚失败:`, rollbackError);
+          
+          // 记录回滚失败错误日志
+          await this.logError({
+            errorType: "ROLLBACK_FAILED",
+            operation: "ROLLBACK_PROCESS",
+            error: rollbackError,
+            barcode: mainBarcode,
+            palletCode: pallet?.palletCode,
+            palletId: pallet?._id,
+            productLineId: lineId,
+            productLineName: lineName,
+            processStepId,
+            materialId,
+            materialCode,
+            materialName,
+            boxBarcode,
+            context: {
+              fromRepairStation,
+              componentScans,
+              originalError: error.message,
+              rollbackReason: "托盘入托失败自动回滚"
+            },
+            userId,
+            processCompleted: true,
+            rollbackAttempted: true,
+            rollbackSuccess: false,
+            impactLevel: "CRITICAL"
+          });
+          
+          // 记录回滚失败但不影响主流程错误抛出
+        }
+        
+        // 记录托盘保存失败但工序回滚的情况
+        await this.logError({
+          errorType: "PALLET_SAVE_FAILED",
+          operation: "SAVE_PALLET",
+          error,
+          barcode: mainBarcode,
+          palletCode: pallet?.palletCode,
+          palletId: pallet?._id,
+          productLineId: lineId,
+          productLineName: lineName,
+          processStepId,
+          materialId,
+          materialCode,
+          materialName,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            palletData: pallet?.toObject(),
+            totalQuantity
+          },
+          userId,
+          processCompleted: true,
+          palletStatus: pallet?.status,
+          rollbackAttempted: true,
+          rollbackSuccess,
+          impactLevel: rollbackSuccess ? "MEDIUM" : "HIGH"
+        });
+      } else {
+        // 记录其他类型的错误
+        let errorType = "UNKNOWN_ERROR";
+        if (error.message.includes("重复")) {
+          errorType = "DUPLICATE_BARCODE";
+        } else if (error.message.includes("验证")) {
+          errorType = "VALIDATION_FAILED";
+        } else if (error.message.includes("工序")) {
+          errorType = "PROCESS_FAILED";
+        }
+        
+        await this.logError({
+          errorType,
+          operation: "ADD_TO_PALLET",
+          error,
+          barcode: mainBarcode,
+          palletCode: pallet?.palletCode,
+          palletId: pallet?._id,
+          productLineId: lineId,
+          productLineName: lineName,
+          processStepId,
+          materialId,
+          materialCode,
+          materialName,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            palletData: pallet?.toObject(),
+            totalQuantity
+          },
+          userId,
+          processCompleted,
+          palletStatus: pallet?.status,
+          impactLevel: "MEDIUM"
+        });
+      }
+      
       throw error;
     }
   }
@@ -2138,6 +2345,9 @@ class MaterialPalletizingService {
     componentScans,
     fromRepairStation = false
   ) {
+    let processCompleted = false; // 标记工序是否已完成
+    let pallet = null; // 初始化托盘变量
+    
     try {
       console.log(`开始处理托盘条码（简化版本）: ${mainBarcode}, 盒条码: ${boxBarcode}, 来自维修台: ${fromRepairStation}`);
 
@@ -2152,7 +2362,7 @@ class MaterialPalletizingService {
       }
 
       // 步骤2：获取或创建托盘
-      let pallet = await this._getOrCreatePalletSimple(
+      pallet = await this._getOrCreatePalletSimple(
         lineId,
         lineName,
         processStepId,
@@ -2197,6 +2407,7 @@ class MaterialPalletizingService {
           fromRepairStation
         );
         console.log(`条码 ${mainBarcode} 工序完成触发成功`);
+        processCompleted = true; // 标记工序已完成
       } catch (processError) {
         console.error(`条码 ${mainBarcode} 工序完成触发失败:`, processError);
         // 工序失败，抛出错误，阻止入托
@@ -2296,6 +2507,37 @@ class MaterialPalletizingService {
           );
 
           if (newBoxUpdateResult.modifiedCount === 0) {
+            // 记录原子操作失败错误日志
+            await this.logError({
+              errorType: "ATOMIC_OPERATION_FAILED",
+              operation: "SAVE_PALLET",
+              error: new Error("条码添加失败，可能已被其他进程处理或托盘状态不正确"),
+              barcode: mainBarcode,
+              palletCode: pallet.palletCode,
+              palletId: pallet._id,
+              productLineId: pallet.productLineId,
+              productLineName: pallet.productLineName,
+              processStepId: pallet.processStepId,
+              materialId: pallet.materialId,
+              materialCode: pallet.materialCode,
+              materialName: pallet.materialName,
+              workOrderNo: pallet.workOrderNo,
+              productionPlanWorkOrderId: pallet.productionPlanWorkOrderId,
+              boxBarcode,
+              context: {
+                fromRepairStation,
+                componentScans,
+                palletData: pallet.toObject(),
+                updateOperation,
+                arrayFilters,
+                operationType: "CREATE_NEW_BOX"
+              },
+              userId,
+              processCompleted: true,
+              palletStatus: pallet.status,
+              impactLevel: "HIGH"
+            });
+            
             throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
           }
         }
@@ -2333,6 +2575,37 @@ class MaterialPalletizingService {
         );
 
         if (updateResult.modifiedCount === 0) {
+          // 记录原子操作失败错误日志
+          await this.logError({
+            errorType: "ATOMIC_OPERATION_FAILED",
+            operation: "SAVE_PALLET",
+            error: new Error("条码添加失败，可能已被其他进程处理或托盘状态不正确"),
+            barcode: mainBarcode,
+            palletCode: pallet.palletCode,
+            palletId: pallet._id,
+            productLineId: pallet.productLineId,
+            productLineName: pallet.productLineName,
+            processStepId: pallet.processStepId,
+            materialId: pallet.materialId,
+            materialCode: pallet.materialCode,
+            materialName: pallet.materialName,
+            workOrderNo: pallet.workOrderNo,
+            productionPlanWorkOrderId: pallet.productionPlanWorkOrderId,
+            boxBarcode,
+            context: {
+              fromRepairStation,
+              componentScans,
+              palletData: pallet.toObject(),
+              updateOperation,
+              arrayFilters,
+              operationType: "DIRECT_ADD"
+            },
+            userId,
+            processCompleted: true,
+            palletStatus: pallet.status,
+            impactLevel: "HIGH"
+          });
+          
           throw new Error(`条码 ${mainBarcode} 添加失败，可能已被其他进程处理或托盘状态不正确`);
         }
       }
@@ -2360,6 +2633,124 @@ class MaterialPalletizingService {
       return updatedPallet;
     } catch (error) {
       console.error("处理托盘条码失败:", error);
+      
+      // 关键修复：如果工序已完成但托盘保存失败，需要回滚工序状态
+      if (processCompleted && error.message.includes("添加失败")) {
+        console.log(`条码 ${mainBarcode} 工序已完成但托盘保存失败，开始回滚工序状态...`);
+        let rollbackSuccess = false;
+        
+        try {
+          // 调用工序解绑方法回滚工序状态
+          await materialProcessFlowService.unbindProcessComponents(
+            mainBarcode,
+            processStepId,
+            userId,
+            "托盘入托失败自动回滚",
+            false, // 不解绑后续工序
+            false  // 不是来自托盘解绑调用
+          );
+          console.log(`条码 ${mainBarcode} 工序状态回滚成功`);
+          rollbackSuccess = true;
+        } catch (rollbackError) {
+          console.error(`条码 ${mainBarcode} 工序状态回滚失败:`, rollbackError);
+          
+          // 记录回滚失败错误日志
+          await this.logError({
+            errorType: "ROLLBACK_FAILED",
+            operation: "ROLLBACK_PROCESS",
+            error: rollbackError,
+            barcode: mainBarcode,
+            palletCode: pallet?.palletCode,
+            palletId: pallet?._id,
+            productLineId: lineId,
+            productLineName: lineName,
+            processStepId,
+            materialId,
+            materialCode,
+            materialName,
+            boxBarcode,
+            context: {
+              fromRepairStation,
+              componentScans,
+              originalError: error.message,
+              rollbackReason: "托盘入托失败自动回滚"
+            },
+            userId,
+            processCompleted: true,
+            rollbackAttempted: true,
+            rollbackSuccess: false,
+            impactLevel: "CRITICAL"
+          });
+          
+          // 记录回滚失败但不影响主流程错误抛出
+        }
+        
+        // 记录托盘保存失败但工序回滚的情况
+        await this.logError({
+          errorType: "PALLET_SAVE_FAILED",
+          operation: "SAVE_PALLET",
+          error,
+          barcode: mainBarcode,
+          palletCode: pallet?.palletCode,
+          palletId: pallet?._id,
+          productLineId: lineId,
+          productLineName: lineName,
+          processStepId,
+          materialId,
+          materialCode,
+          materialName,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            palletData: pallet?.toObject(),
+            totalQuantity
+          },
+          userId,
+          processCompleted: true,
+          palletStatus: pallet?.status,
+          rollbackAttempted: true,
+          rollbackSuccess,
+          impactLevel: rollbackSuccess ? "MEDIUM" : "HIGH"
+        });
+      } else {
+        // 记录其他类型的错误
+        let errorType = "UNKNOWN_ERROR";
+        if (error.message.includes("重复")) {
+          errorType = "DUPLICATE_BARCODE";
+        } else if (error.message.includes("验证")) {
+          errorType = "VALIDATION_FAILED";
+        } else if (error.message.includes("工序")) {
+          errorType = "PROCESS_FAILED";
+        }
+        
+        await this.logError({
+          errorType,
+          operation: "ADD_TO_PALLET",
+          error,
+          barcode: mainBarcode,
+          palletCode: pallet?.palletCode,
+          palletId: pallet?._id,
+          productLineId: lineId,
+          productLineName: lineName,
+          processStepId,
+          materialId,
+          materialCode,
+          materialName,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            palletData: pallet?.toObject(),
+            totalQuantity
+          },
+          userId,
+          processCompleted,
+          palletStatus: pallet?.status,
+          impactLevel: "MEDIUM"
+        });
+      }
+      
       throw error;
     }
   }
@@ -2492,6 +2883,119 @@ class MaterialPalletizingService {
     }
 
     return productionPlanWorkOrderId;
+  }
+
+  /**
+   * 记录托盘错误日志
+   * @param {Object} errorInfo - 错误信息对象
+   * @param {String} errorInfo.errorType - 错误类型
+   * @param {String} errorInfo.operation - 操作类型
+   * @param {Error} errorInfo.error - 错误对象
+   * @param {String} errorInfo.barcode - 条码
+   * @param {String} errorInfo.palletCode - 托盘编号
+   * @param {Object} errorInfo.context - 上下文信息
+   * @param {String} errorInfo.userId - 用户ID
+   */
+  static async logError(errorInfo) {
+    try {
+      const {
+        errorType = "UNKNOWN_ERROR",
+        operation = "OTHER",
+        error,
+        barcode,
+        palletCode,
+        palletId,
+        productLineId,
+        productLineName,
+        processStepId,
+        processStepName,
+        materialId,
+        materialCode,
+        materialName,
+        workOrderNo,
+        productionPlanWorkOrderId,
+        boxBarcode,
+        context = {},
+        userId,
+        processCompleted = false,
+        palletStatus,
+        rollbackAttempted = false,
+        rollbackSuccess,
+        retryCount = 0,
+        isRetryable = false,
+        impactLevel = "MEDIUM"
+      } = errorInfo;
+
+      const errorLog = new MaterialPalletizingErrorLog({
+        palletCode,
+        palletId,
+        barcode,
+        boxBarcode,
+        productLineId,
+        productLineName,
+        processStepId,
+        processStepName,
+        materialId,
+        materialCode,
+        materialName,
+        productionPlanWorkOrderId,
+        workOrderNo,
+        errorType,
+        errorMessage: error?.message || "未知错误",
+        errorStack: error?.stack,
+        operation,
+        processCompleted,
+        palletStatus,
+        rollbackAttempted,
+        rollbackSuccess,
+        retryCount,
+        isRetryable,
+        context: {
+          ...context,
+          fromRepairStation: context.fromRepairStation || false,
+          componentScans: context.componentScans || [],
+          palletData: context.palletData,
+          requestData: context.requestData,
+          userAgent: context.userAgent,
+          ipAddress: context.ipAddress
+        },
+        impactLevel,
+        affectedOperations: context.affectedOperations || [],
+        createBy: userId
+      });
+
+      await errorLog.save();
+      console.log(`错误日志已记录: ${errorLog.errorId}`);
+      return errorLog;
+    } catch (logError) {
+      console.error("记录错误日志失败:", logError);
+      // 不抛出错误，避免影响主流程
+    }
+  }
+
+  /**
+   * 更新错误日志为已解决状态
+   * @param {String} errorId - 错误ID
+   * @param {String} resolutionNote - 解决说明
+   * @param {String} userId - 用户ID
+   */
+  static async resolveError(errorId, resolutionNote, userId) {
+    try {
+      await MaterialPalletizingErrorLog.updateOne(
+        { errorId },
+        {
+          $set: {
+            resolved: true,
+            resolutionNote,
+            resolvedAt: new Date(),
+            resolvedBy: userId,
+            updateAt: new Date()
+          }
+        }
+      );
+    } catch (error) {
+      console.error("更新错误日志状态失败:", error);
+    }
   }
 }
 

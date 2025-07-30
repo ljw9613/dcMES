@@ -241,30 +241,33 @@ router.post("/api/v1/update-flow-nodes", async (req, res) => {
 });
 
 // 添加初始化产品条码的路由
-router.post('/api/v1/initializeProduct', async (req, res) => {
+router.post("/api/v1/initializeProduct", async (req, res) => {
   try {
     const { barcode, userId } = req.body;
     if (!barcode) {
       return res.json({
         code: 400,
         success: false,
-        message: '请提供产品条码'
+        message: "请提供产品条码",
       });
     }
 
-    const result = await MaterialProcessFlowService.initializeProduct(barcode, userId);
+    const result = await MaterialProcessFlowService.initializeProduct(
+      barcode,
+      userId
+    );
     return res.json({
       code: 200,
       success: true,
-      message: '初始化成功',
-      data: result
+      message: "初始化成功",
+      data: result,
     });
   } catch (error) {
-    console.error('初始化产品条码失败:', error);
+    console.error("初始化产品条码失败:", error);
     return res.json({
       code: 500,
       success: false,
-      message: error.message || '初始化产品条码失败'
+      message: error.message || "初始化产品条码失败",
     });
   }
 });
@@ -1139,75 +1142,80 @@ router.get("/api/v1/export-by-sale-order", async (req, res) => {
       return res.status(400).json({
         code: 400,
         success: false,
-        message: "缺少必要参数: saleOrderNo"
+        message: "缺少必要参数: saleOrderNo",
       });
     }
     console.log("saleOrderNo===", saleOrderNo);
-    
+
     // 查询所有工单
-    const workOrders = await require("../model/project/productionPlanWorkOrder").find({ saleOrderNo });
+    const workOrders =
+      await require("../model/project/productionPlanWorkOrder").find({
+        saleOrderNo,
+      });
     console.log("workOrders===", workOrders);
     if (!workOrders.length) {
       return res.json({ code: 200, success: true, data: [], total: 0 });
     }
-    
-    const workOrderIds = workOrders.map(w => w._id);
+
+    const workOrderIds = workOrders.map((w) => w._id);
     const MaterialProcessFlow = require("../model/project/materialProcessFlow");
-    
+
     // 获取总记录数
     const totalCount = await MaterialProcessFlow.countDocuments({
-      productionPlanWorkOrderId: { $in: workOrderIds }
+      productionPlanWorkOrderId: { $in: workOrderIds },
     });
-    
+
     // 计算分页参数
     const skip = (page - 1) * pageSize;
-    
+
     // 查询当前页数据
     const flows = await MaterialProcessFlow.find({
-      productionPlanWorkOrderId: { $in: workOrderIds }
+      productionPlanWorkOrderId: { $in: workOrderIds },
     })
-    .populate("productionPlanWorkOrderId")
-    .populate("processNodes.processStepId") // 添加工序信息的关联查询
-    .skip(skip)
-    .limit(parseInt(pageSize));
-    
+      .populate("productionPlanWorkOrderId")
+      .populate("processNodes.processStepId") // 添加工序信息的关联查询
+      .skip(skip)
+      .limit(parseInt(pageSize));
+
     // 处理当前页数据
-    const results = flows.map(item => {
+    const results = flows.map((item) => {
       // 获取外箱节点信息
-      const packingBoxNode = (item.processNodes || []).find(n => n.isPackingBox);
-      
+      const packingBoxNode = (item.processNodes || []).find(
+        (n) => n.isPackingBox
+      );
+
       // 获取所有工序节点信息
-      const processNodes = (item.processNodes || []).map(node => ({
-        processStepName: node.processStepId?.name || '',
-        processStepCode: node.processStepId?.code || '',
-        status: node.status || '',
-        startTime: node.startTime || '',
-        endTime: node.endTime || '',
-        operator: node.operator || '',
-        materialCode: node.materialCode || '',
-        barcode: node.barcode || ''
+      const processNodes = (item.processNodes || []).map((node) => ({
+        processStepName: node.processStepId?.name || "",
+        processStepCode: node.processStepId?.code || "",
+        status: node.status || "",
+        startTime: node.startTime || "",
+        endTime: node.endTime || "",
+        operator: node.operator || "",
+        materialCode: node.materialCode || "",
+        barcode: node.barcode || "",
       }));
 
       return {
-        WORK_ORDER: item.productionPlanWorkOrderId?.custPO || '',
-        UDI: item.barcode || '',
-        MASTER_CARTON_UDI: packingBoxNode?.barcode || '',
-        PART_NO: packingBoxNode?.materialCode || '',
-        QR_COED: packingBoxNode?.barcode || '',
-        SN_NO: item.snNo || '',
-        STATION: item.station || '',
-        RESULT: item.result || '',
-        TEST_TIME: item.testTime || '',
-        EMPNAME: item.empName || '',
+        WORK_ORDER: item.productionPlanWorkOrderId?.custPO || "",
+        UDI: item.barcode || "",
+        MASTER_CARTON_UDI: packingBoxNode?.barcode || "",
+        PART_NO: packingBoxNode?.materialCode || "",
+        QR_COED: packingBoxNode?.barcode || "",
+        SN_NO: item.snNo || "",
+        STATION: item.station || "",
+        RESULT: item.result || "",
+        TEST_TIME: item.testTime || "",
+        EMPNAME: item.empName || "",
         PROCESS_NODES: processNodes, // 添加工序节点信息
-        CREATE_TIME: item.createTime || '',
-        UPDATE_TIME: item.updateTime || '',
-        STATUS: item.status || '',
-        MATERIAL_CODE: item.materialCode || '',
-        MATERIAL_NAME: item.materialName || ''
+        CREATE_TIME: item.createTime || "",
+        UPDATE_TIME: item.updateTime || "",
+        STATUS: item.status || "",
+        MATERIAL_CODE: item.materialCode || "",
+        MATERIAL_NAME: item.materialName || "",
       };
     });
-    
+
     res.json({
       code: 200,
       success: true,
@@ -1215,14 +1223,14 @@ router.get("/api/v1/export-by-sale-order", async (req, res) => {
       total: totalCount,
       page: parseInt(page),
       pageSize: parseInt(pageSize),
-      hasMore: skip + results.length < totalCount
+      hasMore: skip + results.length < totalCount,
     });
   } catch (error) {
-    console.error('导出失败:', error);
+    console.error("导出失败:", error);
     res.status(500).json({
       code: 500,
       success: false,
-      message: error.message || '导出失败'
+      message: error.message || "导出失败",
     });
   }
 });
@@ -1291,8 +1299,7 @@ router.post("/api/v1/get-laser-print-barcode", async (req, res) => {
     const barcodeRecord = await PreProductionBarcode.findOne({
       workOrderId: workOrder._id,
       status: "PENDING", // 待使用状态
-    })
-    .sort({ serialNumber: 1 }); // 按序号排序，取第一个
+    }).sort({ serialNumber: 1 }); // 按序号排序，取第一个
 
     if (!barcodeRecord) {
       const errorCode = matchErrorCode("未找到可用的预生产条码");
@@ -1307,13 +1314,16 @@ router.post("/api/v1/get-laser-print-barcode", async (req, res) => {
     // 5. 使用validateBarcodeWithMaterial方法进行条码规则校验
     let validationResult;
     try {
-      validationResult = await MaterialProcessFlowService.validateBarcodeWithMaterial(
-        barcodeRecord.barcode,
-        workOrder.materialId
-      );
-      
+      validationResult =
+        await MaterialProcessFlowService.validateBarcodeWithMaterial(
+          barcodeRecord.barcode,
+          workOrder.materialId
+        );
+
       if (!validationResult.isValid) {
-        const errorCode = matchErrorCode(validationResult.error || "条码验证失败");
+        const errorCode = matchErrorCode(
+          validationResult.error || "条码验证失败"
+        );
         return res.status(200).json({
           code: 500,
           success: false,
@@ -1343,7 +1353,7 @@ router.post("/api/v1/get-laser-print-barcode", async (req, res) => {
         true, // 来自设备
         workOrder._id // 工单ID
       );
-      
+
       console.log("[API] 流程记录初始化成功:", flowRecord._id);
     } catch (error) {
       console.error("[API] 流程记录初始化失败:", error);
@@ -1353,15 +1363,15 @@ router.post("/api/v1/get-laser-print-barcode", async (req, res) => {
 
     // 7. 返回条码数据
     const responseData = {
-        id: barcodeRecord._id,
-        barcode: barcodeRecord.barcode, // 生产条码（基础条码）
-        printBarcode: barcodeRecord.printBarcode, // 基础打印条码
-        transformedBarcode: barcodeRecord.transformedBarcode, // 转换后的条码
-        transformedPrintBarcode: barcodeRecord.transformedPrintBarcode, // 转换后的打印条码
-        serialNumber: barcodeRecord.serialNumber,
-        segmentBreakdown: barcodeRecord.segmentBreakdown, // 段落明细
-        ruleName: barcodeRecord.ruleName,
-        ruleCode: barcodeRecord.ruleCode,
+      id: barcodeRecord._id,
+      barcode: barcodeRecord.barcode, // 生产条码（基础条码）
+      printBarcode: barcodeRecord.printBarcode, // 基础打印条码
+      transformedBarcode: barcodeRecord.transformedBarcode, // 转换后的条码
+      transformedPrintBarcode: barcodeRecord.transformedPrintBarcode, // 转换后的打印条码
+      serialNumber: barcodeRecord.serialNumber,
+      segmentBreakdown: barcodeRecord.segmentBreakdown, // 段落明细
+      ruleName: barcodeRecord.ruleName,
+      ruleCode: barcodeRecord.ruleCode,
     };
 
     console.log("[API] 镭雕设备获取打印条码数据 - 返回结果:", responseData);
@@ -1372,7 +1382,6 @@ router.post("/api/v1/get-laser-print-barcode", async (req, res) => {
       message: "获取打印条码数据成功",
       data: responseData,
     });
-
   } catch (error) {
     const errorCode = matchErrorCode(error.message);
     console.error("获取镭雕设备打印条码数据失败:", error);
@@ -1441,10 +1450,7 @@ router.post("/api/v1/confirm-laser-barcode-used", async (req, res) => {
     // 查找设备关联的所有工序
     const ProcessStep = require("../model/project/processStep");
     const relatedProcessSteps = await ProcessStep.find({
-      $or: [
-        { machineId: machine._id },
-        { machineIds: machine._id }
-      ]
+      $or: [{ machineId: machine._id }, { machineIds: machine._id }],
     });
 
     console.log("设备关联的工序:", relatedProcessSteps);
@@ -1479,9 +1485,11 @@ router.post("/api/v1/confirm-laser-barcode-used", async (req, res) => {
       if (processNode.nodeType === "PROCESS_STEP") {
         // 遍历设备关联的工序
         for (const step of relatedProcessSteps) {
-          if (processNode.processStepId && 
-              processNode.processStepId.toString() === step._id.toString() &&
-              processNode.status !== "COMPLETED") {
+          if (
+            processNode.processStepId &&
+            processNode.processStepId.toString() === step._id.toString() &&
+            processNode.status !== "COMPLETED"
+          ) {
             matchedProcessStep = step;
             matchedProcessNode = processNode;
             break;
@@ -1510,7 +1518,7 @@ router.post("/api/v1/confirm-laser-barcode-used", async (req, res) => {
     console.log("找到匹配的工序节点:", {
       processStepId: matchedProcessStep._id,
       processStepName: matchedProcessStep.name,
-      nodeId: matchedProcessNode._id
+      nodeId: matchedProcessNode._id,
     });
 
     // 调用工序绑定方法
@@ -1558,10 +1566,9 @@ router.post("/api/v1/confirm-laser-barcode-used", async (req, res) => {
         flowRecordId: flowRecord._id,
         processStepId: matchedProcessStep._id,
         processStepName: matchedProcessStep.name,
-        bindResult: result
+        bindResult: result,
       },
     });
-
   } catch (error) {
     const errorCode = matchErrorCode(error.message);
     console.error("确认镭雕设备使用条码失败:", error);
@@ -1573,5 +1580,6 @@ router.post("/api/v1/confirm-laser-barcode-used", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;

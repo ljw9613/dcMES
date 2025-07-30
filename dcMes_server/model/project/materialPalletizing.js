@@ -40,7 +40,7 @@ const materialPalletizingSchema = new mongoose.Schema({
   productionOrderNo: { type: String }, // 生产单号
 
   // 工序相关信息
-  processStepId: { type: mongoose.Schema.ObjectId, ref: "process_step" }, // 工序ID
+  processStepId: { type: mongoose.Schema.ObjectId, ref: "processStep" }, // 工序ID
 
   // 新增字段：工单数组
   workOrders: [

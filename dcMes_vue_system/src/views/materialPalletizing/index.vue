@@ -623,7 +623,7 @@
     >
       <el-progress
         :percentage="exportProgress"
-        :status="exportProgress === 100 ? 'success' : ''"
+        :status="exportProgress === 100 ? 'success' : undefined"
         :stroke-width="18"
       >
       </el-progress>
@@ -1900,7 +1900,7 @@ export default {
         ];
 
         for (let i = 0; i < totalItems; i += batchSize) {
-          const batch = result.data.slice(i, i + batchSize).map((item) => {
+          const batch = result.slice(i, i + batchSize).map((item) => {
             // 获取条码信息字符串
             const barcodes = item.palletBarcodes
               ? item.palletBarcodes.map((b) => b.barcode).join(", ")

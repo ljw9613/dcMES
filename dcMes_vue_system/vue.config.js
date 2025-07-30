@@ -45,6 +45,8 @@ module.exports = {
   // outputDir: "../dcMes_server/adminVNCN",
   // publicPath: "/dcMesVNCS/",
   // outputDir: "../dcMes_server/adminVNCS",
+  // publicPath: "/dcMesVNCNCS/",
+  // outputDir: "../dcMes_server/adminVNCNCS",
 
   // assetsDir: "static",
   // lintOnSave: process.env.NODE_ENV === "development",

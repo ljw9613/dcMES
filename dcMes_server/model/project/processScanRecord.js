@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const processScanRecordSchema = new mongoose.Schema({
     flowId: { type: mongoose.Schema.ObjectId, ref: "material_process_flow" }, // 关联主流程ID
-    processStepId: { type: mongoose.Schema.ObjectId, ref: "process_step" }, // 工序ID
+    processStepId: { type: mongoose.Schema.ObjectId, ref: "processStep" }, // 工序ID
     lineId: { type: mongoose.Schema.ObjectId, ref: "production_line" }, // 产线ID
     lineName: { type: String }, // 产线名称
     materialBarcode: { type: String }, // 扫描的物料条码

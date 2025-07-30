@@ -1104,13 +1104,16 @@ export default {
     async fetchData() {
       this.listLoading = true;
       try {
-        let req = this.searchData();
+        let req = await this.searchData();
         req.page = this.currentPage;
         req.skip = (this.currentPage - 1) * this.pageSize;
         req.limit = this.pageSize;
         req.sort = { createAt: -1 };
         req.count = true;
-        req.populate = JSON.stringify([{ path: "materialProcessFlowId" }]);
+        req.populate = JSON.stringify([
+          { path: "materialProcessFlowId" },
+          { path: "productionPlanWorkOrderId" }, // 添加工单计划关联
+        ]);
 
         const result = await getData("udi_sampling_inspection_flow", req);
 
@@ -1303,12 +1306,45 @@ export default {
     },
 
     // 构建查询条件
-    searchData() {
+    async searchData() {
       let req = {
         query: {
           $and: [],
         },
       };
+
+      // 处理销售订单查询 - 需要先查询工单，再根据工单ID查询抽检记录
+      if (this.searchForm.saleOrderNo && this.searchForm.saleOrderNo.trim()) {
+        try {
+          // 先查询工单
+          const workOrderQuery = {
+            saleOrderNo: this.searchForm.saleOrderNo.trim(),
+          };
+
+          const workOrderResult = await getData("production_plan_work_order", {
+            query: workOrderQuery,
+            select: "_id",
+          });
+
+          if (workOrderResult.code === 200 && workOrderResult.data && workOrderResult.data.length > 0) {
+            const workOrderIds = workOrderResult.data.map((wo) => wo._id);
+            req.query.$and.push({
+              productionPlanWorkOrderId: { $in: workOrderIds },
+            });
+          } else {
+            // 如果没有找到匹配的工单，添加一个不可能匹配的条件
+            req.query.$and.push({
+              productionPlanWorkOrderId: "000000000000000000000000",
+            });
+          }
+        } catch (error) {
+          console.error("查询工单失败:", error);
+          // 发生错误时添加一个不可能匹配的条件
+          req.query.$and.push({
+            productionPlanWorkOrderId: "000000000000000000000000",
+          });
+        }
+      }
 
       Object.entries(this.searchForm).forEach(([key, value]) => {
         if (value !== "" && value !== null && value !== undefined) {
@@ -1316,7 +1352,6 @@ export default {
           switch (key) {
             case "barcode":
             case "materialCode":
-            case "saleOrderNo":
             case "batchNo":
             case "samplingStatus": // 处理抽检状态
               if (value.trim()) {
@@ -1324,6 +1359,9 @@ export default {
                   [key]: { $regex: value.trim(), $options: "i" },
                 });
               }
+              break;
+            case "saleOrderNo":
+              // 销售订单查询已在上面处理，这里跳过
               break;
             case "isQualified":
               // 修改这里的处理逻辑
@@ -1865,94 +1903,116 @@ export default {
           background: "rgba(0, 0, 0, 0.7)",
         });
 
-        // 获取表格数据
-        let req = this.searchData();
-        // req.page = this.currentPage;
-        // req.skip = (this.currentPage - 1) * this.pageSize;
-        // req.limit = this.pageSize;
-        req.sort = { createAt: -1 };
-        req.populate = JSON.stringify([
+        // 构建基础查询条件
+        let baseReq = await this.searchData();
+        baseReq.sort = { createAt: -1 };
+        baseReq.populate = JSON.stringify([
           {
             path: "materialProcessFlowId",
             populate: { path: "productionPlanWorkOrderId" },
           },
+          {
+            path: "productionPlanWorkOrderId", // 直接关联工单计划
+          },
         ]);
 
-        const result = await getData("udi_sampling_inspection_flow", req);
-
-        if (result.code !== 200) {
-          throw new Error(result.msg || "获取数据失败");
+        // 先获取总数
+        const countReq = { ...baseReq, count: true, limit: 1 };
+        const countResult = await getData("udi_sampling_inspection_flow", countReq);
+        
+        if (countResult.code !== 200) {
+          throw new Error(countResult.msg || "获取数据总数失败");
         }
 
-        let resultData = [];
-        for await (const item of result.data) {
-          //   const result = await getData("material_process_flow", {
-          //     query: {
-          //       barcode: item.barcode,
-          //     },
-          //     populate: JSON.stringify({
-          //       path: "productionPlanWorkOrderId",
-          //     }),
-          //   });
+        const total = countResult.countnum || 0;
+        if (total === 0) {
+          this.$message.warning("没有可导出的数据");
+          loading.close();
+          return;
+        }
 
-          const processNodes = item.materialProcessFlowId.processNodes;
+        // 分批次获取数据，每次100条
+        const batchSize = 100;
+        const totalBatches = Math.ceil(total / batchSize);
+        let allData = [];
 
-          // 查找 isRfid 为 true 的节点
-          const rfidNodes = processNodes.filter(
-            (node) => node.materialName && node.materialName.includes("RFID")
-          );
-          console.log(rfidNodes);
+        // 更新加载提示文本
+        loading.setText(`正在获取数据：0/${total}`);
 
-          // 提取对应的 barcode
-          const rfidBarcodes = rfidNodes.map((node) => node.barcode);
+        for (let i = 0; i < totalBatches; i++) {
+          const batchReq = {
+            ...baseReq,
+            skip: i * batchSize,
+            limit: batchSize,
+          };
 
-          // 输出结果
-
-          if (result.code === 200) {
-            resultData.push({
-              ...item,
-              batchNo:
-                item.materialProcessFlowId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId.custPO,
-              saleOrderNo:
-                item.materialProcessFlowId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId
-                  .saleOrderNo,
-              productionOrderNo:
-                item.materialProcessFlowId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId
-                  .productionOrderNo,
-              productionLineId:
-                item.materialProcessFlowId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId
-                  .productionLineId,
-              productionLineName:
-                item.materialProcessFlowId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId &&
-                item.materialProcessFlowId.productionPlanWorkOrderId
-                  .productionLineName,
-              rfidBarcode: rfidBarcodes[0] || "-",
-            });
+          const batchResult = await getData("udi_sampling_inspection_flow", batchReq);
+          
+          if (batchResult.code !== 200) {
+            throw new Error(`获取第${i + 1}批数据失败: ${batchResult.msg}`);
           }
+
+          allData = allData.concat(batchResult.data || []);
+          
+          // 更新进度
+          const currentCount = Math.min((i + 1) * batchSize, total);
+          loading.setText(`正在获取数据：${currentCount}/${total}`);
         }
 
-        // 转换数据为Excel格式
-        const excelData = resultData.map((item) => ({
-          型号: item.materialName || "-",
-          客户订单: "/",
-          UDI序列号: item.barcode
-            ? item.barcode.substring(item.barcode.length - 12)
-            : "-", //
-          生产批号: item.batchNo || "-",
-          外箱UDI: item.barcodeValidation.transformedBarcode || "-", //
-          彩盒UDI: item.barcodeValidation.printBarcode || "-", //
-          产品UDI: item.barcode || "-", //
-          rfid标签: item.rfidBarcode || "-",
-          生产日期: item.createAt ? this.formatDate(item.createAt) : "-",
+        // 更新加载提示
+        loading.setText("正在生成Excel文件...");
+
+        // 使用合并后的数据
+        const result = { code: 200, data: allData };
+
+        // 转换数据为Excel格式 - 按照抽检记录详细信息导出
+        const excelData = result.data.map((item) => ({
+          // 基本信息
+          主条码: item.barcode || "-",
+          物料编码: item.materialCode || "-",
+          物料名称: item.materialName || "-",
+          
+          // 抽检结果
+          检验结果: item.isQualified ? "合格" : "不合格",
+          抽检状态: this.getSamplingStatusText(item.samplingStatus) || "-",
+          抽检人员: item.samplingOperator || "-",
+          抽检时间: item.samplingTime ? this.formatDate(item.samplingTime) : "-",
+          
+          // 条码验证信息
+          彩箱条码: (item.barcodeValidation && item.barcodeValidation.printBarcode) || "-",
+          彩箱条码验证: (item.barcodeValidation && item.barcodeValidation.isPrintBarcodeValid) ? "验证通过" : "验证失败",
+          黄板箱条码: (item.barcodeValidation && item.barcodeValidation.transformedBarcode) || "-",
+          黄板箱条码验证: (item.barcodeValidation && item.barcodeValidation.isTransformedBarcodeValid) ? "验证通过" : "验证失败",
+          验证时间: (item.barcodeValidation && item.barcodeValidation.validationTime) ? this.formatDate(item.barcodeValidation.validationTime) : "-",
+          
+          // 工单信息
+          销售订单号: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.saleOrderNo) ||
+                     (item.materialProcessFlowId && 
+                      item.materialProcessFlowId.productionPlanWorkOrderId &&
+                      item.materialProcessFlowId.productionPlanWorkOrderId.saleOrderNo) || "-",
+          生产订单号: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.productionOrderNo) ||
+                     (item.materialProcessFlowId && 
+                      item.materialProcessFlowId.productionPlanWorkOrderId &&
+                      item.materialProcessFlowId.productionPlanWorkOrderId.productionOrderNo) || "-",
+          客户PO: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.custPO) ||
+                 (item.materialProcessFlowId && 
+                  item.materialProcessFlowId.productionPlanWorkOrderId &&
+                  item.materialProcessFlowId.productionPlanWorkOrderId.custPO) || "-",
+          生产线: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.productionLineName) ||
+                 (item.materialProcessFlowId && 
+                  item.materialProcessFlowId.productionPlanWorkOrderId &&
+                  item.materialProcessFlowId.productionPlanWorkOrderId.productionLineName) || "-",
+          
+          // 作废信息（如果有）
+          作废原因: item.voidReason || "-",
+          作废时间: item.voidTime ? this.formatDate(item.voidTime) : "-",
+          作废人员: item.voidOperator || "-",
+          
+          // 其他信息
+          备注说明: item.remark || "-",
+          是否有照片: item.photoUrl ? "是" : "否",
+          记录创建时间: item.createAt ? this.formatDate(item.createAt) : "-",
+          最后更新时间: item.updateAt ? this.formatDate(item.updateAt) : "-",
         }));
 
         // 创建工作簿
@@ -1961,15 +2021,29 @@ export default {
 
         // 设置列宽
         const colWidths = [
-          { wch: 15 }, // 型号
-          { wch: 15 }, // 客户订单
-          { wch: 20 }, // UDI序列号
-          { wch: 15 }, // 生产批号
-          { wch: 20 }, // 外箱UDI
-          { wch: 20 }, // 彩盒UDI
-          { wch: 20 }, // 产品UDI
-          { wch: 20 }, // rfid标签
-          { wch: 20 }, // 生产日期
+          { wch: 20 }, // 主条码
+          { wch: 15 }, // 物料编码
+          { wch: 20 }, // 物料名称
+          { wch: 10 }, // 检验结果
+          { wch: 10 }, // 抽检状态
+          { wch: 12 }, // 抽检人员
+          { wch: 20 }, // 抽检时间
+          { wch: 20 }, // 彩箱条码
+          { wch: 12 }, // 彩箱条码验证
+          { wch: 20 }, // 黄板箱条码
+          { wch: 15 }, // 黄板箱条码验证
+          { wch: 20 }, // 验证时间
+          { wch: 15 }, // 销售订单号
+          { wch: 15 }, // 生产订单号
+          { wch: 15 }, // 客户PO
+          { wch: 15 }, // 生产线
+          { wch: 20 }, // 作废原因
+          { wch: 20 }, // 作废时间
+          { wch: 12 }, // 作废人员
+          { wch: 20 }, // 备注说明
+          { wch: 10 }, // 是否有照片
+          { wch: 20 }, // 记录创建时间
+          { wch: 20 }, // 最后更新时间
         ];
         ws["!cols"] = colWidths;
 
@@ -1986,7 +2060,7 @@ export default {
         }
 
         // 将工作表添加到工作簿
-        XLSX.utils.book_append_sheet(wb, ws, "数据列表");
+        XLSX.utils.book_append_sheet(wb, ws, "UDI抽检记录");
 
         // 生成Excel文件并下载
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -1995,7 +2069,7 @@ export default {
         });
 
         // 生成文件名（使用当前时间戳）
-        const fileName = `数据导出_${new Date().toLocaleDateString()}.xlsx`;
+        const fileName = `UDI抽检记录_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);
@@ -2049,7 +2123,7 @@ export default {
             }
             break;
           case "search":
-            let req = this.searchData();
+            let req = await this.searchData();
             // req.page = this.currentPage;
             // req.skip = (this.currentPage - 1) * this.pageSize;
             // req.limit = this.pageSize;
@@ -2447,6 +2521,8 @@ export default {
         if (result.code === 200 && result.data.length > 0) {
           this.currentBarcodeData = result.data[0];
           this.currentBarcodeData.materialProcessFlowId = result2.data[0]._id;
+          // 保存工单计划ID，用于后续查询销售订单
+          this.currentBarcodeData.productionPlanWorkOrderId = result2.data[0].productionPlanWorkOrderId;
           this.showBarcodeValidation = true;
           this.barcodeValidation.barcode = true;
 
@@ -2588,6 +2664,7 @@ export default {
         const inspectionData = {
           barcode: this.scanForm.barcode,
           materialProcessFlowId: this.currentBarcodeData.materialProcessFlowId,
+          productionPlanWorkOrderId: this.currentBarcodeData.productionPlanWorkOrderId, // 添加工单计划ID
           materialCode: this.currentBarcodeData.materialNumber,
           materialName: this.currentBarcodeData.materialName,
           isQualified: this.isAllBarcodeValid, // 所有条码都匹配则为合格

@@ -2002,14 +2002,14 @@ export default {
           } else {
             // 如果没有找到匹配的工单，添加一个不可能匹配的条件
             req.query.$and.push({
-              productionPlanWorkOrderId: null,
+              productionPlanWorkOrderId: "000000000000000000000000",
             });
           }
         } catch (error) {
           console.error("查询工单失败:", error);
           // 发生错误时添加一个不可能匹配的条件
           req.query.$and.push({
-            productionPlanWorkOrderId: null,
+            productionPlanWorkOrderId: "000000000000000000000000",
           });
         }
       }
