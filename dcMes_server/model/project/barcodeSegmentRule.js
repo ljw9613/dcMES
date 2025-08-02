@@ -81,9 +81,10 @@ const barcodeSegmentRuleSchema = new mongoose.Schema({
 });
 
 // 更新时间中间件
-barcodeSegmentRuleSchema.pre('save', function(next) {
+barcodeSegmentRuleSchema.pre("save", function (next) {
   this.updateAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model("BarcodeSegmentRule", barcodeSegmentRuleSchema);
+// 安全的模型导出，避免重复编译错误
+module.exports = mongoose.models.BarcodeSegmentRule || mongoose.model("BarcodeSegmentRule", barcodeSegmentRuleSchema);

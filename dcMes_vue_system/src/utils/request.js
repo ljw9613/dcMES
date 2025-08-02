@@ -3,6 +3,7 @@ import { Message } from "element-ui";
 import store from "@/store";
 import router from '@/router';
 import Cookies from 'js-cookie';
+import { getToken } from '@/utils/auth'; // 导入getToken函数
 // create an axios instance
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
@@ -39,18 +40,28 @@ const handleJWTError = (message) => {
 service.interceptors.request.use(
   config => {
     // do something before request is sent
-    const token = store.getters.token;
+    // 首先尝试从store获取token，如果失败则直接从Cookie获取
+    let token = store.getters.token;
+    
+    // 如果store中没有token，直接从Cookie获取（防止初始化时机问题）
+    if (!token) {
+      token = getToken();
+      // console.log('Store中无token，从Cookie获取:', token ? `${token.substring(0, 20)}...` : 'null');
+    }
     
     // 添加调试信息
     // console.log('请求URL:', config.url);
-    // console.log('当前token:', token);
+    // console.log('Store中的token:', store.getters.token ? `${store.getters.token.substring(0, 20)}...` : 'null');
+    // console.log('最终使用的token:', token ? `${token.substring(0, 20)}...` : 'null');
     
     if (token) {
       // 确保token存在且有效再添加到请求头中
       if (typeof token === 'string' && token.trim() !== '') {
-        // 添加Bearer前缀，确保格式正确
-        config.headers.common["Authorization"] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-        // console.log('添加到请求头的token:', config.headers.common["Authorization"]);
+        // 统一使用Authorization头，格式严格按照JWT标准
+        config.headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        // console.log('添加到请求头的Authorization:', config.headers['Authorization'].substring(0, 30) + '...');
+      } else {
+        // console.warn('Token格式无效:', token);
       }
       
       // 为user/info接口特殊处理
@@ -64,19 +75,17 @@ service.interceptors.request.use(
         }
       }
       
-      // 添加用户名到请求头
+      // 添加用户名到请求头（保留原有逻辑）
       config.headers["username"] = store.getters.id || "onLogin";
+    } else {
+      // console.warn('未找到token，请求可能被拒绝 - Store token:', store.getters.token, 'Cookie token:', getToken());
     }
-    
-    // 打印完整的请求头和请求体
-    // console.log('请求头:', JSON.stringify(config.headers));
-    // console.log('请求体:', JSON.stringify(config.data));
     
     return config;
   },
   error => {
     // do something with request error
-    console.log(error); // for debug
+    console.log('请求错误:', error);
     return Promise.reject(error);
   }
 );

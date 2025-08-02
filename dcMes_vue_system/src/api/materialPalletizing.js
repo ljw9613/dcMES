@@ -9,6 +9,14 @@ export function handlePalletBarcode(data) {
     })
 }
 
+// 查询托盘处理状态接口（用于队列模式）
+export function getPalletProcessingStatus(jobId) {
+    return request({
+        url: `/getPalletProcessingStatus/${jobId}`,
+        method: 'get'
+    })
+}
+
 // 解绑条码接口
 export function unbindPalletBarcode(data) {
     return request({
@@ -58,6 +66,41 @@ export function addBarcodeToPallet(data) {
 export function handleForceCompletePallet(data) {
     return request({
         url: '/forcePalletComplete',
+        method: 'post',
+        data
+    })
+}
+
+// 装箱条码原子操作 - 获取或创建装箱条码
+export function getOrCreatePackBarcode(data) {
+    return request({
+        url: '/getOrCreatePackBarcode',
+        method: 'post',
+        data
+    })
+}
+
+// 装箱条码原子操作 - 清理过期锁定
+export function cleanExpiredPackBarcodeLocks() {
+    return request({
+        url: '/cleanExpiredLocks',
+        method: 'post'
+    })
+}
+
+// 装箱条码原子操作 - 解锁装箱条码
+export function unlockPackBarcode(data) {
+    return request({
+        url: '/unlockPackBarcode',
+        method: 'post',
+        data
+    })
+}
+
+// 装箱条码原子操作 - 批量解锁装箱条码
+export function unlockAllPackBarcodes(data) {
+    return request({
+        url: '/unlockAllPackBarcodes',
         method: 'post',
         data
     })

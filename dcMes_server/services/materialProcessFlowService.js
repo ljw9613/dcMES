@@ -8,10 +8,14 @@ const productBarcodeRule = require("../model/project/productBarcodeRule");
 const barcodeRule = require("../model/project/barcodeRule");
 const ProductInitializeLog = require("../model/project/productInitializeLog");
 const WorkOrderQuantityLog = require("../model/project/workOrderQuantityLog");
+const ProductDiNum = require("../model/project/productDiNum");
+const K3Material = require("../model/k3/k3_BD_MATERIAL");
+const MachineModel = require("../model/project/machine");
+const { QueueService } = require("./queueService");
 const mongoose = require("mongoose");
-const productDiNum = mongoose.model("productDiNum");
-const Material = mongoose.model("k3_BD_MATERIAL");
-const Machine = mongoose.model("machine");
+const productDiNum = ProductDiNum;
+const Material = K3Material;
+const Machine = MachineModel;
 // const SystemLog = require("../model/project/systemLog");
 
 const { v4: uuidv4 } = require("uuid");
@@ -1334,6 +1338,20 @@ class MaterialProcessFlowService {
           return node;
         });
 
+        // 清理孤立的已完成节点
+        const cleanOrphanNodesResult = this.cleanOrphanCompletedNodes(flowRecord.processNodes);
+        if (cleanOrphanNodesResult.cleanedCount > 0) {
+          flowRecord.processNodes = cleanOrphanNodesResult.processNodes;
+          console.log(`删除了 ${cleanOrphanNodesResult.cleanedCount} 个孤立的已完成节点: ${cleanOrphanNodesResult.cleanedNodeIds.join(', ')}`);
+          
+          // 记录删除的节点详细信息
+          if (cleanOrphanNodesResult.deletedNodes && cleanOrphanNodesResult.deletedNodes.length > 0) {
+            console.log('删除的孤立节点详情:', cleanOrphanNodesResult.deletedNodes.map(node => 
+              `${node.nodeType}节点[${node.nodeId}] ${node.materialCode || node.processName || 'Unknown'} (Level:${node.level})${node.isChildOfOrphan ? ' [子节点]' : ''}`
+            ).join(', '));
+          }
+        }
+
         // 更新整体进度
         const completedNodes = flowRecord.processNodes.filter(
           (node) => node.status === "COMPLETED" && node.level !== 0
@@ -1423,6 +1441,123 @@ class MaterialProcessFlowService {
   static isChildNode(nodes, parentId, nodeId) {
     const childNodes = this.getAllChildNodes(nodes, parentId);
     return childNodes.includes(nodeId);
+  }
+
+  /**
+   * 清理孤立的已完成节点
+   * 在解绑操作后，有些已完成的节点可能变成孤立状态，影响进度计算
+   * 这些孤立节点会被直接删除而不是重置状态
+   * @param {Array} processNodes - 流程节点数组
+   * @returns {Object} 包含清理后的节点数组和清理统计信息
+   */
+  static cleanOrphanCompletedNodes(processNodes) {
+    const deletedNodeIds = [];
+    const deletedNodes = [];
+    
+    // 创建节点副本进行操作
+    let updatedNodes = processNodes.map(node => ({ ...node }));
+    
+    // 获取所有已完成的非根节点
+    const completedNodes = updatedNodes.filter(
+      node => node.status === "COMPLETED" && node.level !== 0
+    );
+    
+    // 检查每个已完成节点是否孤立
+    for (const node of completedNodes) {
+      let isOrphan = false;
+      
+      // 检查节点的关联关系
+      if (node.parentNodeId) {
+        // 查找父节点
+        const parentNode = updatedNodes.find(n => n.nodeId === node.parentNodeId);
+        
+        if (!parentNode) {
+          // 父节点不存在，该节点是孤立的
+          isOrphan = true;
+        } else if (parentNode.status === "PENDING" || parentNode.status === "SCRAP") {
+          // 父节点状态异常，检查是否有兄弟节点或子节点
+          const siblingNodes = updatedNodes.filter(
+            n => n.parentNodeId === node.parentNodeId && n.nodeId !== node.nodeId
+          );
+          const childNodes = updatedNodes.filter(n => n.parentNodeId === node.nodeId);
+          
+          // 如果没有兄弟节点处于完成状态，且该节点也没有已完成的子节点，则认为是孤立的
+          const hasCompletedSiblings = siblingNodes.some(n => n.status === "COMPLETED");
+          const hasCompletedChildren = childNodes.some(n => n.status === "COMPLETED");
+          
+          if (!hasCompletedSiblings && !hasCompletedChildren) {
+            isOrphan = true;
+          }
+        }
+      } else {
+        // 没有父节点ID但不是根节点，可能是数据异常
+        if (node.level > 0) {
+          isOrphan = true;
+        }
+      }
+      
+      // 额外检查：如果是物料节点，检查其所属工序是否存在且完成
+      if (node.nodeType === "MATERIAL" && node.parentNodeId) {
+        const parentProcessNode = updatedNodes.find(n => n.nodeId === node.parentNodeId);
+        if (parentProcessNode && parentProcessNode.nodeType === "PROCESS_STEP" && parentProcessNode.status !== "COMPLETED") {
+          // 父工序未完成，但物料已完成，这是不合理的状态
+          isOrphan = true;
+        }
+      }
+      
+      // 如果确认是孤立节点，记录并准备删除
+      if (isOrphan) {
+        deletedNodeIds.push(node.nodeId);
+        deletedNodes.push({
+          nodeId: node.nodeId,
+          nodeType: node.nodeType,
+          materialCode: node.materialCode || '',
+          processName: node.processName || '',
+          status: node.status,
+          level: node.level
+        });
+      }
+    }
+    
+    // 删除孤立节点及其所有子节点
+    const nodesToDelete = new Set(deletedNodeIds);
+    
+    // 递归查找并标记所有子节点用于删除
+    const markChildrenForDeletion = (parentNodeId) => {
+      const childNodes = updatedNodes.filter(n => n.parentNodeId === parentNodeId);
+      for (const childNode of childNodes) {
+        if (!nodesToDelete.has(childNode.nodeId)) {
+          nodesToDelete.add(childNode.nodeId);
+          deletedNodeIds.push(childNode.nodeId);
+          deletedNodes.push({
+            nodeId: childNode.nodeId,
+            nodeType: childNode.nodeType,
+            materialCode: childNode.materialCode || '',
+            processName: childNode.processName || '',
+            status: childNode.status,
+            level: childNode.level,
+            isChildOfOrphan: true
+          });
+          // 递归查找子节点的子节点
+          markChildrenForDeletion(childNode.nodeId);
+        }
+      }
+    };
+    
+    // 为每个孤立节点查找并标记其子节点
+    for (const nodeId of deletedNodeIds.slice()) { // 使用 slice() 避免在循环中修改数组
+      markChildrenForDeletion(nodeId);
+    }
+    
+    // 从节点数组中删除所有标记的节点
+    updatedNodes = updatedNodes.filter(node => !nodesToDelete.has(node.nodeId));
+    
+    return {
+      processNodes: updatedNodes,
+      cleanedCount: deletedNodeIds.length,
+      cleanedNodeIds: deletedNodeIds,
+      deletedNodes: deletedNodes
+    };
   }
 
   /**
@@ -2131,7 +2266,7 @@ class MaterialProcessFlowService {
   }
 
   /**
-   * 更新工单数量
+   * 更新工单数量（通过队列处理，避免并发问题）
    * @param {string} workOrderId - 工单ID
    * @param {string} type - 更新类型 ('input' | 'output')
    * @param {number} quantity - 更新数量
@@ -2158,7 +2293,79 @@ class MaterialProcessFlowService {
     try {
       if (!workOrderId) {
         console.log("未提供工单ID，跳过更新工单数量");
-        return null;
+        return {
+          success: false,
+          error: "未提供工单ID",
+          code: "MISSING_WORK_ORDER_ID"
+        };
+      }
+
+      // 将更新任务加入队列，避免并发问题
+      const queueResult = await QueueService.addWorkOrderQuantityUpdate(
+        workOrderId,
+        type,
+        quantity,
+        logContext
+      );
+
+      if (queueResult.success) {
+        console.log(`工单${workOrderId}更新任务已加入队列: ${queueResult.jobId}`);
+        return {
+          success: true,
+          jobId: queueResult.jobId,
+          workOrderId: workOrderId,
+          type: type,
+          quantity: quantity,
+          message: "更新任务已加入队列，将按顺序处理",
+          estimatedDelay: queueResult.estimatedDelay,
+          queueLength: queueResult.queueLength,
+          code: "QUEUED"
+        };
+      } else {
+        console.error(`工单${workOrderId}更新任务加入队列失败:`, queueResult.error);
+        return {
+          success: false,
+          error: queueResult.error,
+          workOrderId: workOrderId,
+          type: type,
+          quantity: quantity,
+          code: "QUEUE_ERROR"
+        };
+      }
+
+    } catch (error) {
+      console.error(
+        `更新工单${type === "input" ? "投入" : "产出"}数量失败:`,
+        error
+      );
+      return {
+        success: false,
+        error: error.message,
+        workOrderId: workOrderId,
+        type: type,
+        quantity: quantity,
+        code: "SYSTEM_ERROR"
+      };
+    }
+  }
+
+  /**
+   * 执行工单数量更新（内部方法，由队列调用）
+   * @param {string} workOrderId - 工单ID
+   * @param {string} type - 更新类型 ('input' | 'output')
+   * @param {number} quantity - 更新数量
+   * @param {Object} logContext - 日志上下文信息
+   */
+  static async _executeWorkOrderQuantityUpdate(
+    workOrderId,
+    type,
+    quantity = 1,
+    logContext = {}
+  ) {
+    try {
+      if (!workOrderId) {
+        console.log("未提供工单ID，跳过更新工单数量");
+        throw new Error("未提供工单ID");
       }
 
       const updateField = type === "input" ? "inputQuantity" : "outputQuantity";
@@ -2339,7 +2546,7 @@ class MaterialProcessFlowService {
         `更新工单${type === "input" ? "投入" : "产出"}数量失败:`,
         error
       );
-      return null;
+      throw error; // 抛出错误让队列处理重试逻辑
     }
   }
 

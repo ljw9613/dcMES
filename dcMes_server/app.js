@@ -10,6 +10,7 @@ let config = require("./libs/config");
 //解析token
 var expressJwt = require("express-jwt");
 const systemLogRoutes = require("./routes/systemLog");
+const queueMonitorRoutes = require("./routes/queueMonitor");
 
 let app = express();
 app.set('trust proxy', true);
@@ -28,6 +29,40 @@ app.use(
 
 //链接数据库
 let dbConnect = require("./db")();
+
+// 初始化队列服务
+const { QueueService } = require("./services/queueService");
+const mongoose = require("mongoose");
+
+// 监听数据库连接完成事件，然后启动队列服务
+mongoose.connection.once("open", async () => {
+  console.log("📦 数据库连接完成，开始初始化工单更新队列服务...");
+  
+  // 稍微延迟以确保所有模型都已加载
+  setTimeout(async () => {
+    try {
+      await QueueService.initializeProcessor();
+      console.log("✅ 队列服务初始化成功");
+    } catch (error) {
+      console.error("❌ 队列服务初始化失败:", error);
+      console.error("⚠️ 应用将继续运行，但工单更新功能可能受影响");
+    }
+  }, 2000);
+});
+
+// 如果数据库已经连接（比如重新加载），也要初始化队列
+if (mongoose.connection.readyState === 1) {
+  console.log("📦 数据库已连接，初始化工单更新队列服务...");
+  setTimeout(async () => {
+    try {
+      await QueueService.initializeProcessor();
+      console.log("✅ 队列服务初始化成功");
+    } catch (error) {
+      console.error("❌ 队列服务初始化失败:", error);
+      console.error("⚠️ 应用将继续运行，但工单更新功能可能受影响");
+    }
+  }, 2000);
+}
 
 // view engine setup 设置 模板引擎的存放目录与用的什么模板引擎
 app.set("views", path.join(__dirname, "views"));
@@ -60,34 +95,59 @@ app.use(cookieParser());
 // 设置静态文件托管
 app.use(express.static(path.join(__dirname, "public")));
 
-//JWT令牌来验证HTTP请求
-// app.use(expressJwt({
-//   secret: config.secretOrPrivateKey//加密密钥，可换
-// }).unless({
-//   path: [ /sendMessage*/,/wxuser*/, /\/*/]//添加不需要token的接口
-// }));
-// //
-// //校验token失败时的处理
-// app.use(function (err, req, res, next) {
-// 	console.log("headers:", req.url);
-// 	if (req.url.indexOf("enclosure") > -1) {
-// 		res.json({
-// 			message: "找不到文件",
-// 			code: 404,
-// 			errer: err
-// 		});
-// 	}
-// 	// console.log("err:", err);
-// 	if (err.name === "UnauthorizedError") {
-// 		//  这个需要根据自己的业务逻辑来处理（ 具体的err值 请看下面）
-// 		console.error(req.path + ",无效token");
-// 		res.json({
-// 			message: "token过期，请重新登录",
-// 			code: 400,
-// 			errer: err
-// 		});
-// 	}
-// });
+// JWT令牌验证中间件 - 启用全局验证
+app.use(expressJwt({
+  secret: config.secretOrPrivateKey,
+  algorithms: ['HS256'] // 明确指定算法
+}).unless({
+  path: [
+    // 登录相关接口
+    /.*\/login.*/,
+    /.*\/auth.*/,
+    // 公共接口
+    /.*\/public.*/,
+    /.*\/health.*/,
+    /.*\/ping.*/,
+    // 设备对接接口
+    /.*\/machine-scan-components.*/,
+    /.*\/initialize-machine-barcode.*/,
+    /.*\/get-laser-print-barcode.*/,
+    /.*\/confirm-laser-barcode-used.*/,
+    // 静态资源
+    /.*\/uploads.*/,
+    /.*\/stylesheets.*/,
+    // 微信相关
+    /sendMessage*/,
+    /wxuser*/
+  ]
+}));
+
+// JWT验证失败时的处理
+app.use(function (err, req, res, next) {
+  console.log("JWT验证错误，请求URL:", req.url);
+  
+  if (req.url.indexOf("enclosure") > -1) {
+    res.json({
+      message: "找不到文件",
+      code: 404,
+      error: err
+    });
+    return;
+  }
+  
+  if (err.name === "UnauthorizedError") {
+    console.error(req.path + ",无效token:", err.message);
+    res.status(401).json({
+      message: "Token验证失败，请重新登录",
+      code: 401,
+      success: false,
+      error: err.message
+    });
+    return;
+  }
+  
+  next(err);
+});
 
 // 添加静态文件服务
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
@@ -117,6 +177,8 @@ app.use('/', require('./routes/productRepair.js'));
 app.use('/', require('./routes/uploadMesFile.js'));
 app.use('/', require('./routes/dashboard.js'));
 app.use('/', require('./routes/inspectionImageUpload.js'));
+// 装箱条码原子操作路由
+app.use('/', require('./routes/packBarcodeAtomic'));
 
 // require("./routes/upload")
 // require("./routes/fixFunction")
@@ -153,5 +215,29 @@ app.use(function (err, req, res, next) {
 
 // 注册路由
 app.use(systemLogRoutes);
+app.use(queueMonitorRoutes);
+
+// 优雅关闭处理
+process.on('SIGTERM', async () => {
+  console.log('🛑 收到SIGTERM信号，开始优雅关闭...');
+  try {
+    await QueueService.shutdown();
+    console.log('✅ 队列服务已关闭');
+  } catch (error) {
+    console.error('❌ 关闭队列服务失败:', error);
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 收到SIGINT信号，开始优雅关闭...');
+  try {
+    await QueueService.shutdown();
+    console.log('✅ 队列服务已关闭');
+  } catch (error) {
+    console.error('❌ 关闭队列服务失败:', error);
+  }
+  process.exit(0);
+});
 
 module.exports = app;

@@ -86,7 +86,8 @@ productionPlanWorkOrderSchema.index({ createAt: -1 });
 productionPlanWorkOrderSchema.index({ createBy: 1 }); // 添加创建人索引
 productionPlanWorkOrderSchema.index({ updateBy: 1 }); // 添加更新人索引
 
-module.exports = mongoose.model(
+// 安全的模型导出，避免重复编译错误
+module.exports = mongoose.models.production_plan_work_order || mongoose.model(
   "production_plan_work_order",
   productionPlanWorkOrderSchema
 );

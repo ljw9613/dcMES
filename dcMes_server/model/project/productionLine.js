@@ -81,4 +81,5 @@ productionLineSchema.index({ createAt: -1 });
 // 添加新的索引
 productionLineSchema.index({ cardNum: 1 }, { unique: true }); // 为接收器卡号添加唯一索引
 
-module.exports = mongoose.model("production_line", productionLineSchema); 
+// 安全的模型导出，避免重复编译错误
+module.exports = mongoose.models.production_line || mongoose.model("production_line", productionLineSchema); 

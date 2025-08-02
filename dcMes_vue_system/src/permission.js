@@ -20,7 +20,24 @@ const whiteList = ['/login', '/register', '/marketPublicity', '/marketOverview']
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
-  if (getToken()) {
+  
+  // 获取Cookie中的token
+  const cookieToken = getToken()
+  
+  if (cookieToken) {
+    // 确保store中的token与Cookie保持同步
+    if (!store.getters.token || store.getters.token !== cookieToken) {
+      console.log('同步token状态到store:', cookieToken ? `${cookieToken.substring(0, 20)}...` : 'null')
+      store.commit('user/SET_TOKEN', cookieToken)
+      
+      // 如果还没有用户ID，也从Cookie同步
+      const cookieId = require('@/utils/auth').getid()
+      if (!store.getters.id && cookieId) {
+        console.log('同步用户ID到store:', cookieId)
+        store.commit('user/SET_ID', cookieId)
+      }
+    }
+    
     to.meta.title && store.dispatch('settings/setTitle', to.meta.title)
     /* has token*/
     if (to.path === '/login') {

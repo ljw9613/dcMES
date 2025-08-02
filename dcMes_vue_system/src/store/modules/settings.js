@@ -7,7 +7,8 @@ const state = {
   theme: variables.theme,
   showSettings: showSettings,
   fixedHeader: fixedHeader,
-  sidebarLogo: sidebarLogo
+  sidebarLogo: sidebarLogo,
+  title: '' // 添加title状态
 }
 
 const mutations = {
@@ -15,12 +16,18 @@ const mutations = {
     if (state.hasOwnProperty(key)) {
       state[key] = value
     }
+  },
+  SET_TITLE: (state, title) => {
+    state.title = title
   }
 }
 
 const actions = {
   changeSetting({ commit }, data) {
     commit('CHANGE_SETTING', data)
+  },
+  setTitle({ commit }, title) {
+    commit('SET_TITLE', title)
   }
 }
 

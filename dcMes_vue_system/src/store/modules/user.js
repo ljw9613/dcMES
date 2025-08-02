@@ -13,14 +13,20 @@ import { formatRole2Auth } from "@/utils/format2Tree";
 import store from "../index";
 
 const getDefaultState = () => {
+  const token = getToken();
+  const id = getid();
+  
+  console.log('初始化用户状态 - Token:', token ? `${token.substring(0, 20)}...` : 'null');
+  console.log('初始化用户状态 - ID:', id);
+  
   return {
-    token: getToken(),
+    token: token,
     name: "",
     userName: "",
     avatar: "",
     roles: "",
     auth: "",
-    id: getid(),
+    id: id,
     department: ""
   };
 };
@@ -29,9 +35,12 @@ const state = getDefaultState();
 
 const mutations = {
   RESET_STATE: state => {
-    Object.assign(state, getDefaultState());
+    const newState = getDefaultState();
+    console.log('重置用户状态 - 新Token:', newState.token ? `${newState.token.substring(0, 20)}...` : 'null');
+    Object.assign(state, newState);
   },
   SET_TOKEN: (state, token) => {
+    console.log('设置Token到State:', token ? `${token.substring(0, 20)}...` : 'null');
     state.token = token;
   },
   SET_ID: (state, id) => {
@@ -115,7 +124,9 @@ const actions = {
   // get user info
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
-      console.log(state.id);
+      console.log('获取用户信息，用户ID:', state.id);
+      console.log('当前token状态:', state.token ? `${state.token.substring(0, 20)}...` : 'null');
+      
       getInfo({ id: state.id })
         .then(response => {
           const { data } = response;

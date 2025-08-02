@@ -2,6 +2,7 @@
 
 const PreProductionBarcode = require("../model/project/preProductionBarcode"); // 根据实际路径调整
 const MaterialBarcodeBatch = require("../model/project/materialBarcodeBatch"); // 添加物料条码批次模型
+const PackBarcode = require("../model/project/packBarcode"); // 添加装箱条码模型
 const schedule = require("node-schedule");
 const BackupService = require("../services/backupService"); // 请根据实际路径调整
 
@@ -197,6 +198,50 @@ const materialProcessFlowBackupTask = async () => {
   });
 };
 
+// 定时任务: 每月1号凌晨4点执行装箱条码作废处理
+const packBarcodeExpirationTask = async () => {
+  console.log("装箱条码过期定时任务开始执行");
+  
+  // 每月1号凌晨4点执行作废处理 (0 4 1 * *)
+  schedule.scheduleJob("0 4 * * 1", async () => {
+    try {
+      // 计算上个月的时间范围
+      const now = new Date();
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      
+      console.log(`开始处理 ${lastMonthStart.toISOString().slice(0, 7)} 月的装箱条码作废`);
+
+      // 查找上个月未使用和未作废的装箱条码
+      const result = await PackBarcode.updateMany(
+        {
+          status: { $in: ['PENDING'] }, // 状态为待使用的条码
+          createAt: { 
+            $gte: lastMonthStart, 
+            $lte: lastMonthEnd 
+          }, // 创建时间在上个月
+        },
+        {
+          status: "VOIDED", // 更新状态为已作废
+          voidReason: "系统自动作废：月末过期处理", // 作废原因
+          voidBy: "系统", // 操作人
+          voidAt: new Date(), // 作废时间
+          updater: "系统", // 更新人
+          updateAt: new Date(), // 更新时间
+        }
+      );
+
+      console.log(`装箱条码作废完成，共处理 ${result.nModified} 条记录`);
+      console.log(`处理时间范围: ${lastMonthStart.toISOString()} 至 ${lastMonthEnd.toISOString()}`);
+      
+    } catch (error) {
+      console.error("装箱条码作废定时任务失败:", error);
+    } finally {
+      console.log("装箱条码作废定时任务执行结束");
+    }
+  });
+};
+
 // 初始化所有定时任务
 const initScheduleTasks = () => {
   // 延迟10秒启动定时任务，确保系统完全初始化
@@ -204,6 +249,7 @@ const initScheduleTasks = () => {
     productionBarcodeExpirationTask(); // 启动生产条码过期处理任务
     k3DataSyncTask(); // 启动金蝶云数据同步任务
     materialProcessFlowBackupTask(); // 启动工艺流程备份任务
+    packBarcodeExpirationTask(); // 启动装箱条码过期处理任务
     console.log("所有定时任务已初始化");
   }, 10000);
 };
@@ -215,5 +261,6 @@ module.exports = {
   productionBarcodeExpirationTask,
   k3DataSyncTask,
   materialProcessFlowBackupTask,
+  packBarcodeExpirationTask,
   initScheduleTasks,
 };

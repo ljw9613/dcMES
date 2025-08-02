@@ -33,7 +33,8 @@ materialBarcodeRuleSchema.pre("save", function (next) {
   next();
 });
 
-module.exports = mongoose.model(
+// 安全的模型导出，避免重复编译错误
+module.exports = mongoose.models.barcodeSegmentRuleMaterial || mongoose.model(
   "barcodeSegmentRuleMaterial",
   materialBarcodeRuleSchema
 );

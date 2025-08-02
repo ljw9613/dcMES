@@ -6,7 +6,7 @@ const apiLogger = require("../middleware/apiLogger");
 // 使用API日志中间件，指定服务名称
 router.use(apiLogger("materialPalletizing"));
 
-// 添加托盘条码接口
+// 添加托盘条码接口（支持队列化处理）
 router.post("/api/v1/handlePalletBarcode", async (req, res) => {
   try {
     const {
@@ -21,7 +21,9 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
       boxBarcode = null,
       totalQuantity,
       userId,
-      componentScans
+      componentScans,
+      useQueue = true, // 新增参数：是否使用队列处理，默认为true
+      fromRepairStation = false // 是否来自维修台
     } = req.body;
 
     // 参数验证
@@ -32,27 +34,148 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
       });
     }
 
-    const result = await materialPalletizingService.handlePalletBarcode(
-      lineId,
-      lineName,
-      processStepId,
-      materialId,
-      materialCode,
-      materialName,
-      materialSpec,
-      mainBarcode,
-      boxBarcode,
-      totalQuantity,
-      userId,
-      componentScans
-    );
+    let result;
+    
+    if (useQueue) {
+      // 使用队列化处理（推荐方式）
+      console.log(`托盘条码处理 - 使用队列模式: ${mainBarcode}`);
+      
+      result = await materialPalletizingService.handlePalletBarcodeAsync(
+        lineId,
+        lineName,
+        processStepId,
+        materialId,
+        materialCode,
+        materialName,
+        materialSpec,
+        mainBarcode,
+        boxBarcode,
+        totalQuantity,
+        userId,
+        componentScans,
+        fromRepairStation
+      );
+      
+      // 队列化处理成功，返回前端兼容的响应
+      return res.status(200).json({
+        code: 200,
+        success: true,
+        data: result,
+        message: "条码已提交处理队列，正在后台处理",
+        // 添加队列相关信息供前端参考
+        queue: {
+          enabled: true,
+          jobId: result.queueInfo?.jobId,
+          estimatedDelay: result.queueInfo?.estimatedDelay,
+          message: result.queueInfo?.message
+        }
+      });
+      
+    } else {
+      // 使用同步处理（兼容模式）
+      console.log(`托盘条码处理 - 使用同步模式: ${mainBarcode}`);
+      
+      result = await materialPalletizingService.handlePalletBarcode(
+        lineId,
+        lineName,
+        processStepId,
+        materialId,
+        materialCode,
+        materialName,
+        materialSpec,
+        mainBarcode,
+        boxBarcode,
+        totalQuantity,
+        userId,
+        componentScans,
+        fromRepairStation
+      );
+      
+      return res.status(200).json({
+        code: 200,
+        success: true,
+        data: result,
+        message: "添加成功",
+        queue: {
+          enabled: false,
+          message: "同步处理模式"
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error(`托盘条码处理失败: ${req.body.mainBarcode}`, error);
+    
+    return res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+      queue: {
+        enabled: req.body.useQueue || true,
+        error: true
+      }
+    });
+  }
+});
+
+// 添加队列状态查询接口
+router.get("/api/v1/getPalletProcessingStatus/:jobId", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    
+    if (!jobId) {
+      return res.status(200).json({
+        success: false,
+        message: "缺少任务ID参数",
+      });
+    }
+
+    // 导入队列服务来查询任务状态
+    const { palletQueue } = require('../services/queueService');
+    
+    const job = await palletQueue.getJob(jobId);
+    
+    if (!job) {
+      return res.status(200).json({
+        code: 404,
+        success: false,
+        message: "未找到对应的处理任务",
+      });
+    }
+
+    const jobState = await job.getState();
+    const progress = job.progress;
+    
+    let result = {
+      jobId: job.id,
+      state: jobState,
+      progress: progress,
+      data: job.data,
+      createdAt: new Date(job.timestamp).toISOString()
+    };
+
+    // 如果任务已完成，返回处理结果
+    if (jobState === 'completed') {
+      result.result = job.returnvalue;
+      result.completedAt = job.finishedOn ? new Date(job.finishedOn).toISOString() : null;
+    }
+
+    // 如果任务失败，返回错误信息
+    if (jobState === 'failed') {
+      result.error = job.failedReason;
+      result.failedAt = job.finishedOn ? new Date(job.finishedOn).toISOString() : null;
+    }
+
     return res.status(200).json({
       code: 200,
       success: true,
       data: result,
-      message: "添加成功",
+      message: "任务状态查询成功",
     });
+    
   } catch (error) {
+    console.error(`查询托盘处理状态失败: ${req.params.jobId}`, error);
+    
     return res.status(200).json({
       code: 500,
       success: false,

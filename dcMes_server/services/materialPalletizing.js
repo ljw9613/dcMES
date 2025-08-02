@@ -2997,6 +2997,290 @@ class MaterialPalletizingService {
       console.error("更新错误日志状态失败:", error);
     }
   }
+
+  /**
+   * 托盘条码异步处理（队列化版本）
+   * 快速响应前端，实际处理放入队列
+   * @param {String} lineId - 产线ID
+   * @param {String} lineName - 产线名称
+   * @param {String} processStepId - 工序ID
+   * @param {String} materialId - 物料ID
+   * @param {String} materialCode - 物料编码
+   * @param {String} materialName - 物料名称
+   * @param {String} materialSpec - 物料规格
+   * @param {String} mainBarcode - 主条码
+   * @param {String} boxBarcode - 箱条码(可选)
+   * @param {Number} totalQuantity - 托盘条码批次数量
+   * @param {String} userId - 用户ID
+   * @param {Array} componentScans - 子物料信息
+   * @param {Boolean} fromRepairStation - 是否来自维修台，默认为false
+   * @returns {Object} 队列任务信息和基本托盘信息
+   */
+  static async handlePalletBarcodeAsync(
+    lineId,
+    lineName,
+    processStepId,
+    materialId,
+    materialCode,
+    materialName,
+    materialSpec,
+    mainBarcode,
+    boxBarcode,
+    totalQuantity,
+    userId,
+    componentScans,
+    fromRepairStation = false
+  ) {
+    try {
+      console.log(`开始托盘条码异步处理: ${mainBarcode}, 产线: ${lineName}`);
+
+      // 步骤1：快速基础验证
+      const validationResult = await this._quickValidation(
+        lineId,
+        materialId,
+        mainBarcode,
+        boxBarcode,
+        fromRepairStation
+      );
+
+      if (!validationResult.valid) {
+        throw new Error(validationResult.error);
+      }
+
+      // 步骤2：获取或预创建托盘信息（用于快速响应）
+      const palletInfo = await this._getPalletInfoForQuickResponse(
+        lineId,
+        lineName,
+        processStepId,
+        materialId,
+        materialCode,
+        materialName,
+        materialSpec,
+        totalQuantity,
+        userId,
+        fromRepairStation
+      );
+
+      // 步骤3：将实际处理任务提交到队列
+      const { QueueService } = require('./queueService');
+      const queueResult = await QueueService.addPalletProcessingTask({
+        lineId,
+        lineName,
+        processStepId,
+        materialId,
+        materialCode,
+        materialName,
+        materialSpec,
+        mainBarcode,
+        boxBarcode,
+        totalQuantity,
+        userId,
+        componentScans,
+        fromRepairStation
+      });
+
+      if (!queueResult.success) {
+        throw new Error(`队列任务创建失败: ${queueResult.error}`);
+      }
+
+      console.log(`托盘条码异步处理任务已提交: ${mainBarcode}, JobId: ${queueResult.jobId}`);
+
+      // 步骤4：返回前端兼容的响应（模拟同步处理的结果）
+      return {
+        palletCode: palletInfo.palletCode,
+        productionOrderId: palletInfo.productionOrderId,
+        workOrderNo: palletInfo.workOrderNo,
+        saleOrderId: palletInfo.saleOrderId,
+        saleOrderNo: palletInfo.saleOrderNo,
+        totalQuantity: palletInfo.totalQuantity,
+        barcodeCount: palletInfo.barcodeCount + 1, // 预计增加1个条码
+        status: "PROCESSING", // 处理中状态
+        // 队列相关信息
+        queueInfo: {
+          jobId: queueResult.jobId,
+          estimatedDelay: queueResult.estimatedDelay,
+          queueLength: queueResult.queueLength,
+          message: "托盘处理任务已加入队列，正在后台处理"
+        },
+        // 为了前端兼容性，保留原有字段结构
+        _id: palletInfo._id,
+        materialId: palletInfo.materialId,
+        materialCode: palletInfo.materialCode,
+        materialName: palletInfo.materialName,
+        processStepId: palletInfo.processStepId,
+        productLineId: palletInfo.productLineId,
+        productLineName: palletInfo.productLineName
+      };
+
+    } catch (error) {
+      console.error("托盘条码异步处理失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 快速验证（在提交队列前进行基础验证）
+   * @param {String} lineId - 产线ID
+   * @param {String} materialId - 物料ID
+   * @param {String} mainBarcode - 主条码
+   * @param {String} boxBarcode - 箱条码
+   * @param {Boolean} fromRepairStation - 是否来自维修台
+   * @returns {Object} 验证结果
+   */
+  static async _quickValidation(lineId, materialId, mainBarcode, boxBarcode, fromRepairStation) {
+    try {
+      // 1. 检查条码是否重复
+      const duplicateCheck = await MaterialPalletizing.findOne({
+        "palletBarcodes.barcode": mainBarcode,
+        status: { $in: ["STACKING", "STACKED"] }
+      }).select('palletCode');
+      
+      if (duplicateCheck) {
+        return {
+          valid: false,
+          error: `条码 ${mainBarcode} 已被托盘 ${duplicateCheck.palletCode} 使用`
+        };
+      }
+
+      // 2. 检查产线是否有正在进行的生产计划
+      const currentProductionPlan = await productionPlanWorkOrder.findOne({
+        productionLineId: lineId,
+        status: "IN_PROGRESS",
+      }).select('_id');
+
+      if (!currentProductionPlan) {
+        return {
+          valid: false,
+          error: "未找到对应的产线当前生产计划"
+        };
+      }
+
+      // 3. 检查箱条码重复（如果存在）
+      if (boxBarcode) {
+        const existingBoxInOtherPallet = await MaterialPalletizing.findOne({
+          "boxItems.boxBarcode": boxBarcode,
+          status: { $in: ["STACKING", "STACKED"] }
+        }).select('palletCode');
+        
+        if (existingBoxInOtherPallet) {
+          return {
+            valid: false,
+            error: `箱条码 ${boxBarcode} 已在其他托盘 ${existingBoxInOtherPallet.palletCode} 中使用`
+          };
+        }
+      }
+
+      // 4. 检查条码是否在流程系统中存在
+      const materialProcessFlow = await MaterialProcessFlow.findOne({
+        barcode: mainBarcode,
+      }).select('_id productionPlanWorkOrderId');
+
+      if (!materialProcessFlow) {
+        return {
+          valid: false,
+          error: `条码 ${mainBarcode} 在系统中不存在`
+        };
+      }
+
+      return { valid: true };
+
+    } catch (error) {
+      console.error("快速验证失败:", error);
+      return {
+        valid: false,
+        error: `验证失败: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 获取托盘信息用于快速响应
+   * @param {String} lineId - 产线ID
+   * @param {String} lineName - 产线名称
+   * @param {String} processStepId - 工序ID
+   * @param {String} materialId - 物料ID
+   * @param {String} materialCode - 物料编码
+   * @param {String} materialName - 物料名称
+   * @param {String} materialSpec - 物料规格
+   * @param {Number} totalQuantity - 托盘总数量
+   * @param {String} userId - 用户ID
+   * @param {Boolean} fromRepairStation - 是否来自维修台
+   * @returns {Object} 托盘信息
+   */
+  static async _getPalletInfoForQuickResponse(
+    lineId,
+    lineName,
+    processStepId,
+    materialId,
+    materialCode,
+    materialName,
+    materialSpec,
+    totalQuantity,
+    userId,
+    fromRepairStation = false
+  ) {
+    try {
+      // 获取当前生产计划
+      const currentProductionPlan = await productionPlanWorkOrder.findOne({
+        productionLineId: lineId,
+        status: "IN_PROGRESS",
+      });
+
+      // 查找现有的未完成托盘
+      let pallet = await MaterialPalletizing.findOne({
+        productLineId: lineId,
+        materialId: materialId,
+        status: "STACKING",
+        repairStatus: { $ne: "REPAIRING" },
+        productionPlanWorkOrderId: currentProductionPlan._id,
+      });
+
+      if (!pallet) {
+        // 预创建托盘信息（不保存到数据库，只用于响应）
+        const palletCode = "YDC-SN-" + new Date().getTime();
+        const palletTotalQuantity = (totalQuantity && totalQuantity > 0) ? totalQuantity : 1000;
+        
+        return {
+          palletCode,
+          saleOrderId: currentProductionPlan.saleOrderId,
+          saleOrderNo: currentProductionPlan.saleOrderNo,
+          productionOrderId: currentProductionPlan.productionOrderId,
+          workOrderNo: currentProductionPlan.workOrderNo,
+          totalQuantity: palletTotalQuantity,
+          barcodeCount: 0, // 新托盘，条码数为0
+          materialId,
+          materialCode,
+          materialName,
+          processStepId,
+          productLineId: lineId,
+          productLineName: lineName,
+          _id: new Date().getTime().toString() // 临时ID
+        };
+      } else {
+        // 返回现有托盘信息
+        return {
+          palletCode: pallet.palletCode,
+          saleOrderId: pallet.saleOrderId,
+          saleOrderNo: pallet.saleOrderNo,
+          productionOrderId: pallet.productionOrderId,
+          workOrderNo: pallet.workOrderNo,
+          totalQuantity: pallet.totalQuantity,
+          barcodeCount: pallet.barcodeCount,
+          materialId: pallet.materialId,
+          materialCode: pallet.materialCode,
+          materialName: pallet.materialName,
+          processStepId: pallet.processStepId,
+          productLineId: pallet.productLineId,
+          productLineName: pallet.productLineName,
+          _id: pallet._id
+        };
+      }
+
+    } catch (error) {
+      console.error("获取托盘信息失败:", error);
+      throw new Error(`获取托盘信息失败: ${error.message}`);
+    }
+  }
 }
 
 module.exports = MaterialPalletizingService;

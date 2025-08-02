@@ -40,11 +40,15 @@ const packBarcodeSchema = new mongoose.Schema({
     
     serialNumber: { type: Number, required: true }, // 序号（用于排序）
 
+    // 并发控制字段
+    lockedBy: { type: String }, // 锁定的产线ID或会话ID
+    lockedAt: { type: Date }, // 锁定时间
+    lockExpireAt: { type: Date }, // 锁定过期时间（防止死锁）
     
     // 状态信息
     status: { 
         type: String, 
-        enum: ['PENDING', 'USED', 'VOIDED'], // 待使用、已使用、已作废
+        enum: ['PENDING', 'LOCKED', 'USED', 'VOIDED'], // 待使用、已锁定、已使用、已作废
         default: 'PENDING'
     },
     // 批次号
@@ -79,4 +83,31 @@ packBarcodeSchema.index({ createAt: -1 });
 packBarcodeSchema.index({ lineNum: 1 });
 packBarcodeSchema.index({ productionLineId: 1 });
 
-module.exports = mongoose.model("packBarcode", packBarcodeSchema); 
+// 并发控制相关索引
+packBarcodeSchema.index({ productionLineId: 1, status: 1, createAt: -1 });
+packBarcodeSchema.index({ lockedBy: 1 });
+packBarcodeSchema.index({ lockExpireAt: 1 });
+
+// 条码唯一性约束（排除已作废的条码）
+packBarcodeSchema.index({ barcode: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { status: { $ne: "VOIDED" } } 
+});
+packBarcodeSchema.index({ printBarcode: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { status: { $ne: "VOIDED" } } 
+});
+
+// 序列号在当月内的唯一性约束（按物料+年月分组）
+// 确保同一物料在同一月份内的序列号唯一
+packBarcodeSchema.index({ 
+  materialNumber: 1,
+  serialNumber: 1,
+  createAt: 1
+}, { 
+  unique: true,
+  partialFilterExpression: { status: { $ne: "VOIDED" } }
+});
+
+// 安全的模型导出，避免重复编译错误
+module.exports = mongoose.models.packBarcode || mongoose.model("packBarcode", packBarcodeSchema); 

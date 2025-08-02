@@ -106,7 +106,7 @@ router.post('/api/v1/user/info', async (reqs, res, next) => {
             _id: reqs.body.id
         }).populate({ path: 'role', populate: { path: 'menuList' } });
         
-        console.log('查询到的用户信息:', user);
+        // console.log('查询到的用户信息:', user);
         
         if (user !== null) {
             res.json({

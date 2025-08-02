@@ -352,6 +352,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { getMachineProgress } from "@/api/machine";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import { createBatch } from "@/api/materialBarcodeBatch";
+import { getOrCreatePackBarcode, cleanExpiredPackBarcodeLocks, unlockPackBarcode, unlockAllPackBarcodes } from "@/api/materialPalletizing";
 import ZrSelect from "@/components/ZrSelect";
 import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
@@ -439,6 +440,12 @@ export default {
 
       packingBarcode: "", // 保存装箱条码
       printData: {}, // 添加printData属性
+      
+      // 设备信息
+      deviceInfo: {
+        sessionId: null,
+        deviceIp: null
+      }
     };
   },
   computed: {
@@ -2512,26 +2519,91 @@ export default {
     },
 
     async initializePackingBarcode() {
-      console.log("初始化装箱条码");
+      console.log("初始化装箱条码（并发安全版本）");
+      
+      try {
+        // 初始化设备信息
+        this.initDeviceInfo();
+        
+        // 检查是否有之前锁定的条码需要清理
+        await this.cleanupPreviousLocks();
+        
+        // 调用原子操作API获取或创建装箱条码
+        const response = await getOrCreatePackBarcode({
+          productionLineId: this.formData.productLine,
+          materialNumber: this.boxMaterial.materialCode,
+          materialId: this.boxMaterial.materialId,
+          materialName: this.boxMaterial.materialName,
+          ...this.deviceInfo
+        });
+
+        if (response.success && response.data) {
+          this.packingBarcode = response.data;
+          console.log("成功获取装箱条码:", this.packingBarcode);
+          
+          // 保存锁定信息到本地存储
+          this.saveLockInfo();
+          
+          // 自动扫描获取到的条码
+          this.handleUnifiedScan(response.data.printBarcode);
+          
+          // 显示成功消息
+          this.$message.success(response.message || this.$t('scanBarCodePack.messages.packingBarcodeInitialized'));
+          
+        } else {
+          // 处理失败情况
+          if (response.shouldRetry) {
+            // 如果是序列号冲突，延迟重试
+            setTimeout(() => {
+              this.initializePackingBarcode();
+            }, 500 + Math.random() * 1000); // 随机延迟避免同时重试
+            return;
+          }
+          
+          this.$message.error(response.message || '获取装箱条码失败');
+        }
+        
+      } catch (error) {
+        console.error("装箱条码初始化失败:", error);
+        
+        // 如果原子操作失败，回退到原有逻辑
+        console.log("回退到原有的装箱条码获取逻辑");
+        await this.fallbackInitializePackingBarcode();
+      }
+    },
+
+    // 回退方案：使用原有的装箱条码获取逻辑
+    async fallbackInitializePackingBarcode() {
+      console.log("使用回退方案初始化装箱条码");
+      // 原有的初始化逻辑保持不变...
+      
       // 如果产线有未装满的装箱条码，则不初始化
       const searchPackBarcode = await getData("packBarcode", {
         query: {
           productionLineId: this.formData.productLine, // 关联产线
           materialNumber: this.boxMaterial.materialCode,
           status: "PENDING",
+          // 添加时间限制：只查询当月创建的装箱条码
+          createAt: {
+            $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // 当月第一天
+            $lt: new Date(
+              new Date().getFullYear(),
+              new Date().getMonth() + 1,
+              1
+            ), // 下个月第一天
+          },
         },
         sort: { serialNumber: -1 },
         limit: 1,
       });
       console.log(searchPackBarcode, "searchPackBarcode");
       if (searchPackBarcode.data && searchPackBarcode.data.length > 0) {
-        this.packingBarcode = searchPackBarcode.data[0]; // 假设您要在 scanForm 中添加 packingBarcode
+        this.packingBarcode = searchPackBarcode.data[0]; 
         // 统一扫描
         this.handleUnifiedScan(searchPackBarcode.data[0].printBarcode);
         return;
       }
-      // 初始化装箱条码的逻辑
-      console.log(this.boxMaterial, "this.boxMaterial");
+      
       // 获取物料对应的条码规则
       const ruleResult = await getData("barcodeSegmentRuleMaterial", {
         query: {
@@ -2539,8 +2611,6 @@ export default {
           enabled: true,
         },
       });
-
-      console.log(ruleResult, "ruleResult");
 
       if (!ruleResult.data || !ruleResult.data.length) {
         this.$message.error(this.$t('scanBarCodePack.messages.materialNotBoundBarcodeRule'));
@@ -2597,15 +2667,12 @@ export default {
         },
       });
 
-      console.log(workOrderResult, "workOrderResult");
       if (!workOrderResult.data || !workOrderResult.data.length) {
         this.$message.error(this.$t('scanBarCodePack.messages.noActiveWorkOrderOnLine'));
         return;
       }
 
       let workOrder = workOrderResult.data[0];
-
-      console.log("🚀 ~ initializePackingBarcode ~ workOrder:", workOrder);
 
       // 生成条码逻辑
       const barcodeResult = await this.generateBarcode(
@@ -2622,9 +2689,6 @@ export default {
         return;
       }
 
-      console.log(barcodeResult.barcode, "barcodeResult");
-      console.log(barcodeResult, "barcodeResult");
-
       // 保存装箱条码
       let res = await addData("packBarcode", {
         ...barcodeResult,
@@ -2639,10 +2703,21 @@ export default {
         ruleName: rule.name,
         ruleId: rule._id,
         serialNumber: serialNumber,
+        creator: (this.user && this.user.userName) || "未知",
+        createAt: new Date(),
+        updater: (this.user && this.user.userName) || "未知",
+        updateAt: new Date(),
       });
-      this.handleUnifiedScan(barcodeResult.printBarcode);
-      this.packingBarcode = res.data; // 设置生成的条码
-      this.$message.success(this.$t('scanBarCodePack.messages.packingBarcodeInitialized'));
+
+      if (res.success) {
+        this.packingBarcode = res.data; // 设置生成的条码
+        this.$message.success(this.$t('scanBarCodePack.messages.packingBarcodeInitialized'));
+        console.log(res.data, "生成的装箱条码");
+        // 统一扫描
+        this.handleUnifiedScan(res.data.printBarcode);
+      } else {
+        this.$message.error(res.msg);
+      }
     },
 
     // 修改 generateBarcode 方法
@@ -2913,8 +2988,132 @@ export default {
     handleSaveSettings() {
       this.$message.info("打包装箱保存设置");
     },
+
+    // 清理过期的装箱条码锁定
+    async cleanupExpiredLocks() {
+      try {
+        const response = await cleanExpiredPackBarcodeLocks();
+        if (response.success && response.count > 0) {
+          console.log(`清理了 ${response.count} 个过期锁定的装箱条码`);
+        }
+      } catch (error) {
+        console.warn("清理过期锁定失败:", error);
+        // 不显示错误消息，因为这是后台操作
+      }
+    },
+
+    // 初始化设备信息
+    initDeviceInfo() {
+      // 生成会话ID
+      this.deviceInfo.sessionId = `session_${this.formData.productLine}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // 尝试获取设备IP（这里可以根据实际情况获取）
+      this.getDeviceIP().then(ip => {
+        this.deviceInfo.deviceIp = ip;
+      });
+    },
+
+    // 获取设备IP
+    async getDeviceIP() {
+      try {
+        // 方式1：通过请求头获取客户端IP（需要后端支持）
+        // const response = await fetch('/api/v1/getClientIP');
+        // const data = await response.json();
+        // return data.ip;
+        
+        // 方式2：使用工位编号或其他唯一标识
+        const workstationId = localStorage.getItem('workstationId');
+        if (workstationId) {
+          return `WS_${workstationId}`;
+        }
+        
+        // 方式3：使用浏览器fingerprint作为设备标识
+        const userAgent = navigator.userAgent;
+        const screen = `${screen.width}x${screen.height}`;
+        const deviceFingerprint = btoa(`${userAgent}_${screen}_${navigator.language}`).slice(0, 16);
+        return `DEV_${deviceFingerprint}`;
+        
+      } catch (error) {
+        console.warn('获取设备IP失败，使用默认标识', error);
+        return null;
+      }
+    },
+
+    // 清理之前的锁定（页面刷新时调用）
+    async cleanupPreviousLocks() {
+      const lockedInfo = localStorage.getItem('lockedPackBarcode');
+      if (lockedInfo) {
+        try {
+          const info = JSON.parse(lockedInfo);
+          console.log('发现之前锁定的条码，尝试解锁:', info);
+          
+          // 解锁之前的条码
+          await unlockPackBarcode(info);
+          console.log('成功解锁之前的条码');
+          
+        } catch (error) {
+          console.warn('清理之前的锁定失败:', error);
+        } finally {
+          // 无论成功失败都清除本地存储
+          localStorage.removeItem('lockedPackBarcode');
+        }
+      }
+    },
+
+    // 保存锁定信息到本地存储
+    saveLockInfo() {
+      if (this.packingBarcode && this.packingBarcode._id) {
+        const lockInfo = {
+          barcodeId: this.packingBarcode._id,
+          barcode: this.packingBarcode.barcode,
+          ...this.deviceInfo
+        };
+        localStorage.setItem('lockedPackBarcode', JSON.stringify(lockInfo));
+      }
+    },
+
+    // 解锁当前条码
+    async unlockCurrentBarcode() {
+      if (!this.packingBarcode || !this.packingBarcode._id) return;
+
+      try {
+        const response = await unlockPackBarcode({
+          barcodeId: this.packingBarcode._id,
+          ...this.deviceInfo
+        });
+
+        if (response.success) {
+          console.log('条码解锁成功');
+          localStorage.removeItem('lockedPackBarcode');
+        }
+      } catch (error) {
+        console.error('解锁条码失败:', error);
+      }
+    },
+
+    // 页面卸载时解锁条码
+    handlePageUnload(event) {
+      // 使用 sendBeacon 确保请求能发出
+      if (this.packingBarcode && this.packingBarcode._id) {
+        const unlockData = JSON.stringify({
+          barcodeId: this.packingBarcode._id,
+          ...this.deviceInfo
+        });
+        
+        // 使用 sendBeacon 发送解锁请求
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/v1/unlockPackBarcode', unlockData);
+        }
+        
+        // 清除本地存储
+        localStorage.removeItem('lockedPackBarcode');
+      }
+    },
   },
   async created() {
+    // 清理过期的装箱条码锁定（启动时清理一次）
+    await this.cleanupExpiredLocks();
+    
     // 从本地存储中恢复自动打印开关状态
     const savedAutoPrint = localStorage.getItem("autoPrint");
     if (savedAutoPrint !== null) {
@@ -3013,9 +3212,18 @@ export default {
     if (this.mainMaterialId && this.processStepId) {
       this.$refs.scanInput.focus();
     }
+
+    // 添加页面关闭事件监听
+    window.addEventListener('beforeunload', this.handlePageUnload);
   },
   // 组件销毁时清除定时器
   beforeDestroy() {
+    // 移除页面关闭事件监听
+    window.removeEventListener('beforeunload', this.handlePageUnload);
+    
+    // 解锁当前条码
+    this.unlockCurrentBarcode();
+    
     // 关闭WebSocket连接
     if (this.ws) {
       this.ws.close();
