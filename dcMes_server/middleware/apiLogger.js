@@ -37,8 +37,8 @@ const apiLogger = (serviceName) => {
       ? authHeader.substring(7)
       : authHeader;
 
-    console.log(`[${serviceName}] 提取的token:`, token);
-    console.log(`[${serviceName}] token长度:`, token.length);
+    // console.log(`[${serviceName}] 提取的token:`, token);
+    // console.log(`[${serviceName}] token长度:`, token.length);
 
     // 检查请求路径是否为登录路由或不需要验证的路由
     const isLoginRoute =
@@ -56,13 +56,13 @@ const apiLogger = (serviceName) => {
 
     if (token && token.length > 0) {
       try {
-        console.log(`[${serviceName}] 正在验证token...`);
-        console.log(`[${serviceName}] 使用密钥:`, config.secretOrPrivateKey);
+        // console.log(`[${serviceName}] 正在验证token...`);
+        // console.log(`[${serviceName}] 使用密钥:`, config.secretOrPrivateKey);
 
         // 验证token并解析用户信息
         const decoded = jwt.verify(token, config.secretOrPrivateKey);
 
-        console.log(`[${serviceName}] Token解析成功:`, decoded);
+        // console.log(`[${serviceName}] Token解析成功:`, decoded);
 
         userId = decoded._id;
         userName = decoded.userName;

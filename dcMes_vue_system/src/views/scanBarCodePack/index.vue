@@ -173,6 +173,7 @@
             <div class="scan-input-section">
               <el-input
                 v-model="unifiedScanInput"
+                :disabled="isSubmitting"
                 :placeholder="$t('scanBarCodePack.scanning.scanPlaceholder')"
                 @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
                 ref="scanInput"
@@ -307,7 +308,9 @@
                 type="primary"
                 @click="handleConfirm"
                 icon="el-icon-check"
-                >{{ $t('scanBarCodePack.buttons.confirm') }}</el-button
+                :loading="isSubmitting"
+                :disabled="isSubmitting"
+                >{{ isSubmitting ? '提交中...' : $t('scanBarCodePack.buttons.confirm') }}</el-button
               >
             </div>
           </el-form>
@@ -412,6 +415,10 @@ export default {
       loading: false, // 加载状态
       unifiedScanInput: "", // 新增统一扫描输入框的值
       hasEditPermission: false, // 添加权限控制状态
+      
+      // 添加防重复提交标志位
+      isSubmitting: false,
+      
       batchMaterialCache: {}, // 新增：用于存储批次物料缓存
       printDialogVisible: false,
       currentBatchBarcode: "", // 当前要打印的批次条码
@@ -1822,6 +1829,12 @@ export default {
             position: "top-right",
           });
 
+          // 检查是否已经在提交中，避免重复提交
+          if (this.isSubmitting) {
+            console.warn('已经在提交中，跳过自动提交');
+            return;
+          }
+
           // 所有条码都已扫描完成,进行scanComponents提交
           await this.handleConfirm();
         } else {
@@ -1949,6 +1962,15 @@ export default {
 
     // 确认按钮处理方法
     async handleConfirm() {
+      // 防重复提交检查
+      if (this.isSubmitting) {
+        console.warn('正在提交中，请勿重复操作');
+        return;
+      }
+
+      // 设置提交状态
+      this.isSubmitting = true;
+
       try {
         // 1. 验证所有需要扫码的条码是否已扫描
         const allBarcodesFilled = Object.values(this.validateStatus).every(
@@ -2286,6 +2308,9 @@ export default {
             playAudio('tmyw'); // 延迟播放
           }, 1000);
         }
+      } finally {
+        // 重置提交状态
+        this.isSubmitting = false;
       }
     },
 

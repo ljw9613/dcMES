@@ -43,8 +43,15 @@ export function getPalletProcessingStatus(jobId) {
 - ✅ 返回格式与原接口完全一致
 
 ### 3. 替换原有调用
-将两个关键位置的 `handlePalletBarcode` 调用替换为队列处理方法：
+将所有扫码页面的 `handlePalletBarcode` 调用替换为队列处理方法：
+
+**scanBarCodeBatch/index.vue（原扫码页面）**：
 - `handleBoxBarcode` 函数 - 处理包装箱条码
+- `handleSingleBarcode` 函数 - 处理单个条码
+
+**scanBarCodeBatchNew/index.vue（新扫码页面）**：
+- 主流程入托处理
+- `handleBoxBarcode` 函数 - 处理包装箱条码  
 - `handleSingleBarcode` 函数 - 处理单个条码
 
 ## 用户体验提升 🚀
@@ -126,8 +133,11 @@ const result = await handlePalletBarcode({
 cd dcMes_server
 node test/test-pallet-queue.js
 
-# 前端集成测试
+# 原扫码页面前端集成测试
 node test/test-frontend-queue-integration.js
+
+# 新扫码页面前端集成测试
+node test/test-scanBarCodeBatchNew-queue.js
 ```
 
 ### 手动测试步骤
@@ -179,10 +189,12 @@ const checkInterval = 1500;  // 每1.5秒检查一次
 ### 修改的文件
 - ✅ `dcMes_vue_system/src/api/materialPalletizing.js` - 新增状态查询API
 - ✅ `dcMes_vue_system/src/views/scanBarCodeBatch/index.vue` - 核心队列处理逻辑
+- ✅ `dcMes_vue_system/src/views/scanBarCodeBatchNew/index.vue` - 新扫码页面队列处理逻辑
 
 ### 新增的文件  
 - ✅ `docs/pallet-queue-frontend-fix.md` - 详细实现文档
-- ✅ `dcMes_server/test/test-frontend-queue-integration.js` - 集成测试脚本
+- ✅ `dcMes_server/test/test-frontend-queue-integration.js` - 原扫码页面集成测试脚本
+- ✅ `dcMes_server/test/test-scanBarCodeBatchNew-queue.js` - 新扫码页面集成测试脚本
 - ✅ `README-pallet-queue-fix.md` - 本文档
 
 ## 问题解决确认 ✅
@@ -206,7 +218,14 @@ const checkInterval = 1500;  // 每1.5秒检查一次
 3. **保持了向后兼容** - 同步模式正常工作，API调用不变
 4. **增强了错误处理** - 超时降级和智能重试机制
 
-**修复完成！现在前端能够正确处理队列化的托盘条码，确保数据准确展示！** 🎊
+**修复完成！现在所有前端扫码页面都能够正确处理队列化的托盘条码，确保数据准确展示！** 🎊
+
+### 📱 修复范围
+- ✅ **原扫码页面** (`scanBarCodeBatch/index.vue`) - 全面修复
+- ✅ **新扫码页面** (`scanBarCodeBatchNew/index.vue`) - 全面修复  
+- ✅ **产品入托托盘提交** - 统一队列化处理
+- ✅ **包装箱条码入托** - 统一队列化处理
+- ✅ **单个条码入托** - 统一队列化处理
 
 ---
 
@@ -214,5 +233,6 @@ const checkInterval = 1500;  // 每1.5秒检查一次
 
 如有问题，请参考：
 - 📖 详细实现文档: `docs/pallet-queue-frontend-fix.md`
-- 🧪 测试脚本: `dcMes_server/test/test-frontend-queue-integration.js`
+- 🧪 原扫码页面测试: `dcMes_server/test/test-frontend-queue-integration.js`
+- 🧪 新扫码页面测试: `dcMes_server/test/test-scanBarCodeBatchNew-queue.js`
 - 📊 监控接口: `/api/queue/*` 

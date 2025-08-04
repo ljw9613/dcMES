@@ -51,6 +51,11 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
   scrapProductBarcodeList: [
     {
       barcode: { type: String }, // 产品条码
+      status: {
+        type: String,
+        enum: ["PENDING", "IN_PROGRESS", "PAUSED", "COMPLETED", "CANCELLED"],
+        default: "PENDING",
+      }, // 报废状态
       scrapTime: { type: Date, default: Date.now }, // 报废时间
     },
   ], // 报废产品条码列表

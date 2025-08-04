@@ -485,7 +485,7 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
     // 处理报废逻辑
     if (repairRecord.solution === "报废") {
       // 更新物料流程状态为报废
-      await materialProcessFlow.findOneAndUpdate(
+      let materialFlowRecord = await materialProcessFlow.findOneAndUpdate(
         { barcode: repairRecord.barcode },
         {
           productStatus: "SCRAP",
@@ -545,6 +545,7 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
               $push: {
                 scrapProductBarcodeList: {
                   barcode: repairRecord.barcode,
+                  status: materialFlowRecord.status,
                   scrapTime: new Date(),
                 },
               },

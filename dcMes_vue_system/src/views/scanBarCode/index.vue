@@ -208,6 +208,7 @@
                 <input
                   type="text"
                   v-model="unifiedScanInput"
+                  :disabled="isSubmitting"
                   :placeholder="$t('scanBarCode.barcodeScanning.scanPlaceholder')"
                   @keyup.enter="handleUnifiedScan(unifiedScanInput)"
                   ref="scanInput"
@@ -343,7 +344,9 @@
                 type="primary"
                 @click="handleConfirm"
                 icon="el-icon-check"
-                >{{ $t('scanBarCode.buttons.confirm') }}</el-button
+                :loading="isSubmitting"
+                :disabled="isSubmitting"
+                >{{ isSubmitting ? '提交中...' : $t('scanBarCode.buttons.confirm') }}</el-button
               >
             </div>
           </el-form>
@@ -477,6 +480,9 @@ export default {
         inputQuantity: 0,
         scrapQuantity: 0,
       },
+      
+      // 添加防重复提交标志位
+      isSubmitting: false,
     };
   },
   computed: {
@@ -1893,6 +1899,12 @@ export default {
         );
 
         if (allScanned) {
+          // 检查是否已经在提交中，避免重复提交
+          if (this.isSubmitting) {
+            console.warn('已经在提交中，跳过自动提交');
+            return;
+          }
+
           this.$notify({
             title: "扫描完成",
             dangerouslyUseHTMLString: true,
@@ -2037,6 +2049,15 @@ export default {
 
     // 确认按钮处理方法
     async handleConfirm() {
+      // 防重复提交检查
+      if (this.isSubmitting) {
+        console.warn('正在提交中，请勿重复操作');
+        return;
+      }
+
+      // 设置提交状态
+      this.isSubmitting = true;
+
       // 创建全屏加载状态
       const loading = this.$loading({
         lock: true,
@@ -2219,6 +2240,8 @@ export default {
       } finally {
         // 关闭加载状态
         loading.close();
+        // 重置提交状态
+        this.isSubmitting = false;
       }
     },
 

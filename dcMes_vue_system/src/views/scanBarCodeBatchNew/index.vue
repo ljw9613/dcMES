@@ -448,7 +448,7 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { getMachineProgress } from "@/api/machine";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import { createBatch } from "@/api/materialBarcodeBatch";
-import { handlePalletBarcode } from "@/api/materialPalletizing";
+import { handlePalletBarcode, getPalletProcessingStatus } from "@/api/materialPalletizing";
 import ZrSelect from "@/components/ZrSelect";
 import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
@@ -731,6 +731,126 @@ export default {
   },
 
   methods: {
+    /**
+     * 处理队列化的托盘条码请求
+     * @param {Object} requestData - 请求数据
+     * @returns {Promise} 处理结果
+     */
+    async handlePalletBarcodeWithQueue(requestData) {
+      try {
+        // 调用托盘条码处理接口
+        let res = await handlePalletBarcode(requestData);
+        
+        if (res.code !== 200) {
+          return res; // 如果请求失败，直接返回错误结果
+        }
+
+        // 检查是否为队列模式
+        if (res.queue && res.queue.enabled && res.queue.jobId) {
+          console.log(`队列模式: 任务ID=${res.queue.jobId}, 预计延迟=${res.queue.estimatedDelay}ms`);
+          
+          // 显示处理中的消息
+          const loadingMessage = this.$message({
+            message: '正在后台处理，请稍候...',
+            type: 'info',
+            duration: 0, // 不自动关闭
+            showClose: false
+          });
+
+          // 轮询检查任务状态
+          const maxAttempts = 20; // 最多检查20次
+          const checkInterval = 1500; // 每1.5秒检查一次
+          
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              // 等待一段时间后检查状态
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+              
+              const statusRes = await getPalletProcessingStatus(res.queue.jobId);
+              
+              if (statusRes.code === 200) {
+                const { state, progress } = statusRes.data;
+                
+                console.log(`任务状态检查 ${attempt}: 状态=${state}, 进度=${progress}%`);
+                
+                if (state === 'completed') {
+                  // 任务完成，关闭加载消息
+                  loadingMessage.close();
+                  
+                  // 返回处理结果，格式与同步模式一致
+                  return {
+                    code: 200,
+                    success: true,
+                    data: statusRes.data.result.result, // 获取实际的处理结果
+                    message: "处理完成"
+                  };
+                } else if (state === 'failed') {
+                  // 任务失败
+                  loadingMessage.close();
+                  return {
+                    code: 500,
+                    success: false,
+                    message: `处理失败: ${statusRes.data.error || '未知错误'}`
+                  };
+                }
+                // 继续等待...
+              } else {
+                console.warn(`状态查询失败 (尝试 ${attempt}): ${statusRes.message}`);
+              }
+            } catch (statusError) {
+              console.error(`状态查询错误 (尝试 ${attempt}):`, statusError);
+            }
+          }
+          
+          // 超时处理 - 尝试获取最新的托盘数据
+          loadingMessage.close();
+          
+          try {
+            // 尝试通过托盘编号获取最新数据
+            const latestData = await getData("material_palletizing", {
+              query: { palletCode: res.data.palletCode },
+              populate: JSON.stringify([
+                { path: "productLineId", select: "lineCode" },
+                { path: "productionOrderId", select: "FWorkShopID_FName" },
+              ]),
+            });
+            
+            if (latestData.data && latestData.data.length > 0) {
+              this.$message.success('处理可能已完成，已获取最新数据');
+              return {
+                code: 200,
+                success: true,
+                data: latestData.data[0],
+                message: "处理完成（通过数据刷新获取）"
+              };
+            }
+          } catch (refreshError) {
+            console.error('获取最新数据失败:', refreshError);
+          }
+          
+          this.$message.warning('处理超时，但任务可能仍在后台进行');
+          
+          // 返回基本信息，让用户知道任务已提交
+          return {
+            code: 200,
+            success: true,
+            data: res.data,
+            message: "任务已提交，可能需要稍等",
+            isTimeout: true
+          };
+          
+        } else {
+          // 同步模式，直接返回结果
+          console.log('同步模式: 立即返回结果');
+          return res;
+        }
+        
+      } catch (error) {
+        console.error('托盘条码处理失败:', error);
+        throw error;
+      }
+    },
+
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
@@ -1915,7 +2035,7 @@ export default {
 
           try {
             // 调用保存接口
-            let res = await handlePalletBarcode({
+            let res = await this.handlePalletBarcodeWithQueue({
               lineId: this.productLineId,
               lineName: this.productLineName,
               processStepId: this.processStepId,
@@ -2157,7 +2277,7 @@ export default {
           // 更新进度
           this.boxProcessProgress.current++;
 
-          let res = await handlePalletBarcode({
+          let res = await this.handlePalletBarcodeWithQueue({
             lineId: this.productLineId,
             lineName: this.productLineName,
             processStepId: this.processStepId,
@@ -2290,7 +2410,7 @@ export default {
           }
         });
         // 调用保存接口
-        let res = await handlePalletBarcode({
+        let res = await this.handlePalletBarcodeWithQueue({
           lineId: this.productLineId,
           lineName: this.productLineName,
           processStepId: this.processStepId,

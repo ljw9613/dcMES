@@ -2370,7 +2370,7 @@ class MaterialProcessFlowService {
 
       const updateField = type === "input" ? "inputQuantity" : "outputQuantity";
 
-      // 获取更新前的工单信息
+      // 先获取更新前的工单信息（用于日志记录和扣减量检查）
       const beforeWorkOrder = await mongoose
         .model("production_plan_work_order")
         .findById(workOrderId)
@@ -2381,89 +2381,97 @@ class MaterialProcessFlowService {
         return null;
       }
 
+      // 获取更新前的状态
       const beforeQuantity = beforeWorkOrder[updateField] || 0;
       const beforeStatus = beforeWorkOrder.status;
       const beforeProgress = beforeWorkOrder.progress || 0;
 
-      // 扣减情况下，先查询当前数量，确保不会小于0
+      // 扣减情况下，确保不会小于0（在这里检查，避免额外查询）
       if (quantity < 0) {
-        const currentValue = beforeQuantity;
         // 确保扣减后不小于0
-        if (currentValue + quantity < 0) {
-          quantity = -currentValue; // 最多扣减到0
+        if (beforeQuantity + quantity < 0) {
+          const requestedDecrease = -quantity; // 原始请求的扣减量（正数）
+          quantity = -beforeQuantity; // 最多扣减到0
           console.log(
             `工单(ID: ${workOrderId})${
               type === "input" ? "投入" : "产出"
-            }量不足，最多扣减到0`
+            }量不足，最多扣减到0（当前量：${beforeQuantity}，请求扣减：${requestedDecrease}，实际扣减：${-quantity}）`
           );
         }
       }
 
+      // 准备更新数据
+      const updateData = {
+        $inc: { [updateField]: quantity },
+        $set: {
+          updateTime: new Date(),
+        },
+      };
+
+      // 如果需要设置createBy
+      if (!beforeWorkOrder.createBy) {
+        updateData.$set.createBy = beforeWorkOrder.updateBy;
+      }
+
+      // 如果是产出类型，计算新的进度
+      if (type === "output") {
+        const newOutputQuantity = (beforeWorkOrder.outputQuantity || 0) + quantity;
+        const planProductionQuantity = beforeWorkOrder.planProductionQuantity || 0;
+        const scrapQuantity = beforeWorkOrder.scrapQuantity || 0;
+        
+        // 防止除零错误
+        const totalTargetQuantity = planProductionQuantity + scrapQuantity;
+        if (totalTargetQuantity > 0) {
+          const newProgress = Math.min(100, Math.floor(
+            (newOutputQuantity / totalTargetQuantity) * 100
+          ));
+          updateData.$set.progress = newProgress;
+        }
+
+        // 检查量为负数且原状态为已完成的情况 - 优先处理
+        if (quantity < 0 && beforeWorkOrder.status === "COMPLETED") {
+          updateData.$set.status = "PAUSED";
+          console.log(
+            `工单(ID: ${workOrderId})因quantity为负数(${quantity})且原状态为已完成，被设置为暂停状态`
+          );
+        }
+        // 检查是否应该完成工单（使用else if避免状态冲突）
+        else if (newOutputQuantity >= planProductionQuantity) {
+          updateData.$set.status = "COMPLETED";
+          updateData.$set.endTime = new Date();
+          updateData.$set.progress = 100;
+          
+          console.log(`工单(ID: ${workOrderId}) 完成判断:`, {
+            newOutputQuantity,
+            planProductionQuantity,
+            scrapQuantity,
+            shouldComplete: newOutputQuantity >= planProductionQuantity
+          });
+        }
+      }
+
+      // 执行原子更新操作
       const workOrder = await mongoose
         .model("production_plan_work_order")
         .findOneAndUpdate(
           { _id: workOrderId },
-          {
-            $inc: { [updateField]: quantity },
-            $set: {
-              updateTime: new Date(),
-            },
-          },
-          { new: true }
-        )
-        .populate("materialId");
+          updateData,
+          { 
+            new: true, // 返回更新后的文档
+            populate: "materialId"
+          }
+        );
 
       if (!workOrder) {
-        console.log(`未找到工单(ID: ${workOrderId})或物料不匹配`);
+        console.log(`更新工单失败(ID: ${workOrderId})`);
         return null;
       }
 
-      if (!workOrder.createBy) {
-        workOrder.createBy = workOrder.updateBy;
+      // 如果工单完成，处理关联工单
+      if (type === "output" && workOrder.status === "COMPLETED" && beforeStatus !== "COMPLETED") {
+        console.log(`工单(ID: ${workOrderId})已完成 - 产出量: ${workOrder.outputQuantity}, 计划数量: ${workOrder.planProductionQuantity}`);
+        await this.completeAllRelatedWorkOrders(workOrder._id);
       }
-
-      // 计算进度百分比
-      if (type === "output") {
-        // 直接使用产出量计算进度，不再扣减报废数量
-        workOrder.progress = Math.floor(
-          (workOrder.outputQuantity / workOrder.planProductionQuantity) * 100
-        );
-        
-        // 确保进度不超过100%
-        workOrder.progress = Math.min(100, workOrder.progress);
-      }
-
-      // 检查quantity是否为负数且工单状态为已完成，如果是则将工单状态更新为暂停
-      if (quantity < 0 && workOrder.status === "COMPLETED") {
-        workOrder.status = "PAUSED";
-        console.log(
-          `工单(ID: ${workOrderId})因quantity为负数(${quantity})且原状态为已完成，被设置为暂停状态`
-        );
-      }
-      // 检查工单状态 - 修改完成判断逻辑
-      else if (type === "output") {
-        // 直接使用产出量判断完成，不再扣减报废数量
-        console.log(`工单(ID: ${workOrderId}) 完成判断:`, {
-          outputQuantity: workOrder.outputQuantity,
-          planProductionQuantity: workOrder.planProductionQuantity,
-          shouldComplete: workOrder.outputQuantity >= workOrder.planProductionQuantity
-        });
-        
-        // 当产出达到计划生产数量时，工单完成
-        if (workOrder.outputQuantity >= workOrder.planProductionQuantity) {
-          // 更新工单完成状态和时间
-          workOrder.status = "COMPLETED";
-          workOrder.endTime = new Date();
-          workOrder.progress = 100;
-
-          console.log(`工单(ID: ${workOrderId})已完成 - 产出量: ${workOrder.outputQuantity}, 计划数量: ${workOrder.planProductionQuantity}`);
-
-          // 使用新方法处理所有关联工单的完成状态
-          await this.completeAllRelatedWorkOrders(workOrder._id);
-        }
-      }
-
-      await workOrder.save();
 
       // 创建工单数量变更日志记录
       try {
