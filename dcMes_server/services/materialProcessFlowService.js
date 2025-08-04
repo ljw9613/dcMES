@@ -1888,6 +1888,36 @@ class MaterialProcessFlowService {
           throw new Error("存在重复扫描的条码");
         }
 
+         // **严格验证物料匹配性 - 修复BUG**
+        // 1. 验证所有提供的materialId都在当前工序的扫描要求中
+        for (const scan of componentScans) {
+          const matchingNode = materialNodes.find(
+            (node) => node.materialId.toString() === scan.materialId.toString()
+          );
+          if (!matchingNode) {
+            // 获取当前工序要求的物料信息用于错误提示
+            const requiredMaterials = materialNodes.map(node => 
+              `${node.materialCode}(${node.materialName})`
+            ).join("、");
+            throw new Error(
+              `提供的物料ID ${scan.materialId} 不在当前工序"${processNode.processName}"的扫描要求中。\n` +
+              `当前工序要求扫描的物料：${requiredMaterials}`
+            );
+          }
+        }
+
+        // 2. 验证所有要求扫描的物料都有对应的扫描记录
+        for (const node of materialNodes) {
+          const matchingScan = componentScans.find(
+            (scan) => scan.materialId.toString() === node.materialId.toString()
+          );
+          if (!matchingScan) {
+            throw new Error(
+              `缺少物料 ${node.materialCode}(${node.materialName}) 的扫描信息，该物料在工序"${processNode.processName}"中是必须扫描的`
+            );
+          }
+        }
+
         // 添加关键物料条码重复使用和批次用量检查
         for (const scan of componentScans) {
           const matchingNode = materialNodes.find(
