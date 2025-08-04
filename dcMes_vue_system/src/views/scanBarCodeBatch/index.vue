@@ -1841,16 +1841,16 @@ export default {
             limit: 1,
           }
         );
-        // if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
-        //   let palletUnbindData = palletUnbindResponse.data[0];
-        //   this.$message.error(
-        //     `该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`
-        //   );
-        //   this.popupType = "ng";
-        //   this.showPopup = true;
-        //   playAudio('tmyw');
-        //   return;
-        // }
+        if (palletUnbindResponse.data && palletUnbindResponse.data.length > 0) {
+          let palletUnbindData = palletUnbindResponse.data[0];
+          this.$message.error(
+            `该条码存在托盘${palletUnbindData.palletCode}解绑记录，请在维修台进行处理`
+          );
+          this.popupType = "ng";
+          this.showPopup = true;
+          playAudio('tmyw');
+          return;
+        }
 
         // 根据不同模式处理扫描值
         if (this.scanMode === "rfid") {
