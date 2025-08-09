@@ -105,3 +105,12 @@ export function unlockAllPackBarcodes(data) {
         data
     })
 }
+
+// 检查装箱条码状态
+export function checkPackBarcodeStatus(params) {
+    return request({
+        url: '/checkPackBarcodeStatus',
+        method: 'get',
+        params
+    })
+}

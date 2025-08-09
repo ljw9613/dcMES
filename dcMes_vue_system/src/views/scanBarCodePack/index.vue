@@ -6,7 +6,7 @@
         <div class="card-header">
           <span>
             <i class="el-icon-setting"></i>
-            {{ $t('scanBarCodePack.processSettings.title') }}</span
+            {{ $t("scanBarCodePack.processSettings.title") }}</span
           >
           <el-switch
             v-model="autoInit"
@@ -23,12 +23,20 @@
             <div class="section-header">
               <el-tag :type="websocketConnected ? 'success' : 'danger'">
                 <i class="el-icon-goods"></i>
-                {{ websocketConnected ? $t('scanBarCodePack.processSettings.connected') : $t('scanBarCodePack.processSettings.disconnected') }}</el-tag
+                {{
+                  websocketConnected
+                    ? $t("scanBarCodePack.processSettings.connected")
+                    : $t("scanBarCodePack.processSettings.disconnected")
+                }}</el-tag
               >
-              <span> {{ $t('scanBarCodePack.processSettings.basicInfo') }} </span>
+              <span>
+                {{ $t("scanBarCodePack.processSettings.basicInfo") }}
+              </span>
             </div>
 
-            <el-form-item :label="$t('scanBarCodePack.processSettings.productModel')">
+            <el-form-item
+              :label="$t('scanBarCodePack.processSettings.productModel')"
+            >
               <zr-select
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
@@ -38,7 +46,9 @@
                 label-key="FName"
                 sub-key="FMATERIALID"
                 :multiple="false"
-                :placeholder="$t('scanBarCodePack.processSettings.productModelPlaceholder')"
+                :placeholder="
+                  $t('scanBarCodePack.processSettings.productModelPlaceholder')
+                "
                 @select="handleProductChange"
               >
                 <template #option="{ item }">
@@ -57,15 +67,21 @@
               <el-input
                 v-else
                 v-model="formData.productName"
-                :placeholder="$t('scanBarCodePack.processSettings.productModelPlaceholder')"
+                :placeholder="
+                  $t('scanBarCodePack.processSettings.productModelPlaceholder')
+                "
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
 
-            <el-form-item :label="$t('scanBarCodePack.processSettings.processStep')">
+            <el-form-item
+              :label="$t('scanBarCodePack.processSettings.processStep')"
+            >
               <el-select
                 v-model="formData.processStep"
-                :placeholder="$t('scanBarCodePack.processSettings.processStepPlaceholder')"
+                :placeholder="
+                  $t('scanBarCodePack.processSettings.processStepPlaceholder')
+                "
                 @change="handleProcessChange"
                 class="custom-select"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -88,7 +104,9 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item :label="$t('scanBarCodePack.processSettings.productionLine')">
+            <el-form-item
+              :label="$t('scanBarCodePack.processSettings.productionLine')"
+            >
               <zr-select
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -99,13 +117,21 @@
                 tag-key="lineCode"
                 sub-key="workshop"
                 :multiple="false"
-                :placeholder="$t('scanBarCodePack.processSettings.productionLinePlaceholder')"
+                :placeholder="
+                  $t(
+                    'scanBarCodePack.processSettings.productionLinePlaceholder'
+                  )
+                "
                 @select="handleProductionLineSelect"
               />
               <el-input
                 v-else
                 v-model="formData.lineName"
-                :placeholder="$t('scanBarCodePack.processSettings.productionLinePlaceholder')"
+                :placeholder="
+                  $t(
+                    'scanBarCodePack.processSettings.productionLinePlaceholder'
+                  )
+                "
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
@@ -119,7 +145,7 @@
               icon="el-icon-close"
               v-if="mainMaterialId && processStepId"
             >
-              {{ $t('scanBarCodePack.processSettings.cancelSettings') }}
+              {{ $t("scanBarCodePack.processSettings.cancelSettings") }}
             </el-button>
             <el-button
               type="primary"
@@ -127,7 +153,7 @@
               @click="handleSave"
               icon="el-icon-check"
             >
-              {{ $t('scanBarCodePack.processSettings.saveSettings') }}
+              {{ $t("scanBarCodePack.processSettings.saveSettings") }}
             </el-button>
           </div>
         </el-form>
@@ -144,7 +170,7 @@
           <div class="card-header">
             <div class="header-left">
               <i class="el-icon-scan"></i>
-              <span>{{ $t('scanBarCodePack.scanning.title') }}</span>
+              <span>{{ $t("scanBarCodePack.scanning.title") }}</span>
               <el-button type="text" @click="toggleCollapse">
                 <i
                   :class="
@@ -153,7 +179,11 @@
                       : 'el-icon-d-arrow-left'
                   "
                 ></i>
-                {{ isCollapsed ? $t('scanBarCodePack.scanning.expand') : $t('scanBarCodePack.scanning.collapse') }}
+                {{
+                  isCollapsed
+                    ? $t("scanBarCodePack.scanning.expand")
+                    : $t("scanBarCodePack.scanning.collapse")
+                }}
               </el-button>
             </div>
             <el-button
@@ -161,14 +191,14 @@
               @click="handleClearCache"
               icon="el-icon-delete"
             >
-              {{ $t('scanBarCodePack.scanning.clearCache') }}
+              {{ $t("scanBarCodePack.scanning.clearCache") }}
             </el-button>
           </div>
 
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
             <div class="section-header">
               <i class="el-icon-camera"></i>
-              <span>{{ $t('scanBarCodePack.scanning.unifiedScanArea') }}</span>
+              <span>{{ $t("scanBarCodePack.scanning.unifiedScanArea") }}</span>
             </div>
             <div class="scan-input-section">
               <el-input
@@ -186,7 +216,7 @@
             <div class="section-header">
               <div class="section-title">
                 <i class="el-icon-goods"></i>
-                <span>{{ $t('scanBarCodePack.scanning.mainMaterial') }}</span>
+                <span>{{ $t("scanBarCodePack.scanning.mainMaterial") }}</span>
               </div>
               <div class="print-batch-btn">
                 <hir-input
@@ -202,14 +232,20 @@
             </div>
             <div class="material-section">
               <el-form-item
-                :label="`${$t('scanBarCodePack.materialInfo.materialNumber')}${mainMaterialCode}  ${$t('scanBarCodePack.materialInfo.materialName')}${mainMaterialName}`"
+                :label="`${$t(
+                  'scanBarCodePack.materialInfo.materialNumber'
+                )}${mainMaterialCode}  ${$t(
+                  'scanBarCodePack.materialInfo.materialName'
+                )}${mainMaterialName}`"
                 label-width="100%"
                 class="vertical-form-item"
               >
                 <div class="input-with-status">
                   <el-input
                     v-model="scanForm.mainBarcode"
-                    :placeholder="$t('scanBarCodePack.scanning.mainBarcodePlaceholder')"
+                    :placeholder="
+                      $t('scanBarCodePack.scanning.mainBarcodePlaceholder')
+                    "
                     :class="{ 'valid-input': validateStatus['mainBarcode'] }"
                     readonly
                   >
@@ -229,21 +265,33 @@
 
             <!-- 包装箱条码数据 -->
             <div class="packing-details">
-              <el-tag type="info" v-if="!packingBarcode.printBarcode"
-                >{{ $t('scanBarCodePack.packaging.notGenerated') }}</el-tag
-              >
+              <el-tag type="info" v-if="!packingBarcode.printBarcode">{{
+                $t("scanBarCodePack.packaging.notGenerated")
+              }}</el-tag>
               <el-tag type="info" v-if="packingBarcode.printBarcode"
-                >{{ $t('scanBarCodePack.packaging.packageBarcode') }}：{{ packingBarcode.printBarcode }}</el-tag
+                >{{ $t("scanBarCodePack.packaging.packageBarcode") }}：{{
+                  packingBarcode.printBarcode
+                }}</el-tag
               >
-              <el-tag type="warning" v-if="packingBarcode.status === 'PENDING'"
-                >{{ $t('scanBarCodePack.packaging.pending') }}</el-tag
+              <el-tag
+                type="warning"
+                v-if="packingBarcode.status === 'PENDING'"
+                >{{ $t("scanBarCodePack.packaging.pending") }}</el-tag
               >
+              <el-button
+                type="text"
+                @click="handleManualUnlock"
+                icon="el-icon-unlock"
+                style="color: #e6a23c"
+              >
+                解锁
+              </el-button>
             </div>
 
             <!-- 子物料部分 -->
             <div class="section-header">
               <i class="el-icon-box"></i>
-              <span>{{ $t('scanBarCodePack.scanning.subMaterial') }}</span>
+              <span>{{ $t("scanBarCodePack.scanning.subMaterial") }}</span>
             </div>
             <div class="material-section">
               <el-row :gutter="20">
@@ -253,7 +301,11 @@
                   :key="material._id"
                 >
                   <el-form-item
-                    :label="`${$t('scanBarCodePack.materialInfo.materialNumber')}${material.materialCode}  ${$t('scanBarCodePack.materialInfo.materialName')}${material.materialName}  `"
+                    :label="`${$t(
+                      'scanBarCodePack.materialInfo.materialNumber'
+                    )}${material.materialCode}  ${$t(
+                      'scanBarCodePack.materialInfo.materialName'
+                    )}${material.materialName}  `"
                     class="vertical-form-item"
                   >
                     <div class="input-with-status">
@@ -262,7 +314,9 @@
                         :placeholder="
                           !material.scanOperation
                             ? $t('scanBarCodePack.scanning.noScanRequired')
-                            : $t('scanBarCodePack.scanning.subBarcodePlaceholder')
+                            : $t(
+                                'scanBarCodePack.scanning.subBarcodePlaceholder'
+                              )
                         "
                         :class="{ 'valid-input': validateStatus[material._id] }"
                         :readonly="material.scanOperation"
@@ -273,7 +327,9 @@
                         </template>
                         <template slot="suffix">
                           <template v-if="!material.scanOperation">
-                            <el-tag type="info">{{ $t('scanBarCodePack.scanning.noScanRequired') }}</el-tag>
+                            <el-tag type="info">{{
+                              $t("scanBarCodePack.scanning.noScanRequired")
+                            }}</el-tag>
                           </template>
                           <template v-else-if="material.isBatch">
                             <el-tag
@@ -282,7 +338,9 @@
                             >
                               {{ getBatchUsageText(material._id) }}
                             </el-tag>
-                            <el-tag type="warning" v-else>{{ $t('scanBarCodePack.scanning.batchMaterial') }}</el-tag>
+                            <el-tag type="warning" v-else>{{
+                              $t("scanBarCodePack.scanning.batchMaterial")
+                            }}</el-tag>
                           </template>
                         </template>
                       </el-input>
@@ -301,16 +359,20 @@
 
             <!-- 按钮组 -->
             <div class="button-group">
-              <el-button plain @click="resetScanForm" icon="el-icon-refresh"
-                >{{ $t('scanBarCodePack.buttons.reset') }}</el-button
-              >
+              <el-button plain @click="resetScanForm" icon="el-icon-refresh">{{
+                $t("scanBarCodePack.buttons.reset")
+              }}</el-button>
               <el-button
                 type="primary"
                 @click="handleConfirm"
                 icon="el-icon-check"
                 :loading="isSubmitting"
                 :disabled="isSubmitting"
-                >{{ isSubmitting ? '提交中...' : $t('scanBarCodePack.buttons.confirm') }}</el-button
+                >{{
+                  isSubmitting
+                    ? "提交中..."
+                    : $t("scanBarCodePack.buttons.confirm")
+                }}</el-button
               >
             </div>
           </el-form>
@@ -320,7 +382,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>{{ $t('scanBarCodePack.initTip.message') }}</p>
+            <p>{{ $t("scanBarCodePack.initTip.message") }}</p>
           </div>
         </div>
       </template>
@@ -355,7 +417,12 @@ import { getData, addData, updateData, removeData } from "@/api/data";
 import { getMachineProgress } from "@/api/machine";
 import { createFlow, scanComponents } from "@/api/materialProcessFlowService";
 import { createBatch } from "@/api/materialBarcodeBatch";
-import { getOrCreatePackBarcode, cleanExpiredPackBarcodeLocks, unlockPackBarcode, unlockAllPackBarcodes } from "@/api/materialPalletizing";
+import {
+  getOrCreatePackBarcode,
+  cleanExpiredPackBarcodeLocks,
+  unlockPackBarcode,
+  unlockAllPackBarcodes,
+} from "@/api/materialPalletizing";
 import ZrSelect from "@/components/ZrSelect";
 import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 
@@ -415,10 +482,10 @@ export default {
       loading: false, // 加载状态
       unifiedScanInput: "", // 新增统一扫描输入框的值
       hasEditPermission: false, // 添加权限控制状态
-      
+
       // 添加防重复提交标志位
       isSubmitting: false,
-      
+
       batchMaterialCache: {}, // 新增：用于存储批次物料缓存
       printDialogVisible: false,
       currentBatchBarcode: "", // 当前要打印的批次条码
@@ -447,12 +514,22 @@ export default {
 
       packingBarcode: "", // 保存装箱条码
       printData: {}, // 添加printData属性
-      
+
       // 设备信息
       deviceInfo: {
         sessionId: null,
-        deviceIp: null
-      }
+        deviceIp: null,
+      },
+
+      // 当前锁定的物料信息
+      currentLockedMaterial: {
+        materialId: null,
+        productionLineId: null,
+        barcodeId: null,
+      },
+
+      // 装箱条码重试计数器
+      packingBarcodeRetryCount: 0,
     };
   },
   computed: {
@@ -559,10 +636,20 @@ export default {
         }
       },
     },
+
+    // 监听物料和产线变化的计算属性
+    materialLineKey() {
+      return `${this.mainMaterialId}_${this.productLineId}`;
+    },
   },
   watch: {
     // 监听缓存ID变化，获取相关数据
-    async mainMaterialId(newVal) {
+    async mainMaterialId(newVal, oldVal) {
+      if (oldVal && newVal !== oldVal) {
+        // 切换物料时，解锁之前的装箱条码
+        await this.cleanupMaterialSwitchLocks();
+      }
+
       if (newVal) {
         await this.getMainMaterialInfo();
       } else {
@@ -586,13 +673,28 @@ export default {
       },
       deep: true, // 深度监听对象的变化
     },
+
+    // 新增：监听物料和产线组合变化
+    materialLineKey: {
+      handler(newKey, oldKey) {
+        if (oldKey && newKey !== oldKey) {
+          console.log("物料或产线发生变化，清理之前的锁定");
+          this.handleMaterialOrLineChange(oldKey, newKey);
+        }
+      },
+      immediate: false,
+    },
   },
 
   methods: {
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
-      this.$message.success(value ? this.$t('scanBarCodePack.messages.autoInitEnabled') : this.$t('scanBarCodePack.messages.autoInitDisabled'));
+      this.$message.success(
+        value
+          ? this.$t("scanBarCodePack.messages.autoInitEnabled")
+          : this.$t("scanBarCodePack.messages.autoInitDisabled")
+      );
 
       if (value) {
         // 如果开启自动模式，立即获取机器进度
@@ -658,14 +760,18 @@ export default {
               this.lineNum = lineId.lineNum;
               this.formData.lineName = lineId.lineName;
             }
-            this.$message.success(this.$t('scanBarCodePack.messages.autoInitSuccess'));
+            this.$message.success(
+              this.$t("scanBarCodePack.messages.autoInitSuccess")
+            );
 
             // 对比当前设置的工序和缓存工序是否一致，不一致时调用handleSave()
             if (processStepIdValue !== this.processStepId) {
               this.handleSave();
             }
           } else {
-            this.$message.warning(this.$t('scanBarCodePack.messages.noMachineProgressConfig'));
+            this.$message.warning(
+              this.$t("scanBarCodePack.messages.noMachineProgressConfig")
+            );
           }
         } else {
           throw new Error(response.message || "获取机器进度失败");
@@ -679,7 +785,11 @@ export default {
         this.formData.productModel = "";
         this.formData.processStep = "";
         console.error("自动初始化失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.autoInitFailed') + ": " + error.message);
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.autoInitFailed") +
+            ": " +
+            error.message
+        );
       }
     },
     // 获取产品关联的条码规则
@@ -737,7 +847,9 @@ export default {
         });
       } catch (error) {
         console.error("获取条码规则失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.getBarcodeRulesFailed'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.getBarcodeRulesFailed")
+        );
       }
     },
     // 修改模板变更处理方法
@@ -747,10 +859,14 @@ export default {
       try {
         // 保存完整的模板对象到本地存储
         this.localPrintTemplate = template;
-        this.$message.success(this.$t('scanBarCodePack.messages.printTemplateSaved'));
+        this.$message.success(
+          this.$t("scanBarCodePack.messages.printTemplateSaved")
+        );
       } catch (error) {
         console.error("保存打印模板失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.printTemplateSaveFailed'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.printTemplateSaveFailed")
+        );
       }
     },
     async handlePrintBatch() {
@@ -796,7 +912,10 @@ export default {
           throw new Error("批次条码生成失败");
         }
       } catch (error) {
-        this.$message.error(error.message || this.$t('scanBarCodePack.messages.batchBarcodeGenerateFailed'));
+        this.$message.error(
+          error.message ||
+            this.$t("scanBarCodePack.messages.batchBarcodeGenerateFailed")
+        );
       } finally {
         loading.close();
         this.$nextTick(() => {
@@ -881,7 +1000,9 @@ export default {
           this.productOptions = result.data;
         } catch (error) {
           console.error("获取产品型号失败:", error);
-          this.$message.error(this.$t('scanBarCodePack.messages.getProductModelFailed'));
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.getProductModelFailed")
+          );
         } finally {
           this.materialLoading = false;
         }
@@ -907,7 +1028,9 @@ export default {
         this.formData.productModel = materialId;
       } catch (error) {
         console.error("获取工序列表失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.getProcessStepsFailed'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.getProcessStepsFailed")
+        );
       }
     },
 
@@ -929,7 +1052,9 @@ export default {
         !this.formData.processStep ||
         !this.formData.productLine
       ) {
-        this.$message.warning(this.$t('scanBarCodePack.messages.pleaseSelectProductProcessLine'));
+        this.$message.warning(
+          this.$t("scanBarCodePack.messages.pleaseSelectProductProcessLine")
+        );
         return;
       }
 
@@ -971,7 +1096,7 @@ export default {
           this.processName = processStep.processName;
         }
 
-        this.$message.success(this.$t('scanBarCodePack.messages.saveSuccess'));
+        this.$message.success(this.$t("scanBarCodePack.messages.saveSuccess"));
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -982,7 +1107,7 @@ export default {
         }, 500);
       } catch (error) {
         console.error("保存失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.saveFailed'));
+        this.$message.error(this.$t("scanBarCodePack.messages.saveFailed"));
         loading.close(); // 确保在错误情况下关闭加载动画
       }
     },
@@ -1008,7 +1133,9 @@ export default {
         }
       } catch (error) {
         console.error("获取主物料信息失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.getMainMaterialInfoFailed'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.getMainMaterialInfoFailed")
+        );
         this.mainMaterialName = "";
         this.mainMaterialCode = "";
       }
@@ -1131,14 +1258,19 @@ export default {
           }
         } catch (error) {
           console.error("获取工序物料失败:", error);
-          this.$message.error(this.$t('scanBarCodePack.messages.getProcessMaterialsFailed'));
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.getProcessMaterialsFailed")
+          );
           this.processMaterials = [];
           this.validateStatus = { mainBarcode: false };
           this.scanForm.barcodes = {};
         }
       } catch (error) {
         console.error("获取工序物料失败:", error);
-        this.$message.error(error.message || this.$t('scanBarCodePack.messages.getProcessMaterialsFailed'));
+        this.$message.error(
+          error.message ||
+            this.$t("scanBarCodePack.messages.getProcessMaterialsFailed")
+        );
         this.processMaterials = [];
         this.validateStatus = { mainBarcode: false };
         this.scanForm.barcodes = {};
@@ -1155,7 +1287,9 @@ export default {
         });
 
         if (response.data.length === 0) {
-          this.$message.error(this.$t('scanBarCodePack.messages.diCodeNotExist'));
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.diCodeNotExist")
+          );
           return { isValid: false };
         }
 
@@ -1165,7 +1299,9 @@ export default {
           .map((item) => item.productId.FNumber);
 
         if (possibleMaterialCodes.length === 0) {
-          this.$message.error(this.$t('scanBarCodePack.messages.diCodeNoMaterial'));
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.diCodeNoMaterial")
+          );
           return { isValid: false };
         }
 
@@ -1181,8 +1317,12 @@ export default {
         );
 
         if (!matchedMaterialCode) {
-          this.$message.error(this.$t('scanBarCodePack.messages.diCodeMaterialMismatch'));
-          this.errorMessage = this.$t('scanBarCodePack.messages.diCodeMaterialMismatch');
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.diCodeMaterialMismatch")
+          );
+          this.errorMessage = this.$t(
+            "scanBarCodePack.messages.diCodeMaterialMismatch"
+          );
           return { isValid: false };
         }
 
@@ -1193,7 +1333,9 @@ export default {
         };
       } catch (error) {
         console.error("DI码验证失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.diCodeValidationFailed'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.diCodeValidationFailed")
+        );
         return { isValid: false };
       }
     },
@@ -1208,7 +1350,9 @@ export default {
           this.$message.error(
             "未找到可用的条码规则（包括产品特定规则和全局规则）"
           );
-          this.errorMessage = this.$t('scanBarCodePack.messages.barcodeRuleNotFound');
+          this.errorMessage = this.$t(
+            "scanBarCodePack.messages.barcodeRuleNotFound"
+          );
           return { materialCode: null, isValid: false };
         }
 
@@ -1342,13 +1486,21 @@ export default {
         }
 
         // 所有规则都未匹配成功
-        this.$message.error(this.$t('scanBarCodePack.messages.barcodeRuleNotMatch'));
-        this.errorMessage = this.$t('scanBarCodePack.messages.barcodeRuleNotMatch');
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.barcodeRuleNotMatch")
+        );
+        this.errorMessage = this.$t(
+          "scanBarCodePack.messages.barcodeRuleNotMatch"
+        );
         return { materialCode: null, isValid: false };
       } catch (error) {
         console.error("条码验证失败:", error);
-        this.$message.error(this.$t('scanBarCodePack.messages.barcodeValidationError'));
-        this.errorMessage = this.$t('scanBarCodePack.messages.barcodeValidationError');
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.barcodeValidationError")
+        );
+        this.errorMessage = this.$t(
+          "scanBarCodePack.messages.barcodeValidationError"
+        );
         return { materialCode: null, isValid: false };
       }
     },
@@ -1363,7 +1515,9 @@ export default {
         if (response.data && response.data.length > 0) {
           // 条码已存在，获取流程信息
           const flowData = response.data[0];
-          this.$message.success(this.$t('scanBarCodePack.messages.scanSuccess'));
+          this.$message.success(
+            this.$t("scanBarCodePack.messages.scanSuccess")
+          );
         } else {
           // 使用工序对应的主物料信息创建新的流程记录
           const createResponse = await createFlow({
@@ -1375,7 +1529,9 @@ export default {
           });
 
           if (createResponse.code === 200) {
-            this.$message.success(this.$t('scanBarCodePack.messages.flowRecordCreateSuccess'));
+            this.$message.success(
+              this.$t("scanBarCodePack.messages.flowRecordCreateSuccess")
+            );
           } else {
             this.errorMessage =
               createResponse.message || "创建成品条码追溯记录失败";
@@ -1389,7 +1545,7 @@ export default {
         this.popupType = "ng";
         this.showPopup = true;
         this.errorMessage = error;
-        playAudio('tmyw');
+        playAudio("tmyw");
         throw error;
       }
     },
@@ -1416,12 +1572,14 @@ export default {
         }
 
         this.validateStatus[materialId] = true;
-        this.$message.success(this.$t('scanBarCodePack.messages.scanSuccessful'));
+        this.$message.success(
+          this.$t("scanBarCodePack.messages.scanSuccessful")
+        );
       } catch (error) {
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio('tmyw');
+        playAudio("tmyw");
         throw error;
       }
     },
@@ -1494,7 +1652,9 @@ export default {
       if (!this.$refs.hirInput.selectedTemplate) {
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
-        this.$message.warning(this.$t('scanBarCodePack.messages.printTemplateRequired'));
+        this.$message.warning(
+          this.$t("scanBarCodePack.messages.printTemplateRequired")
+        );
         return;
       }
 
@@ -1508,11 +1668,11 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('tmyw'); // 延迟播放错误提示音
+            playAudio("tmyw"); // 延迟播放错误提示音
           }, 300);
           this.$notify({
-            title: this.$t('scanBarCodePack.messages.barcodeValidationFailed'),
-            message: this.$t('scanBarCodePack.messages.barcodeFormatIncorrect'),
+            title: this.$t("scanBarCodePack.messages.barcodeValidationFailed"),
+            message: this.$t("scanBarCodePack.messages.barcodeFormatIncorrect"),
             type: "error",
             duration: 3000,
             position: "top-right",
@@ -1541,11 +1701,15 @@ export default {
           if (repairRecord.data[0].status == "PENDING_REVIEW") {
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
-            this.$message.error(this.$t('scanBarCodePack.messages.repairRecordExists'));
-            this.errorMessage = this.$t('scanBarCodePack.messages.repairRecordExists');
+            this.$message.error(
+              this.$t("scanBarCodePack.messages.repairRecordExists")
+            );
+            this.errorMessage = this.$t(
+              "scanBarCodePack.messages.repairRecordExists"
+            );
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio('dwx');
+            playAudio("dwx");
             return;
           }
           if (
@@ -1555,19 +1719,25 @@ export default {
             if (repairRecord.data[0].solution == "报废") {
               this.unifiedScanInput = "";
               this.$refs.scanInput.focus();
-              this.$message.error(this.$t('scanBarCodePack.messages.barcodeScrapProcessed'));
+              this.$message.error(
+                this.$t("scanBarCodePack.messages.barcodeScrapProcessed")
+              );
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio('tmyw');
+              playAudio("tmyw");
               return;
             }
             this.unifiedScanInput = "";
             this.$refs.scanInput.focus();
-            this.$message.error(this.$t('scanBarCodePack.messages.repairResultUnqualified'));
-            this.errorMessage = this.$t('scanBarCodePack.messages.repairResultUnqualified');
+            this.$message.error(
+              this.$t("scanBarCodePack.messages.repairResultUnqualified")
+            );
+            this.errorMessage = this.$t(
+              "scanBarCodePack.messages.repairResultUnqualified"
+            );
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio('wxsb');
+            playAudio("wxsb");
             return;
           }
         }
@@ -1605,7 +1775,7 @@ export default {
                   this.errorMessage = `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`;
                   this.popupType = "ng";
                   this.showPopup = true;
-                  playAudio('tmyw');
+                  playAudio("tmyw");
                   return;
                 }
               }
@@ -1622,7 +1792,7 @@ export default {
 
           await this.handleMainBarcode(cleanValue);
 
-          playAudio('smcg');
+          playAudio("smcg");
           this.$notify({
             title: "主物料扫描成功",
             dangerouslyUseHTMLString: true,
@@ -1736,7 +1906,7 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    playAudio('pcwlxz');
+                    playAudio("pcwlxz");
                     if (material.isPackingBox) {
                       await updateData("packBarcode", {
                         query: {
@@ -1761,7 +1931,7 @@ export default {
               // 处理子物料条码
               await this.handleSubBarcode(material._id, materialCode);
 
-              playAudio('smcg');
+              playAudio("smcg");
               this.$notify({
                 title: "子物料扫描成功",
                 dangerouslyUseHTMLString: true,
@@ -1792,12 +1962,16 @@ export default {
         }
 
         if (!matched) {
-          this.$message.error(this.$t('scanBarCodePack.messages.barcodeNotMatch'));
-          this.errorMessage = this.$t('scanBarCodePack.messages.barcodeNotMatch');
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.barcodeNotMatch")
+          );
+          this.errorMessage = this.$t(
+            "scanBarCodePack.messages.barcodeNotMatch"
+          );
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('tmyw'); // 延迟播放错误提示音
+            playAudio("tmyw"); // 延迟播放错误提示音
           }, 300);
           this.unifiedScanInput = "";
           this.$refs.scanInput.focus();
@@ -1831,7 +2005,7 @@ export default {
 
           // 检查是否已经在提交中，避免重复提交
           if (this.isSubmitting) {
-            console.warn('已经在提交中，跳过自动提交');
+            console.warn("已经在提交中，跳过自动提交");
             return;
           }
 
@@ -1868,7 +2042,7 @@ export default {
       } catch (error) {
         console.error("扫描处理失败:", error);
         setTimeout(() => {
-          playAudio('tmyw'); // 延迟播放错误提示音
+          playAudio("tmyw"); // 延迟播放错误提示音
         }, 1000);
         this.$notify({
           title: "扫描失败",
@@ -1937,7 +2111,9 @@ export default {
           componentName: "",
         };
 
-        this.$message.success(this.$t('scanBarCodePack.messages.cancelSettingsSuccess'));
+        this.$message.success(
+          this.$t("scanBarCodePack.messages.cancelSettingsSuccess")
+        );
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -1948,7 +2124,9 @@ export default {
       } catch (error) {
         if (error !== "cancel") {
           console.error("取消设置失败:", error);
-          this.$message.error(this.$t('scanBarCodePack.messages.cancelSettingsFailed'));
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.cancelSettingsFailed")
+          );
         }
       }
     },
@@ -1964,7 +2142,7 @@ export default {
     async handleConfirm() {
       // 防重复提交检查
       if (this.isSubmitting) {
-        console.warn('正在提交中，请勿重复操作');
+        console.warn("正在提交中，请勿重复操作");
         return;
       }
 
@@ -1984,7 +2162,9 @@ export default {
         );
 
         if (!allBarcodesFilled) {
-          this.$message.warning(this.$t('scanBarCodePack.messages.confirmCompleteAllScanning'));
+          this.$message.warning(
+            this.$t("scanBarCodePack.messages.confirmCompleteAllScanning")
+          );
           return;
         }
 
@@ -2249,7 +2429,7 @@ export default {
           this.showPopup = true;
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
-            playAudio('bdcg');
+            playAudio("bdcg");
           }, 1000);
         }
 
@@ -2265,7 +2445,7 @@ export default {
           this.$message.warning(error.message);
           this.errorMessage = error.message;
           setTimeout(() => {
-            playAudio('pcwlxz');
+            playAudio("pcwlxz");
             this.popupType = "ng";
             this.showPopup = true;
             // 播放批次物料条码已达到使用次数限制提示音
@@ -2291,21 +2471,21 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('cfbd'); // 延迟播放
+            playAudio("cfbd"); // 延迟播放
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('cxwgd'); // 延迟播放
+            playAudio("cxwgd"); // 延迟播放
           }, 1000);
         } else {
           this.$message.error("确认失败:" + error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('tmyw'); // 延迟播放
+            playAudio("tmyw"); // 延迟播放
           }, 1000);
         }
       } finally {
@@ -2316,13 +2496,17 @@ export default {
 
     // 打印成功处理
     handlePrintSuccess() {
-      this.$message.success(this.$t('scanBarCodePack.messages.batchBarcodePrintSuccess'));
+      this.$message.success(
+        this.$t("scanBarCodePack.messages.batchBarcodePrintSuccess")
+      );
       this.currentBatchBarcode = ""; // 清空当前批次条码
     },
 
     // 打印失败处理
     handlePrintError(error) {
-      this.$message.error(`${this.$t('scanBarCodePack.messages.printFailed')}: ${error}`);
+      this.$message.error(
+        `${this.$t("scanBarCodePack.messages.printFailed")}: ${error}`
+      );
       this.currentBatchBarcode = ""; // 清空当前批次条码
     },
 
@@ -2336,7 +2520,58 @@ export default {
     handleAutoPrintChange(value) {
       // 将开关状态保存到本地存储
       localStorage.setItem("autoPrint", value);
-      this.$message.success(value ? this.$t('scanBarCodePack.messages.autoPrintEnabled') : this.$t('scanBarCodePack.messages.autoPrintDisabled'));
+      this.$message.success(
+        value
+          ? this.$t("scanBarCodePack.messages.autoPrintEnabled")
+          : this.$t("scanBarCodePack.messages.autoPrintDisabled")
+      );
+    },
+
+    // 手动解锁装箱条码
+    async handleManualUnlock() {
+      try {
+        await this.$confirm(
+          "确认手动解锁当前装箱条码？这将清除所有锁定状态。",
+          "手动解锁确认",
+          {
+            confirmButtonText: "确定解锁",
+            cancelButtonText: "取消",
+            type: "warning",
+          }
+        );
+
+        const loading = this.$loading({
+          lock: true,
+          text: "正在解锁装箱条码...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
+        });
+
+        console.log("🔓 用户手动触发解锁操作");
+
+        try {
+          // 执行全面清理
+          await this.cleanupMaterialSwitchLocks();
+
+          // 额外的清理操作
+          await this.cleanupPreviousLocks();
+
+          // 重新初始化设备信息
+          this.initDeviceInfo();
+
+          this.$message.success("装箱条码解锁完成，可以重新初始化");
+        } catch (error) {
+          console.error("❌ 手动解锁失败:", error);
+          this.$message.error("解锁失败: " + error.message);
+        } finally {
+          loading.close();
+        }
+      } catch (error) {
+        if (error !== "cancel") {
+          console.error("手动解锁操作失败:", error);
+          this.$message.error("解锁操作失败");
+        }
+      }
     },
 
     // 新增清除缓存方法
@@ -2369,7 +2604,9 @@ export default {
           }
         });
 
-        this.$message.success(this.$t('scanBarCodePack.messages.cacheClearedSuccess'));
+        this.$message.success(
+          this.$t("scanBarCodePack.messages.cacheClearedSuccess")
+        );
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -2380,7 +2617,9 @@ export default {
       } catch (error) {
         if (error !== "cancel") {
           console.error("清除缓存失败:", error);
-          this.$message.error(this.$t('scanBarCodePack.messages.clearCacheFailed'));
+          this.$message.error(
+            this.$t("scanBarCodePack.messages.clearCacheFailed")
+          );
         }
       }
     },
@@ -2408,7 +2647,9 @@ export default {
         // 连接成功
         this.ws.onopen = () => {
           this.websocketConnected = true;
-          this.$message.success(this.$t('scanBarCodePack.messages.deviceServerConnected'));
+          this.$message.success(
+            this.$t("scanBarCodePack.messages.deviceServerConnected")
+          );
           this.startHeartbeat();
           this.reconnectAttempts = 0; // 重置重连计数
         };
@@ -2436,7 +2677,9 @@ export default {
               this.initWebSocket();
             }, delay);
           } else {
-            this.$message.error(this.$t('scanBarCodePack.messages.maxReconnectAttemptsReached'));
+            this.$message.error(
+              this.$t("scanBarCodePack.messages.maxReconnectAttemptsReached")
+            );
           }
         };
 
@@ -2467,7 +2710,11 @@ export default {
         };
       } catch (error) {
         console.error("WebSocket初始化失败:", error);
-        this.$message.error(`${this.$t('scanBarCodePack.messages.deviceConnectionInitFailed')}: ${error.message}`);
+        this.$message.error(
+          `${this.$t("scanBarCodePack.messages.deviceConnectionInitFailed")}: ${
+            error.message
+          }`
+        );
       }
     },
 
@@ -2510,7 +2757,9 @@ export default {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify(message));
       } else {
-        this.$message.warning(this.$t('scanBarCodePack.messages.deviceNotConnected'));
+        this.$message.warning(
+          this.$t("scanBarCodePack.messages.deviceNotConnected")
+        );
       }
     },
 
@@ -2545,52 +2794,85 @@ export default {
 
     async initializePackingBarcode() {
       console.log("初始化装箱条码（并发安全版本）");
-      
+
       try {
         // 初始化设备信息
         this.initDeviceInfo();
-        
+
+        // 检查当前物料和产线是否与之前锁定的一致，如果不一致先清理
+        await this.validateAndCleanupLocks();
+
         // 检查是否有之前锁定的条码需要清理
         await this.cleanupPreviousLocks();
-        
+
+        // 清理过期的锁定条码
+        await this.cleanupExpiredLocks();
+
         // 调用原子操作API获取或创建装箱条码
         const response = await getOrCreatePackBarcode({
           productionLineId: this.formData.productLine,
           materialNumber: this.boxMaterial.materialCode,
           materialId: this.boxMaterial.materialId,
           materialName: this.boxMaterial.materialName,
-          ...this.deviceInfo
+          ...this.deviceInfo,
         });
 
         if (response.success && response.data) {
           this.packingBarcode = response.data;
           console.log("成功获取装箱条码:", this.packingBarcode);
-          
+
+          // 重置重试计数器
+          this.packingBarcodeRetryCount = 0;
+
           // 保存锁定信息到本地存储
           this.saveLockInfo();
-          
+
           // 自动扫描获取到的条码
           this.handleUnifiedScan(response.data.printBarcode);
-          
+
           // 显示成功消息
-          this.$message.success(response.message || this.$t('scanBarCodePack.messages.packingBarcodeInitialized'));
-          
+          this.$message.success(
+            response.message ||
+              this.$t("scanBarCodePack.messages.packingBarcodeInitialized")
+          );
         } else {
           // 处理失败情况
           if (response.shouldRetry) {
-            // 如果是序列号冲突，延迟重试
-            setTimeout(() => {
-              this.initializePackingBarcode();
-            }, 500 + Math.random() * 1000); // 随机延迟避免同时重试
-            return;
+            // 如果是序列号冲突，显示加载状态并自动重试
+            this.$message.warning("检测到条码冲突，正在重新生成...");
+
+            // 增加重试计数器防止无限重试
+            if (!this.packingBarcodeRetryCount) {
+              this.packingBarcodeRetryCount = 0;
+            }
+            this.packingBarcodeRetryCount++;
+
+            if (this.packingBarcodeRetryCount < 5) {
+              // 递增延迟重试策略
+              const delay =
+                300 + this.packingBarcodeRetryCount * 200 + Math.random() * 500;
+              setTimeout(() => {
+                console.log(
+                  `装箱条码重试第 ${this.packingBarcodeRetryCount} 次`
+                );
+                this.initializePackingBarcode();
+              }, delay);
+              return;
+            } else {
+              // 超过最大重试次数
+              this.$message.error(
+                "装箱条码生成失败，请刷新页面重试或联系管理员"
+              );
+              this.packingBarcodeRetryCount = 0;
+              return;
+            }
           }
-          
-          this.$message.error(response.message || '获取装箱条码失败');
+
+          this.$message.error(response.message || "获取装箱条码失败");
         }
-        
       } catch (error) {
         console.error("装箱条码初始化失败:", error);
-        
+
         // 如果原子操作失败，回退到原有逻辑
         console.log("回退到原有的装箱条码获取逻辑");
         await this.fallbackInitializePackingBarcode();
@@ -2601,7 +2883,7 @@ export default {
     async fallbackInitializePackingBarcode() {
       console.log("使用回退方案初始化装箱条码");
       // 原有的初始化逻辑保持不变...
-      
+
       // 如果产线有未装满的装箱条码，则不初始化
       const searchPackBarcode = await getData("packBarcode", {
         query: {
@@ -2623,12 +2905,12 @@ export default {
       });
       console.log(searchPackBarcode, "searchPackBarcode");
       if (searchPackBarcode.data && searchPackBarcode.data.length > 0) {
-        this.packingBarcode = searchPackBarcode.data[0]; 
+        this.packingBarcode = searchPackBarcode.data[0];
         // 统一扫描
         this.handleUnifiedScan(searchPackBarcode.data[0].printBarcode);
         return;
       }
-      
+
       // 获取物料对应的条码规则
       const ruleResult = await getData("barcodeSegmentRuleMaterial", {
         query: {
@@ -2638,7 +2920,9 @@ export default {
       });
 
       if (!ruleResult.data || !ruleResult.data.length) {
-        this.$message.error(this.$t('scanBarCodePack.messages.materialNotBoundBarcodeRule'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.materialNotBoundBarcodeRule")
+        );
         return;
       }
 
@@ -2651,7 +2935,9 @@ export default {
       });
 
       if (!ruleDetail.data || !ruleDetail.data.length) {
-        this.$message.error(this.$t('scanBarCodePack.messages.getBarcodeRuleDetailsFailed'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.getBarcodeRuleDetailsFailed")
+        );
         return;
       }
 
@@ -2693,7 +2979,9 @@ export default {
       });
 
       if (!workOrderResult.data || !workOrderResult.data.length) {
-        this.$message.error(this.$t('scanBarCodePack.messages.noActiveWorkOrderOnLine'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.noActiveWorkOrderOnLine")
+        );
         return;
       }
 
@@ -2710,7 +2998,9 @@ export default {
       );
 
       if (!barcodeResult.barcode) {
-        this.$message.error(this.$t('scanBarCodePack.messages.generatedBarcodeEmpty'));
+        this.$message.error(
+          this.$t("scanBarCodePack.messages.generatedBarcodeEmpty")
+        );
         return;
       }
 
@@ -2736,7 +3026,9 @@ export default {
 
       if (res.success) {
         this.packingBarcode = res.data; // 设置生成的条码
-        this.$message.success(this.$t('scanBarCodePack.messages.packingBarcodeInitialized'));
+        this.$message.success(
+          this.$t("scanBarCodePack.messages.packingBarcodeInitialized")
+        );
         console.log(res.data, "生成的装箱条码");
         // 统一扫描
         this.handleUnifiedScan(res.data.printBarcode);
@@ -3029,59 +3321,230 @@ export default {
 
     // 初始化设备信息
     initDeviceInfo() {
-      // 生成会话ID
-      this.deviceInfo.sessionId = `session_${this.formData.productLine}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // 尝试获取设备IP（这里可以根据实际情况获取）
-      this.getDeviceIP().then(ip => {
-        this.deviceInfo.deviceIp = ip;
-      });
+      // 获取或生成稳定的设备ID
+      let persistentDeviceId = localStorage.getItem("deviceId");
+      if (!persistentDeviceId) {
+        // 生成稳定的设备ID并保存到本地存储
+        persistentDeviceId = this.generateStableDeviceId();
+        localStorage.setItem("deviceId", persistentDeviceId);
+      }
+
+      // 生成会话ID（包含产线信息以支持多产线）
+      this.deviceInfo.sessionId = `session_${
+        this.formData.productLine
+      }_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      this.deviceInfo.deviceIp = persistentDeviceId;
+
+      console.log("设备信息初始化完成:", this.deviceInfo);
     },
 
-    // 获取设备IP
-    async getDeviceIP() {
+    // 生成稳定的设备ID
+    generateStableDeviceId() {
       try {
-        // 方式1：通过请求头获取客户端IP（需要后端支持）
-        // const response = await fetch('/api/v1/getClientIP');
-        // const data = await response.json();
-        // return data.ip;
-        
-        // 方式2：使用工位编号或其他唯一标识
-        const workstationId = localStorage.getItem('workstationId');
+        // 收集设备特征信息
+        const deviceFeatures = [
+          navigator.userAgent,
+          screen.width + "x" + screen.height,
+          screen.colorDepth,
+          navigator.language,
+          navigator.platform,
+          new Date().getTimezoneOffset(),
+          navigator.hardwareConcurrency || "unknown",
+        ];
+
+        // 优先使用工位编号
+        const workstationId = localStorage.getItem("workstationId");
         if (workstationId) {
           return `WS_${workstationId}`;
         }
-        
-        // 方式3：使用浏览器fingerprint作为设备标识
-        const userAgent = navigator.userAgent;
-        const screen = `${screen.width}x${screen.height}`;
-        const deviceFingerprint = btoa(`${userAgent}_${screen}_${navigator.language}`).slice(0, 16);
-        return `DEV_${deviceFingerprint}`;
-        
+
+        // 使用设备特征生成稳定的ID
+        const deviceString = deviceFeatures.join("|");
+        const deviceHash = this.simpleHash(deviceString);
+
+        return `DEV_${deviceHash}`;
       } catch (error) {
-        console.warn('获取设备IP失败，使用默认标识', error);
-        return null;
+        console.error("生成设备ID失败，使用随机ID:", error);
+        return `DEV_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
+    },
+
+    // 简单哈希函数
+    simpleHash(str) {
+      let hash = 0;
+      if (str.length === 0) return hash.toString(36);
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // 转换为32位整数
+      }
+      return Math.abs(hash).toString(36).substring(0, 12);
+    },
+
+    // 获取设备IP（保持向后兼容）
+    async getDeviceIP() {
+      return this.deviceInfo.deviceIp || this.generateStableDeviceId();
     },
 
     // 清理之前的锁定（页面刷新时调用）
     async cleanupPreviousLocks() {
-      const lockedInfo = localStorage.getItem('lockedPackBarcode');
+      console.log("🔄 页面刷新/启动，开始清理之前的锁定");
+      console.log("设备信息:", this.deviceInfo);
+
+      let cleanupCount = 0;
+
+      // 方式1：清理本地存储的锁定信息
+      const lockedInfo = localStorage.getItem("lockedPackBarcode");
       if (lockedInfo) {
+        console.log("🔓 发现本地存储的锁定信息");
         try {
           const info = JSON.parse(lockedInfo);
-          console.log('发现之前锁定的条码，尝试解锁:', info);
-          
+          console.log("尝试解锁之前的条码:", info);
+
           // 解锁之前的条码
-          await unlockPackBarcode(info);
-          console.log('成功解锁之前的条码');
-          
+          const response = await unlockPackBarcode(info);
+          console.log("解锁响应:", response);
+
+          if (response.success) {
+            console.log("✅ 成功解锁之前的条码");
+            cleanupCount++;
+          }
         } catch (error) {
-          console.warn('清理之前的锁定失败:', error);
+          console.warn("⚠️ 清理之前的锁定失败:", error);
         } finally {
           // 无论成功失败都清除本地存储
-          localStorage.removeItem('lockedPackBarcode');
+          localStorage.removeItem("lockedPackBarcode");
+          console.log("📦 已清理本地存储的锁定信息");
         }
+      } else {
+        console.log("ℹ️ 没有本地存储的锁定信息需要清理");
+      }
+
+      // 方式2：使用设备信息批量清理当前设备的所有锁定条码
+      if (
+        this.deviceInfo &&
+        (this.deviceInfo.deviceIp || this.deviceInfo.sessionId)
+      ) {
+        console.log("🔓 使用设备信息批量清理锁定条码");
+        try {
+          const response = await unlockAllPackBarcodes(this.deviceInfo);
+          console.log("批量清理响应:", response);
+
+          if (response.success && response.count > 0) {
+            console.log(`✅ 清理了当前设备的 ${response.count} 个锁定条码`);
+            cleanupCount += response.count;
+          }
+        } catch (error) {
+          console.warn("⚠️ 批量清理设备锁定失败:", error);
+        }
+      } else {
+        console.log("⚠️ 设备信息不完整，跳过批量清理");
+      }
+
+      console.log(`🎯 页面启动清理完成，共清理了 ${cleanupCount} 个锁定`);
+
+      if (cleanupCount > 0) {
+        this.$message.success(`已清理 ${cleanupCount} 个锁定的装箱条码`);
+      }
+    },
+
+    // 处理物料切换时的锁定清理
+    async cleanupMaterialSwitchLocks() {
+      console.log("🔄 物料切换，开始清理之前的装箱条码锁定");
+      console.log("当前装箱条码:", this.packingBarcode);
+      console.log("当前锁定物料信息:", this.currentLockedMaterial);
+
+      try {
+        let unlockAttempts = 0;
+
+        // 方式1：如果有当前锁定的条码，先解锁
+        if (
+          this.packingBarcode &&
+          (this.packingBarcode._id || this.packingBarcode.barcode)
+        ) {
+          console.log("🔓 方式1：解锁当前装箱条码");
+          await this.unlockCurrentBarcode();
+          unlockAttempts++;
+        }
+
+        // 方式2：清理本地存储中的锁定信息
+        const lockedInfo = localStorage.getItem("lockedPackBarcode");
+        if (lockedInfo) {
+          console.log("🔓 方式2：清理本地存储的锁定信息");
+          try {
+            const info = JSON.parse(lockedInfo);
+            console.log("本地存储的锁定信息:", info);
+
+            const response = await unlockPackBarcode(info);
+            console.log("本地锁定信息解锁响应:", response);
+            unlockAttempts++;
+          } catch (error) {
+            console.warn("⚠️ 清理存储的锁定信息失败:", error);
+          }
+          localStorage.removeItem("lockedPackBarcode");
+        }
+
+        // 方式3：使用设备信息批量清理
+        if (
+          this.deviceInfo &&
+          (this.deviceInfo.deviceIp || this.deviceInfo.sessionId)
+        ) {
+          console.log("🔓 方式3：使用设备信息批量清理所有锁定");
+          try {
+            const response = await unlockAllPackBarcodes(this.deviceInfo);
+            console.log("批量解锁响应:", response);
+            unlockAttempts++;
+          } catch (error) {
+            console.warn("⚠️ 批量解锁失败:", error);
+          }
+        }
+
+        // 重置装箱条码状态
+        this.packingBarcode = {};
+
+        // 重置重试计数器
+        this.packingBarcodeRetryCount = 0;
+
+        // 更新当前锁定物料信息
+        this.currentLockedMaterial = {
+          materialId: null,
+          productionLineId: null,
+          barcodeId: null,
+        };
+
+        console.log(
+          `✅ 物料切换锁定清理完成，尝试了 ${unlockAttempts} 种解锁方式`
+        );
+
+        if (unlockAttempts > 0) {
+          this.$message.success("装箱条码已清理，可以重新初始化");
+        }
+      } catch (error) {
+        console.error("❌ 物料切换锁定清理失败:", error);
+        // 即使清理失败，也要重置本地状态
+        this.packingBarcode = {};
+        this.packingBarcodeRetryCount = 0;
+        localStorage.removeItem("lockedPackBarcode");
+      }
+    },
+
+    // 处理物料或产线变化
+    async handleMaterialOrLineChange(oldKey, newKey) {
+      console.log(`材料或产线变化: ${oldKey} -> ${newKey}`);
+
+      try {
+        // 清理之前的锁定
+        await this.cleanupMaterialSwitchLocks();
+
+        // 如果新的组合有包装箱物料，重新初始化装箱条码
+        if (this.boxMaterial && this.boxMaterial.materialId) {
+          // 延迟初始化，确保状态清理完成
+          setTimeout(() => {
+            this.initializePackingBarcode();
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("处理物料或产线变化失败:", error);
       }
     },
 
@@ -3091,28 +3554,118 @@ export default {
         const lockInfo = {
           barcodeId: this.packingBarcode._id,
           barcode: this.packingBarcode.barcode,
-          ...this.deviceInfo
+          materialId: this.boxMaterial && this.boxMaterial.materialId,
+          productionLineId: this.formData.productLine,
+          timestamp: Date.now(),
+          ...this.deviceInfo,
         };
-        localStorage.setItem('lockedPackBarcode', JSON.stringify(lockInfo));
+        localStorage.setItem("lockedPackBarcode", JSON.stringify(lockInfo));
+
+        // 更新当前锁定物料信息
+        this.currentLockedMaterial = {
+          materialId: this.boxMaterial && this.boxMaterial.materialId,
+          productionLineId: this.formData.productLine,
+          barcodeId: this.packingBarcode._id,
+        };
+
+        console.log("锁定信息已保存:", lockInfo);
       }
     },
 
     // 解锁当前条码
     async unlockCurrentBarcode() {
-      if (!this.packingBarcode || !this.packingBarcode._id) return;
+      console.log("🔓 开始解锁当前条码...");
+      console.log("当前装箱条码状态:", this.packingBarcode);
+      console.log("设备信息:", this.deviceInfo);
+
+      // 检查是否有条码需要解锁
+      if (
+        !this.packingBarcode ||
+        (!this.packingBarcode._id && !this.packingBarcode.barcode)
+      ) {
+        console.log("⚠️ 没有需要解锁的条码信息");
+        return;
+      }
 
       try {
-        const response = await unlockPackBarcode({
-          barcodeId: this.packingBarcode._id,
-          ...this.deviceInfo
-        });
+        // 准备解锁参数，优先使用条码ID，备用条码值
+        const unlockParams = {
+          ...this.deviceInfo,
+        };
+
+        if (this.packingBarcode._id) {
+          unlockParams.barcodeId = this.packingBarcode._id;
+        } else if (this.packingBarcode.barcode) {
+          unlockParams.barcode = this.packingBarcode.barcode;
+        } else if (this.packingBarcode.printBarcode) {
+          unlockParams.barcode = this.packingBarcode.printBarcode;
+        }
+
+        console.log("🔓 发送解锁请求，参数:", unlockParams);
+
+        const response = await unlockPackBarcode(unlockParams);
+
+        console.log("🔓 解锁响应:", response);
 
         if (response.success) {
-          console.log('条码解锁成功');
-          localStorage.removeItem('lockedPackBarcode');
+          console.log("✅ 条码解锁成功");
+          localStorage.removeItem("lockedPackBarcode");
+
+          // 重置装箱条码状态
+          this.packingBarcode = {};
+
+          this.$message.success("装箱条码已解锁");
+        } else {
+          console.warn("⚠️ 解锁失败:", response.message);
+          // 即使解锁失败，也清理本地状态，避免状态不一致
+          localStorage.removeItem("lockedPackBarcode");
+          this.packingBarcode = {};
         }
       } catch (error) {
-        console.error('解锁条码失败:', error);
+        console.error("❌ 解锁条码失败:", error);
+        // 发生错误时也清理本地状态
+        localStorage.removeItem("lockedPackBarcode");
+        this.packingBarcode = {};
+      }
+    },
+
+    // 验证并清理不匹配的锁定
+    async validateAndCleanupLocks() {
+      const lockedInfo = localStorage.getItem("lockedPackBarcode");
+      if (!lockedInfo) return;
+
+      try {
+        const info = JSON.parse(lockedInfo);
+        const currentMaterialId =
+          this.boxMaterial && this.boxMaterial.materialId;
+        const currentProductionLineId = this.formData.productLine;
+
+        // 检查是否与当前材料和产线匹配
+        if (
+          info.materialId !== currentMaterialId ||
+          info.productionLineId !== currentProductionLineId
+        ) {
+          console.log("发现不匹配的锁定信息，准备清理:", {
+            stored: {
+              materialId: info.materialId,
+              productionLineId: info.productionLineId,
+            },
+            current: {
+              materialId: currentMaterialId,
+              productionLineId: currentProductionLineId,
+            },
+          });
+
+          // 清理不匹配的锁定
+          await unlockPackBarcode(info);
+          localStorage.removeItem("lockedPackBarcode");
+
+          console.log("不匹配的锁定已清理");
+        }
+      } catch (error) {
+        console.warn("验证锁定信息失败:", error);
+        // 如果解析失败，直接清理本地存储
+        localStorage.removeItem("lockedPackBarcode");
       }
     },
 
@@ -3122,23 +3675,37 @@ export default {
       if (this.packingBarcode && this.packingBarcode._id) {
         const unlockData = JSON.stringify({
           barcodeId: this.packingBarcode._id,
-          ...this.deviceInfo
+          ...this.deviceInfo,
         });
-        
+
         // 使用 sendBeacon 发送解锁请求
         if (navigator.sendBeacon) {
-          navigator.sendBeacon('/api/v1/unlockPackBarcode', unlockData);
+          navigator.sendBeacon("/api/v1/unlockPackBarcode", unlockData);
         }
-        
+
         // 清除本地存储
-        localStorage.removeItem('lockedPackBarcode');
+        localStorage.removeItem("lockedPackBarcode");
+      }
+
+      // 也清理设备的所有锁定
+      if (this.deviceInfo.deviceIp || this.deviceInfo.sessionId) {
+        const cleanupData = JSON.stringify(this.deviceInfo);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon("/api/v1/unlockAllPackBarcodes", cleanupData);
+        }
       }
     },
   },
   async created() {
+    // 优先初始化设备信息
+    this.initDeviceInfo();
+
     // 清理过期的装箱条码锁定（启动时清理一次）
     await this.cleanupExpiredLocks();
-    
+
+    // 清理之前的锁定（页面刷新时调用）
+    await this.cleanupPreviousLocks();
+
     // 从本地存储中恢复自动打印开关状态
     const savedAutoPrint = localStorage.getItem("autoPrint");
     if (savedAutoPrint !== null) {
@@ -3196,11 +3763,15 @@ export default {
               count === material.batchQuantity &&
               material.batchQuantity > 0
             ) {
-              this.$message.warning(this.$t('scanBarCodePack.messages.batchUsageLimitReached'));
-              this.errorMessage = this.$t('scanBarCodePack.messages.batchUsageLimitReached');
+              this.$message.warning(
+                this.$t("scanBarCodePack.messages.batchUsageLimitReached")
+              );
+              this.errorMessage = this.$t(
+                "scanBarCodePack.messages.batchUsageLimitReached"
+              );
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio('pcwlxz'); // 播放批次物料条码已达到使用次数限制提示音
+              playAudio("pcwlxz"); // 播放批次物料条码已达到使用次数限制提示音
               localStorage.removeItem(cacheKey);
               this.$set(this.scanForm.barcodes, material._id, "");
               this.$set(this.validateStatus, material._id, false);
@@ -3239,16 +3810,16 @@ export default {
     }
 
     // 添加页面关闭事件监听
-    window.addEventListener('beforeunload', this.handlePageUnload);
+    window.addEventListener("beforeunload", this.handlePageUnload);
   },
   // 组件销毁时清除定时器
   beforeDestroy() {
     // 移除页面关闭事件监听
-    window.removeEventListener('beforeunload', this.handlePageUnload);
-    
+    window.removeEventListener("beforeunload", this.handlePageUnload);
+
     // 解锁当前条码
     this.unlockCurrentBarcode();
-    
+
     // 关闭WebSocket连接
     if (this.ws) {
       this.ws.close();

@@ -39,7 +39,7 @@ const SamplingInspectionFlowSchema = new mongoose.Schema({
     // 基础字段
     remark: { type: String }, // 备注说明
     createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 创建人
-    updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 更新人
+    updateBy: { type: String }, // 更新人
     createAt: { type: Date, default: Date.now }, // 创建时间
     updateAt: { type: Date, default: Date.now } // 更新时间
 }, {

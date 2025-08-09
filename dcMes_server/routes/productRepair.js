@@ -349,14 +349,14 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
 
     if (repairRecord.status === "REVIEWED") {
       return res.status(200).json({
-        code: 401,
+        code: 500,
         message: "该维修记录已审核",
       });
     }
 
     if (repairRecord.status === "VOIDED") {
       return res.status(200).json({
-        code: 401,
+        code: 500,
         message: "该维修记录已作废",
       });
     }
@@ -384,7 +384,7 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
           }));
 
           return res.status(200).json({
-            code: 401,
+            code: 500,
             message: "该产品存在已绑定的关键物料，请先解绑关键物料后再进行报废",
             data: {
               keyMaterials: keyMaterialList,
@@ -396,7 +396,7 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
       // 检查产品条码是否在活跃托盘中
       const palletData = await materialPalletizing.findOne({
         "palletBarcodes.barcode": repairRecord.barcode,
-        status: { $in: ["STACKING", "STACKED"] }
+        status: { $in: ["STACKING", "STACKED"] },
       });
 
       // 如果在palletBarcodes中找不到，查找boxItems中的boxBarcodes
@@ -404,7 +404,7 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
       if (!palletData) {
         boxPalletData = await materialPalletizing.findOne({
           "boxItems.boxBarcodes.barcode": repairRecord.barcode,
-          status: { $in: ["STACKING", "STACKED"] }
+          status: { $in: ["STACKING", "STACKED"] },
         });
       }
 
@@ -413,7 +413,7 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
 
       if (targetPallet) {
         return res.status(200).json({
-          code: 401,
+          code: 500,
           message: `该产品条码在活跃托盘(${targetPallet.palletCode})中，请先从托盘中解绑该产品后再进行报废审核`,
           data: {
             palletCode: targetPallet.palletCode,
@@ -426,7 +426,10 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
     }
 
     // 检查是否是部件更换处理方案
-    if (repairRecord.solution === "COMPONENT_REPLACEMENT" || repairRecord.solution === "部件更换") {
+    if (
+      repairRecord.solution === "COMPONENT_REPLACEMENT" ||
+      repairRecord.solution === "部件更换"
+    ) {
       // 查找对应的物料流程记录
       const materialFlowRecord = await materialProcessFlow.findOne({
         barcode: repairRecord.barcode,
@@ -437,12 +440,14 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
         const unbindRecords = await UnbindRecord.find({
           flowRecordId: materialFlowRecord._id,
           mainBarcode: repairRecord.barcode,
-        }).populate('operatorId');
+          operationType: "REPLACE",
+        }).populate("operatorId");
 
         if (!unbindRecords || unbindRecords.length === 0) {
           return res.status(200).json({
-            code: 401,
-            message: "部件更换维修单需要先进行部件解绑操作才能审核，请先解绑相关部件后再进行审核",
+            code: 500,
+            message:
+              "部件更换维修单需要先进行部件更换操作才能审核，请先解绑相关部件后再进行审核",
             data: {
               requireUnbind: true,
               barcode: repairRecord.barcode,
@@ -451,14 +456,16 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
         }
 
         // 检查解绑记录的有效性（可选：检查解绑时间是否在维修记录创建时间之后）
-        const validUnbindRecords = unbindRecords.filter(record => 
-          new Date(record.operateTime) >= new Date(repairRecord.repairTime)
+        const validUnbindRecords = unbindRecords.filter(
+          (record) =>
+            new Date(record.operateTime) >= new Date(repairRecord.repairTime)
         );
 
         if (validUnbindRecords.length === 0) {
           return res.status(200).json({
-            code: 401,
-            message: "未找到有效的部件更换记录，请确保在创建维修单后进行了部件解绑操作",
+            code: 500,
+            message:
+              "未找到有效的部件更换记录，请确保在创建维修单后进行了部件解绑操作",
             data: {
               requireUnbind: true,
               barcode: repairRecord.barcode,
@@ -535,7 +542,8 @@ router.post("/api/v1/product_repair/reviewRepair", async (req, res) => {
         if (workOrder) {
           // 检查条码是否已经在报废列表中
           const existingScrapItem = workOrder.scrapProductBarcodeList.find(
-            (item) => item.barcode.toString() === repairRecord.barcode.toString()
+            (item) =>
+              item.barcode.toString() === repairRecord.barcode.toString()
           );
 
           if (!existingScrapItem) {
@@ -598,7 +606,7 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
 
     if (!repairIds || !Array.isArray(repairIds) || repairIds.length === 0) {
       return res.status(200).json({
-        code: 401,
+        code: 500,
         message: "请选择要审核的记录",
       });
     }
@@ -613,7 +621,7 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
     const scrapRepairs = repairRecords.filter(
       (record) => record.solution === "报废"
     );
-    
+
     // 筛选出非报废的记录
     const nonScrapRepairs = repairRecords.filter(
       (record) => record.solution !== "报废"
@@ -652,7 +660,7 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
     // 如果存在带有关键物料的条码，返回提示信息
     if (barcodeWithKeyMaterials.length > 0) {
       return res.status(200).json({
-        code: 401,
+        code: 500,
         message: "部分产品存在已绑定的关键物料，请先解绑关键物料后再进行报废",
         data: {
           barcodeWithKeyMaterials,
@@ -667,7 +675,7 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
       // 检查产品条码是否在活跃托盘中
       const palletData = await materialPalletizing.findOne({
         "palletBarcodes.barcode": record.barcode,
-        status: { $in: ["STACKING", "STACKED"] }
+        status: { $in: ["STACKING", "STACKED"] },
       });
 
       // 如果在palletBarcodes中找不到，查找boxItems中的boxBarcodes
@@ -675,7 +683,7 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
       if (!palletData) {
         boxPalletData = await materialPalletizing.findOne({
           "boxItems.boxBarcodes.barcode": record.barcode,
-          status: { $in: ["STACKING", "STACKED"] }
+          status: { $in: ["STACKING", "STACKED"] },
         });
       }
 
@@ -694,8 +702,9 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
     // 如果存在在活跃托盘中的条码，返回提示信息
     if (barcodeInPallets.length > 0) {
       return res.status(200).json({
-        code: 401,
-        message: "部分产品条码在活跃托盘中，请先从托盘中解绑这些产品后再进行报废审核",
+        code: 500,
+        message:
+          "部分产品条码在活跃托盘中，请先从托盘中解绑这些产品后再进行报废审核",
         data: {
           barcodeInPallets,
         },
@@ -704,7 +713,9 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
 
     // 筛选出部件更换的记录并检查解绑记录
     const componentReplacementRepairs = repairRecords.filter(
-      (record) => record.solution === "COMPONENT_REPLACEMENT" || record.solution === "部件更换"
+      (record) =>
+        record.solution === "COMPONENT_REPLACEMENT" ||
+        record.solution === "部件更换"
     );
 
     const barcodeWithoutUnbindRecords = [];
@@ -723,29 +734,30 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
         });
 
         // 检查是否存在有效的解绑记录
-        const validUnbindRecords = unbindRecords.filter(unbindRecord => 
-          new Date(unbindRecord.operateTime) >= new Date(record.repairTime)
+        const validUnbindRecords = unbindRecords.filter(
+          (unbindRecord) =>
+            new Date(unbindRecord.operateTime) >= new Date(record.repairTime)
         );
 
         if (!unbindRecords || unbindRecords.length === 0) {
           barcodeWithoutUnbindRecords.push({
             barcode: record.barcode,
             repairId: record._id,
-            message: "未找到任何解绑记录"
+            message: "未找到任何解绑记录",
           });
         } else if (validUnbindRecords.length === 0) {
           barcodeWithoutUnbindRecords.push({
             barcode: record.barcode,
             repairId: record._id,
             message: "未找到有效的解绑记录（解绑时间早于维修时间）",
-            unbindRecordsCount: unbindRecords.length
+            unbindRecordsCount: unbindRecords.length,
           });
         }
       } else {
         barcodeWithoutUnbindRecords.push({
           barcode: record.barcode,
           repairId: record._id,
-          message: "未找到物料流程记录"
+          message: "未找到物料流程记录",
         });
       }
     }
@@ -753,8 +765,9 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
     // 如果存在没有解绑记录的部件更换维修单，返回提示信息
     if (barcodeWithoutUnbindRecords.length > 0) {
       return res.status(200).json({
-        code: 401,
-        message: "部分部件更换维修单缺少有效的解绑记录，请先进行部件解绑操作后再审核",
+        code: 500,
+        message:
+          "部分部件更换维修单缺少有效的解绑记录，请先进行部件解绑操作后再审核",
         data: {
           barcodeWithoutUnbindRecords,
         },
@@ -864,8 +877,8 @@ router.post("/api/v1/product_repair/batchReviewRepair", async (req, res) => {
     // 处理非报废且维修结果为合格的记录
     if (repairResult === "QUALIFIED" && nonScrapRepairs.length > 0) {
       // 获取所有非报废维修记录的条码
-      const barcodes = nonScrapRepairs.map(record => record.barcode);
-      
+      const barcodes = nonScrapRepairs.map((record) => record.barcode);
+
       // 批量更新这些条码的产品状态为正常
       await materialProcessFlow.updateMany(
         { barcode: { $in: barcodes } },

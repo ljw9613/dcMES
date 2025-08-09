@@ -12,8 +12,8 @@ const packBarcodeSchema = new mongoose.Schema({
     
     // 添加产线信息
     productionLineId: { type: mongoose.Schema.ObjectId, ref: "production_line" }, // 关联产线
-    lineNum: { type: String }, // 产线编码
-    
+    lineNum: { type: String }, // 车间编码
+    lineCode: { type: String }, // 产线编码
     // 条码规则信息
     ruleId: { type: mongoose.Schema.ObjectId, ref: "barcodeSegmentRule" }, // 关联条码规则
     ruleName: { type: String, required: true }, // 规则名称

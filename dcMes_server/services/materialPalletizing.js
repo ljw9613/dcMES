@@ -2203,6 +2203,7 @@ class MaterialPalletizingService {
       status: { $in: ["STACKING", "STACKED"] }
     };
     
+    console.log("currentPalletId", currentPalletId);
     // 如果提供了当前托盘ID，则排除当前托盘
     if (currentPalletId) {
       queryCondition._id = { $ne: currentPalletId };
@@ -3034,20 +3035,7 @@ class MaterialPalletizingService {
     try {
       console.log(`开始托盘条码异步处理: ${mainBarcode}, 产线: ${lineName}`);
 
-      // 步骤1：快速基础验证
-      const validationResult = await this._quickValidation(
-        lineId,
-        materialId,
-        mainBarcode,
-        boxBarcode,
-        fromRepairStation
-      );
-
-      if (!validationResult.valid) {
-        throw new Error(validationResult.error);
-      }
-
-      // 步骤2：获取或预创建托盘信息（用于快速响应）
+      // 步骤1：获取或预创建托盘信息（用于快速响应）
       const palletInfo = await this._getPalletInfoForQuickResponse(
         lineId,
         lineName,
@@ -3060,6 +3048,20 @@ class MaterialPalletizingService {
         userId,
         fromRepairStation
       );
+
+      // 步骤2：快速基础验证（包含当前托盘ID以正确处理箱条码验证）
+      const validationResult = await this._quickValidation(
+        lineId,
+        materialId,
+        mainBarcode,
+        boxBarcode,
+        fromRepairStation,
+        palletInfo._id // 传递托盘ID用于箱条码验证
+      );
+
+      if (!validationResult.valid) {
+        throw new Error(validationResult.error);
+      }
 
       // 步骤3：将实际处理任务提交到队列
       const { QueueService } = require('./queueService');
@@ -3127,7 +3129,7 @@ class MaterialPalletizingService {
    * @param {Boolean} fromRepairStation - 是否来自维修台
    * @returns {Object} 验证结果
    */
-  static async _quickValidation(lineId, materialId, mainBarcode, boxBarcode, fromRepairStation) {
+  static async _quickValidation(lineId, materialId, mainBarcode, boxBarcode, fromRepairStation, currentPalletId = null) {
     try {
       // 1. 检查条码是否重复
       const duplicateCheck = await MaterialPalletizing.findOne({
@@ -3157,10 +3159,18 @@ class MaterialPalletizingService {
 
       // 3. 检查箱条码重复（如果存在）
       if (boxBarcode) {
-        const existingBoxInOtherPallet = await MaterialPalletizing.findOne({
+        // 构建查询条件：排除当前托盘，只检查其他托盘中是否使用了相同的包装箱条码
+        const queryCondition = {
           "boxItems.boxBarcode": boxBarcode,
           status: { $in: ["STACKING", "STACKED"] }
-        }).select('palletCode');
+        };
+        
+        // 如果提供了当前托盘ID，则排除当前托盘
+        if (currentPalletId) {
+          queryCondition._id = { $ne: currentPalletId };
+        }
+        
+        const existingBoxInOtherPallet = await MaterialPalletizing.findOne(queryCondition).select('palletCode');
         
         if (existingBoxInOtherPallet) {
           return {
@@ -3254,7 +3264,7 @@ class MaterialPalletizingService {
           processStepId,
           productLineId: lineId,
           productLineName: lineName,
-          _id: new Date().getTime().toString() // 临时ID
+          _id: new mongoose.Types.ObjectId() // 使用真正的ObjectId作为临时ID
         };
       } else {
         // 返回现有托盘信息

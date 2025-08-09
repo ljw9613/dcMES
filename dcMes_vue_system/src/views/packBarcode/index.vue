@@ -81,9 +81,9 @@
         <el-table-column label="工单号" prop="workOrderNo" />
         <el-table-column label="物料编码" prop="materialNumber" />
         <el-table-column label="物料名称" prop="materialName" />
-        <el-table-column label="产线编码" prop="lineNum">
+        <el-table-column label="产线编码" prop="lineCode">
           <template slot-scope="{ row }">
-            {{ row.productionLineId && row.productionLineId.lineNum }}
+            {{ row.productionLineId && row.productionLineId.lineCode }}
           </template>
         </el-table-column>
         <el-table-column label="批次号" prop="serialNumber" width="160" />
@@ -223,7 +223,7 @@ export default {
           populate: JSON.stringify([
             {
               path: "productionLineId",
-              select: "lineNum",
+              select: "lineCode",
             },
           ]),
           sort: { _id: -1 },

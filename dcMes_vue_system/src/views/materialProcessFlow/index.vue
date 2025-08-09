@@ -1114,6 +1114,7 @@
             :model="replaceForm"
             label-width="100px"
             class="replace-form"
+            @submit.prevent
           >
             <el-form-item label="新物料条码">
               <el-input
@@ -3219,7 +3220,13 @@ export default {
 
       this.replaceDialogVisible = true;
     },
-    async validateReplaceBarcode() {
+    async validateReplaceBarcode(event) {
+      // 阻止默认事件和事件冒泡
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
       if (!this.replaceForm.newBarcode) {
         this.replaceForm.validationStatus = false;
         this.replaceForm.validationMessage = "请输入新物料条码";

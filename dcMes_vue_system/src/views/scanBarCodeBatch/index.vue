@@ -236,8 +236,8 @@
                 @keyup.enter.native="handleUnifiedScan(unifiedScanInput)"
                 ref="scanInput"
                 clearable
-                @clear="focusInput"
-                :disabled="isProcessingBox"
+                @clear="forceFocusInput"
+                :disabled="isProcessingBox || isSubmitting"
               >
                 <template slot="prepend">
                   <i
@@ -267,6 +267,31 @@
                         :percentage="Math.floor((boxProcessProgress.current / boxProcessProgress.total) * 100)"
                         :stroke-width="8"
                         status="success"
+                      ></el-progress>
+                    </div>
+                  </template>
+                </el-alert>
+              </div>
+
+              <!-- 提交处理状态显示 -->
+              <div v-if="isSubmitting && !isProcessingBox" class="submit-process-indicator">
+                <el-alert
+                  title="正在提交处理"
+                  type="info"
+                  :closable="false"
+                  show-icon
+                >
+                  <template slot="default">
+                    <div class="process-content">
+                      <div class="process-text">
+                        正在处理条码数据，请耐心等待，请勿重复操作...
+                      </div>
+                      <el-progress
+                        :percentage="100"
+                        :stroke-width="6"
+                        status="success"
+                        :show-text="false"
+                        :indeterminate="true"
                       ></el-progress>
                     </div>
                   </template>
@@ -582,6 +607,12 @@ export default {
       // 新增：条码处理锁，防止并发重复提交
       processingBarcodes: new Set(), // 正在处理的条码集合
       requestTimeouts: new Map(), // 请求超时管理
+      
+      // 新增：提交处理状态
+      isSubmitting: false, // 是否正在提交处理
+      
+      // 焦点检查定时器
+      focusCheckTimer: null,
     };
   },
   computed: {
@@ -746,9 +777,7 @@ export default {
         // 清空输入框
         this.unifiedScanInput = "";
         // 重新获取焦点
-        this.$nextTick(() => {
-          this.$refs.scanInput.focus();
-        });
+        this.focusInput();
         // 提示模式切换
         this.$message.success(
           newMode === "normal"
@@ -1788,13 +1817,16 @@ export default {
       }
 
       // 添加条码处理锁定机制，防止并发重复提交
-      if (this.processingBarcodes.has(cleanValue)) {
-        this.$message.warning(`条码 ${cleanValue} 正在处理中，请勿重复扫描`);
+      if (this.processingBarcodes.has(cleanValue) || this.isSubmitting) {
+        this.$message.warning(this.isSubmitting ? `正在处理条码，请稍候...` : `条码 ${cleanValue} 正在处理中，请勿重复扫描`);
         this.unifiedScanInput = "";
-        this.$refs.scanInput.focus();
+        this.forceFocusInput();
         return;
       }
 
+      // 设置提交处理状态
+      this.isSubmitting = true;
+      
       // 锁定当前条码
       this.processingBarcodes.add(cleanValue);
       
@@ -1802,6 +1834,7 @@ export default {
       const timeoutId = setTimeout(() => {
         this.processingBarcodes.delete(cleanValue);
         this.requestTimeouts.delete(cleanValue);
+        this.isSubmitting = false;
       }, 30000); // 30秒超时
       
       this.requestTimeouts.set(cleanValue, timeoutId);
@@ -1871,11 +1904,11 @@ export default {
             cleanValue = rfidResponse.data[0].barcode;
           } else {
             this.unifiedScanInput = "";
-            this.$refs.scanInput.focus();
             this.$message.error("未找到该RFID标签对应的条码");
             this.popupType = "ng";
             this.showPopup = true;
             playAudio('tmyw');
+            this.forceFocusInput();
             return;
           }
           // RFID模式下的特殊处理
@@ -2052,7 +2085,7 @@ export default {
           this.showPopup = true;
           playAudio('tmyw');
           this.unifiedScanInput = ""; // 清空输入框
-          this.$refs.scanInput.focus(); // 重新聚焦
+          this.forceFocusInput(); // 重新聚焦
           return; // 终止处理
         }
 
@@ -2093,11 +2126,11 @@ export default {
           if (repairRecord.data.length > 0) {
             if (repairRecord.data[0].status == "PENDING_REVIEW") {
               this.unifiedScanInput = "";
-              this.$refs.scanInput.focus();
               this.$message.error("该条码存在未完成的维修记录");
               this.popupType = "ng";
               this.showPopup = true;
               playAudio('dwx');
+              this.forceFocusInput();
               return;
             }
             if (
@@ -2106,19 +2139,19 @@ export default {
             ) {
               if (repairRecord.data[0].solution == "报废") {
                 this.unifiedScanInput = "";
-                this.$refs.scanInput.focus();
                 this.$message.error("该条码已完成报废处理");
                 this.popupType = "ng";
                 this.showPopup = true;
                 playAudio('tmyw');
+                this.forceFocusInput();
                 return;
               }
               this.unifiedScanInput = "";
-              this.$refs.scanInput.focus();
               this.$message.error("该条码已完成维修,但维修结果为不合格");
               this.popupType = "ng";
               this.showPopup = true;
               playAudio('wxsb');
+              this.forceFocusInput();
               return;
             }
           }
@@ -2159,11 +2192,11 @@ export default {
           if (repairRecord.data.length > 0) {
             if (repairRecord.data[0].status == "PENDING_REVIEW") {
               this.unifiedScanInput = "";
-              this.$refs.scanInput.focus();
               this.$message.error("该条码存在未完成的维修记录");
               this.popupType = "ng";
               this.showPopup = true;
               playAudio('dwx');
+              this.forceFocusInput();
               return;
             }
             if (
@@ -2171,11 +2204,11 @@ export default {
               repairRecord.data[0].repairResult !== "QUALIFIED"
             ) {
               this.unifiedScanInput = "";
-              this.$refs.scanInput.focus();
               this.$message.error("该条码已完成维修,但维修结果为不合格");
               this.popupType = "ng";
               this.showPopup = true;
               playAudio('wxsb');
+              this.forceFocusInput();
               return;
             }
           }
@@ -2195,6 +2228,9 @@ export default {
         // 关闭加载状态
         loading.close();
         
+        // 重置提交状态（确保在任何情况下都能重置）
+        this.isSubmitting = false;
+        
         // 清理条码锁定状态
         if (cleanValue) {
           // 清除处理锁定
@@ -2208,8 +2244,11 @@ export default {
           }
         }
         
+        // 清空输入框并确保获取焦点
         this.unifiedScanInput = "";
-        this.$refs.scanInput.focus();
+        
+        // 使用强制焦点获取方法，确保在所有异步操作完成后获取焦点
+        this.forceFocusInput();
       }
     },
 
@@ -2218,6 +2257,7 @@ export default {
       try {
         // 设置处理状态
         this.isProcessingBox = true;
+        this.isSubmitting = true; // 设置提交状态
         this.boxProcessProgress.current = 0;
         this.boxProcessProgress.total = boxData.length;
 
@@ -2487,6 +2527,7 @@ export default {
       } finally {
         // 重置处理状态
         this.isProcessingBox = false;
+        this.isSubmitting = false; // 重置提交状态
         this.boxProcessProgress.current = 0;
         this.boxProcessProgress.total = 0;
       }
@@ -2629,7 +2670,61 @@ export default {
     },
     // 新增获取焦点方法
     focusInput() {
-      this.$refs.scanInput.focus();
+      this.$nextTick(() => {
+        if (this.$refs.scanInput) {
+          this.$refs.scanInput.focus();
+        }
+      });
+    },
+
+    // 新增强制焦点获取方法，用于处理特殊情况
+    forceFocusInput() {
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (this.$refs.scanInput && this.$refs.scanInput.$el) {
+            const inputElement = this.$refs.scanInput.$el.querySelector('input');
+            if (inputElement) {
+              inputElement.focus();
+            }
+          }
+        }, 100); // 延迟100ms确保DOM完全更新
+      });
+    },
+
+    // 启动焦点检查定时器
+    startFocusCheck() {
+      if (this.focusCheckTimer) {
+        clearInterval(this.focusCheckTimer);
+      }
+      
+      this.focusCheckTimer = setInterval(() => {
+        // 只在页面可见且未处理条码时检查焦点
+        if (!document.hidden && 
+            !this.isSubmitting && 
+            !this.isProcessingBox &&
+            this.mainMaterialId && 
+            this.processStepId &&
+            this.processStepData.processType === "F") {
+          
+          const activeElement = document.activeElement;
+          const inputElement = this.$refs.scanInput && this.$refs.scanInput.$el && this.$refs.scanInput.$el.querySelector('input');
+          
+          // 如果焦点不在扫描输入框上，且没有其他输入框处于活跃状态
+          if (inputElement && 
+              activeElement !== inputElement && 
+              !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName)) {
+            this.focusInput();
+          }
+        }
+      }, 3000); // 每3秒检查一次
+    },
+
+    // 停止焦点检查定时器
+    stopFocusCheck() {
+      if (this.focusCheckTimer) {
+        clearInterval(this.focusCheckTimer);
+        this.focusCheckTimer = null;
+      }
     },
 
     // 修改取消保存设置的方法
@@ -3242,7 +3337,9 @@ export default {
       this.processStepId &&
       this.processStepData.processType == "F"
     ) {
-      this.$refs.scanInput.focus();
+      this.forceFocusInput();
+      // 启动焦点检查定时器
+      this.startFocusCheck();
     }
   },
   // 组件销毁时清除定时器
@@ -3253,6 +3350,8 @@ export default {
     }
     // 清除心跳定时器
     this.stopHeartbeat();
+    // 停止焦点检查定时器
+    this.stopFocusCheck();
   },
 };
 </script>
@@ -3949,6 +4048,15 @@ export default {
 }
 
 .box-process-indicator {
+  margin-top: 15px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+}
+
+/* 添加提交处理状态样式 */
+.submit-process-indicator {
   margin-top: 15px;
   padding: 10px;
   background: #fff;

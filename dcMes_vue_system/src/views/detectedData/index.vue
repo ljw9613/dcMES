@@ -150,6 +150,14 @@
             <i class="el-icon-download"></i>
             {{ exportLoading ? `正在导出(${exportProgress}%)` : "按物料导出" }}
           </el-button>
+          <el-button
+            type="success"
+            @click="handleExportBatchHistory"
+            :loading="historyExportLoading"
+          >
+            <i class="el-icon-document"></i>
+            {{ historyExportLoading ? `正在导出历史数据(${historyExportProgress}%)` : "批量导出历史数据" }}
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -210,6 +218,12 @@
               style="margin-left: 10px"
               @click="showHistory(scope.row)"
               >历史记录</el-link
+            >
+            <el-link
+              type="success"
+              style="margin-left: 10px"
+              @click="handleExportSingleHistory(scope.row)"
+              >导出历史</el-link
             >
           </template>
         </el-table-column>
@@ -311,7 +325,7 @@
 
     <!-- 添加导出进度条对话框 -->
     <el-dialog
-      title="导出进度"
+      :title="historyExportLoading ? '历史数据导出进度' : '导出进度'"
       :visible.sync="exportDialogVisible"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -319,13 +333,18 @@
       width="30%"
     >
       <el-progress
-        :percentage="exportProgress"
-        :status="exportProgress === 100 ? 'success' : ''"
+        :percentage="historyExportLoading ? historyExportProgress : exportProgress"
+        :status="(historyExportLoading ? historyExportProgress : exportProgress) === 100 ? 'success' : ''"
         :stroke-width="18"
       >
       </el-progress>
       <div style="text-align: center; margin-top: 10px">
-        {{ exportProgress === 100 ? "导出完成" : "正在导出数据，请稍候..." }}
+        <template v-if="historyExportLoading">
+          {{ historyExportProgress === 100 ? "历史数据导出完成" : "正在导出历史数据，请稍候..." }}
+        </template>
+        <template v-else>
+          {{ exportProgress === 100 ? "导出完成" : "正在导出数据，请稍候..." }}
+        </template>
       </div>
     </el-dialog>
   </div>
@@ -372,6 +391,8 @@ export default {
       exportLoading: false,
       exportProgress: 0,
       exportDialogVisible: false,
+      historyExportLoading: false,
+      historyExportProgress: 0,
     };
   },
   methods: {
@@ -1247,6 +1268,251 @@ export default {
         }
       }
     },
+          // 批量导出历史检验数据 - 基于当前筛选条件
+      async handleExportBatchHistory() {
+        this.historyExportLoading = true;
+        this.historyExportProgress = 0;
+        this.exportDialogVisible = true;
+        let overallProgress = 0;
+
+        try {
+          // 使用相同的筛选条件获取所有相关的条码
+          const { directQuery, scanCodes: resolvedScanCodes } =
+            await this.resolvedSearchParameters();
+
+          let materialFlowStagePercentage = 0;
+          if (resolvedScanCodes !== null) {
+            materialFlowStagePercentage = 0.2; // 20%用于获取条码
+            overallProgress = materialFlowStagePercentage * 100;
+            this.historyExportProgress = Math.round(overallProgress);
+            if (resolvedScanCodes.length === 0) {
+              this.$message.warning(
+                "历史数据导出：根据筛选条件未找到对应的条码记录。"
+              );
+              this.exportDialogVisible = false;
+              this.historyExportLoading = false;
+              return;
+            }
+          }
+
+          // 获取当前页面显示的所有条码（如果没有通过物料筛选）
+          let targetScanCodes = [];
+          if (resolvedScanCodes !== null && resolvedScanCodes.length > 0) {
+            targetScanCodes = resolvedScanCodes;
+          } else {
+            // 获取当前筛选条件下的所有最新检测数据的条码
+            let baseQuery = directQuery.query ? { ...directQuery } : { query: {} };
+            baseQuery.populate = JSON.stringify([
+              { path: "machineId" },
+              { path: "processId" },
+            ]);
+            
+            const currentDataResult = await getData("InspectionLastData", baseQuery);
+            if (currentDataResult.data && currentDataResult.data.length > 0) {
+              targetScanCodes = currentDataResult.data.map(item => item.scanCode);
+            }
+          }
+
+          if (targetScanCodes.length === 0) {
+            this.$message.warning("未找到符合筛选条件的条码，无法导出历史数据。");
+            this.exportDialogVisible = false;
+            this.historyExportLoading = false;
+            return;
+          }
+
+          this.$message.info(`找到 ${targetScanCodes.length} 个条码，正在获取历史检验数据...`);
+
+          // 30%用于获取历史数据
+          let historyFetchPercentage = 0.7;
+          let allHistoryData = [];
+          
+          // 分批获取历史数据以避免查询过大
+          const batchSize = 50; // 每批处理50个条码
+          const batches = Math.ceil(targetScanCodes.length / batchSize);
+          
+          for (let i = 0; i < batches; i++) {
+            const batchScanCodes = targetScanCodes.slice(i * batchSize, (i + 1) * batchSize);
+            
+            const batchResult = await getData("InspectionData", {
+              query: {
+                scanCode: { $in: batchScanCodes }
+              },
+              populate: JSON.stringify([
+                { path: "machineId" },
+                { path: "processId" },
+              ]),
+              sort: { scanCode: 1, updateTime: -1 }, // 按条码分组，时间倒序
+            });
+
+            if (batchResult.data && batchResult.data.length > 0) {
+              allHistoryData = allHistoryData.concat(batchResult.data);
+            }
+
+            // 更新进度
+            const batchProgress = ((i + 1) / batches) * historyFetchPercentage * 100;
+            this.historyExportProgress = Math.round(overallProgress + batchProgress);
+          }
+
+          if (allHistoryData.length === 0) {
+            this.$message.warning("未找到符合条件的历史检验数据。");
+            this.exportDialogVisible = false;
+            this.historyExportLoading = false;
+            return;
+          }
+
+          this.$message.info(`共获取到 ${allHistoryData.length} 条历史检验数据，准备格式化并导出...`);
+
+          // 格式化数据
+          const exportData = allHistoryData.map((item) => [
+            item.scanCode,
+            item.machineId ? item.machineId.machineName : "--",
+            item.processId ? item.processId.processName : "--",
+            !item.error ? "合格" : "不合格",
+            this.formatDate(item.updateTime),
+            this.inspectionDataHandle(item).join("; "),
+          ]);
+
+          this.historyExportProgress = 95; // 格式化完成
+
+          // 生成动态文件名
+          let fileNameParts = ["历史检验数据"];
+          if (this.searchForm.materialCode)
+            fileNameParts.unshift(this.searchForm.materialCode);
+          if (this.searchForm.saleOrderNo)
+            fileNameParts.unshift(this.searchForm.saleOrderNo);
+          if (this.searchForm.materialFlowStatus)
+            fileNameParts.push(this.searchForm.materialFlowStatus);
+
+          const filename = `${fileNameParts.join("_")}_${new Date().getTime()}`;
+
+          import("@/vendor/Export2Excel")
+            .then((excel) => {
+              excel.export_json_to_excel({
+                header: [
+                  "扫描码",
+                  "设备名称",
+                  "工序名称",
+                  "检测结果",
+                  "检测时间",
+                  "检测详情",
+                ],
+                data: exportData,
+                filename: filename,
+                autoWidth: true,
+                bookType: "xlsx",
+              });
+              this.historyExportProgress = 100;
+              this.$message.success("批量历史数据导出成功");
+              setTimeout(() => {
+                this.exportDialogVisible = false;
+              }, 1000);
+            })
+            .catch((err) => {
+              console.error("批量导出历史数据Excel失败:", err);
+              this.$message.error("批量导出历史数据Excel失败");
+              this.exportDialogVisible = false;
+            });
+        } catch (error) {
+          console.error("批量导出历史数据失败:", error);
+          this.$message.error("批量导出历史数据失败: " + (error.message || "未知错误"));
+          this.exportDialogVisible = false;
+        } finally {
+          this.historyExportLoading = false;
+          if (!this.exportDialogVisible) {
+            this.historyExportProgress = 0;
+          }
+        }
+      },
+
+      // 单个条码导出历史检验数据
+      async handleExportSingleHistory(row) {
+        const scanCode = row.scanCode;
+        if (!scanCode) {
+          this.$message.warning("无效的扫描码");
+          return;
+        }
+
+        this.historyExportLoading = true;
+        this.historyExportProgress = 0;
+        this.exportDialogVisible = true;
+
+        try {
+          this.$message.info(`正在导出 ${scanCode} 的历史检测数据...`);
+          
+          // 获取该条码的所有历史数据
+          const result = await getData("InspectionData", {
+            query: {
+              scanCode: scanCode,
+            },
+            populate: JSON.stringify([
+              { path: "machineId" },
+              { path: "processId" },
+            ]),
+            sort: { updateTime: -1 }, // 按时间倒序
+          });
+
+          this.historyExportProgress = 80;
+
+          if (!result.data || result.data.length === 0) {
+            this.$message.warning(`未找到 ${scanCode} 的历史检测数据`);
+            this.exportDialogVisible = false;
+            this.historyExportLoading = false;
+            return;
+          }
+
+          this.$message.info(`共找到 ${result.data.length} 条历史检测数据，准备格式化并导出...`);
+
+          const exportData = result.data.map((item) => [
+            item.scanCode,
+            item.machineId ? item.machineId.machineName : "--",
+            item.processId ? item.processId.processName : "--",
+            !item.error ? "合格" : "不合格",
+            this.formatDate(item.updateTime),
+            this.inspectionDataHandle(item).join("; "),
+          ]);
+
+          this.historyExportProgress = 95; // 格式化完成
+
+          const fileName = `${scanCode}_历史检测数据_${new Date().getTime()}`;
+
+          import("@/vendor/Export2Excel")
+            .then((excel) => {
+              excel.export_json_to_excel({
+                header: [
+                  "扫描码",
+                  "设备名称",
+                  "工序名称",
+                  "检测结果",
+                  "检测时间",
+                  "检测详情",
+                ],
+                data: exportData,
+                filename: fileName,
+                autoWidth: true,
+                bookType: "xlsx",
+              });
+              this.historyExportProgress = 100;
+              this.$message.success(`${scanCode} 历史数据导出成功`);
+              setTimeout(() => {
+                this.exportDialogVisible = false;
+              }, 1000);
+            })
+            .catch((err) => {
+              console.error("导出历史数据Excel失败:", err);
+              this.$message.error("导出历史数据Excel失败");
+              this.exportDialogVisible = false;
+            });
+        } catch (error) {
+          console.error("导出历史数据失败:", error);
+          this.$message.error("导出历史数据失败: " + (error.message || "未知错误"));
+          this.exportDialogVisible = false;
+        } finally {
+          this.historyExportLoading = false;
+          if (!this.exportDialogVisible) {
+            this.historyExportProgress = 0;
+          }
+        }
+      },
   },
   created() {
     this.fetchData();

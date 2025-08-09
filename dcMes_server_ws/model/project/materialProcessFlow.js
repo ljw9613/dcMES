@@ -61,7 +61,7 @@ const processNodeSchema = new mongoose.Schema(
     startTime: { type: Date }, // 节点开始时间
     endTime: { type: Date }, // 节点完成时间
     createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
-    updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
+    updateBy: { type: String },
 
     remark: { type: String }, // 备注
   },
@@ -121,7 +121,7 @@ const materialProcessFlowSchema = new mongoose.Schema({
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
-  updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
+  updateBy: { type: String },
   createAt: { type: Date, default: Date.now },
   updateAt: { type: Date, default: Date.now },
 });

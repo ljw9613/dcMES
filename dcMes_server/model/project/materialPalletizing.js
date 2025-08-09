@@ -201,7 +201,7 @@ const materialPalletizingSchema = new mongoose.Schema({
   // 基础字段
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
-  updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" },
+  updateBy: { type: String }, // 更新人
   createAt: { type: Date, default: Date.now },
   updateAt: { type: Date, default: Date.now },
 });

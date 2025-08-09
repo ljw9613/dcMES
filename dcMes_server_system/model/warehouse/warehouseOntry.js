@@ -78,7 +78,7 @@ const warehouseOntrySchema = new mongoose.Schema({
   remark: { type: String }, // 备注
   createBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 创建人ID
   createByName: { type: String }, // 新增：创建人姓名
-  updateBy: { type: mongoose.Schema.ObjectId, ref: "user_login" }, // 更新人ID
+  updateBy: { type: String }, // 更新人ID
   updateByName: { type: String }, // 新增：更新人姓名
   createAt: { type: Date, default: Date.now },
   updateAt: { type: Date, default: Date.now }

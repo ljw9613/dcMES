@@ -928,7 +928,9 @@ export default {
     handleAdd(type) {
       this.dialogStatus = "create";
       this.dialogType = type;
-      this.dataForm = {};
+      this.dataForm = {
+        solution: "修复损坏",
+      };
       this.dialogFormVisible = true;
     },
 
@@ -1068,7 +1070,7 @@ export default {
                 }
               );
             } else if (
-              response.code === 401 &&
+              response.code === 500 &&
               response.data &&
               response.data.requireUnbind
             ) {
@@ -1120,7 +1122,7 @@ export default {
         } else {
           // 处理关键物料的情况
           if (
-            response.code === 400 &&
+            response.code === 500 &&
             response.data &&
             response.data.keyMaterials
           ) {
@@ -1148,7 +1150,7 @@ export default {
               }
             );
           } else if (
-            response.code === 401 &&
+            response.code === 500 &&
             response.data &&
             response.data.requireUnbind
           ) {
@@ -1250,7 +1252,7 @@ export default {
           } else {
             // 处理关键物料的情况
             if (
-              response.code === 400 &&
+              response.code === 500 &&
               response.data &&
               response.data.barcodeWithKeyMaterials
             ) {
@@ -1284,7 +1286,7 @@ export default {
                 }
               );
             } else if (
-              response.code === 401 &&
+              response.code === 500 &&
               response.data &&
               response.data.barcodeWithoutUnbindRecords
             ) {
@@ -1356,7 +1358,7 @@ export default {
         } else {
           // 处理关键物料的情况
           if (
-            response.code === 400 &&
+            response.code === 500 &&
             response.data &&
             response.data.barcodeWithKeyMaterials
           ) {
