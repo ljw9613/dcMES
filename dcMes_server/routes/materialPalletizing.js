@@ -6,7 +6,7 @@ const apiLogger = require("../middleware/apiLogger");
 // 使用API日志中间件，指定服务名称
 router.use(apiLogger("materialPalletizing"));
 
-// 添加托盘条码接口（支持队列化处理）
+// 添加托盘条码接口（强制使用队列化处理）
 router.post("/api/v1/handlePalletBarcode", async (req, res) => {
   try {
     const {
@@ -22,7 +22,6 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
       totalQuantity,
       userId,
       componentScans,
-      useQueue = true, // 新增参数：是否使用队列处理，默认为true
       fromRepairStation = false // 是否来自维修台
     } = req.body;
 
@@ -34,85 +33,51 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
       });
     }
 
-    let result;
+    // 强制使用队列化处理，确保并发安全
+    console.log(`🚀 托盘条码处理 - 队列模式: ${mainBarcode}`);
     
-    if (useQueue) {
-      // 使用队列化处理（推荐方式）
-      console.log(`托盘条码处理 - 使用队列模式: ${mainBarcode}`);
-      
-      result = await materialPalletizingService.handlePalletBarcodeAsync(
-        lineId,
-        lineName,
-        processStepId,
-        materialId,
-        materialCode,
-        materialName,
-        materialSpec,
-        mainBarcode,
-        boxBarcode,
-        totalQuantity,
-        userId,
-        componentScans,
-        fromRepairStation
-      );
-      
-      // 队列化处理成功，返回前端兼容的响应
-      return res.status(200).json({
-        code: 200,
-        success: true,
-        data: result,
-        message: "条码已提交处理队列，正在后台处理",
-        // 添加队列相关信息供前端参考
-        queue: {
-          enabled: true,
-          jobId: result.queueInfo?.jobId,
-          estimatedDelay: result.queueInfo?.estimatedDelay,
-          message: result.queueInfo?.message
-        }
-      });
-      
-    } else {
-      // 使用同步处理（兼容模式）
-      console.log(`托盘条码处理 - 使用同步模式: ${mainBarcode}`);
-      
-      result = await materialPalletizingService.handlePalletBarcode(
-        lineId,
-        lineName,
-        processStepId,
-        materialId,
-        materialCode,
-        materialName,
-        materialSpec,
-        mainBarcode,
-        boxBarcode,
-        totalQuantity,
-        userId,
-        componentScans,
-        fromRepairStation
-      );
-      
-      return res.status(200).json({
-        code: 200,
-        success: true,
-        data: result,
-        message: "添加成功",
-        queue: {
-          enabled: false,
-          message: "同步处理模式"
-        }
-      });
-    }
+    const result = await materialPalletizingService.handlePalletBarcodeAsync(
+      lineId,
+      lineName,
+      processStepId,
+      materialId,
+      materialCode,
+      materialName,
+      materialSpec,
+      mainBarcode,
+      boxBarcode,
+      totalQuantity,
+      userId,
+      componentScans,
+      fromRepairStation
+    );
+    
+    // 队列化处理成功，返回前端兼容的响应
+    return res.status(200).json({
+      code: 200,
+      success: true,
+      data: result,
+      message: "条码已提交处理队列，正在后台处理",
+      // 添加队列相关信息供前端参考
+      queue: {
+        enabled: true,
+        jobId: result.queueInfo?.jobId,
+        estimatedDelay: result.queueInfo?.estimatedDelay,
+        message: result.queueInfo?.message || "已加入队列处理"
+      }
+    });
     
   } catch (error) {
-    console.error(`托盘条码处理失败: ${req.body.mainBarcode}`, error);
+    console.error(`❌ 托盘条码处理失败: ${req.body.mainBarcode}`, error);
     
     return res.status(200).json({
       code: 500,
       success: false,
       message: error.message,
       queue: {
-        enabled: req.body.useQueue || true,
-        error: true
+        enabled: true,
+        error: true,
+        message: "队列处理失败"
       }
     });
   }

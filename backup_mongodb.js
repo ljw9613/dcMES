@@ -37,18 +37,20 @@ const execAsync = util.promisify(exec);
 class MongoDBBackup {
   constructor() {
     // 数据库连接配置（从db.js文件获取）
+    //  "mongodb://dcmesvncs:NHpmsLSARLWKky4A@127.0.0.1:27017/dcmesvncs";
+
     this.config = {
-      host: '47.115.19.76',
+      host: '127.0.0.1',
       port: '27017',
-      database: 'dcMes',
-      username: 'dcMes',
-      password: 'dcMes123.',
-      authDatabase: 'dcMes' // 认证数据库
+      database: 'dcmesvncs',
+      username: 'dcmesvncs',
+      password: 'NHpmsLSARLWKky4A',
+      authDatabase: 'dcmesvncs' // 认证数据库
     };
 
     // 备份配置
     this.backupConfig = {
-      backupPath: process.env.BACKUP_PATH || './backups',
+      backupPath: 'D:/mongobackups',
       keepDays: parseInt(process.env.KEEP_DAYS) || 7,
       compress: process.env.COMPRESS !== 'false',
       maxRetries: 3,
@@ -131,35 +133,40 @@ class MongoDBBackup {
    */
   async checkMongodumpAvailable() {
     try {
-      // 首先尝试系统路径中的mongodump
+      // Windows 优先使用指定路径（包含空格，需加引号）
+      if (this.isWindows) {
+        const windowsDefaultPath = 'C\\\\Program Files\\\MongoDB\\\Tools\\\100\\\bin\\\mongodump.exe'.replace(/\u000b/g, '');
+        if (fs.existsSync(windowsDefaultPath)) {
+          await execAsync(`"${windowsDefaultPath}" --version`);
+          this.mongodumpPath = windowsDefaultPath;
+          this.log('使用指定的MongoDB数据库工具:', windowsDefaultPath);
+          return true;
+        }
+      }
+
+      // 尝试系统 PATH 中的 mongodump
       await execAsync('mongodump --version');
       this.mongodumpPath = 'mongodump';
       return true;
     } catch (error) {
-      // 如果系统路径中没有，尝试本地下载的版本
-      try {
-        const localMongodumpPath = './mongodb-database-tools-macos-arm64-100.12.1/bin/mongodump';
-        if (fs.existsSync(localMongodumpPath)) {
-          await execAsync(`${localMongodumpPath} --version`);
-          this.mongodumpPath = localMongodumpPath;
-          this.log('使用本地MongoDB数据库工具:', localMongodumpPath);
-          return true;
-        }
-      } catch (localError) {
-        // 继续尝试其他可能的路径
-      }
-      
-      // 尝试其他可能的本地路径
-      const possiblePaths = [
-        './mongodb-database-tools/bin/mongodump',
-        './bin/mongodump',
-        '~/mongodb/bin/mongodump'
-      ];
-      
+      // 如果系统路径中没有，尝试本地常见路径
+      const possiblePaths = this.isWindows
+        ? [
+            'C:/Program Files/MongoDB/Tools/100/bin/mongodump.exe',
+            'C:/Program Files/MongoDB/Tools/bin/mongodump.exe',
+            'C:/mongodb/bin/mongodump.exe'
+          ]
+        : [
+            './mongodb-database-tools/bin/mongodump',
+            './bin/mongodump',
+            '~/mongodb/bin/mongodump'
+          ];
+
       for (const testPath of possiblePaths) {
         try {
           if (fs.existsSync(testPath)) {
-            await execAsync(`${testPath} --version`);
+            const quoted = testPath.includes(' ') ? `"${testPath}"` : testPath;
+            await execAsync(`${quoted} --version`);
             this.mongodumpPath = testPath;
             this.log('使用本地MongoDB数据库工具:', testPath);
             return true;
@@ -181,10 +188,11 @@ class MongoDBBackup {
   buildMongodumpCommand(outputPath) {
     const { host, port, database, username, password, authDatabase } = this.config;
     
-    // 使用检测到的mongodump路径
+    // 使用检测到的 mongodump 路径，并在包含空格时自动加引号
     const mongodumpCmd = this.mongodumpPath || 'mongodump';
+    const commandBinary = mongodumpCmd.includes(' ') ? `"${mongodumpCmd}"` : mongodumpCmd;
     
-    let command = mongodumpCmd;
+    let command = commandBinary;
     command += ` --host ${host}:${port}`;
     command += ` --db ${database}`;
     command += ` --username ${username}`;

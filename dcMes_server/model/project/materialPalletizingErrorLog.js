@@ -62,6 +62,8 @@ const materialPalletizingErrorLogSchema = new mongoose.Schema({
       "WORK_ORDER_ERROR", // 工单错误
       "MATERIAL_FLOW_ERROR", // 物料流程错误
       "ATOMIC_OPERATION_FAILED", // 原子操作失败
+      "LOCK_ACQUISITION_FAILED", // 🔧 新增：锁获取失败
+      "PALLET_PROCESSING_FAILED", // 🔧 新增：托盘处理失败
       "UNKNOWN_ERROR" // 未知错误
     ],
     required: true
@@ -83,6 +85,8 @@ const materialPalletizingErrorLogSchema = new mongoose.Schema({
       "UPDATE_PALLET_STATUS", // 更新托盘状态
       "UNBIND_BARCODE", // 解绑条码
       "SPLIT_PALLET", // 拆分托盘
+      "ACQUIRE_PALLET_LOCK", // 🔧 新增：获取托盘锁
+      "HANDLE_PALLET_BARCODE", // 🔧 新增：处理托盘条码
       "OTHER" // 其他操作
     ],
     required: true

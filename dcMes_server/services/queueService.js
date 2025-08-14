@@ -62,7 +62,7 @@ const palletQueue = new Queue('pallet-processing', {
       delay: 3000,                 // 托盘处理失败后延迟更长时间重试
     },
     delay: 0,
-    timeout: 120000,               // 托盘处理超时2分钟
+    timeout: 30000,                // 🔧 优化：托盘处理超时30秒，匹配前端等待时间
   },
 });
 
@@ -70,7 +70,7 @@ const palletQueue = new Queue('pallet-processing', {
 class PalletLockManager {
   constructor() {
     this.lockPrefix = 'pallet_lock:';
-    this.lockTimeout = 30000; // 30秒锁超时
+    this.lockTimeout = 15000; // 🔧 优化：减少到15秒锁超时，避免长时间占用
   }
 
   /**
@@ -742,10 +742,10 @@ class QueueService {
         // 更新进度
         await job.progress(5);
 
-        // 尝试获取托盘锁，等待最多5秒
+        // 🔧 优化：调整锁等待时间，与锁超时时间匹配
         console.log(`🔐 尝试获取托盘锁: ${palletKey}`);
         const lockStartTime = Date.now();
-        const maxLockWaitTime = 5000; // 最多等待5秒
+        const maxLockWaitTime = 18000; // 🔧 增加到18秒等待时间（略大于锁超时的15秒）
         
         while (Date.now() - lockStartTime < maxLockWaitTime) {
           lockAcquired = await palletLockManager.acquireLock(palletKey, workerId);
@@ -757,8 +757,9 @@ class QueueService {
           const lockStatus = await palletLockManager.getLockStatus(palletKey);
           console.log(`⏳ 等待托盘锁释放: ${palletKey}, 当前持有者: ${lockStatus.owner}, 剩余时间: ${lockStatus.remainingTime}ms`);
           
-          // 等待200ms后重试
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // 🔧 优化：根据剩余时间调整等待间隔
+          const waitTime = lockStatus.remainingTime > 5000 ? 1000 : 300; // 剩余时间长则等待更久
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
 
         if (!lockAcquired) {
@@ -773,13 +774,18 @@ class QueueService {
         // 执行实际的托盘处理操作
         await job.progress(30);
         
-        // 定期扩展锁的有效期，防止长时间处理导致锁过期
+        // 🔧 优化：定期扩展锁的有效期，防止长时间处理导致锁过期
         const extendLockInterval = setInterval(async () => {
-          await palletLockManager.extendLock(palletKey, workerId);
-        }, 10000); // 每10秒扩展一次
+          const extended = await palletLockManager.extendLock(palletKey, workerId);
+          if (!extended) {
+            console.warn(`⚠️ 锁续期失败，可能已被释放: ${palletKey}, Worker: ${workerId}`);
+          }
+        }, 8000); // 🔧 每8秒扩展一次（锁15秒超时，8秒续期保持安全边距）
         
         try {
-          const result = await MaterialPalletizingService.handlePalletBarcode(
+          // 🔧 关键修复：使用内部方法避免双重锁机制
+          // 队列处理器已经获取了锁，所以直接调用内部实现
+          const result = await MaterialPalletizingService._handlePalletBarcodeWithRetry(
             lineId,
             lineName,
             processStepId,

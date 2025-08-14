@@ -55,13 +55,85 @@ class MaterialPalletizingService {
     componentScans,
     fromRepairStation = false
   ) {
-    // 使用重试机制代替事务，适用于单实例 MongoDB
-    const maxRetries = 3;
-    let retryCount = 0;
-    
-    while (retryCount < maxRetries) {
+    // ===== Redis 分布式锁保护 =====
+    const { palletLockManager } = require('./queueService');
+    const workerId = `direct_${process.pid}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const palletKey = mainBarcode;
+    let lockAcquired = false;
+    const lockStartTime = Date.now();
+
+    try {
+      console.log(`🔐 [直接调用] 尝试获取托盘锁: ${palletKey}, Worker: ${workerId}`);
+      
+      // 🔧 优化：调整锁等待时间与队列处理器保持一致
+      const maxLockWaitTime = 18000; // 18秒等待时间
+      while (Date.now() - lockStartTime < maxLockWaitTime) {
+        lockAcquired = await palletLockManager.acquireLock(palletKey, workerId);
+        if (lockAcquired) {
+          break;
+        }
+        
+        // 检查锁状态并记录日志
+        const lockStatus = await palletLockManager.getLockStatus(palletKey);
+        console.log(`⏳ [直接调用] 等待托盘锁释放: ${palletKey}, 当前持有者: ${lockStatus.owner}, 剩余时间: ${lockStatus.remainingTime}ms`);
+        
+        // 等待200ms后重试
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      if (!lockAcquired) {
+        // 记录锁获取失败的详细信息
+        const lockStatus = await palletLockManager.getLockStatus(palletKey);
+        const errorMessage = `条码 ${mainBarcode} 正在被其他进程处理，无法获取分布式锁。当前锁持有者: ${lockStatus.owner || 'unknown'}, 剩余时间: ${lockStatus.remainingTime}ms`;
+        
+        console.error(`❌ [直接调用] ${errorMessage}`);
+        
+        // 记录锁冲突错误
+        await this.logError({
+          errorType: "LOCK_ACQUISITION_FAILED",
+          operation: "ACQUIRE_PALLET_LOCK",
+          error: new Error(errorMessage),
+          barcode: mainBarcode,
+          productLineId: lineId,
+          productLineName: lineName,
+          processStepId,
+          materialId,
+          materialCode,
+          materialName,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            lockStatus,
+            workerId,
+            waitTime: Date.now() - lockStartTime
+          },
+          userId,
+          impactLevel: "HIGH"
+        });
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log(`✅ [直接调用] 成功获取托盘锁: ${palletKey}, Worker: ${workerId}`);
+
+      // 定期扩展锁的有效期，防止长时间处理导致锁过期
+      const extendLockInterval = setInterval(async () => {
+        try {
+          const extended = await palletLockManager.extendLock(palletKey, workerId);
+          if (extended) {
+            console.log(`🔄 [直接调用] 托盘锁续期成功: ${palletKey}`);
+          } else {
+            console.warn(`⚠️ [直接调用] 托盘锁续期失败: ${palletKey}`);
+          }
+        } catch (extendError) {
+          console.error(`❌ [直接调用] 托盘锁续期异常: ${palletKey}`, extendError);
+        }
+      }, 10000); // 每10秒扩展一次
+
       try {
-        return await this._handlePalletBarcodeWithRetry(
+        // 直接调用处理方法，依赖Redis锁保护而非重试机制
+        const result = await this._handlePalletBarcodeWithRetry(
           lineId,
           lineName,
           processStepId,
@@ -76,25 +148,80 @@ class MaterialPalletizingService {
           componentScans,
           fromRepairStation
         );
+        
+        console.log(`✅ [直接调用] 托盘处理成功: ${mainBarcode}, Worker: ${workerId}`);
+        return result;
+        
       } catch (error) {
-        retryCount++;
+        // 记录处理失败错误（无重试，依赖Redis锁保护）
+        console.error(`❌ [直接调用] 托盘处理失败: ${mainBarcode}, Worker: ${workerId}`, error);
         
-        // 如果是并发冲突错误且还有重试次数，则重试
-        if (retryCount < maxRetries && (
-          error.message.includes('重复') || 
-          error.message.includes('已在') ||
-          error.message.includes('版本冲突') ||
-          error.message.includes('E11000') || // MongoDB重复键错误
-          error.code === 11000 // MongoDB重复键错误代码
-        )) {
-          console.log(`检测到并发冲突，第 ${retryCount} 次重试...`, error.message);
-          // 短暂延迟后重试，使用指数退避
-          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
-          continue;
-        }
+        await this.logError({
+          errorType: "PALLET_PROCESSING_FAILED",
+          operation: "HANDLE_PALLET_BARCODE",
+          error,
+          barcode: mainBarcode,
+          productLineId: lineId,
+          productLineName: lineName,
+          processStepId,
+          materialId,
+          materialCode,
+          materialName,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            workerId,
+            totalProcessingTime: Date.now() - lockStartTime,
+            noRetryMode: true
+          },
+          userId,
+          impactLevel: "HIGH"
+        });
         
-        // 其他错误或重试次数用完，直接抛出
         throw error;
+      } finally {
+        // 清理锁续期定时器
+        if (extendLockInterval) {
+          clearInterval(extendLockInterval);
+        }
+      }
+      
+    } catch (outerError) {
+      console.error(`❌ [直接调用] 托盘处理外层错误: ${mainBarcode}, Worker: ${workerId}`, outerError);
+      throw outerError;
+    } finally {
+      // 无论成功还是失败都要释放分布式锁
+      if (lockAcquired) {
+        try {
+          const released = await palletLockManager.releaseLock(palletKey, workerId);
+          if (released) {
+            console.log(`🔓 [直接调用] 成功释放托盘锁: ${palletKey}, Worker: ${workerId}`);
+          } else {
+            console.warn(`⚠️ [直接调用] 托盘锁释放失败（可能已过期）: ${palletKey}, Worker: ${workerId}`);
+          }
+        } catch (releaseError) {
+          console.error(`❌ [直接调用] 释放托盘锁异常: ${palletKey}, Worker: ${workerId}`, releaseError);
+          
+          // 记录锁释放失败，但不影响主流程
+          try {
+            await this.logError({
+              errorType: "LOCK_RELEASE_FAILED",
+              operation: "RELEASE_PALLET_LOCK",
+              error: releaseError,
+              barcode: mainBarcode,
+              context: {
+                workerId,
+                palletKey,
+                processingTime: Date.now() - lockStartTime
+              },
+              userId,
+              impactLevel: "MEDIUM"
+            });
+          } catch (logError) {
+            console.error(`❌ [直接调用] 记录锁释放失败日志异常: ${palletKey}`, logError);
+          }
+        }
       }
     }
   }
@@ -114,55 +241,22 @@ class MaterialPalletizingService {
     componentScans,
     fromRepairStation = false
   ) {
-    let lastError;
-    let retries = 0;
-    const maxRetries = 3;
-
-    while (retries < maxRetries) {
-      try {
-        // 优先尝试简化版本，避免事务读取偏好问题
-        return await this._handlePalletBarcodeInternalSimple(
-          lineId,
-          lineName,
-          processStepId,
-          materialId,
-          materialCode,
-          materialName,
-          materialSpec,
-          mainBarcode,
-          boxBarcode,
-          totalQuantity,
-          userId,
-          componentScans,
-          fromRepairStation
-        );
-      } catch (error) {
-        console.log(`托盘条码处理第 ${retries + 1} 次尝试失败:`, error.message);
-        lastError = error;
-        retries++;
-
-        // 如果是并发冲突相关的错误，进行重试
-        if (
-          error.message.includes("已被") ||
-          error.message.includes("重复") ||
-          error.message.includes("不存在对应的实物盒条码") ||
-          error.message.includes("已处理") ||
-          error.message.includes("E11000") ||
-          error.message.includes("可能已被其他进程处理")
-        ) {
-          if (retries < maxRetries) {
-            // 增加随机延迟，避免多个进程同时重试
-            const delay = Math.random() * 500 + 200; // 200-700ms 随机延迟
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            continue;
-          }
-        }
-        // 其他错误直接抛出，不进行重试
-        break;
-      }
-    }
-
-    throw lastError;
+    // 直接调用内部方法，依赖Redis分布式锁保护，不使用重试机制
+    return await this._handlePalletBarcodeInternalSimple(
+      lineId,
+      lineName,
+      processStepId,
+      materialId,
+      materialCode,
+      materialName,
+      materialSpec,
+      mainBarcode,
+      boxBarcode,
+      totalQuantity,
+      userId,
+      componentScans,
+      fromRepairStation
+    );
   }
 
   /**
@@ -1596,13 +1690,78 @@ class MaterialPalletizingService {
     componentScans = [],
     fromRepairStation = true
   ) {
-    // 使用重试机制代替事务，适用于单实例 MongoDB
-    const maxRetries = 3;
-    let retryCount = 0;
-    
-    while (retryCount < maxRetries) {
+    // ===== Redis 分布式锁保护 =====
+    const { palletLockManager } = require('./queueService');
+    const workerId = `repair_${process.pid}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const palletKey = mainBarcode; // 使用主条码作为锁键
+    let lockAcquired = false;
+    const lockStartTime = Date.now();
+
+    try {
+      console.log(`🔐 [维修台] 尝试获取托盘锁: ${palletKey}, Worker: ${workerId}, 托盘: ${palletCode}`);
+      
+      // 🔧 优化：调整锁等待时间与队列处理器保持一致
+      const maxLockWaitTime = 18000; // 18秒等待时间
+      while (Date.now() - lockStartTime < maxLockWaitTime) {
+        lockAcquired = await palletLockManager.acquireLock(palletKey, workerId);
+        if (lockAcquired) {
+          break;
+        }
+        
+        // 检查锁状态并记录日志
+        const lockStatus = await palletLockManager.getLockStatus(palletKey);
+        console.log(`⏳ [维修台] 等待托盘锁释放: ${palletKey}, 当前持有者: ${lockStatus.owner}, 剩余时间: ${lockStatus.remainingTime}ms`);
+        
+        // 等待200ms后重试
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      if (!lockAcquired) {
+        const lockStatus = await palletLockManager.getLockStatus(palletKey);
+        const errorMessage = `维修台添加条码 ${mainBarcode} 到托盘 ${palletCode} 失败：条码正在被其他进程处理。当前锁持有者: ${lockStatus.owner || 'unknown'}`;
+        
+        console.error(`❌ [维修台] ${errorMessage}`);
+        
+        await this.logError({
+          errorType: "REPAIR_LOCK_ACQUISITION_FAILED",
+          operation: "ADD_BARCODE_TO_PALLET",
+          error: new Error(errorMessage),
+          barcode: mainBarcode,
+          palletCode,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            lockStatus,
+            workerId,
+            waitTime: Date.now() - lockStartTime
+          },
+          userId,
+          impactLevel: "HIGH"
+        });
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log(`✅ [维修台] 成功获取托盘锁: ${palletKey}, Worker: ${workerId}`);
+
+      // 定期扩展锁的有效期
+      const extendLockInterval = setInterval(async () => {
+        try {
+          const extended = await palletLockManager.extendLock(palletKey, workerId);
+          if (extended) {
+            console.log(`🔄 [维修台] 托盘锁续期成功: ${palletKey}`);
+          } else {
+            console.warn(`⚠️ [维修台] 托盘锁续期失败: ${palletKey}`);
+          }
+        } catch (extendError) {
+          console.error(`❌ [维修台] 托盘锁续期异常: ${palletKey}`, extendError);
+        }
+      }, 10000); // 每10秒扩展一次
+
       try {
-        return await this._addBarcodeToPalletWithRetry(
+        // 直接调用处理方法，依赖Redis锁保护而非重试机制
+        const result = await this._addBarcodeToPalletWithRetry(
           palletCode,
           mainBarcode,
           boxBarcode,
@@ -1610,26 +1769,76 @@ class MaterialPalletizingService {
           componentScans,
           fromRepairStation
         );
+        
+        console.log(`✅ [维修台] 条码添加到托盘成功: ${mainBarcode} -> ${palletCode}, Worker: ${workerId}`);
+        return result;
+        
       } catch (error) {
-        retryCount++;
+        // 记录处理失败错误（无重试，依赖Redis锁保护）
+        console.error(`❌ [维修台] 条码添加到托盘失败: ${mainBarcode} -> ${palletCode}, Worker: ${workerId}`, error);
         
-        // 如果是并发冲突错误且还有重试次数，则重试
-        if (retryCount < maxRetries && (
-          error.message.includes('重复') || 
-          error.message.includes('已在') ||
-          error.message.includes('版本冲突') ||
-          error.message.includes('E11000') || // MongoDB重复键错误
-          error.code === 11000 || // MongoDB重复键错误代码
-          error.message.includes('可能已被其他进程处理')
-        )) {
-          console.log(`检测到并发冲突，第 ${retryCount} 次重试...`, error.message);
-          // 短暂延迟后重试，使用指数退避
-          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
-          continue;
-        }
+        await this.logError({
+          errorType: "REPAIR_ADD_BARCODE_FAILED",
+          operation: "ADD_BARCODE_TO_PALLET",
+          error,
+          barcode: mainBarcode,
+          palletCode,
+          boxBarcode,
+          context: {
+            fromRepairStation,
+            componentScans,
+            workerId,
+            totalProcessingTime: Date.now() - lockStartTime,
+            noRetryMode: true
+          },
+          userId,
+          impactLevel: "HIGH"
+        });
         
-        // 其他错误或重试次数用完，直接抛出
         throw error;
+      } finally {
+        // 清理锁续期定时器
+        if (extendLockInterval) {
+          clearInterval(extendLockInterval);
+        }
+      }
+      
+    } catch (outerError) {
+      console.error(`❌ [维修台] 条码添加到托盘外层错误: ${mainBarcode} -> ${palletCode}, Worker: ${workerId}`, outerError);
+      throw outerError;
+    } finally {
+      // 无论成功还是失败都要释放分布式锁
+      if (lockAcquired) {
+        try {
+          const released = await palletLockManager.releaseLock(palletKey, workerId);
+          if (released) {
+            console.log(`🔓 [维修台] 成功释放托盘锁: ${palletKey}, Worker: ${workerId}`);
+          } else {
+            console.warn(`⚠️ [维修台] 托盘锁释放失败（可能已过期）: ${palletKey}, Worker: ${workerId}`);
+          }
+        } catch (releaseError) {
+          console.error(`❌ [维修台] 释放托盘锁异常: ${palletKey}, Worker: ${workerId}`, releaseError);
+          
+          // 记录锁释放失败，但不影响主流程
+          try {
+            await this.logError({
+              errorType: "REPAIR_LOCK_RELEASE_FAILED",
+              operation: "RELEASE_PALLET_LOCK",
+              error: releaseError,
+              barcode: mainBarcode,
+              palletCode,
+              context: {
+                workerId,
+                palletKey,
+                processingTime: Date.now() - lockStartTime
+              },
+              userId,
+              impactLevel: "MEDIUM"
+            });
+          } catch (logError) {
+            console.error(`❌ [维修台] 记录锁释放失败日志异常: ${palletKey}`, logError);
+          }
+        }
       }
     }
   }
@@ -3056,7 +3265,8 @@ class MaterialPalletizingService {
         mainBarcode,
         boxBarcode,
         fromRepairStation,
-        palletInfo._id // 传递托盘ID用于箱条码验证
+        palletInfo._id, // 传递托盘ID用于箱条码验证
+        processStepId   // 🔧 添加工序ID用于前置工序验证
       );
 
       if (!validationResult.valid) {
@@ -3129,7 +3339,7 @@ class MaterialPalletizingService {
    * @param {Boolean} fromRepairStation - 是否来自维修台
    * @returns {Object} 验证结果
    */
-  static async _quickValidation(lineId, materialId, mainBarcode, boxBarcode, fromRepairStation, currentPalletId = null) {
+  static async _quickValidation(lineId, materialId, mainBarcode, boxBarcode, fromRepairStation, currentPalletId = null, processStepId = null) {
     try {
       // 1. 检查条码是否重复
       const duplicateCheck = await MaterialPalletizing.findOne({
@@ -3180,16 +3390,60 @@ class MaterialPalletizingService {
         }
       }
 
-      // 4. 检查条码是否在流程系统中存在
+      // 4. 检查条码是否在流程系统中存在，并获取完整的流程数据用于前置工序验证
       const materialProcessFlow = await MaterialProcessFlow.findOne({
         barcode: mainBarcode,
-      }).select('_id productionPlanWorkOrderId');
+      });
 
       if (!materialProcessFlow) {
         return {
           valid: false,
           error: `条码 ${mainBarcode} 在系统中不存在`
         };
+      }
+
+      // 🔧 关键修复：添加前置工序完成状态验证
+      // 5. 检查前置工序完成状态（避免前端假成功）
+      if (!fromRepairStation) { // 维修台可以跳过前置工序检查
+        // 查找当前工序节点
+        const processNode = materialProcessFlow.processNodes.find(
+          (node) =>
+            node.processStepId &&
+            node.processStepId.toString() === processStepId.toString() &&
+            node.nodeType === "PROCESS_STEP"
+        );
+
+        if (!processNode) {
+          return {
+            valid: false,
+            error: `未找到条码 ${mainBarcode} 对应的工序节点`
+          };
+        }
+
+        // 验证工序节点状态
+        if (processNode.status !== "PENDING") {
+          return {
+            valid: false,
+            error: "该工序节点已完成或处于异常状态"
+          };
+        }
+
+        // 🔧 关键：调用前置工序检查方法
+        const MaterialProcessFlowService = require('./materialProcessFlowService');
+        const checkResult = MaterialProcessFlowService.checkPreviousProcessSteps(
+          materialProcessFlow.processNodes,
+          processNode
+        );
+
+        if (!checkResult.isValid) {
+          const unfinishedList = checkResult.unfinishedSteps
+            .map((step) => `${step.processName}(${step.processCode})`)
+            .join("、");
+          return {
+            valid: false,
+            error: `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
+          };
+        }
       }
 
       return { valid: true };

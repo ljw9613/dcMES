@@ -136,7 +136,7 @@
       </el-card>
     </div>
     <div class="right-content">
-      <template v-if="mainMaterialId && processStepId">
+      <template v-if="mainMaterialId && processStepId && processStepData.processType != 'F'">
         <el-card class="scan-card">
           <!-- 标题部分 -->
           <div class="card-header">

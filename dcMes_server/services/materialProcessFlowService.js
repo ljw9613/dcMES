@@ -1297,7 +1297,9 @@ class MaterialProcessFlowService {
             return {
               ...node,
               status: "PENDING",
+              // batchDocNumber: null, // 🔧 关键修复：清除托盘编号，确保数据一致性
               endTime: null,
+              // scanTime: null, // 🔧 同时清除扫描时间
               updateBy: userId,
             };
           }
@@ -3986,7 +3988,7 @@ class MaterialProcessFlowService {
         console.log(`新条码 ${newBarcode} 无流程记录，将验证格式`);
         // 如果新条码不存在流程记录，需要验证条码格式
         const material = await Material.findOne({
-          FNumber: materialNode.materialCode,
+          _id: materialNode.materialId,
         });
 
         if (!material) {
