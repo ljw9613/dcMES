@@ -29,8 +29,8 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const zlib = require('zlib');
-const archiver = require('archiver');
 const os = require('os');
+const schedule = require('node-schedule');
 
 const execAsync = util.promisify(exec);
 
@@ -133,13 +133,23 @@ class MongoDBBackup {
    */
   async checkMongodumpAvailable() {
     try {
-      // Windows 优先使用指定路径（包含空格，需加引号）
+      // 优先使用当前脚本目录下的 Tools/100/bin/mongodump(.exe)
+      const localMongodump = path.join(__dirname, 'Tools', '100', 'bin', this.isWindows ? 'mongodump.exe' : 'mongodump');
+      if (fs.existsSync(localMongodump)) {
+        const quoted = localMongodump.includes(' ') ? `"${localMongodump}"` : localMongodump;
+        await execAsync(`${quoted} --version`);
+        this.mongodumpPath = localMongodump;
+        this.log('使用本地Tools目录中的MongoDB数据库工具:', localMongodump);
+        return true;
+      }
+
+      // Windows 常见安装路径（如果用户把工具装在系统目录）
       if (this.isWindows) {
-        const windowsDefaultPath = 'C\\\\Program Files\\\MongoDB\\\Tools\\\100\\\bin\\\mongodump.exe'.replace(/\u000b/g, '');
+        const windowsDefaultPath = 'C:/Program Files/MongoDB/Tools/100/bin/mongodump.exe';
         if (fs.existsSync(windowsDefaultPath)) {
           await execAsync(`"${windowsDefaultPath}" --version`);
           this.mongodumpPath = windowsDefaultPath;
-          this.log('使用指定的MongoDB数据库工具:', windowsDefaultPath);
+          this.log('使用系统MongoDB数据库工具:', windowsDefaultPath);
           return true;
         }
       }
@@ -149,14 +159,16 @@ class MongoDBBackup {
       this.mongodumpPath = 'mongodump';
       return true;
     } catch (error) {
-      // 如果系统路径中没有，尝试本地常见路径
+      // 如果系统路径中没有，尝试本地及常见路径
       const possiblePaths = this.isWindows
         ? [
+            path.join(process.cwd(), 'Tools', '100', 'bin', 'mongodump.exe'),
             'C:/Program Files/MongoDB/Tools/100/bin/mongodump.exe',
             'C:/Program Files/MongoDB/Tools/bin/mongodump.exe',
             'C:/mongodb/bin/mongodump.exe'
           ]
         : [
+            path.join(__dirname, 'Tools', '100', 'bin', 'mongodump'),
             './mongodb-database-tools/bin/mongodump',
             './bin/mongodump',
             '~/mongodb/bin/mongodump'
@@ -168,7 +180,7 @@ class MongoDBBackup {
             const quoted = testPath.includes(' ') ? `"${testPath}"` : testPath;
             await execAsync(`${quoted} --version`);
             this.mongodumpPath = testPath;
-            this.log('使用本地MongoDB数据库工具:', testPath);
+            this.log('使用本地/常见路径中的MongoDB数据库工具:', testPath);
             return true;
           }
         } catch (pathError) {
@@ -282,12 +294,12 @@ class MongoDBBackup {
     
     console.log('\n方式3: 使用Docker（适用于任何系统）');
     console.log('如果您有Docker，可以使用以下命令进行备份：');
-    console.log('docker run --rm -v $(pwd)/backups:/backup mongo:latest mongodump \\');
-    console.log('  --host 47.115.19.76:27017 \\');
-    console.log('  --db dcMes \\');
-    console.log('  --username dcMes \\');
-    console.log('  --password dcMes123. \\');
-    console.log('  --authenticationDatabase dcMes \\');
+    console.log('docker run --rm -v $(pwd)/backups:/backup mongo:latest mongodump \\\n');
+    console.log('  --host 47.115.19.76:27017 \\\n');
+    console.log('  --db dcMes \\\n');
+    console.log('  --username dcMes \\\n');
+    console.log('  --password dcMes123. \\\n');
+    console.log('  --authenticationDatabase dcMes \\\n');
     console.log('  --out /backup');
     console.log('\n=================================\n');
   }
@@ -473,6 +485,7 @@ class MongoDBBackup {
    * @param {string} targetPath - 目标路径
    */
   async compressWithArchiver(sourcePath, targetPath) {
+    const archiver = require('archiver');
     return new Promise((resolve, reject) => {
       try {
         // 创建输出流
@@ -710,18 +723,57 @@ class MongoDBBackup {
 if (require.main === module) {
   const backup = new MongoDBBackup();
   
-  backup.run().then(result => {
-    if (result.success) {
-      console.log('\n✅ 备份任务成功完成');
-      process.exit(0);
-    } else {
-      console.error('\n❌ 备份任务失败:', result.error);
+  // 命令行参数解析
+  const argv = process.argv.slice(2);
+  const help = argv.includes('-h') || argv.includes('--help');
+  const runOnce = argv.includes('--once') || argv.includes('--now') || argv.includes('run');
+  const scheduleMode = argv.includes('--schedule') || (!runOnce);
+  const cronIndex = Math.max(argv.indexOf('--cron'), argv.indexOf('-c'));
+  const cronFromArg = cronIndex > -1 && argv[cronIndex + 1] ? argv[cronIndex + 1] : null;
+  const cronExpr = cronFromArg || process.env.SCHEDULE_CRON || '0 0 2 * * *'; // 每天 02:00:00
+
+  if (help) {
+    console.log('\n用法:');
+    console.log('  node backup_mongodb.js [--once|--now|run]            立即执行一次后退出');
+    console.log('  node backup_mongodb.js [--schedule] [--cron <表达式>] 以守护模式定时执行(默认每天2点)');
+    console.log('\n示例:');
+    console.log('  node backup_mongodb.js --once');
+    console.log('  node backup_mongodb.js --schedule --cron "0 30 1 * * *"  # 每天01:30');
+  }
+
+  if (runOnce && !scheduleMode) {
+    backup.run().then(result => {
+      if (result.success) {
+        console.log('\n✅ 备份任务成功完成');
+        process.exit(0);
+      } else {
+        console.error('\n❌ 备份任务失败:', result.error);
+        process.exit(1);
+      }
+    }).catch(error => {
+      console.error('\n💥 备份任务异常:', error.message);
       process.exit(1);
+    });
+  } else {
+    backup.log('以定时任务模式启动备份服务');
+    backup.log('Cron 表达式:', cronExpr);
+    const job = schedule.scheduleJob(cronExpr, async () => {
+      backup.log('触发定时任务: 开始执行备份');
+      try {
+        await backup.run();
+        backup.log('定时任务执行完成');
+      } catch (err) {
+        backup.logError('定时任务执行失败', err);
+      }
+    });
+
+    if (job && job.nextInvocation) {
+      backup.log('下一次执行时间:', job.nextInvocation().toISOString());
     }
-  }).catch(error => {
-    console.error('\n💥 备份任务异常:', error.message);
-    process.exit(1);
-  });
+
+    // 保持进程常驻供 PM2 管理
+    process.stdin.resume();
+  }
 }
 
 module.exports = MongoDBBackup; 
