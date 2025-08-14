@@ -96,3 +96,73 @@ node .\restore_mongodb.js <备份文件路径>
   - 新增 CLI 参数（`--once/--schedule/--cron`），默认定时 02:00。
   - 优先使用本地 `Tools/100/bin/mongodump(.exe)`。
   - 自动依赖安装与重试、清理、验证机制。 
+
+## 十、备份文件的使用方法（恢复/验证/迁移）
+
+备份输出为按时间命名的压缩包（tar.gz），包含 `mongodump` 导出的库内容。常见使用场景如下：
+
+### 1) 恢复到数据库（覆盖/新库）
+- 使用项目内的恢复脚本 `restore_mongodb.js`（推荐）：
+```powershell
+cd C:\Users\Administrator\Desktop\DCMES\dechang-mes
+node .\restore_mongodb.js <备份文件路径>
+```
+- 高级参数（环境变量）：
+  - `TARGET_DB`：目标库名（默认 `dcMes_restore`）
+  - `DROP_EXISTING`：是否先删除目标库现有数据（`true|false`，默认 `false`）
+  - `BACKUP_BEFORE_RESTORE`：恢复前是否自动备份目标库（默认 `true`）
+示例（恢复到生产库，谨慎操作）：
+```powershell
+set TARGET_DB=dcMes
+set DROP_EXISTING=true
+set BACKUP_BEFORE_RESTORE=true
+node .\restore_mongodb.js D:\mongobackups\dcMes_backup_2024-12-20T02-00-00.gz
+```
+
+### 2) 解包查看备份内容（仅检查不恢复）
+- Windows（使用 7-Zip 或 tar）：
+```powershell
+# 若已安装 tar（Windows 10+ 自带）
+mkdir D:\temp\dcmes_dump
+ tar -xzf D:\mongobackups\dcMes_backup_2024-12-20T02-00-00.gz -C D:\temp\dcmes_dump
+```
+- Linux/macOS：
+```bash
+mkdir -p /tmp/dcmes_dump
+ tar -xzf /path/to/dcMes_backup_2024-12-20T02-00-00.gz -C /tmp/dcmes_dump
+ls -la /tmp/dcmes_dump
+```
+解包目录内一般包含数据库名子目录以及各集合的 .bson/.metadata.json 文件，可用于快速审查集合数量与体量。
+
+### 3) 使用 mongorestore 直接恢复（绕过脚本）
+当你熟悉 MongoDB 工具链时，可直接使用 `mongorestore`：
+- 压缩包：
+```powershell
+# 解包后恢复（示例）
+ tar -xzf D:\mongobackups\dcMes_backup_2024-12-20T02-00-00.gz -C D:\temp\dcmes_dump
+mongorestore --host 127.0.0.1:27017 ^
+  --username <user> --password <pass> ^
+  --authenticationDatabase <authDb> ^
+  --db <目标库> D:\temp\dcmes_dump\<源库目录>
+```
+- 若是目录（未压缩备份时）：
+```powershell
+mongorestore --host 127.0.0.1:27017 ^
+  --username <user> --password <pass> ^
+  --authenticationDatabase <authDb> ^
+  --db <目标库> <备份目录路径>
+```
+注意：覆盖生产库前务必做好当前库的临时备份，并在非高峰时段操作。
+
+### 4) 数据迁移/异地恢复
+将 `.gz` 备份文件复制至目标环境（建议通过安全通道），在目标环境上按照 1) 或 3) 步骤执行恢复。不同版本的 MongoDB 工具通常兼容同一大版本下的导入导出，但跨大版本迁移请先在测试环境验证。
+
+### 5) 文件完整性与可用性验证
+- 检查文件大小是否明显异常（例如仅几 KB）；
+- 尝试解包并查看是否存在集合 .bson 文件；
+- 在沙箱库（如 `dcMes_restore`）中进行一次试恢复，核对关键集合的文档数量。
+
+### 6) 常见问题
+- 解包报错：可能是下载/传输过程中损坏，重新获取备份文件；
+- mongorestore 权限错误：确认目标库凭据与 `--authenticationDatabase` 正确；
+- 版本不兼容：尽量使用与备份时相同或更高的 MongoDB Database Tools 版本。 
