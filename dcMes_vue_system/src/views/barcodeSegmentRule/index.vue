@@ -707,7 +707,11 @@ export default {
         await this.$confirm('确认删除该规则吗？', '提示', {
           type: 'warning'
         })
-        await removeData('barcodeSegmentRule', { _id: row._id })
+        await removeData('barcodeSegmentRule', { 
+          query: {
+            _id: row._id
+          }
+        })
         this.$message.success('删除成功')
         this.fetchRules()
       } catch (error) {
