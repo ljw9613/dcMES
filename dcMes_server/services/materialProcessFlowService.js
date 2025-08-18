@@ -1354,13 +1354,22 @@ class MaterialProcessFlowService {
           }
         }
 
-        // 更新整体进度
-        const completedNodes = flowRecord.processNodes.filter(
-          (node) => node.status === "COMPLETED" && node.level !== 0
-        ).length;
-        flowRecord.progress = Math.floor(
-          (completedNodes / (flowRecord.processNodes.length - 1)) * 100
+        // 更新整体进度（与fixFlowProgress口径保持一致：仅统计必要节点）
+        const requiredNodesForProgress = flowRecord.processNodes.filter(
+          (node) =>
+            node.level !== 0 &&
+            (node.nodeType === "PROCESS_STEP" ||
+              (node.nodeType === "MATERIAL" && node.requireScan === true))
         );
+        const completedRequiredNodes = requiredNodesForProgress.filter(
+          (node) => node.status === "COMPLETED"
+        ).length;
+        flowRecord.progress =
+          requiredNodesForProgress.length > 0
+            ? Math.floor(
+                (completedRequiredNodes / requiredNodesForProgress.length) * 100
+              )
+            : 0;
 
         // 更新整体状态
         if (flowRecord.status === "COMPLETED") {
@@ -1376,12 +1385,55 @@ class MaterialProcessFlowService {
           }
         }
 
+        // 若本次未检测到包含首道工序，但解绑后已无任一一级工序处于完成，则补扣一次投入量
+        try {
+          const hasAnyCompletedLevel1 = flowRecord.processNodes.some(
+            (n) =>
+              n.nodeType === "PROCESS_STEP" &&
+              n.level === 1 &&
+              n.status === "COMPLETED"
+          );
+          if (
+            !hasFirstProcess &&
+            !hasAnyCompletedLevel1 &&
+            flowRecord.productionPlanWorkOrderId &&
+            flowRecord.isProduct &&
+            flowRecord.productStatus !== "SCRAP"
+          ) {
+            await this.updateWorkOrderQuantity(
+              flowRecord.productionPlanWorkOrderId,
+              "input",
+              -1,
+              {
+                relatedBarcode: mainBarcode,
+                barcodeOperation: "UNBIND_PROCESS",
+                operatorId: userId,
+                processStepId: processStepId,
+                reason: `解绑后首工序投入回退: ${reason || "解绑"}`,
+                remark: unbindSubsequent ? "解绑后续工序" : "解绑单个工序",
+                isAutomatic: true,
+              }
+            );
+            console.log(
+              `检测到首工序已全部回退，工单${flowRecord.productionPlanWorkOrderId}投入量-1`
+            );
+          }
+        } catch (errAdjust) {
+          console.warn("解绑后投入量补扣失败:", errAdjust?.message || errAdjust);
+        }
+
         // 保存更新
         try {
           await flowRecord.save();
           console.log(
             `完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`
           );
+          // 统一修复解绑后的进度与状态，确保必扫节点为0时进度回到0
+          try {
+            await this.fixFlowProgress(mainBarcode);
+          } catch (fixErr) {
+            console.warn("解绑后修复流程进度失败:", fixErr?.message || fixErr);
+          }
           return flowRecord;
         } catch (saveError) {
           // 如果是版本冲突异常且未超过最大重试次数，则重试
@@ -1459,6 +1511,26 @@ class MaterialProcessFlowService {
     // 创建节点副本进行操作
     let updatedNodes = processNodes.map(node => ({ ...node }));
     
+    // 新增：先构建从根节点(LEVEL 0 物料)出发的“可达节点集合”，用于判定不可达孤立节点
+    const reachableNodeIds = new Set();
+    const rootMaterialNodes = updatedNodes.filter(n => n.nodeType === "MATERIAL" && n.level === 0);
+    
+    const collectReachable = (parentId) => {
+      const children = updatedNodes.filter(n => n.parentNodeId === parentId);
+      for (const child of children) {
+        if (!reachableNodeIds.has(child.nodeId)) {
+          reachableNodeIds.add(child.nodeId);
+          collectReachable(child.nodeId);
+        }
+      }
+    };
+    
+    for (const root of rootMaterialNodes) {
+      // 根节点本身也视为可达
+      reachableNodeIds.add(root.nodeId);
+      collectReachable(root.nodeId);
+    }
+    
     // 获取所有已完成的非根节点
     const completedNodes = updatedNodes.filter(
       node => node.status === "COMPLETED" && node.level !== 0
@@ -1468,8 +1540,12 @@ class MaterialProcessFlowService {
     for (const node of completedNodes) {
       let isOrphan = false;
       
-      // 检查节点的关联关系
-      if (node.parentNodeId) {
+      // 可达性优先判断：不可达即视为孤立
+      if (!reachableNodeIds.has(node.nodeId)) {
+        isOrphan = true;
+      }
+      // 若可达，再检查节点的关联关系
+      if (!isOrphan && node.parentNodeId) {
         // 查找父节点
         const parentNode = updatedNodes.find(n => n.nodeId === node.parentNodeId);
         
