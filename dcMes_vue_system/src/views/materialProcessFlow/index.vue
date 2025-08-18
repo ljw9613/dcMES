@@ -248,10 +248,10 @@
           <i class="el-icon-tickets">产品条码生产流程列表</i>
           <div>
             <el-button type="primary" @click="handleAllExcel"
-              >导出数据表</el-button
+              >导出表格数据</el-button
             >
             <el-button type="primary" @click="handleAllExport" v-if="$checkPermission('条码记录批量导出数据')"
-              >批量导出数据</el-button
+              >导出条码详情数据(包含物料条码数据)</el-button
             >
             <el-button
               type="primary"
@@ -1032,10 +1032,10 @@
       </div>
     </el-dialog>
 
-    <!-- 导出选项弹窗 -->
+    <!-- 导出表格数据选项弹窗 -->
     <el-dialog
-      title="导出选项"
-      :visible.sync="exportDialogVisible"
+      title="导出表格数据选项"
+      :visible.sync="exportTableDialogVisible"
       width="400px"
       :close-on-click-modal="false"
     >
@@ -1045,19 +1045,55 @@
             v-model="exportForm.exportOption"
             class="export-radio-group"
           >
+            <el-radio-button label="current" class="export-radio-button">
+              <i class="el-icon-document"></i>
+              <span>导出当前页</span>
+            </el-radio-button>
             <el-radio-button label="search" class="export-radio-button">
               <i class="el-icon-search"></i>
               <span>导出搜索结果</span>
-            </el-radio-button>
-            <el-radio-button label="all" class="export-radio-button">
-              <i class="el-icon-document"></i>
-              <span>导出全部数据</span>
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="exportDialogVisible = false">取 消</el-button>
+        <el-button @click="exportTableDialogVisible = false">取 消</el-button>
+        <el-button
+          type="primary"
+          @click="confirmTableExport"
+          :loading="exportLoading"
+        >
+          确 定
+        </el-button>
+      </div>
+    </el-dialog>
+    
+    <!-- 导出详情数据选项弹窗 -->
+    <el-dialog
+      title="导出详情数据选项"
+      :visible.sync="exportDetailDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="exportForm" label-width="0px" class="export-form">
+        <el-form-item>
+          <el-radio-group
+            v-model="exportForm.exportOption"
+            class="export-radio-group"
+          >
+            <el-radio-button label="current" class="export-radio-button">
+              <i class="el-icon-document"></i>
+              <span>导出当前页</span>
+            </el-radio-button>
+            <el-radio-button label="search" class="export-radio-button">
+              <i class="el-icon-search"></i>
+              <span>导出搜索结果</span>
+            </el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="exportDetailDialogVisible = false">取 消</el-button>
         <el-button
           type="primary"
           @click="confirmExport"
@@ -1270,7 +1306,8 @@ export default {
       searchResults: [],
       searchLoading: false,
       unbindRecord: [], // 解绑记录
-      exportDialogVisible: false, // 导出选项弹窗显示状态
+      exportTableDialogVisible: false, // 导出表格数据选项弹窗显示状态
+      exportDetailDialogVisible: false, // 导出详情数据选项弹窗显示状态
       exportForm: {
         exportOption: "current", // 默认选择当前页
       },
@@ -2495,12 +2532,22 @@ export default {
       }
     },
 
-    // 打开导出选项弹窗
+    // 打开导出详情数据选项弹窗
     handleAllExport() {
-      this.exportDialogVisible = true;
+      // 使用另一个弹窗变量，避免与表格数据导出混淆
+      this.exportDetailDialogVisible = true;
       this.exportForm.exportOption = "current"; // 重置选项
     },
-    async handleAllExcel() {
+    // 打开导出表格数据选项弹窗
+    handleAllExcel() {
+      this.exportForm.exportOption = "current"; // 默认选择当前页
+      this.exportTableDialogVisible = true;
+    },
+    
+    // 确认导出表格数据
+    async confirmTableExport() {
+      const exportOption = this.exportForm.exportOption;
+      
       try {
         // 显示加载提示
         const loading = this.$loading({
@@ -2509,33 +2556,59 @@ export default {
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
-
-        // 获取表格数据
-        let req = this.searchData();
-        req.page = this.currentPage;
-        req.skip = (this.currentPage - 1) * this.pageSize;
-        req.limit = this.pageSize;
-        req.sort = { createAt: -1 };
-        // req.populate = JSON.stringify([{ path: 'productionPlanWorkOrderId' },{ path: 'materialId' }]);
-
-        const result = await getData("sale_order_barcode_mapping", req);
-
-        if (result.code !== 200) {
-          throw new Error(result.msg || "获取数据失败");
+        
+        let exportData = [];
+        
+        // 根据选择获取要导出的数据
+        if (exportOption === "current") {
+          // 导出当前页数据
+          exportData = this.tableList;
+          
+          if (!exportData || exportData.length === 0) {
+            this.$message.warning("当前页没有可导出的数据");
+            loading.close();
+            return;
+          }
+        } else if (exportOption === "all" || exportOption === "search") {
+          // 导出所有搜索结果数据
+          loading.text = "正在获取所有搜索结果数据，请稍候...";
+          
+          // 获取搜索条件但不分页
+          let req = await this.searchData();
+          req.sort = { createAt: -1 };
+          delete req.page;
+          delete req.skip;
+          delete req.limit;
+          
+          const result = await getData("material_process_flow", req);
+          
+          if (result.code !== 200) {
+            throw new Error(result.msg || "获取数据失败");
+          }
+          
+          exportData = result.data;
+          
+          if (!exportData || exportData.length === 0) {
+            this.$message.warning("没有符合条件的数据可导出");
+            loading.close();
+            return;
+          }
         }
-
+        
         // 转换数据为Excel格式
-        const excelData = result.data.map((item) => ({
-          型号: item.materialCode || "-",
-          客户订单: item.saleOrderNo ? item.saleOrderNo : "-",
-          UDI序列号: item.barcode || "-", //
-          生产批号: item.productionPlanWorkOrderId
-            ? item.productionPlanWorkOrderId.productionOrderNo
-            : "-",
-          外箱UDI: item.barcode || "-", //
-          彩盒UDI: item.barcode || "-", //
-          产品UDI: item.barcode || "-", //
-          生产日期: item.createAt ? this.formatDate(item.createAt) : "-",
+        const excelData = exportData.map((item) => ({
+          产品条码: item.barcode || "-",
+          物料编码: item.materialCode || "-",
+          物料名称: item.materialName || "-",
+          规格型号: item.materialSpec || "-",
+          流程状态: this.getProcessStatusText(item.status) || "-",
+          产品状态: this.getProductStatusText(item.productStatus || "NORMAL") || "-",
+          完成进度: item.progress || 0,
+          开始时间: item.startTime ? this.formatDate(item.startTime) : "-",
+          结束时间: item.endTime ? this.formatDate(item.endTime) : "-",
+          工单号: item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.workOrderNo : "-",
+          销售单号: item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.saleOrderNo || "-" : "-",
+          生产单号: item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.productionOrderNo || "-" : "-",
         }));
 
         // 创建工作簿
@@ -2544,14 +2617,18 @@ export default {
 
         // 设置列宽
         const colWidths = [
-          { wch: 15 }, // 型号
-          { wch: 15 }, // 客户订单
-          { wch: 20 }, // UDI序列号
-          { wch: 15 }, // 生产批号
-          { wch: 20 }, // 外箱UDI
-          { wch: 20 }, // 彩盒UDI
-          { wch: 20 }, // 产品UDI
-          { wch: 20 }, // 生产日期
+          { wch: 20 }, // 产品条码
+          { wch: 15 }, // 物料编码
+          { wch: 20 }, // 物料名称
+          { wch: 15 }, // 规格型号
+          { wch: 10 }, // 流程状态
+          { wch: 10 }, // 产品状态
+          { wch: 10 }, // 完成进度
+          { wch: 20 }, // 开始时间
+          { wch: 20 }, // 结束时间
+          { wch: 15 }, // 工单号
+          { wch: 15 }, // 销售单号
+          { wch: 15 }, // 生产单号
         ];
         ws["!cols"] = colWidths;
 
@@ -2568,7 +2645,7 @@ export default {
         }
 
         // 将工作表添加到工作簿
-        XLSX.utils.book_append_sheet(wb, ws, "数据列表");
+        XLSX.utils.book_append_sheet(wb, ws, "产品条码生产流程");
 
         // 生成Excel文件并下载
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -2577,12 +2654,13 @@ export default {
         });
 
         // 生成文件名（使用当前时间戳）
-        const fileName = `数据导出_${new Date().toLocaleDateString()}.xlsx`;
+        const fileName = `产品条码生产流程_${new Date().toLocaleDateString()}.xlsx`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);
 
-        this.$message.success("导出成功");
+        this.$message.success(`成功导出${excelData.length}条数据`);
+        this.exportTableDialogVisible = false;
       } catch (error) {
         console.error("导出失败:", error);
         this.$message.error("导出失败: " + error.message);
@@ -2594,28 +2672,26 @@ export default {
     // 确认导出
     async confirmExport() {
       const exportOption = this.exportForm.exportOption;
-
-      // 如果选择导出全部数据，进行二次确认
-      if (exportOption === "all") {
-        try {
-          await this.$confirm(
-            "确认导出全部数据吗?数据量较大可能需要较长时间",
-            "二次确认",
-            {
-              type: "warning",
+      
+      try {
+        // 如果选择导出搜索结果，进行二次确认
+        if (exportOption === "search") {
+          try {
+            await this.$confirm(
+              "确认导出所有搜索结果的详情数据吗?数据量较大可能需要较长时间",
+              "二次确认",
+              {
+                type: "warning",
+              }
+            );
+          } catch (error) {
+            if (error === "cancel") {
+              this.$message.info("已取消导出");
+              return;
             }
-          );
-        } catch (error) {
-          if (error === "cancel") {
-            this.$message.info("已取消导出");
-            return;
           }
         }
-      }
 
-      this.exportLoading = true;
-
-      try {
         // 显示进度提示
         const progressLoading = this.$loading({
           lock: true,
@@ -2624,141 +2700,86 @@ export default {
           background: "rgba(0, 0, 0, 0.7)",
         });
 
-        // 设置每批次请求的数据量
-        const batchSize = 50;
-
         // 存储所有导出数据
         let exportData = [];
 
-        // 批次处理变量
-        let hasMoreData = true;
-        let currentBatch = 0;
-        let totalCount = 0;
-
         // 根据选择获取要导出的数据
-        switch (exportOption) {
-          case "all":
-            // 分批次获取全部数据
-            while (hasMoreData) {
-              progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
+        if (exportOption === "current") {
+          // 导出当前页数据
+          exportData = this.tableList;
+          
+          if (!exportData || exportData.length === 0) {
+            this.$message.warning("当前页没有可导出的数据");
+            progressLoading.close();
+            return;
+          }
+        } else if (exportOption === "search") {
+          // 分批次获取搜索结果数据
+          let searchReq = await this.searchData();
+          searchReq.sort = { createAt: -1 };
+          searchReq.count = true;
 
-              const batchReq = {
-                query: {},
-                skip: currentBatch * batchSize,
-                limit: batchSize,
-                sort: { createAt: -1 },
-                count: true,
-              };
+          // 先获取总数
+          const countResult = await getData("material_process_flow", {
+            ...searchReq,
+            limit: 1,
+          });
+          const totalCount = countResult.countnum || 0;
 
-              const batchResult = await getData("material_process_flow", batchReq);
+          if (totalCount === 0) {
+            this.$message.warning("没有可导出的数据");
+            progressLoading.close();
+            return;
+          }
 
-              if (batchResult.code !== 200) {
-                throw new Error(
-                  batchResult.msg || `获取第${currentBatch + 1}批数据失败`
-                );
-              }
+          // 设置每批次请求的数据量
+          const batchSize = 50;
+          let hasMoreData = true;
+          let currentBatch = 0;
 
-              // 第一次请求时获取总数
-              if (currentBatch === 0) {
-                totalCount = batchResult.countnum || 0;
+          // 分批次请求数据
+          while (hasMoreData) {
+            progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
 
-                if (totalCount === 0) {
-                  this.$message.warning("没有可导出的数据");
-                  progressLoading.close();
-                  return;
-                }
-              }
-
-              // 处理当前批次数据
-              const batchData = batchResult.data || [];
-
-              // 如果返回数据少于批次大小，说明没有更多数据了
-              if (batchData.length < batchSize) {
-                hasMoreData = false;
-              }
-
-              // 添加到导出数据
-              exportData = [...exportData, ...batchData];
-
-              // 显示加载进度
-              const loadedPercent = Math.min(
-                100,
-                Math.floor((exportData.length / totalCount) * 100)
-              );
-              progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
-
-              currentBatch++;
-
-              // 如果已加载数据达到总数，结束加载
-              if (exportData.length >= totalCount) {
-                hasMoreData = false;
-              }
-            }
-            break;
-
-          case "search":
-            // 分批次获取搜索结果数据
-            let searchReq = await this.searchData();
-            searchReq.sort = { createAt: -1 };
-            searchReq.count = true;
-
-            // 先获取总数
-            const countResult = await getData("material_process_flow", {
+            const batchReq = {
               ...searchReq,
-              limit: 1,
-            });
-            totalCount = countResult.countnum || 0;
+              skip: currentBatch * batchSize,
+              limit: batchSize,
+            };
 
-            if (totalCount === 0) {
-              this.$message.warning("没有可导出的数据");
-              progressLoading.close();
-              return;
-            }
+            const batchResult = await getData("material_process_flow", batchReq);
 
-            // 分批次请求数据
-            while (hasMoreData) {
-              progressLoading.text = `正在获取第 ${currentBatch + 1} 批数据...`;
-
-              const batchReq = {
-                ...searchReq,
-                skip: currentBatch * batchSize,
-                limit: batchSize,
-              };
-
-              const batchResult = await getData("material_process_flow", batchReq);
-
-              if (batchResult.code !== 200) {
-                throw new Error(
-                  batchResult.msg || `获取第${currentBatch + 1}批数据失败`
-                );
-              }
-
-              // 处理当前批次数据
-              const batchData = batchResult.data || [];
-
-              // 如果返回数据少于批次大小，说明没有更多数据了
-              if (batchData.length < batchSize) {
-                hasMoreData = false;
-              }
-
-              // 添加到导出数据
-              exportData = [...exportData, ...batchData];
-
-              // 显示加载进度
-              const loadedPercent = Math.min(
-                100,
-                Math.floor((exportData.length / totalCount) * 100)
+            if (batchResult.code !== 200) {
+              throw new Error(
+                batchResult.msg || `获取第${currentBatch + 1}批数据失败`
               );
-              progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
-
-              currentBatch++;
-
-              // 如果已加载数据达到总数，结束加载
-              if (exportData.length >= totalCount) {
-                hasMoreData = false;
-              }
             }
-            break;
+
+            // 处理当前批次数据
+            const batchData = batchResult.data || [];
+
+            // 如果返回数据少于批次大小，说明没有更多数据了
+            if (batchData.length < batchSize) {
+              hasMoreData = false;
+            }
+
+            // 添加到导出数据
+            exportData = [...exportData, ...batchData];
+
+            // 显示加载进度
+            const loadedPercent = Math.min(
+              100,
+              Math.floor((exportData.length / totalCount) * 100)
+            );
+            progressLoading.text = `正在获取数据，进度：${loadedPercent}%...`;
+
+            currentBatch++;
+
+            // 如果已加载数据达到总数，结束加载
+            if (exportData.length >= totalCount) {
+              hasMoreData = false;
+            }
+          }
         }
 
         if (exportData.length === 0) {
@@ -2849,17 +2870,16 @@ export default {
         const zipContent = await zip.generateAsync({ type: "blob" });
         FileSaver.saveAs(
           zipContent,
-          `物料条码信息_${new Date().toLocaleDateString()}.zip`
+          `物料条码详情信息_${new Date().toLocaleDateString()}.zip`
         );
 
-        this.$message.success("导出成功");
-        this.exportDialogVisible = false;
-        progressLoading.close();
+        this.$message.success(`成功导出${exportData.length}条数据的详情信息`);
+        this.exportDetailDialogVisible = false;
       } catch (error) {
         console.error("导出失败:", error);
         this.$message.error("导出失败: " + error.message);
       } finally {
-        this.exportLoading = false;
+        this.$loading().close();
       }
     },
 

@@ -198,6 +198,21 @@ const materialProcessFlowBackupTask = async () => {
   });
 };
 
+// 定时任务: 每天凌晨5点执行API日志清理
+const apiLogCleanupTask = async () => {
+  console.log("API日志清理定时任务开始执行");
+
+  // 每天凌晨5点执行清理
+  schedule.scheduleJob("0 5 * * *", async () => {
+    try {
+      await BackupService.cleanupApiLogs();
+      console.log("API日志清理完成");
+    } catch (error) {
+      console.error("执行API日志清理任务失败:", error);
+    }
+  });
+};
+
 // 定时任务: 每月1号凌晨4点执行装箱条码作废处理
 const packBarcodeExpirationTask = async () => {
   console.log("装箱条码过期定时任务开始执行");
@@ -250,6 +265,7 @@ const initScheduleTasks = () => {
     k3DataSyncTask(); // 启动金蝶云数据同步任务
     materialProcessFlowBackupTask(); // 启动工艺流程备份任务
     packBarcodeExpirationTask(); // 启动装箱条码过期处理任务
+    apiLogCleanupTask(); // 启动API日志清理任务
     console.log("所有定时任务已初始化");
   }, 10000);
 };
@@ -262,5 +278,6 @@ module.exports = {
   k3DataSyncTask,
   materialProcessFlowBackupTask,
   packBarcodeExpirationTask,
+  apiLogCleanupTask,
   initScheduleTasks,
 };

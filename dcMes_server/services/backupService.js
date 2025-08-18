@@ -1,4 +1,5 @@
 const MaterialProcessFlow = require("../model/project/materialProcessFlow");
+const ApiLog = require("../model/system/apiLog");
 const mongoose = require("mongoose");
 const fs = require("fs").promises;
 const path = require("path");
@@ -46,6 +47,30 @@ class BackupService {
      console.log(`成功备份 MaterialProcessFlow 数据到集合: ${backupCollectionName}`);
    } catch (error) {
      console.error("备份 MaterialProcessFlow 数据失败:", error);
+     throw error;
+   }
+ }
+
+ /**
+  * 清理API日志数据，只保留最近15天的数据
+  * @returns {Promise<void>}
+  */
+ static async cleanupApiLogs() {
+   try {
+     console.log("开始清理API日志数据");
+     
+     // 计算15天前的日期
+     const fifteenDaysAgo = moment().subtract(15, 'days').toDate();
+     
+     // 删除15天前的日志
+     const result = await ApiLog.deleteMany({
+       timestamp: { $lt: fifteenDaysAgo }
+     });
+     
+     console.log(`成功清理API日志数据，共删除 ${result.deletedCount} 条记录`);
+     return result;
+   } catch (error) {
+     console.error("清理API日志数据失败:", error);
      throw error;
    }
  }

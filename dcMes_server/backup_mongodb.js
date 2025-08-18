@@ -37,7 +37,7 @@ const execAsync = util.promisify(exec);
 class MongoDBBackup {
   constructor() {
     // 数据库连接配置（从db.js文件获取）
-    //  "mongodb://dcmesvncs:NHpmsLSARLWKky4A@127.0.0.1:27017/dcmesvncs";
+    //  "mongodb://dcmesvncs:NHpmsLSARLWKky4A@127.0.0.1:27017/dcmesvncs";
 
     this.config = {
       host: '127.0.0.1',
@@ -51,8 +51,27 @@ class MongoDBBackup {
     // 备份配置
     this.backupConfig = {
       backupPath: 'D:/mongobackups',
-      keepDays: parseInt(process.env.KEEP_DAYS) || 7,
-      compress: process.env.COMPRESS !== 'false',
+      keepDays: 30,
+      compress: true, // 是否对最终备份文件进行压缩
+      useArchiveMode: true, // 使用mongodump --archive 直接生成单文件（推荐处理大数据）
+      sequentialPerCollection: true, // 顺序逐集合备份（每个集合单独压缩文件，打印进度）
+      numParallelCollections: Math.max(2, (os.cpus ? os.cpus().length : 4) - 1), // 并行集合数（非顺序模式才会用到）
+      useOplog: false, // 副本集环境下开启一致性快照
+      readPreference: null, // 例如: 'secondaryPreferred'，减轻主节点压力
+      forceTableScan: false, // 大库建议关闭，避免全表扫描
+      excludeCollections: [], // 需要排除的集合名
+      nsInclude: ['api_logs'], // 仅备份的命名空间（如: 'db.coll' 或 'db.*'）
+      timeRangeField: 'createdAt', // 时间字段名称，用于时间范围过滤
+      timeRange: {
+        enabled: false, // 是否启用时间范围过滤
+        startTime: null, // 开始时间，格式：YYYY-MM-DD HH:mm:ss 或 Date 对象
+        endTime: null, // 结束时间，格式同上
+        today: false, // 是否只备份今天的数据
+        todayStartHour: 0, // 今天开始小时（0-23）
+        todayEndHour: 23, // 今天结束小时（0-23）
+        todayStartMinute: 0, // 开始分钟（0-59）
+        todayEndMinute: 59 // 结束分钟（0-59）
+      },
       maxRetries: 3,
       retryDelay: 5000 // 重试延迟5秒
     };
@@ -113,7 +132,7 @@ class MongoDBBackup {
   }
 
   /**
-   * 生成备份文件名
+   * 生成备份文件名（整库模式）
    * @returns {string} 备份文件名
    */
   generateBackupFileName() {
@@ -124,7 +143,48 @@ class MongoDBBackup {
       .split('.')[0]; // 移除毫秒部分
     
     const fileName = `dcMes_backup_${timestamp}`;
-    return this.backupConfig.compress ? `${fileName}.gz` : fileName;
+    if (this.backupConfig.compress) {
+      if (this.backupConfig.useArchiveMode) {
+        return `${fileName}.archive.gz`;
+      }
+      return `${fileName}.tar.gz`;
+    }
+    return fileName;
+  }
+
+  /**
+   * 生成每集合备份文件名
+   * @param {string} collectionName 集合名
+   */
+  generatePerCollectionFileName(collectionName) {
+    const now = new Date();
+    const timestamp = now.toISOString()
+      .replace(/:/g, '-')
+      .replace(/\./g, '-')
+      .split('.')[0];
+    const safeName = collectionName.replace(/[^a-zA-Z0-9._$-]/g, '_');
+    
+    // 添加时间范围到文件名
+    let timeRangeSuffix = '';
+    if (this.backupConfig.timeRange && this.backupConfig.timeRange.enabled) {
+      if (this.backupConfig.timeRange.today) {
+        const { todayStartHour, todayEndHour, todayStartMinute, todayEndMinute } = this.backupConfig.timeRange;
+        timeRangeSuffix = `_${todayStartHour}-${todayStartMinute}_to_${todayEndHour}-${todayEndMinute}`;
+      } else if (this.backupConfig.timeRange.startTime && this.backupConfig.timeRange.endTime) {
+        const startStr = typeof this.backupConfig.timeRange.startTime === 'string' 
+          ? this.backupConfig.timeRange.startTime.replace(/[: -]/g, '_')
+          : this.backupConfig.timeRange.startTime.toISOString().replace(/[:.]/g, '_');
+        const endStr = typeof this.backupConfig.timeRange.endTime === 'string'
+          ? this.backupConfig.timeRange.endTime.replace(/[: -]/g, '_') 
+          : this.backupConfig.timeRange.endTime.toISOString().replace(/[:.]/g, '_');
+        timeRangeSuffix = `_${startStr}_to_${endStr}`;
+      }
+    }
+    
+    if (this.backupConfig.useArchiveMode) {
+      return `dcMes_backup_${timestamp}${timeRangeSuffix}_${safeName}.archive${this.backupConfig.compress ? '.gz' : ''}`;
+    }
+    return `dcMes_backup_${timestamp}${timeRangeSuffix}_${safeName}${this.backupConfig.compress ? '.tar.gz' : ''}`;
   }
 
   /**
@@ -137,9 +197,19 @@ class MongoDBBackup {
       const localMongodump = path.join(__dirname, 'Tools', '100', 'bin', this.isWindows ? 'mongodump.exe' : 'mongodump');
       if (fs.existsSync(localMongodump)) {
         const quoted = localMongodump.includes(' ') ? `"${localMongodump}"` : localMongodump;
-        await execAsync(`${quoted} --version`);
+        const { stdout } = await execAsync(`${quoted} --version`);
         this.mongodumpPath = localMongodump;
         this.log('使用本地Tools目录中的MongoDB数据库工具:', localMongodump);
+        
+        // 解析版本号
+        const versionMatch = stdout.match(/version: (\d+)\.(\d+)\.(\d+)/);
+        if (versionMatch) {
+          const major = parseInt(versionMatch[1], 10);
+          const minor = parseInt(versionMatch[2], 10);
+          this.mongodumpVersion = { major, minor, full: stdout.trim() };
+          this.log('MongoDB工具版本:', this.mongodumpVersion.full);
+        }
+        
         return true;
       }
 
@@ -147,16 +217,36 @@ class MongoDBBackup {
       if (this.isWindows) {
         const windowsDefaultPath = 'C:/Program Files/MongoDB/Tools/100/bin/mongodump.exe';
         if (fs.existsSync(windowsDefaultPath)) {
-          await execAsync(`"${windowsDefaultPath}" --version`);
+          const { stdout } = await execAsync(`"${windowsDefaultPath}" --version`);
           this.mongodumpPath = windowsDefaultPath;
           this.log('使用系统MongoDB数据库工具:', windowsDefaultPath);
+          
+          // 解析版本号
+          const versionMatch = stdout.match(/version: (\d+)\.(\d+)\.(\d+)/);
+          if (versionMatch) {
+            const major = parseInt(versionMatch[1], 10);
+            const minor = parseInt(versionMatch[2], 10);
+            this.mongodumpVersion = { major, minor, full: stdout.trim() };
+            this.log('MongoDB工具版本:', this.mongodumpVersion.full);
+          }
+          
           return true;
         }
       }
 
       // 尝试系统 PATH 中的 mongodump
-      await execAsync('mongodump --version');
+      const { stdout } = await execAsync('mongodump --version');
       this.mongodumpPath = 'mongodump';
+      
+      // 解析版本号
+      const versionMatch = stdout.match(/version: (\d+)\.(\d+)\.(\d+)/);
+      if (versionMatch) {
+        const major = parseInt(versionMatch[1], 10);
+        const minor = parseInt(versionMatch[2], 10);
+        this.mongodumpVersion = { major, minor, full: stdout.trim() };
+        this.log('MongoDB工具版本:', this.mongodumpVersion.full);
+      }
+      
       return true;
     } catch (error) {
       // 如果系统路径中没有，尝试本地及常见路径
@@ -178,9 +268,19 @@ class MongoDBBackup {
         try {
           if (fs.existsSync(testPath)) {
             const quoted = testPath.includes(' ') ? `"${testPath}"` : testPath;
-            await execAsync(`${quoted} --version`);
+            const { stdout } = await execAsync(`${quoted} --version`);
             this.mongodumpPath = testPath;
             this.log('使用本地/常见路径中的MongoDB数据库工具:', testPath);
+            
+            // 解析版本号
+            const versionMatch = stdout.match(/version: (\d+)\.(\d+)\.(\d+)/);
+            if (versionMatch) {
+              const major = parseInt(versionMatch[1], 10);
+              const minor = parseInt(versionMatch[2], 10);
+              this.mongodumpVersion = { major, minor, full: stdout.trim() };
+              this.log('MongoDB工具版本:', this.mongodumpVersion.full);
+            }
+            
             return true;
           }
         } catch (pathError) {
@@ -193,12 +293,21 @@ class MongoDBBackup {
   }
 
   /**
-   * 构建mongodump命令
-   * @param {string} outputPath - 输出路径
+   * 构建mongodump命令（整库）
+   * @param {string} outputPath - 输出目录（非archive模式）
+   * @param {string} archiveFilePath - 输出文件（archive模式）
    * @returns {string} mongodump命令
    */
-  buildMongodumpCommand(outputPath) {
+  buildMongodumpCommand(outputPath, archiveFilePath) {
     const { host, port, database, username, password, authDatabase } = this.config;
+    const {
+      useArchiveMode,
+      compress,
+      numParallelCollections,
+      useOplog,
+      readPreference,
+      forceTableScan
+    } = this.backupConfig;
     
     // 使用检测到的 mongodump 路径，并在包含空格时自动加引号
     const mongodumpCmd = this.mongodumpPath || 'mongodump';
@@ -210,11 +319,161 @@ class MongoDBBackup {
     command += ` --username ${username}`;
     command += ` --password "${password}"`;
     command += ` --authenticationDatabase ${authDatabase}`;
-    command += ` --out "${outputPath}"`;
+
+    // 并行度（提升大库导出速度） - 顺序模式下不使用
+    if (!this.backupConfig.sequentialPerCollection && numParallelCollections && Number.isFinite(numParallelCollections)) {
+      command += ` --numParallelCollections ${numParallelCollections}`;
+    }
+
+    // 读取偏好（副本集可从secondary导出减压主节点）
+    if (readPreference) {
+      command += ` --readPreference ${readPreference}`;
+    }
+
+    // 副本集一致性快照
+    if (useOplog) {
+      command += ` --oplog`;
+    }
+
+    // 注意：不再使用 --nsInclude 参数，改为在 getCollectionNames 方法中过滤集合
+
+    // 输出方式
+    if (useArchiveMode) {
+      if (archiveFilePath) {
+        command += ` --archive="${archiveFilePath}"`;
+      } else {
+        command += ` --archive`;
+      }
+      if (compress) {
+        command += ` --gzip`;
+      }
+    } else {
+      command += ` --out "${outputPath}"`;
+      // 非archive模式下，为避免双重压缩，这里默认不加 --gzip
+    }
+
+    // 是否强制表扫描（大库建议关闭）
+    if (forceTableScan) {
+      command += ` --forceTableScan`;
+    }
     
-    // 添加其他有用选项
-    command += ` --gzip`; // 启用gzip压缩传输
-    command += ` --forceTableScan`; // 强制表扫描，避免索引问题
+    return command;
+  }
+
+  /**
+   * 构建时间范围查询条件
+   * @returns {string} JSON 查询条件字符串
+   */
+  buildTimeRangeQuery() {
+    const { timeRange, timeRangeField } = this.backupConfig;
+    
+    if (!timeRange || !timeRange.enabled || !timeRangeField) {
+      return null;
+    }
+    
+    let startTime, endTime;
+    
+    // 处理"今天"的时间范围
+    if (timeRange.today) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      startTime = new Date(today);
+      startTime.setHours(
+        timeRange.todayStartHour || 0,
+        timeRange.todayStartMinute || 0,
+        0, 0
+      );
+      
+      endTime = new Date(today);
+      endTime.setHours(
+        timeRange.todayEndHour !== undefined ? timeRange.todayEndHour : 23,
+        timeRange.todayEndMinute !== undefined ? timeRange.todayEndMinute : 59,
+        59, 999
+      );
+    } else {
+      // 处理明确的时间范围
+      if (timeRange.startTime) {
+        startTime = typeof timeRange.startTime === 'string' 
+          ? new Date(timeRange.startTime) 
+          : timeRange.startTime;
+      }
+      
+      if (timeRange.endTime) {
+        endTime = typeof timeRange.endTime === 'string'
+          ? new Date(timeRange.endTime)
+          : timeRange.endTime;
+      }
+    }
+    
+    // 构建查询
+    const query = {};
+    
+    if (startTime && endTime) {
+      query[timeRangeField] = { 
+        "$gte": startTime,
+        "$lte": endTime
+      };
+    } else if (startTime) {
+      query[timeRangeField] = { "$gte": startTime };
+    } else if (endTime) {
+      query[timeRangeField] = { "$lte": endTime };
+    } else {
+      return null;
+    }
+    
+    return JSON.stringify(query);
+  }
+
+  /**
+   * 获取时间范围的可读描述
+   */
+  getTimeRangeDescription() {
+    const { timeRange } = this.backupConfig;
+    
+    if (!timeRange || !timeRange.enabled) {
+      return '全部数据';
+    }
+    
+    if (timeRange.today) {
+      const { todayStartHour, todayEndHour, todayStartMinute, todayEndMinute } = timeRange;
+      return `今天 ${todayStartHour}:${todayStartMinute.toString().padStart(2, '0')} 至 ${todayEndHour}:${todayEndMinute.toString().padStart(2, '0')}`;
+    }
+    
+    let startStr = '无限制';
+    let endStr = '无限制';
+    
+    if (timeRange.startTime) {
+      startStr = typeof timeRange.startTime === 'string'
+        ? timeRange.startTime
+        : timeRange.startTime.toISOString().replace('T', ' ').split('.')[0];
+    }
+    
+    if (timeRange.endTime) {
+      endStr = typeof timeRange.endTime === 'string'
+        ? timeRange.endTime
+        : timeRange.endTime.toISOString().replace('T', ' ').split('.')[0];
+    }
+    
+    return `${startStr} 至 ${endStr}`;
+  }
+
+  /**
+   * 构建mongodump命令（单集合）
+   */
+  buildMongodumpCommandForCollection(collectionName, outputPath, archiveFilePath) {
+    const base = this.buildMongodumpCommand(outputPath, archiveFilePath);
+    let command = `${base} --collection ${collectionName}`;
+    
+    // 添加时间范围查询条件
+    const timeRangeQuery = this.buildTimeRangeQuery();
+    if (timeRangeQuery) {
+      // 在Windows上，需要对JSON字符串中的引号进行转义
+      const escapedQuery = this.isWindows 
+        ? timeRangeQuery.replace(/"/g, '\\"')
+        : timeRangeQuery;
+      command += ` --query '${escapedQuery}'`;
+    }
     
     return command;
   }
@@ -294,7 +553,7 @@ class MongoDBBackup {
     
     console.log('\n方式3: 使用Docker（适用于任何系统）');
     console.log('如果您有Docker，可以使用以下命令进行备份：');
-    console.log('docker run --rm -v $(pwd)/backups:/backup mongo:latest mongodump \\\n');
+    console.log('docker run --rm -v $(pwd)/backups:/backup mongo:latest mongodump \\n');
     console.log('  --host 47.115.19.76:27017 \\\n');
     console.log('  --db dcMes \\\n');
     console.log('  --username dcMes \\\n');
@@ -347,7 +606,276 @@ class MongoDBBackup {
   }
 
   /**
-   * 执行数据库备份
+   * 安装所需依赖
+   */
+  async installDependencies() {
+    // archiver 仅在目录模式压缩时需要
+    try {
+      if (this.backupConfig.compress && !this.backupConfig.useArchiveMode) {
+        require.resolve('archiver');
+      }
+    } catch (error) {
+      this.log('检测到缺少archiver库，正在安装...');
+      try {
+        await execAsync('npm install archiver --save');
+        this.log('archiver库安装成功');
+      } catch (installError) {
+        this.logError('无法自动安装archiver库', installError);
+        throw new Error('请手动安装archiver库: npm install archiver');
+      }
+    }
+
+    // mongodb 驱动在顺序逐集合模式需要
+    if (this.backupConfig.sequentialPerCollection) {
+      try {
+        require.resolve('mongodb');
+      } catch (e) {
+        this.log('检测到缺少mongodb驱动，正在安装...');
+        try {
+          await execAsync('npm install mongodb --save');
+          this.log('mongodb驱动安装成功');
+        } catch (installError) {
+          this.logError('无法自动安装mongodb驱动', installError);
+          throw new Error('请手动安装mongodb驱动: npm install mongodb');
+        }
+      }
+    }
+  }
+
+  /**
+   * 从数据库获取集合列表
+   */
+  async getCollectionNames() {
+    const { host, port, database, username, password, authDatabase } = this.config;
+    const { excludeCollections, nsInclude } = this.backupConfig;
+
+    try {
+      // 方法1：使用MongoDB驱动获取集合列表（优先）
+      try {
+        const uri = `mongodb://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}?authSource=${authDatabase}`;
+        const { MongoClient } = require('mongodb');
+        const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+        
+        await client.connect();
+        const db = client.db(database);
+        const cursor = db.listCollections({}, { nameOnly: true });
+        const collections = await cursor.toArray();
+        let names = collections.map(c => c.name);
+        
+        // 应用集合过滤
+        if (Array.isArray(nsInclude) && nsInclude.length > 0) {
+          const includeSet = new Set();
+          for (const item of nsInclude) {
+            if (item === `${database}.*`) {
+              names.forEach(n => includeSet.add(n));
+            } else if (item.startsWith(`${database}.`)) {
+              includeSet.add(item.slice(database.length + 1));
+            } else {
+              includeSet.add(item);
+            }
+          }
+          names = names.filter(n => includeSet.has(n));
+        }
+
+        if (Array.isArray(excludeCollections) && excludeCollections.length > 0) {
+          const excludeSet = new Set(excludeCollections);
+          names = names.filter(n => !excludeSet.has(n));
+        }
+        
+        await client.close().catch(() => {});
+        this.log(`通过MongoDB驱动获取到 ${names.length} 个集合`);
+        return names;
+      } catch (driverError) {
+        this.log('MongoDB驱动获取集合列表失败，尝试使用命令行方式', driverError.message);
+      }
+      
+      // 方法2：使用mongodump --listCollections命令获取集合列表（备用）
+      const mongodumpCmd = this.mongodumpPath || 'mongodump';
+      const commandBinary = mongodumpCmd.includes(' ') ? `"${mongodumpCmd}"` : mongodumpCmd;
+      
+      let command = `${commandBinary} --host ${host}:${port} --db ${database} --username ${username} --password "${password}" --authenticationDatabase ${authDatabase}`;
+      
+      // 检查是否支持 --listCollections 参数
+      if (this.mongodumpVersion && this.mongodumpVersion.major >= 100) {
+        command += ' --listCollections';
+        
+        const { stdout } = await execAsync(command);
+        const collectionLines = stdout.split('\n').filter(line => line.trim());
+        let names = collectionLines.map(line => {
+          const match = line.match(/collection: (.+)/);
+          return match ? match[1] : null;
+        }).filter(Boolean);
+        
+        // 应用集合过滤
+        if (Array.isArray(nsInclude) && nsInclude.length > 0) {
+          const includeSet = new Set();
+          for (const item of nsInclude) {
+            if (item === `${database}.*`) {
+              names.forEach(n => includeSet.add(n));
+            } else if (item.startsWith(`${database}.`)) {
+              includeSet.add(item.slice(database.length + 1));
+            } else {
+              includeSet.add(item);
+            }
+          }
+          names = names.filter(n => includeSet.has(n));
+        }
+
+        if (Array.isArray(excludeCollections) && excludeCollections.length > 0) {
+          const excludeSet = new Set(excludeCollections);
+          names = names.filter(n => !excludeSet.has(n));
+        }
+        
+        this.log(`通过mongodump --listCollections获取到 ${names.length} 个集合`);
+        return names;
+      } else {
+        // 如果都失败了，直接使用nsInclude中指定的集合
+        if (Array.isArray(nsInclude) && nsInclude.length > 0) {
+          const names = nsInclude.map(item => {
+            if (item.startsWith(`${database}.`)) {
+              return item.slice(database.length + 1);
+            }
+            return item;
+          }).filter(name => !excludeCollections.includes(name));
+          
+          this.log(`使用配置中指定的集合列表: ${names.join(', ')}`);
+          return names;
+        }
+        
+        // 最后的备选方案：尝试获取一个常见的系统集合，确认连接可用
+        this.log('无法获取集合列表，将尝试备份指定的集合');
+        return ['api_logs']; // 默认备份api_logs集合
+      }
+    } catch (error) {
+      this.logError('获取集合列表失败', error);
+      // 如果指定了集合，则使用指定的集合
+      if (Array.isArray(nsInclude) && nsInclude.length > 0) {
+        const names = nsInclude.map(item => {
+          if (item.startsWith(`${database}.`)) {
+            return item.slice(database.length + 1);
+          }
+          return item;
+        });
+        this.log(`使用配置中指定的集合列表（出错后）: ${names.join(', ')}`);
+        return names;
+      }
+      return ['api_logs']; // 默认备份api_logs集合
+    }
+  }
+
+  /**
+   * 进度打印
+   */
+  printProgress(current, total, collection) {
+    const percent = total > 0 ? Math.floor((current / total) * 100) : 0;
+    const line = `进度: ${current}/${total} (${percent}%) - 当前集合: ${collection}`;
+    if (process.stdout && process.stdout.write) {
+      process.stdout.write(`\r${line}`);
+    } else {
+      this.log(line);
+    }
+  }
+
+  /**
+   * 顺序逐集合备份
+   */
+  async performBackupSequentialPerCollection() {
+    this.log('启动顺序逐集合备份模式...');
+
+    // 检查mongodump
+    if (!(await this.checkMongodumpAvailable())) {
+      const installSuccess = await this.installMongodump();
+      if (!installSuccess || !(await this.checkMongodumpAvailable())) {
+        throw new Error('mongodump命令不可用，无法执行逐集合备份');
+      }
+    }
+
+    // 依赖
+    await this.installDependencies();
+
+    // 获取集合列表
+    const collections = await this.getCollectionNames();
+    if (!collections || collections.length === 0) {
+      this.log('未找到可备份的集合');
+      return null;
+    }
+
+    const total = collections.length;
+    const outputFiles = [];
+    const startAll = Date.now();
+
+    for (let i = 0; i < total; i++) {
+      const coll = collections[i];
+      this.printProgress(i + 1, total, coll);
+      this.log(`开始备份集合: ${coll}`);
+
+      const fileName = this.generatePerCollectionFileName(coll);
+      const finalBackupPath = path.join(this.backupConfig.backupPath, fileName);
+      const tempBackupPath = path.join(this.backupConfig.backupPath, `temp_${coll}`);
+
+      try {
+        // 清理临时目录
+        if (fs.existsSync(tempBackupPath)) {
+          fs.rmSync(tempBackupPath, { recursive: true, force: true });
+        }
+
+        const startOne = Date.now();
+
+        if (this.backupConfig.useArchiveMode) {
+          const command = this.buildMongodumpCommandForCollection(coll, null, finalBackupPath);
+          const { stdout, stderr } = await execAsync(command);
+          if (stderr && !stderr.includes('done dumping')) {
+            this.log('备份警告:', stderr);
+          }
+        } else {
+          const command = this.buildMongodumpCommandForCollection(coll, tempBackupPath, null);
+          const { stdout, stderr } = await execAsync(command);
+          if (stderr && !stderr.includes('done dumping')) {
+            this.log('备份警告:', stderr);
+          }
+
+          // 目录压缩或移动
+          if (this.backupConfig.compress) {
+            await this.compressBackup(tempBackupPath, finalBackupPath);
+          } else {
+            const src = path.join(tempBackupPath, this.config.database);
+            // 针对单集合dump，mongodump会在 db 目录下生成多个文件（.bson/.json/.metadata）
+            // 这里将整个目录重命名为带集合名的目录
+            const targetDir = finalBackupPath;
+            fs.renameSync(src, targetDir);
+          }
+        }
+
+        // 清理临时目录
+        if (fs.existsSync(tempBackupPath)) {
+          fs.rmSync(tempBackupPath, { recursive: true, force: true });
+        }
+
+        // 验证单文件
+        if (this.backupConfig.useArchiveMode || this.backupConfig.compress) {
+          await this.verifyBackup(finalBackupPath);
+        }
+
+        const oneDuration = Date.now() - startOne;
+        this.log(`集合备份完成: ${coll}, 输出: ${finalBackupPath}, 耗时: ${oneDuration}ms`);
+        outputFiles.push(finalBackupPath);
+
+      } catch (error) {
+        this.logError(`集合备份失败: ${coll}`, error);
+        throw error;
+      }
+    }
+
+    const duration = Date.now() - startAll;
+    // 结束时换行，避免最后一条进度行覆盖
+    if (process.stdout && process.stdout.write) process.stdout.write('\n');
+    this.log(`逐集合备份完成，共 ${outputFiles.length} 个文件，耗时: ${(duration/1000).toFixed(2)}s`);
+
+    return outputFiles;
+  }
+
+  /**
+   * 执行数据库备份（整库）
    * @param {number} retryCount - 重试次数
    * @returns {Promise<string>} 备份文件路径
    */
@@ -382,34 +910,42 @@ class MongoDBBackup {
         fs.rmSync(tempBackupPath, { recursive: true, force: true });
       }
 
-      // 执行mongodump
-      const command = this.buildMongodumpCommand(tempBackupPath);
-      this.log('执行备份命令...');
-      
       const startTime = Date.now();
-      const { stdout, stderr } = await execAsync(command);
-      const duration = Date.now() - startTime;
-      
-      if (stderr && !stderr.includes('done dumping')) {
-        this.log('备份警告:', stderr);
+
+      if (this.backupConfig.useArchiveMode) {
+        // 直接使用 --archive 将数据导出为单文件（可选gzip），避免二次压缩与大量小文件IO
+        const command = this.buildMongodumpCommand(null, finalBackupPath);
+        this.log('执行备份命令 (archive 模式)...');
+        const { stdout, stderr } = await execAsync(command);
+        if (stderr && !stderr.includes('done dumping')) {
+          this.log('备份警告:', stderr);
+        }
+      } else {
+        // 目录导出模式
+        const command = this.buildMongodumpCommand(tempBackupPath, null);
+        this.log('执行备份命令 (目录模式)...');
+        const { stdout, stderr } = await execAsync(command);
+        if (stderr && !stderr.includes('done dumping')) {
+          this.log('备份警告:', stderr);
+        }
+
+        // 压缩为tar.gz或移动目录
+        if (this.backupConfig.compress) {
+          await this.compressBackup(tempBackupPath, finalBackupPath);
+        } else {
+          fs.renameSync(path.join(tempBackupPath, this.config.database), finalBackupPath);
+        }
       }
 
+      const duration = Date.now() - startTime;
       this.log(`数据库备份完成，耗时: ${duration}ms`);
 
-      // 压缩备份文件
-      if (this.backupConfig.compress) {
-        await this.compressBackup(tempBackupPath, finalBackupPath);
-      } else {
-        // 移动备份文件
-        fs.renameSync(path.join(tempBackupPath, this.config.database), finalBackupPath);
-      }
-
-      // 清理临时文件
+      // 清理临时文件（仅目录模式会产生）
       if (fs.existsSync(tempBackupPath)) {
         fs.rmSync(tempBackupPath, { recursive: true, force: true });
       }
 
-      // 验证备份文件
+      // 验证备份文件/目录
       await this.verifyBackup(finalBackupPath);
 
       this.log('备份成功完成:', finalBackupPath);
@@ -423,7 +959,16 @@ class MongoDBBackup {
         fs.rmSync(tempBackupPath, { recursive: true, force: true });
       }
       if (fs.existsSync(finalBackupPath)) {
-        fs.unlinkSync(finalBackupPath);
+        try {
+          const stats = fs.statSync(finalBackupPath);
+          if (stats.isDirectory()) {
+            fs.rmSync(finalBackupPath, { recursive: true, force: true });
+          } else {
+            fs.unlinkSync(finalBackupPath);
+          }
+        } catch (e) {
+          // ignore
+        }
       }
 
       // 重试机制
@@ -527,28 +1072,6 @@ class MongoDBBackup {
         reject(error);
       }
     });
-  }
-
-  /**
-   * 安装所需依赖
-   */
-  async installDependencies() {
-    try {
-      // 检查是否已安装archiver
-      require.resolve('archiver');
-      return true;
-    } catch (error) {
-      this.log('检测到缺少archiver库，正在安装...');
-      
-      try {
-        await execAsync('npm install archiver --save');
-        this.log('archiver库安装成功');
-        return true;
-      } catch (installError) {
-        this.logError('无法自动安装archiver库', installError);
-        throw new Error('请手动安装archiver库: npm install archiver');
-      }
-    }
   }
 
   /**
@@ -673,19 +1196,30 @@ class MongoDBBackup {
       this.log('操作系统:', os.platform());
       this.log('数据库:', `${this.config.host}:${this.config.port}/${this.config.database}`);
       this.log('备份路径:', this.backupConfig.backupPath);
+      this.log('模式:', this.backupConfig.sequentialPerCollection ? '逐集合顺序备份' : '整库备份');
+      
+      // 添加时间范围信息到日志
+      if (this.backupConfig.timeRange && this.backupConfig.timeRange.enabled) {
+        this.log('时间范围:', this.getTimeRangeDescription());
+        this.log('时间字段:', this.backupConfig.timeRangeField);
+      }
+      
       this.log('='.repeat(60));
 
       // 检查并安装依赖
-      if (this.backupConfig.compress) {
-        await this.installDependencies();
-      }
+      await this.installDependencies();
 
       // 显示当前备份状态
       const status = this.getBackupStatus();
       this.log('当前备份状态:', status);
 
       // 执行备份
-      const backupFile = await this.performBackup();
+      let backupOutput = null;
+      if (this.backupConfig.sequentialPerCollection) {
+        backupOutput = await this.performBackupSequentialPerCollection();
+      } else {
+        backupOutput = await this.performBackup();
+      }
       
       // 清理旧备份
       await this.cleanupOldBackups();
@@ -694,7 +1228,7 @@ class MongoDBBackup {
       
       this.log('='.repeat(60));
       this.log('备份任务完成');
-      this.log('备份文件:', backupFile);
+      this.log('备份输出:', Array.isArray(backupOutput) ? `${backupOutput.length} 个文件` : backupOutput);
       this.log('总耗时:', `${(duration / 1000).toFixed(2)}秒`);
       this.log('='.repeat(60));
 
@@ -702,7 +1236,7 @@ class MongoDBBackup {
       const newStatus = this.getBackupStatus();
       this.log('更新后备份状态:', newStatus);
 
-      return { success: true, backupFile, duration };
+      return { success: true, backupFile: backupOutput, duration };
       
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -731,14 +1265,74 @@ if (require.main === module) {
   const cronIndex = Math.max(argv.indexOf('--cron'), argv.indexOf('-c'));
   const cronFromArg = cronIndex > -1 && argv[cronIndex + 1] ? argv[cronIndex + 1] : null;
   const cronExpr = cronFromArg || process.env.SCHEDULE_CRON || '0 0 2 * * *'; // 每天 02:00:00
+  
+  // 解析时间范围参数
+  const todayIndex = argv.indexOf('--today');
+  if (todayIndex > -1) {
+    backup.backupConfig.timeRange.enabled = true;
+    backup.backupConfig.timeRange.today = true;
+    
+    // 检查是否有时间范围参数
+    if (todayIndex + 1 < argv.length && argv[todayIndex + 1].includes('-')) {
+      const timeRange = argv[todayIndex + 1].split('-');
+      if (timeRange.length === 2) {
+        const startParts = timeRange[0].split(':');
+        const endParts = timeRange[1].split(':');
+        
+        if (startParts.length >= 1) {
+          backup.backupConfig.timeRange.todayStartHour = parseInt(startParts[0], 10);
+          if (startParts.length >= 2) {
+            backup.backupConfig.timeRange.todayStartMinute = parseInt(startParts[1], 10);
+          }
+        }
+        
+        if (endParts.length >= 1) {
+          backup.backupConfig.timeRange.todayEndHour = parseInt(endParts[0], 10);
+          if (endParts.length >= 2) {
+            backup.backupConfig.timeRange.todayEndMinute = parseInt(endParts[1], 10);
+          }
+        }
+      }
+    }
+  }
+  
+  // 解析时间字段参数
+  const fieldIndex = argv.indexOf('--field');
+  if (fieldIndex > -1 && fieldIndex + 1 < argv.length) {
+    backup.backupConfig.timeRangeField = argv[fieldIndex + 1];
+  }
+  
+  // 解析开始和结束时间参数
+  const startTimeIndex = argv.indexOf('--start');
+  const endTimeIndex = argv.indexOf('--end');
+  
+  if (startTimeIndex > -1 && startTimeIndex + 1 < argv.length) {
+    backup.backupConfig.timeRange.enabled = true;
+    backup.backupConfig.timeRange.startTime = argv[startTimeIndex + 1];
+  }
+  
+  if (endTimeIndex > -1 && endTimeIndex + 1 < argv.length) {
+    backup.backupConfig.timeRange.enabled = true;
+    backup.backupConfig.timeRange.endTime = argv[endTimeIndex + 1];
+  }
 
   if (help) {
     console.log('\n用法:');
     console.log('  node backup_mongodb.js [--once|--now|run]            立即执行一次后退出');
     console.log('  node backup_mongodb.js [--schedule] [--cron <表达式>] 以守护模式定时执行(默认每天2点)');
+    console.log('\n时间范围选项:');
+    console.log('  --today [开始小时:分钟-结束小时:分钟]  备份今天指定时间段的数据 (例如: 9:30-17:45)');
+    console.log('  --start "YYYY-MM-DD HH:mm:ss"       指定开始时间');
+    console.log('  --end "YYYY-MM-DD HH:mm:ss"         指定结束时间');
+    console.log('  --field fieldName                   指定时间字段名称 (默认: createdAt)');
     console.log('\n示例:');
     console.log('  node backup_mongodb.js --once');
     console.log('  node backup_mongodb.js --schedule --cron "0 30 1 * * *"  # 每天01:30');
+    console.log('  node backup_mongodb.js --once --today                   # 今天全天');
+    console.log('  node backup_mongodb.js --once --today 9-17              # 今天9点到17点');
+    console.log('  node backup_mongodb.js --once --today 9:30-17:45        # 今天9:30到17:45');
+    console.log('  node backup_mongodb.js --once --start "2023-05-01 00:00:00" --end "2023-05-31 23:59:59"');
+    console.log('  node backup_mongodb.js --once --field updatedAt --today # 使用updatedAt字段筛选今天的数据');
   }
 
   if (runOnce && !scheduleMode) {
