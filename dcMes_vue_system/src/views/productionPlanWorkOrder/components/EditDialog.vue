@@ -70,14 +70,14 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="客户行号" prop="custPO">
+          <el-form-item label="客户行号" prop="custPOLineNo">
             <zr-select
               v-if="form.saleOrderId"
-              v-model="form.custPO"
+              v-model="form.custInfoId"
               collection="k3_SAL_SaleOrder_CustInfo"
-              :search-fields="['FCustPO', 'FCustPOLineNo']"
+              :search-fields="[ 'FCustPO', 'FCustPOLineNo']"
               label-key="FCustPO"
-              value-key="FCustPO"
+              value-key="_id"
               sub-key="FCustPOLineNo"
               :multiple="false"
               :additional-query="custLineQuery"

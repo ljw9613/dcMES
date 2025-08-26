@@ -431,6 +431,37 @@
       @submit="handleSubmit"
     />
 
+    <!-- 导出选择弹窗 -->
+    <el-dialog
+      title="导出数据"
+      :visible.sync="exportDialogVisible"
+      width="400px"
+    >
+      <div class="export-options">
+        <el-radio-group v-model="exportType">
+          <el-radio label="current">导出当前页面数据</el-radio>
+          <el-radio label="all">导出所有搜索结果</el-radio>
+        </el-radio-group>
+        <div class="export-info" v-if="exportType === 'current'">
+          <p>将导出当前页面的 {{ tableList.length }} 条数据</p>
+        </div>
+        <div class="export-info" v-if="exportType === 'all'">
+          <p>将导出所有搜索结果的 {{ total }} 条数据</p>
+          <el-alert
+            v-if="total > 5000"
+            title="数据量较大，将进行批次处理导出"
+            type="warning"
+            :closable="false"
+            show-icon>
+          </el-alert>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="exportDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="confirmExport" :loading="exporting">确定导出</el-button>
+      </span>
+    </el-dialog>
+
     <!-- 报废条码详情弹窗 -->
     <el-dialog
       title="报废条码详情"
@@ -497,6 +528,7 @@
 import { getData, addData, updateData, removeData } from "@/api/data";
 import EditDialog from "./components/EditDialog";
 import { checkComponentName } from "@/utils/debugHelper";
+import XLSX from "xlsx";
 
 export default {
   name: "ProductionOrder",
@@ -531,6 +563,9 @@ export default {
       scrapBarcodeDialogVisible: false,
       scrapDetailData: {},
       scrapBarcodeLoading: false,
+      exportDialogVisible: false,
+      exportType: 'current',
+      exporting: false,
     };
   },
   computed: {
@@ -746,81 +781,160 @@ export default {
       }
     },
 
-    // 导出数据
-    async exportData() {
+    // 导出数据 - 显示选择弹窗
+    exportData() {
+      this.exportDialogVisible = true;
+    },
+
+    // 确认导出
+    async confirmExport() {
+      this.exporting = true;
       try {
+        if (this.exportType === 'current') {
+          await this.exportCurrentPageData();
+        } else {
+          await this.exportAllSearchResults();
+        }
+        this.exportDialogVisible = false;
+      } catch (error) {
+        console.error('导出失败:', error);
+        this.$message.error('导出失败');
+      } finally {
+        this.exporting = false;
+      }
+    },
+
+    // 导出当前页面数据
+    async exportCurrentPageData() {
+      if (!this.tableList || this.tableList.length === 0) {
+        this.$message.warning('当前页面没有数据可供导出');
+        return;
+      }
+
+      const processedData = this.processTableDataForExport(this.tableList);
+      this.downloadExcelFile(processedData, `生产计划工单数据_第${this.currentPage}页.xlsx`);
+      this.$message.success('当前页面数据导出成功');
+    },
+
+    // 导出所有搜索结果
+    async exportAllSearchResults() {
+      const BATCH_SIZE = 1000; // 每批处理1000条数据
+      const totalBatches = Math.ceil(this.total / BATCH_SIZE);
+      
+      if (totalBatches > 1) {
         this.$message({
-          message: "正在导出数据,请稍候...",
-          type: "info",
+          message: `数据量较大(${this.total}条)，将分${totalBatches}批次处理导出...`,
+          type: 'info',
+          duration: 3000
         });
+      }
 
-        const loading = this.$loading({
-          lock: true,
-          text: "导出中...",
-          spinner: "el-icon-loading",
-          background: "rgba(0, 0, 0, 0.7)",
-        });
+      const loading = this.$loading({
+        lock: true,
+        text: `正在导出数据... (0/${totalBatches})`,
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)',
+      });
 
-        let req = this.searchData();
-        req.limit = 1000000;
-        const response = await getData("k3_PRD_MO", req);
+      try {
+        let allData = [];
+        
+        for (let i = 0; i < totalBatches; i++) {
+          loading.text = `正在导出数据... (${i + 1}/${totalBatches})`;
+          
+          let req = this.searchData();
+          req.skip = i * BATCH_SIZE;
+          req.limit = BATCH_SIZE;
+          req.sort = { planStartTime: -1 };
+          
+          const response = await getData('production_plan_work_order', req);
+          if (response.data && response.data.length > 0) {
+            allData = allData.concat(response.data);
+          }
+          
+          // 添加小延时避免请求过快
+          if (i < totalBatches - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
 
-        if (!response.data || response.data.length === 0) {
-          this.$message.warning("没有数据可供导出");
-          loading.close();
+        if (allData.length === 0) {
+          this.$message.warning('没有数据可供导出');
           return;
         }
 
-        // 导出配置
-        const exportConfig = {
-          FBillNo: "单据编号",
-          FDocumentStatus: "单据状态",
-          FDate: "单据日期",
-          FWorkShopID_FName: "生产车间",
-          FMaterialId: "物料编码",
-          FMaterialName: "物料名称",
-          FSpecification: "规格型号",
-          FProductType: "产品类型",
-          FUnitId: "单位",
-          FQty: "数量",
-          FPlanStartDate: "计划开工时间",
-          FPlanFinishDate: "计划完工时间",
-        };
-
-        // 处理数据
-        const processedData = response.data.map((item) => {
-          const row = {};
-          Object.keys(exportConfig).forEach((key) => {
-            if (key.includes("Date")) {
-              row[exportConfig[key]] = this.formatDate(item[key]);
-            } else {
-              row[exportConfig[key]] = item[key];
-            }
-          });
-          return row;
-        });
-
-        // 创建工作簿
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(processedData);
-
-        // 设置列宽
-        const colWidths = Object.values(exportConfig).map((header) => ({
-          wch: Math.max(header.length * 2, 15),
-        }));
-        ws["!cols"] = colWidths;
-
-        // 添加工作表到工作簿
-        XLSX.utils.book_append_sheet(wb, ws, "生产订单数据");
-
-        // 下载文件
-        XLSX.writeFile(wb, "生产订单数据.xlsx");
+        const processedData = this.processTableDataForExport(allData);
+        this.downloadExcelFile(processedData, `生产计划工单数据_全部${allData.length}条.xlsx`);
+        this.$message.success(`所有搜索结果导出成功，共${allData.length}条数据`);
+      } finally {
         loading.close();
-        this.$message.success("导出成功");
-      } catch (error) {
-        console.error("导出失败:", error);
-        this.$message.error("导出失败");
       }
+    },
+
+    // 处理表格数据为导出格式
+    processTableDataForExport(data) {
+      const exportConfig = {
+        workOrderNo: '工单号',
+        status: '工单状态',
+        saleOrderNo: '销售单号',
+        productionOrderNo: '生产单号',
+        materialName: '产品名称',
+        fSpecification: '产品规格',
+        materialNumber: '产品编码',
+        lineName: '产线名称',
+        businessType: '业务类型',
+        planQuantity: '需生产数量',
+        planProductionQuantity: '工单数量',
+        inputQuantity: '投入数量',
+        outputQuantity: '产出数量',
+        scrapQuantity: '报废数量',
+        planStartTime: '计划开始时间',
+        planEndTime: '计划结束时间',
+        supplementQuantity: '原单数量',
+        originalWorkOrderNo: '补单标识',
+        createBy: '创建人',
+        createAt: '创建时间',
+        updateBy: '更新人',
+        updateAt: '更新时间'
+      };
+
+      return data.map(item => {
+        const row = {};
+        Object.keys(exportConfig).forEach(key => {
+          if (key.includes('Time') || key === 'createAt' || key === 'updateAt') {
+            row[exportConfig[key]] = this.formatDate(item[key], true);
+          } else if (key === 'originalWorkOrderNo') {
+            row[exportConfig[key]] = item[key] ? '补单' : '正常单';
+          } else if (key === 'supplementQuantity') {
+            row[exportConfig[key]] = item.originalWorkOrderId ? (item[key] || 0) : 0;
+          } else if (key === 'scrapQuantity') {
+            row[exportConfig[key]] = item[key] || 0;
+          } else if (key === 'status') {
+            row[exportConfig[key]] = this.getStatusText(item[key]);
+          } else {
+            row[exportConfig[key]] = item[key] || '';
+          }
+        });
+        return row;
+      });
+    },
+
+    // 下载Excel文件
+    downloadExcelFile(data, filename) {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // 设置列宽
+      const colWidths = Object.keys(data[0] || {}).map(header => ({
+        wch: Math.max(header.length * 2, 15),
+      }));
+      ws['!cols'] = colWidths;
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, '生产计划工单数据');
+
+      // 下载文件
+      XLSX.writeFile(wb, filename);
     },
 
     // 分页方法
@@ -1220,6 +1334,30 @@ export default {
 
   .filter-container {
     margin-bottom: 20px;
+  }
+}
+
+.export-options {
+  padding: 20px 0;
+
+  .el-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .export-info {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    border-left: 4px solid #409eff;
+
+    p {
+      margin: 0;
+      color: #606266;
+      font-size: 14px;
+    }
   }
 }
 

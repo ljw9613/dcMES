@@ -28,8 +28,8 @@ module.exports = {
   //国内版本
   // publicPath: "/dcMes/",
   // outputDir: "../dcMes_server/admin",
-  // publicPath: "/dcMesManage/",
-  // outputDir: "../dcMes_server/adminManage",
+  publicPath: "/dcMesManage/",
+  outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
   // outputDir: "../dcMes_server/adminPzManage",
   // publicPath: "/dcMesCs/",
@@ -37,8 +37,8 @@ module.exports = {
   // 越南VN
   // publicPath: "/dcMesVN/",
   // outputDir: "../dcMes_server/adminVN",
-  publicPath: "/dcMesManageVN/",
-  outputDir: "../dcMes_server/adminManageVN",
+  // publicPath: "/dcMesManageVN/",
+  // outputDir: "../dcMes_server/adminManageVN",
   // publicPath: "/dcMesPzManageVN/",
   // outputDir: "../dcMes_server/adminPzManageVN",
   // publicPath: "/dcMesVNCN/",
