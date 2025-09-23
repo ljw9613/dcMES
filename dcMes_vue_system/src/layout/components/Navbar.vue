@@ -7,6 +7,12 @@
     <div class="right-menu">
       <div class="nametitle">{{ $t('navbar.welcome') }}，{{ name }}</div>
 
+      <!-- 版本号显示 -->
+      <div class="version-container" @click="showVersionInfo">
+        <i class="el-icon-info"></i>
+        <span class="version-text">{{ currentVersion }}</span>
+      </div>
+
       <!-- 语言切换下拉菜单 -->
       <el-dropdown class="language-container" trigger="click" @command="handleLanguageChange">
         <div class="language-wrapper">
@@ -49,6 +55,7 @@
 import { mapGetters } from 'vuex'
 import Breadcrumb from '@/components/Breadcrumb'
 import Hamburger from '@/components/Hamburger'
+import { getVersion, getVersionInfo, getVersionColor } from '@/config/version'
 
 export default {
   components: {
@@ -72,6 +79,14 @@ export default {
     },
     currentLanguageLabel() {
       return this['language/currentLanguageLabel']
+    },
+    // 获取当前版本号
+    currentVersion() {
+      return getVersion()
+    },
+    // 获取版本颜色
+    versionColor() {
+      return getVersionColor()
     }
   },
   methods: {
@@ -94,6 +109,29 @@ export default {
       if (language !== this.currentLanguage) {
         this.$store.dispatch('language/setLanguage', language)
       }
+    },
+    // 显示版本详细信息
+    showVersionInfo() {
+      const versionInfo = getVersionInfo()
+      const detailMessage = `
+        <div style="text-align: left; line-height: 1.6;">
+          <h3 style="margin: 0 0 10px 0; color: #409eff;">${this.$t('navbar.systemVersion')}</h3>
+          <p><strong>${this.$t('navbar.version')}:</strong> ${versionInfo.version}</p>
+          <p><strong>${this.$t('navbar.buildDate')}:</strong> ${versionInfo.build}</p>
+          <p><strong>${this.$t('navbar.environment')}:</strong> ${versionInfo.environment}</p>
+          <p><strong>状态:</strong> ${versionInfo.status}</p>
+          <p><strong>代号:</strong> ${versionInfo.codeName}</p>
+          <p style="margin-top: 15px; padding: 10px; background-color: #f5f7fa; border-radius: 4px; font-size: 12px; color: #666;">
+            ${versionInfo.description}
+          </p>
+        </div>
+      `
+      
+      this.$alert(detailMessage, this.$t('navbar.versionInfo'), {
+        dangerouslyUseHTMLString: true,
+        confirmButtonText: this.$t('common.confirm'),
+        type: 'info'
+      })
     }
   }
 }
@@ -165,6 +203,34 @@ export default {
         &:hover {
           background: rgba(0, 0, 0, .025)
         }
+      }
+    }
+
+    .version-container {
+      margin-right: 15px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 0 8px;
+      height: 100%;
+      transition: background .3s;
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(0, 0, 0, .025);
+      }
+
+      .el-icon-info {
+        font-size: 14px;
+        color: #409eff;
+        margin-right: 5px;
+      }
+
+      .version-text {
+        font-size: 12px;
+        color: #5a5e66;
+        font-weight: 500;
+        letter-spacing: 0.5px;
       }
     }
 

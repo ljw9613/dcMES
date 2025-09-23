@@ -11,6 +11,7 @@ let config = require("./libs/config");
 var expressJwt = require("express-jwt");
 const systemLogRoutes = require("./routes/systemLog");
 const queueMonitorRoutes = require("./routes/queueMonitor");
+const activityCheck = require("./middleware/activityCheck");
 
 let app = express();
 app.set('trust proxy', true);
@@ -95,32 +96,8 @@ app.use(cookieParser());
 // 设置静态文件托管
 app.use(express.static(path.join(__dirname, "public")));
 
-// JWT令牌验证中间件 - 启用全局验证
-app.use(expressJwt({
-  secret: config.secretOrPrivateKey,
-  algorithms: ['HS256'] // 明确指定算法
-}).unless({
-  path: [
-    // 登录相关接口
-    /.*\/login.*/,
-    /.*\/auth.*/,
-    // 公共接口
-    /.*\/public.*/,
-    /.*\/health.*/,
-    /.*\/ping.*/,
-    // 设备对接接口
-    /.*\/machine-scan-components.*/,
-    /.*\/initialize-machine-barcode.*/,
-    /.*\/get-laser-print-barcode.*/,
-    /.*\/confirm-laser-barcode-used.*/,
-    // 静态资源
-    /.*\/uploads.*/,
-    /.*\/stylesheets.*/,
-    // 微信相关
-    /sendMessage*/,
-    /wxuser*/
-  ]
-}));
+// 用户活动检查中间件 - 替代原来的JWT验证，包含活动时间检查
+app.use(activityCheck());
 
 // JWT验证失败时的处理
 app.use(function (err, req, res, next) {

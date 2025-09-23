@@ -204,6 +204,11 @@
             {{ scope.row.createAt | formatDate }}
           </template>
         </el-table-column>
+        <el-table-column label="更新时间" prop="updateAt">
+          <template slot-scope="scope">
+            {{ scope.row.updateAt | formatDate }}
+          </template>
+        </el-table-column>
         <el-table-column label="状态">
           <template slot-scope="scope">
             <el-tag :type="getStatusType(scope.row.status)">

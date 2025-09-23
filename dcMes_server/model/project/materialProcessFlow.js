@@ -140,6 +140,26 @@ materialProcessFlowSchema.index({ productionPlanWorkOrderId: 1 });
 materialProcessFlowSchema.index({ "processNodes.barcode": 1 });
 materialProcessFlowSchema.index({ createAt: -1 });
 
+// 添加pre-save中间件，自动更新updateAt字段
+materialProcessFlowSchema.pre('save', function(next) {
+  // 只在文档被修改时更新updateAt字段
+  if (this.isModified() && !this.isNew) {
+    this.updateAt = new Date();
+  }
+  next();
+});
+
+// 添加pre-updateOne中间件，自动更新updateAt字段
+materialProcessFlowSchema.pre(['updateOne', 'findOneAndUpdate'], function() {
+  // 确保所有updateOne和findOneAndUpdate操作都包含updateAt
+  if (this.getUpdate() && !this.getUpdate().$set?.updateAt) {
+    if (!this.getUpdate().$set) {
+      this.getUpdate().$set = {};
+    }
+    this.getUpdate().$set.updateAt = new Date();
+  }
+});
+
 module.exports = mongoose.model(
   "material_process_flow",
   materialProcessFlowSchema

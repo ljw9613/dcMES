@@ -186,7 +186,11 @@
                         {{ formatDate(scope.row.FPlanFinishDate) }}
                     </template>
                 </el-table-column>
-                
+                <el-table-column label="同步时间" width="150">
+                    <template slot-scope="scope">
+                        {{ getSyncTime(scope.row) }}
+                    </template>
+                </el-table-column>
             </template>
         </base-table>
 
@@ -436,7 +440,8 @@ export default {
                     FUnitId: '单位',
                     FQty: '数量',
                     FPlanStartDate: '计划开工时间',
-                    FPlanFinishDate: '计划完工时间'
+                    FPlanFinishDate: '计划完工时间',
+                    syncTime: '同步时间'
                 };
 
                 // 处理数据
@@ -445,6 +450,9 @@ export default {
                     Object.keys(exportConfig).forEach(key => {
                         if (key.includes('Date')) {
                             row[exportConfig[key]] = this.formatDate(item[key]);
+                        } else if (key === 'syncTime') {
+                            // 处理同步时间字段
+                            row[exportConfig[key]] = this.getSyncTime(item);
                         } else {
                             row[exportConfig[key]] = item[key];
                         }
@@ -502,6 +510,43 @@ export default {
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dateObj.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        },
+
+        // 从MongoDB ObjectId解析时间戳
+        parseObjectIdTime(objectId) {
+            if (!objectId || typeof objectId !== 'string' || objectId.length !== 24) {
+                return null;
+            }
+            try {
+                // ObjectId的前8个字符（4字节）是十六进制时间戳
+                const timestamp = objectId.substring(0, 8);
+                // 转换为十进制时间戳（秒）
+                const timestampSeconds = parseInt(timestamp, 16);
+                // 转换为毫秒时间戳
+                const timestampMillis = timestampSeconds * 1000;
+                return new Date(timestampMillis);
+            } catch (error) {
+                console.error('解析ObjectId时间失败:', error);
+                return null;
+            }
+        },
+
+        // 获取同步时间 - 优先使用lastSyncTime，没有则解析_id时间戳
+        getSyncTime(row) {
+            // 如果有lastSyncTime字段，直接使用
+            if (row.lastSyncTime) {
+                return this.formatDate(row.lastSyncTime);
+            }
+            
+            // 如果没有lastSyncTime，尝试从_id解析时间
+            if (row._id) {
+                const objectIdTime = this.parseObjectIdTime(row._id);
+                if (objectIdTime) {
+                    return this.formatDate(objectIdTime);
+                }
+            }
+            
+            return '暂无数据';
         },
 
         // 格式化数字

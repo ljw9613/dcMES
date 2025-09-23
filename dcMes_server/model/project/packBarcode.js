@@ -109,5 +109,25 @@ packBarcodeSchema.index({
   partialFilterExpression: { status: { $ne: "VOIDED" } }
 });
 
+// 添加pre-save中间件，自动更新updateAt字段
+packBarcodeSchema.pre('save', function(next) {
+  // 只在文档被修改时更新updateAt字段
+  if (this.isModified() && !this.isNew) {
+    this.updateAt = new Date();
+  }
+  next();
+});
+
+// 添加pre-updateOne中间件，自动更新updateAt字段
+packBarcodeSchema.pre(['updateOne', 'findOneAndUpdate'], function() {
+  // 确保所有updateOne和findOneAndUpdate操作都包含updateAt
+  if (this.getUpdate() && !this.getUpdate().$set?.updateAt) {
+    if (!this.getUpdate().$set) {
+      this.getUpdate().$set = {};
+    }
+    this.getUpdate().$set.updateAt = new Date();
+  }
+});
+
 // 安全的模型导出，避免重复编译错误
 module.exports = mongoose.models.packBarcode || mongoose.model("packBarcode", packBarcodeSchema); 

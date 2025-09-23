@@ -750,7 +750,13 @@ export default {
         // 验证入库信息表单
         await this.$refs.entryForm.validate();
 
-        const barcode = this.productScanForm.barcode.trim();
+        let barcode = this.productScanForm.barcode.trim();
+
+        //1001998503000223,010401AG000203,20250329,8
+        if(barcode.includes(",")){
+          const [boxBarcode, materialCode, scanTime, quantity] = barcode.split(",");
+          barcode = boxBarcode;
+        }
         
         // 防重复扫码检查：检查产品条码是否已在当前出库单中
         if (this.entryInfo && this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {

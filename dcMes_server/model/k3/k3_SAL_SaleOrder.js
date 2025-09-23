@@ -104,6 +104,9 @@ var salesOrderSchema = new mongoose.Schema(
     FDetailLocAddress: { type: String }, // 交货地址
     FPlanDate: { type: Date }, // 要货日期
     FPlanDeliveryDate: { type: Date }, // 计划发货日期
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now }, // 最后同步时间
   },
   {
     timestamps: true,

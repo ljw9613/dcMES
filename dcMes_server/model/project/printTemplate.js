@@ -44,4 +44,24 @@ var printTemplateSchema = new mongoose.Schema({
     updateAt: { type: Date, default: Date.now }, // 更新时间
 });
 
+// 添加pre-save中间件，自动更新updateAt字段
+printTemplateSchema.pre('save', function(next) {
+  // 只在文档被修改时更新updateAt字段
+  if (this.isModified() && !this.isNew) {
+    this.updateAt = new Date();
+  }
+  next();
+});
+
+// 添加pre-updateOne中间件，自动更新updateAt字段
+printTemplateSchema.pre(['updateOne', 'findOneAndUpdate'], function() {
+  // 确保所有updateOne和findOneAndUpdate操作都包含updateAt
+  if (this.getUpdate() && !this.getUpdate().$set?.updateAt) {
+    if (!this.getUpdate().$set) {
+      this.getUpdate().$set = {};
+    }
+    this.getUpdate().$set.updateAt = new Date();
+  }
+});
+
 module.exports = mongoose.model("print_template", printTemplateSchema); 

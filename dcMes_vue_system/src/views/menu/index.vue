@@ -13,9 +13,8 @@
         type="primary"
         @click="handleFilter"
         v-if="$checkPermission('菜单管理添加菜单')"
-      >添加菜单
-      </el-button
-      >
+        >添加菜单
+      </el-button>
     </div>
     <el-table
       v-loading="listLoading"
@@ -37,22 +36,22 @@
           <span>{{ scope.row.menuName }}</span>
         </template>
       </el-table-column>
-      
+
       <!-- 国际化键值列 -->
       <el-table-column align="center" label="国际化键值" width="250px">
         <template slot-scope="scope">
-          <el-tag 
-            v-if="scope.row.i18nKey" 
-            size="mini" 
+          <el-tag
+            v-if="scope.row.i18nKey"
+            size="mini"
             type="info"
-            style="font-family: 'Courier New', monospace;"
+            style="font-family: 'Courier New', monospace"
           >
             {{ scope.row.i18nKey }}
           </el-tag>
-          <span v-else style="color: #C0C4CC;">未设置</span>
+          <span v-else style="color: #c0c4cc">未设置</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column align="center" label="图标">
         <template slot-scope="scope">
           <i v-if="scope.row.icon" :class="scope.row.icon"></i>
@@ -96,10 +95,17 @@
       </el-table-column>
       <el-table-column align="center" label="状态">
         <template slot-scope="scope">
-          <el-tag :type="scope.row.status == true ? 'success' : 'danger'">{{
-              scope.row.status ? "启用" : "禁用"
-            }}
+          <el-tag :type="scope.row.status == true ? 'success' : 'danger'"
+            >{{ scope.row.status ? "启用" : "禁用" }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column align="center" label="创建时间" width="200">
+        <template slot-scope="scope">
+          <i class="el-icon-time" />
+          <span>{{
+            scope.row.createAt | parseTime("{y}-{m}-{d} {h}:{i}")
+          }}</span>
         </template>
       </el-table-column>
       <el-table-column
@@ -109,10 +115,10 @@
         width="200"
       >
         <template slot-scope="scope">
-          <i class="el-icon-time"/>
+          <i class="el-icon-time" />
           <span>{{
-              scope.row.updateAt | parseTime("{y}-{m}-{d} {h}:{i}")
-            }}</span>
+            scope.row.updateAt | parseTime("{y}-{m}-{d} {h}:{i}")
+          }}</span>
         </template>
       </el-table-column>
       <el-table-column align="center" fixed="right" label="操作" width="100">
@@ -123,18 +129,16 @@
             type="text"
             @click="handleEdit(row)"
             v-if="$checkPermission('菜单管理编辑')"
-          >编辑
-          </el-button
-          >
+            >编辑
+          </el-button>
           <el-button
             size="mini"
             style="color: red"
             type="text"
             @click="handleDelete(row)"
             v-if="$checkPermission('菜单管理删除')"
-          >删除
-          </el-button
-          >
+            >删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -149,14 +153,14 @@
 </template>
 
 <script>
-import {getData, removeData} from "@/api/data";
+import { getData, removeData } from "@/api/data";
 import menuDialog from "./components/menuDialog"; // secondary package based on el-pagination
 import variables from "@/styles/variables.scss";
-import {formatMenu2Tree} from "@/utils/format2Tree";
+import { formatMenu2Tree } from "@/utils/format2Tree";
 
 export default {
   name: "menu",
-  components: {menuDialog},
+  components: { menuDialog },
   data() {
     return {
       list: [],
@@ -188,7 +192,7 @@ export default {
     async fetchData() {
       this.listLoading = true;
       this.list = [];
-      let {data: response} = await getData("menu", {
+      let { data: response } = await getData("menu", {
         query: {},
         sort: {
           sortNum: 1,
@@ -249,7 +253,7 @@ export default {
       let _id = this.postlist._id;
       delete this.postlist._id;
       var data = {
-        query: {_id: _id},
+        query: { _id: _id },
         update: {
           ...this.postlist,
         },
@@ -288,7 +292,7 @@ export default {
       this.$confirm("确定删除" + row.menuName + "吗？")
         .then(async (_) => {
           var datas = {
-            query: {_id: row._id},
+            query: { _id: row._id },
           };
           let response = await removeData("menu", datas);
 

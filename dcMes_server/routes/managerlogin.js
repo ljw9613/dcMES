@@ -42,11 +42,14 @@ router.post('/api/v1/user/login', async (req, res, next) => {
                 
                 // 创建包含更多用户信息的token负载
                 const userData = user.toJSON();
+                const now = Date.now();
                 const tokenPayload = {
                     _id: userData._id, 
                     userName: userData.userName,
                     realName: userData.realName || userData.userName,
-                    roleId: userData.role ? userData.role._id : null
+                    roleId: userData.role ? userData.role._id : null,
+                    loginTime: now,
+                    lastActivityTime: now
                 };
                 
                 // 记录生成的token信息

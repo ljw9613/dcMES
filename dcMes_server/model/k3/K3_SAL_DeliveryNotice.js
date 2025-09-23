@@ -305,7 +305,10 @@ const deliveryNoticeSchema = new Schema(
     FF_TFQJ_fpdh: String,     // 分批单号
     FF_TFQJ_zhpoh: String,    // 综合PO号
     FF_TFQJ_zhpoyy: String,   // 综合PO原因
-    FF_TFQJ_DDDH: String      // 订单单号
+    FF_TFQJ_DDDH: String,     // 订单单号
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now },
   },
   {
     timestamps: true

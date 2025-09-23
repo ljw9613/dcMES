@@ -635,9 +635,11 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     }
     if (entryInfo.FaQIaoNo) {
       entry.FaQIaoNo = entryInfo.FaQIaoNo;
+      entry.updateAt = new Date();
     }
     if (entryInfo.HuoGuiCode) {
       entry.HuoGuiCode = entryInfo.HuoGuiCode;
+      entry.updateAt = new Date();
     }
 
     // 4. 检查托盘是否已经出库 - 增强重复检查
@@ -787,6 +789,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
             palletBarcodes: pallet.palletBarcodes,
           });
 
+          latestEntry.updateAt = new Date();
           await latestEntry.save();
 
           return res.status(200).json({
@@ -819,6 +822,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
     //判断是托盘出库还是单一产品出库
     if (entryInfo.outboundMode === "SINGLE") {
       if (!palletFinished) {
+        entry.updateAt = new Date();
         await entry.save();
         // 重新查询以获取最新数据
         // const latestEntry = await wareHouseOntry.findById(entry._id);
@@ -1021,6 +1025,9 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       updatedEntry.status = "IN_PROGRESS";
     }
 
+    // 7.1 更新出库单时间戳
+    updatedEntry.updateAt = new Date();
+
     // 8. 更新托盘中所有条码的出库状态
     pallet.palletBarcodes.forEach((barcode) => {
       barcode.outWarehouseStatus = "COMPLETED";
@@ -1040,6 +1047,7 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       palletBarcodes: pallet.palletBarcodes,
     });
 
+    updatedEntry.updateAt = new Date();
     await updatedEntry.save();
 
     // 重新查询以获取最新数据
@@ -1593,6 +1601,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
         materialPalletizingService.updatePalletOutWarehouseStatus(pallet);
 
         // 保存更新
+        entry.updateAt = new Date();
         await Promise.all([entry.save(), pallet.save()]);
 
         return res.status(200).json({
@@ -1777,6 +1786,7 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
     pallet.outWarehouseBy = userId;
 
     // 保存更新
+    entry.updateAt = new Date();
     await Promise.all([entry.save(), pallet.save()]);
 
     return res.status(200).json({

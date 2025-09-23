@@ -152,7 +152,12 @@ export default {
     changePassword: "修改密码",
     language: "语言",
     chinese: "中文",
-    vietnamese: "越南语"
+    vietnamese: "越南语",
+    version: "版本",
+    versionInfo: "版本信息",
+    systemVersion: "系统版本",
+    buildDate: "构建日期",
+    environment: "环境"
   },
 
   // 扫码页面
@@ -224,6 +229,8 @@ export default {
       unifiedScanArea: "统一扫描区域",
       materialMatching: "物料匹配扫描",
       batchCacheEnabled: "批次物料缓存已启用",
+      clearCacheOnSubmit: "清除",
+      keepCacheOnSubmit: "保留",
       scanPlaceholder: "请扫描条码",
       mainBarcodePlaceholder: "请扫描主物料条码",
       subBarcodePlaceholder: "请扫描子物料条码",
@@ -471,6 +478,8 @@ export default {
       unifiedScanArea: "统一扫描区域",
       materialMatching: "物料匹配扫描",
       batchCacheEnabled: "批次物料缓存已启用",
+      clearCacheOnSubmit: "清除",
+      keepCacheOnSubmit: "保留",
       scanPlaceholder: "请扫描条码",
       mainBarcodePlaceholder: "请扫描主物料条码",
       subBarcodePlaceholder: "请扫描子物料条码",

@@ -19,7 +19,7 @@
             <el-input
               v-model="form.workOrderNo"
               placeholder="请输入工单号"
-              :disabled="dialogStatus === 'edit'"
+              :disabled="dialogStatus === 'edit' || isCompletedWorkOrder"
             ></el-input>
           </el-form-item>
         </el-col>
@@ -27,7 +27,7 @@
           <el-form-item label="工单状态" prop="status">
             <el-select
               v-model="form.status"
-              disabled
+              :disabled="true"
               placeholder="请选择工单状态"
               style="width: 100%"
             >
@@ -52,6 +52,7 @@
               label-key="FBillNo"
               sub-key="FCustId"
               :multiple="false"
+              :disabled="isCompletedWorkOrder"
               placeholder="请输入销售单号搜索"
               @select="handleSaleOrderSelect"
             >
@@ -80,6 +81,7 @@
               value-key="_id"
               sub-key="FCustPOLineNo"
               :multiple="false"
+              :disabled="isCompletedWorkOrder"
               :additional-query="custLineQuery"
               placeholder="请选择客户PO号"
               @select="handleCustLineSelect"
@@ -101,7 +103,7 @@
             <el-input
               v-else
               v-model="form.custPOLineNo"
-              disabled
+              :disabled="true"
               placeholder="请先选择销售单号"
             />
           </el-form-item>
@@ -119,6 +121,7 @@
               label-key="FBillNo"
               sub-key="FMaterialName"
               :multiple="false"
+              :disabled="isCompletedWorkOrder"
               :additional-query="productionOrderQuery"
               placeholder="请输入生产单号搜索"
               @select="handleProductionOrderSelect"
@@ -155,6 +158,7 @@
               label-key="FName"
               sub-key="FMATERIALID"
               :multiple="false"
+              :disabled="isCompletedWorkOrder"
               @select="handleMaterialSelect"
               :additional-query="materialQuery"
               placeholder="请输入物料编码/名称搜索"
@@ -196,7 +200,7 @@
               tag-key="lineCode"
               sub-key="workshop"
               :multiple="false"
-              :disabled="form.status !== 'PENDING' && form.status !== 'PAUSED'"
+              :disabled="(form.status !== 'PENDING' && form.status !== 'PAUSED') || isCompletedWorkOrder"
               placeholder="请输入产线信息搜索"
               @select="handleProductionLineSelect"
             />
@@ -208,7 +212,7 @@
         <el-col :span="12">
           <el-form-item label="需生产数量" prop="planQuantity">
             <el-input-number
-              disabled
+              :disabled="true"
               v-model="form.planQuantity"
               :min="0"
               controls-position="right"
@@ -219,7 +223,7 @@
         <el-col :span="12">
           <el-form-item label="已排产数量">
             <el-input-number
-              disabled
+              :disabled="true"
               v-model="totalPlanProductionQuantity"
               :min="0"
               controls-position="right"
@@ -230,7 +234,7 @@
         <el-col :span="12">
           <el-form-item label="已生产数量">
             <el-input-number
-              disabled
+              :disabled="true"
               v-model="totalOutputQuantity"
               :min="0"
               controls-position="right"
@@ -241,7 +245,7 @@
         <el-col :span="12">
           <el-form-item label="未排产数量">
             <el-input-number
-              disabled
+              :disabled="true"
               v-model="totalRemainingQuantity"
               :min="0"
               controls-position="right"
@@ -256,7 +260,7 @@
               :min="0"
               controls-position="right"
               style="width: 100%"
-              :disabled="form.status !== 'PENDING'"
+              :disabled="form.status !== 'PENDING' || isCompletedWorkOrder"
             ></el-input-number>
           </el-form-item>
         </el-col>
@@ -265,7 +269,7 @@
         <el-col :span="12">
           <el-form-item label="投入数量" prop="inputQuantity">
             <el-input-number
-              disabled
+              :disabled="true"
               v-model="form.inputQuantity"
               :min="0"
               controls-position="right"
@@ -276,7 +280,7 @@
         <el-col :span="12">
           <el-form-item label="产出数量" prop="outputQuantity">
             <el-input-number
-              disabled
+              :disabled="true"
               v-model="form.outputQuantity"
               :min="0"
               controls-position="right"
@@ -294,6 +298,7 @@
               type="datetime"
               placeholder="选择计划开始时间"
               :picker-options="startTimeOptions"
+              :disabled="isCompletedWorkOrder"
               style="width: 100%"
             >
             </el-date-picker>
@@ -306,6 +311,7 @@
               type="datetime"
               placeholder="选择计划结束时间"
               :picker-options="endTimeOptions"
+              :disabled="isCompletedWorkOrder"
               style="width: 100%"
             >
             </el-date-picker>
@@ -318,12 +324,13 @@
           type="textarea"
           v-model="form.remark"
           placeholder="请输入备注信息"
+          :disabled="isCompletedWorkOrder"
         ></el-input>
       </el-form-item>
     </el-form>
 
     <div slot="footer" class="dialog-footer">
-      <template v-if="dialogStatus === 'edit'">
+      <template v-if="dialogStatus === 'edit' && !isCompletedWorkOrder">
         <el-button
           type="success"
           v-if="form.status === 'PAUSED' && $checkPermission('生产计划补工单')"
@@ -374,9 +381,12 @@
         </el-button>
       </template>
       <el-button @click="handleClose">取 消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="submitLoading"
-        >确 定</el-button
-      >
+      <el-button 
+        type="primary" 
+        @click="handleSubmit" 
+        :loading="submitLoading"
+        v-if="!isCompletedWorkOrder"
+      >确 定</el-button>
     </div>
     <work-dialog
       v-if="workDialogVisible && dialogStatus === 'edit'"
@@ -515,6 +525,10 @@ export default {
       return this.dialogStatus === "create"
         ? "新增生产计划工单"
         : "编辑生产计划工单";
+    },
+    // 判断是否为已完成工单
+    isCompletedWorkOrder() {
+      return this.form.status === 'COMPLETED';
     },
     productionOrderQuery() {
       //    return {}

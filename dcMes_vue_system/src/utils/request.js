@@ -3,7 +3,9 @@ import { Message } from "element-ui";
 import store from "@/store";
 import router from '@/router';
 import Cookies from 'js-cookie';
-import { getToken } from '@/utils/auth'; // 导入getToken函数
+import { getToken, setToken } from '@/utils/auth'; // 导入getToken和setToken函数
+import userActivityMonitor from '@/utils/userActivity';
+import { isActivityMonitorEnabled, getActivityConfig } from '@/config/activityConfig';
 // create an axios instance
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
@@ -39,6 +41,14 @@ const handleJWTError = (message) => {
 // request interceptor
 service.interceptors.request.use(
   config => {
+    // 检查会话是否已过期（仅在功能启用且配置拦截API请求时）
+    if (isActivityMonitorEnabled() && getActivityConfig().interceptApiRequests && 
+        userActivityMonitor.isExpired) {
+      console.log('会话已过期，拦截API请求:', config.url)
+      userActivityMonitor.showForceReloginDialog()
+      return Promise.reject(new Error('会话已过期，请重新登录'))
+    }
+    
     // do something before request is sent
     // 首先尝试从store获取token，如果失败则直接从Cookie获取
     let token = store.getters.token;
@@ -107,6 +117,22 @@ service.interceptors.response.use(
     console.log("http请求数据");
     console.log(res);
 
+    // 检查响应头中是否有新的token
+    const newToken = response.headers['x-new-token'];
+    if (newToken) {
+      console.log('收到服务器更新的token，正在更新本地token');
+      store.commit('user/SET_TOKEN', newToken);
+      setToken(newToken);
+    }
+
+    // 检查活动警告
+    const activityWarning = response.headers['x-activity-warning'];
+    const remainingTime = response.headers['x-remaining-time'];
+    if (activityWarning === 'true' && remainingTime) {
+      const minutes = Math.ceil(parseInt(remainingTime) / 1000 / 60);
+      console.warn(`活动警告：还有 ${minutes} 分钟会话将过期`);
+    }
+
     if (res.code === 400) {
       // to re-login
       store.dispatch("user/resetToken").then(() => {
@@ -141,6 +167,8 @@ service.interceptors.response.use(
       
       // 处理401未授权错误（token无效或过期）
       if (status === 401) {
+        // 后端不再进行时间校验，所有401都视为真正的token无效
+        console.log('检测到401错误，token无效，清除所有数据');
         handleJWTError(data.message || 'Token已过期或无效，请重新登录');
         return Promise.reject(error);
       }

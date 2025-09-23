@@ -11,7 +11,7 @@
       <el-input
         v-model="searchName"
         placeholder="角色标题"
-        style="width: 200px;"
+        style="width: 200px"
         class="filter-item"
         clearable
         @clear="handleSearch"
@@ -19,7 +19,7 @@
       <el-input
         v-model="searchLabel"
         placeholder="角色标识"
-        style="width: 200px;"
+        style="width: 200px"
         class="filter-item"
         clearable
         @clear="handleSearch"
@@ -29,16 +29,16 @@
         type="primary"
         icon="el-icon-search"
         @click="handleSearch"
-      >搜索</el-button>
+        >搜索</el-button
+      >
       <el-button
         class="filter-item"
         icon="el-icon-plus"
         type="primary"
         @click="handleFilter"
         v-if="$checkPermission('角色管理添加角色')"
-      >添加角色
-      </el-button
-      >
+        >添加角色
+      </el-button>
     </div>
     <el-table
       v-loading="listLoading"
@@ -71,6 +71,14 @@
           <span class="link-type" @click="handleEdit(scope.row)">查看</span>
         </template>
       </el-table-column>
+      <el-table-column align="center" label="创建时间" width="200">
+        <template slot-scope="scope">
+          <i class="el-icon-time" />
+          <span>{{
+            scope.row.createAt | parseTime("{y}-{m}-{d} {h}:{i}")
+          }}</span>
+        </template>
+      </el-table-column>
       <el-table-column
         align="center"
         label="更新时间"
@@ -78,10 +86,10 @@
         width="200"
       >
         <template slot-scope="scope">
-          <i class="el-icon-time"/>
+          <i class="el-icon-time" />
           <span>{{
-              scope.row.updateAt | parseTime("{y}-{m}-{d} {h}:{i}")
-            }}</span>
+            scope.row.updateAt | parseTime("{y}-{m}-{d} {h}:{i}")
+          }}</span>
         </template>
       </el-table-column>
       <el-table-column align="center" label="备注">
@@ -97,22 +105,20 @@
             type="text"
             @click="handleEdit(row)"
             v-if="$checkPermission('角色管理编辑')"
-          >编辑
-          </el-button
-          >
+            >编辑
+          </el-button>
           <el-button
             size="mini"
             style="color: red"
             type="text"
             @click="handleDelete(row)"
             v-if="$checkPermission('角色管理删除')"
-          >删除
-          </el-button
-          >
+            >删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <!-- 分页组件 -->
     <div class="block">
       <el-pagination
@@ -126,7 +132,7 @@
       >
       </el-pagination>
     </div>
-    
+
     <!-- 弹窗start -->
     <roleDialog
       ref="roleDialogRef"
@@ -138,13 +144,13 @@
 </template>
 
 <script>
-import {getData, removeData} from "@/api/data";
+import { getData, removeData } from "@/api/data";
 import roleDialog from "./components/roleDialog"; // secondary package based on el-pagination
 import variables from "@/styles/variables.scss";
 // import { formatrole2Tree } from '@/utils/format2Tree'
 export default {
   name: "role",
-  components: {roleDialog},
+  components: { roleDialog },
   data() {
     return {
       list: [],
@@ -180,11 +186,11 @@ export default {
         }
         return 0; // 如果没有updateAt字段则保持原顺序
       });
-      
+
       const startIndex = (this.currentPage - 1) * this.pageSize;
       const endIndex = startIndex + this.pageSize;
       return sortedList.slice(startIndex, endIndex);
-    }
+    },
   },
   created() {
     this.fetchData();
@@ -200,7 +206,7 @@ export default {
     //获取数据
     async fetchData() {
       this.listLoading = true;
-      let {data: response} = await getData("role", {
+      let { data: response } = await getData("role", {
         query: {},
       });
       this.list = response;
@@ -212,11 +218,15 @@ export default {
 
     // 搜索处理
     handleSearch() {
-      this.filteredList = this.list.filter(item => {
-        const nameMatch = !this.searchName || 
-          (item.name && item.name.toLowerCase().includes(this.searchName.toLowerCase()));
-        const labelMatch = !this.searchLabel || 
-          (item.label && item.label.toLowerCase().includes(this.searchLabel.toLowerCase()));
+      this.filteredList = this.list.filter((item) => {
+        const nameMatch =
+          !this.searchName ||
+          (item.name &&
+            item.name.toLowerCase().includes(this.searchName.toLowerCase()));
+        const labelMatch =
+          !this.searchLabel ||
+          (item.label &&
+            item.label.toLowerCase().includes(this.searchLabel.toLowerCase()));
         return nameMatch && labelMatch;
       });
       this.total = this.filteredList.length;
@@ -273,7 +283,7 @@ export default {
       let _id = this.postlist._id;
       delete this.postlist._id;
       var data = {
-        query: {_id: _id},
+        query: { _id: _id },
         update: {
           ...this.postlist,
         },
@@ -312,7 +322,7 @@ export default {
       this.$confirm("确定删除" + row.name + "吗？")
         .then(async (_) => {
           var datas = {
-            query: {_id: row._id},
+            query: { _id: row._id },
           };
           let response = await removeData("role", { query: { _id: row._id } });
 

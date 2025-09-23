@@ -169,7 +169,10 @@ const purchaseOrderSchema = new Schema(
       //销售订单
       DEMANDBILLNO:String,
       DEMANDTYPE:String
-    }]
+    }],
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now },
   },
   {
     timestamps: true,

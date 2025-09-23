@@ -76,8 +76,8 @@ var machineSchema = new mongoose.Schema(
     createTime: { type: Date, default: Date.now, description: "创建时间" },
     updateTime: { type: Date, default: null, description: "更新时间" },
     machineClassId: { type: Number, default: null, description: "设备类型" },
-    createBy: { type: Number, default: null, description: "创建人" },
-    updateBy: { type: Number, default: null, description: "更新人" },
+    createBy: { type: String, default: null, description: "创建人" },
+    updateBy: { type: String, default: null, description: "更新人" },
   },
   {
     timestamps: { createdAt: "createTime", updatedAt: "updateTime" }, // 自动维护时间字段

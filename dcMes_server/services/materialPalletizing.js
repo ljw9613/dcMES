@@ -739,7 +739,7 @@ class MaterialPalletizingService {
       // 清理数量为0的工单
       this.cleanZeroQuantityWorkOrders(pallet);
 
-      pallet.updateAt = new Date();
+      // updateAt由pre-save中间件自动处理
       pallet.updateBy = userId;
 
       await pallet.save();
@@ -848,7 +848,7 @@ class MaterialPalletizingService {
       // 清理所有工单信息
       pallet.workOrders = [];
 
-      pallet.updateAt = new Date();
+      // updateAt由pre-save中间件自动处理
       pallet.updateBy = userId;
 
       await pallet.save();
@@ -1045,7 +1045,13 @@ class MaterialPalletizingService {
                 palletCode: originalPalletCode,
                 "boxItems.boxBarcode": boxBarcode,
               },
-              { $set: { "boxItems.$": updatedOriginalBox } }
+              { 
+                $set: { 
+                  "boxItems.$": updatedOriginalBox,
+                  updateAt: new Date(),
+                  updateBy: userId
+                }
+              }
             );
           }
 
@@ -1112,6 +1118,13 @@ class MaterialPalletizingService {
         };
       }
 
+      // 确保updateAt字段被包含在更新操作中
+      if (!updateOperations.$set) {
+        updateOperations.$set = {};
+      }
+      updateOperations.$set.updateAt = new Date();
+      updateOperations.$set.updateBy = userId;
+      
       await MaterialPalletizing.updateOne(
         { palletCode: originalPalletCode },
         updateOperations
@@ -1200,6 +1213,8 @@ class MaterialPalletizingService {
         }
 
         // 保存更新后的原托盘
+        // updateAt由pre-save中间件自动处理
+        updatedOriginalPallet.updateBy = userId;
         await updatedOriginalPallet.save();
       }
 
@@ -1313,6 +1328,8 @@ class MaterialPalletizingService {
       }
 
       // 保存更新的出入库状态
+      // updateAt由pre-save中间件自动处理
+      finalOriginalPallet.updateBy = userId;
       await finalOriginalPallet.save();
 
       return createdPallet;
@@ -2183,7 +2200,9 @@ class MaterialPalletizingService {
           { 
             $set: { 
               status: "STACKED",
-              repairStatus: updatedPallet.repairStatus === "REPAIRING" ? "REPAIRED" : updatedPallet.repairStatus
+              repairStatus: updatedPallet.repairStatus === "REPAIRING" ? "REPAIRED" : updatedPallet.repairStatus,
+              updateAt: new Date(),
+              updateBy: userId
             }
           }
         );
@@ -2524,7 +2543,7 @@ class MaterialPalletizingService {
     // 更新托盘统计信息
     pallet.barcodeCount = pallet.palletBarcodes.length;
     pallet.boxCount = pallet.boxItems.length;
-    pallet.updateAt = new Date();
+    // updateAt由pre-save中间件自动处理
     pallet.updateBy = userId;
 
     // 检查是否达到总数量要求 
@@ -2830,7 +2849,9 @@ class MaterialPalletizingService {
           { 
             $set: { 
               status: "STACKED",
-              repairStatus: updatedPallet.repairStatus === "REPAIRING" ? "REPAIRED" : updatedPallet.repairStatus
+              repairStatus: updatedPallet.repairStatus === "REPAIRING" ? "REPAIRED" : updatedPallet.repairStatus,
+              updateAt: new Date(),
+              updateBy: userId
             }
           }
         );
@@ -3042,6 +3063,7 @@ class MaterialPalletizingService {
         createBy: userId,
       });
       
+      // 设置创建时间（updateAt由pre-save中间件自动处理）
       await pallet.save();
       console.log(`创建新托盘: ${palletCode}, 容量: ${palletTotalQuantity}`);
     }

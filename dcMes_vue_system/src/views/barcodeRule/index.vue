@@ -65,6 +65,11 @@
                         {{ formatDate(scope.row.createAt) }}
                     </template>
                 </el-table-column>
+                <el-table-column label="更新时间" align="center" width="160">
+                    <template slot-scope="scope">
+                        {{ formatDate(scope.row.updateAt) }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="操作" width="400" align="center">
                     <template slot-scope="{row}">
                         <el-button type="text" size="small" @click="handleView(row)" v-if="$checkPermission('条码匹配规则查看物料列表')">

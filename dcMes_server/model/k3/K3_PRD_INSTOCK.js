@@ -354,6 +354,9 @@ const inStockSchema = new Schema(
 
     // 明细
     FEntity: [inStockEntrySchema],
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now },
   },
   {
     timestamps: true,

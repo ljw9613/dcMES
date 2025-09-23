@@ -199,6 +199,11 @@
             {{ formatDate(scope.row.createAt) }}
           </template>
         </el-table-column>
+        <el-table-column label="更新时间" width="160">
+          <template slot-scope="scope">
+            {{ formatDate(scope.row.updateAt) }}
+          </template>
+        </el-table-column>
       </el-table>
 
       <pagination

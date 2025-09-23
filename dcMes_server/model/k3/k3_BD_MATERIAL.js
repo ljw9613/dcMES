@@ -69,7 +69,10 @@ var materialSchema = new mongoose.Schema({
     FForbidderId: { type: String }, // 禁用人
     FApproverId: { type: String }, // 审核人
     FForbidDate: { type: Date }, // 禁用日期
-    FApproveDate: { type: Date } // 审核日期
+    FApproveDate: { type: Date }, // 审核日期
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now }, // 最后同步时间
 });
 
 // 添加索引

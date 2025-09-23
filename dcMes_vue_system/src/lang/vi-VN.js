@@ -152,7 +152,12 @@ export default {
     changePassword: "Đổi mật khẩu",
     language: "Ngôn ngữ",
     chinese: "Tiếng Trung",
-    vietnamese: "Tiếng Việt"
+    vietnamese: "Tiếng Việt",
+    version: "Phiên bản",
+    versionInfo: "Thông tin phiên bản",
+    systemVersion: "Phiên bản hệ thống",
+    buildDate: "Ngày xây dựng",
+    environment: "Môi trường"
   },
 
   // 扫码页面
@@ -229,6 +234,8 @@ export default {
       unifiedScanArea: "Khu vực quét thống nhất",
       materialMatching: "Quét khớp vật liệu",
       batchCacheEnabled: "Cache vật liệu lô đã được bật",
+      clearCacheOnSubmit: "Xóa cache vật liệu lô khi gửi",
+      keepCacheOnSubmit: "Giữ cache vật liệu lô khi gửi",
       scanPlaceholder: "Vui lòng quét mã vạch",
       mainBarcodePlaceholder: "Vui lòng quét mã vạch vật liệu chính",
       subBarcodePlaceholder: "Vui lòng quét mã vạch vật liệu phụ",
@@ -451,6 +458,8 @@ export default {
       unifiedScanArea: "Khu vực quét thống nhất",
       materialMatching: "Quét khớp vật liệu",
       batchCacheEnabled: "Cache vật liệu lô đã được bật",
+      clearCacheOnSubmit: "Xóa",
+      keepCacheOnSubmit: "Giữ",
       scanPlaceholder: "Vui lòng quét mã vạch",
       mainBarcodePlaceholder: "Vui lòng quét mã vạch vật liệu chính",
       subBarcodePlaceholder: "Vui lòng quét mã vạch vật liệu phụ",

@@ -11,6 +11,8 @@ import {
 import {
   isRelogin
 } from '@/utils/request'
+import userActivityMonitor from '@/utils/userActivity'
+import { isActivityMonitorEnabled, getActivityConfig } from '@/config/activityConfig'
 
 NProgress.configure({
   showSpinner: false
@@ -20,6 +22,15 @@ const whiteList = ['/login', '/register', '/marketPublicity', '/marketOverview']
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
+  
+  // 检查会话是否已过期（仅在功能启用且配置拦截路由时）
+  if (isActivityMonitorEnabled() && getActivityConfig().interceptRouting && 
+      userActivityMonitor.isExpired && to.path !== '/login') {
+    console.log('会话已过期，拦截路由跳转:', to.path)
+    userActivityMonitor.showForceReloginDialog()
+    NProgress.done()
+    return // 阻止路由跳转
+  }
   
   // 获取Cookie中的token
   const cookieToken = getToken()

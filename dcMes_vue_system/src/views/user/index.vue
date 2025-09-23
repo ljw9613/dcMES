@@ -161,6 +161,14 @@
           }}</span>
         </template>
       </el-table-column>
+      <el-table-column align="center" label="更新时间" min-width="160">
+        <template slot-scope="scope">
+          <i class="el-icon-time" />
+          <span>{{
+            scope.row.updateAt | parseTime("{y}-{m}-{d} {h}:{i}")
+          }}</span>
+        </template>
+      </el-table-column>
 
       <el-table-column align="center" label="登录二维码" min-width="100">
         <template slot-scope="scope">
@@ -224,6 +232,8 @@
     >
       <el-form
         ref="dataForm"
+        :model="formData"
+        :rules="formRules"
         label-position="left"
         label-width="70px"
         style="width: 500px; margin-left: 50px"
@@ -238,17 +248,18 @@
             ></el-option>
           </el-select>
         </el-form-item> -->
-        <el-form-item label="用户账号" label-width="120">
-          <el-input v-model="number" placeholder="管理人员的账号" />
+        <el-form-item label="用户账号" label-width="120" prop="userName">
+          <el-input v-model="formData.userName" placeholder="管理人员的账号" />
         </el-form-item>
-        <el-form-item label="用户密码" label-width="120">
+        <el-form-item label="用户密码" label-width="120" prop="password">
           <div class="password-input-container">
             <el-input 
-              v-model="password" 
+              v-model="formData.password" 
               type="password" 
-              placeholder="请输入管理人员的密码"
+              placeholder="请输入管理人员的密码（>8位，含大小写字母和特殊字符）"
               show-password
               :disabled="!$checkPermission('用户列表修改密码')"
+              @input="checkPasswordStrength"
             >
             </el-input>
             <div v-if="!$checkPermission('用户列表修改密码')" class="permission-tip">
@@ -257,16 +268,57 @@
               </el-tooltip>
             </div>
           </div>
+          <!-- 密码强度提示 -->
+          <div v-if="formData.password && $checkPermission('用户列表修改密码')" class="password-strength">
+            <div class="strength-indicator">
+              <span class="strength-label">密码强度：</span>
+              <div class="strength-bars">
+                <div class="strength-bar" :class="passwordStrength.level >= 1 ? 'active weak' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength.level >= 2 ? 'active medium' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength.level >= 3 ? 'active strong' : ''"></div>
+              </div>
+              <span class="strength-text" :class="passwordStrength.className">{{ passwordStrength.text }}</span>
+            </div>
+            <div class="password-tips">
+              <p v-if="!passwordStrength.hasLength" class="tip-item error">
+                <i class="el-icon-close"></i> 密码长度需大于8位
+              </p>
+              <p v-else class="tip-item success">
+                <i class="el-icon-check"></i> 密码长度符合要求
+              </p>
+              
+              <p v-if="!passwordStrength.hasUpper" class="tip-item error">
+                <i class="el-icon-close"></i> 需包含大写字母
+              </p>
+              <p v-else class="tip-item success">
+                <i class="el-icon-check"></i> 包含大写字母
+              </p>
+              
+              <p v-if="!passwordStrength.hasLower" class="tip-item error">
+                <i class="el-icon-close"></i> 需包含小写字母
+              </p>
+              <p v-else class="tip-item success">
+                <i class="el-icon-check"></i> 包含小写字母
+              </p>
+              
+              <p v-if="!passwordStrength.hasSpecial" class="tip-item error">
+                <i class="el-icon-close"></i> 需包含特殊字符
+              </p>
+              <p v-else class="tip-item success">
+                <i class="el-icon-check"></i> 包含特殊字符
+              </p>
+            </div>
+          </div>
         </el-form-item>
-        <el-form-item label="联系姓名" label-width="120">
-          <el-input v-model="name" placeholder="请输入管理人员的姓名" />
+        <el-form-item label="联系姓名" label-width="120" prop="nickName">
+          <el-input v-model="formData.nickName" placeholder="请输入管理人员的姓名" />
         </el-form-item>
-        <el-form-item label="联系方式" label-width="120">
-          <el-input v-model="phone" placeholder="请输入联系方式" />
+        <el-form-item label="联系方式" label-width="120" prop="phone">
+          <el-input v-model="formData.phone" placeholder="请输入联系方式" />
         </el-form-item>
         <!-- v-if="$store.state.user.roles == '超级管理员'" -->
-        <el-form-item label="用户角色" label-width="120">
-          <el-select v-model="role" filterable placeholder="请选择用户角色">
+        <el-form-item label="用户角色" label-width="120" prop="role">
+          <el-select v-model="formData.role" filterable placeholder="请选择用户角色">
             <el-option
               v-for="(item, index) in userlist"
               :key="index"
@@ -450,6 +502,45 @@ export default {
   name: "user",
   filters: {},
   data() {
+    // 密码验证规则
+    const validatePassword = (rule, value, callback) => {
+      if (!this.$checkPermission('用户列表修改密码')) {
+        callback(); // 没有权限时跳过验证
+        return;
+      }
+      
+      if (!value) {
+        callback(new Error('请输入密码'));
+        return;
+      }
+      
+      // 检查密码长度
+      if (value.length <= 8) {
+        callback(new Error('密码长度必须大于8位'));
+        return;
+      }
+      
+      // 检查是否包含大写字母
+      if (!/[A-Z]/.test(value)) {
+        callback(new Error('密码必须包含大写字母'));
+        return;
+      }
+      
+      // 检查是否包含小写字母
+      if (!/[a-z]/.test(value)) {
+        callback(new Error('密码必须包含小写字母'));
+        return;
+      }
+      
+      // 检查是否包含特殊字符
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)) {
+        callback(new Error('密码必须包含特殊字符'));
+        return;
+      }
+      
+      callback();
+    };
+
     return {
       userName: "",
       roles: "",
@@ -500,6 +591,48 @@ export default {
         Authorization: getToken(),
       },
       originalPassword: "", // 存储编辑时的原始密码
+      
+      // 表单数据对象
+      formData: {
+        userName: "",
+        password: "",
+        nickName: "",
+        phone: "",
+        role: ""
+      },
+      
+      // 表单验证规则
+      formRules: {
+        userName: [
+          { required: true, message: '请输入用户账号', trigger: 'blur' },
+          { min: 3, max: 20, message: '账号长度在 3 到 20 个字符', trigger: 'blur' }
+        ],
+        password: [
+          { validator: validatePassword, trigger: 'blur' }
+        ],
+        nickName: [
+          { required: true, message: '请输入用户姓名', trigger: 'blur' },
+          { min: 2, max: 10, message: '姓名长度在 2 到 10 个字符', trigger: 'blur' }
+        ],
+        phone: [
+          { required: true, message: '请输入联系方式', trigger: 'blur' },
+          { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+        ],
+        role: [
+          { required: true, message: '请选择用户角色', trigger: 'change' }
+        ]
+      },
+      
+      // 密码强度状态
+      passwordStrength: {
+        level: 0,
+        text: '',
+        className: '',
+        hasLength: false,
+        hasUpper: false,
+        hasLower: false,
+        hasSpecial: false
+      }
     };
   },
   created() {
@@ -510,6 +643,44 @@ export default {
     that = this;
   },
   methods: {
+    // 检查密码强度
+    checkPasswordStrength() {
+      const password = this.formData.password;
+      
+      // 重置强度指标
+      this.passwordStrength = {
+        level: 0,
+        text: '弱',
+        className: 'weak',
+        hasLength: password.length > 8,
+        hasUpper: /[A-Z]/.test(password),
+        hasLower: /[a-z]/.test(password),
+        hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+      };
+      
+      // 计算强度等级
+      let score = 0;
+      if (this.passwordStrength.hasLength) score++;
+      if (this.passwordStrength.hasUpper) score++;
+      if (this.passwordStrength.hasLower) score++;
+      if (this.passwordStrength.hasSpecial) score++;
+      
+      // 设置强度等级和文本
+      if (score === 4) {
+        this.passwordStrength.level = 3;
+        this.passwordStrength.text = '强';
+        this.passwordStrength.className = 'strong';
+      } else if (score >= 2) {
+        this.passwordStrength.level = 2;
+        this.passwordStrength.text = '中';
+        this.passwordStrength.className = 'medium';
+      } else {
+        this.passwordStrength.level = 1;
+        this.passwordStrength.text = '弱';
+        this.passwordStrength.className = 'weak';
+      }
+    },
+
     async getUserRole() {
       let { data: UserRole } = await getData("role", { query: {} });
       this.userlist = UserRole;
@@ -548,6 +719,18 @@ export default {
       this.phone = row.phone;
       this.dialogStatus = "edit";
       this.qrCodeUrl = ""; // 清空二维码
+      
+      // 同步表单数据
+      this.formData = {
+        userName: row.userName,
+        password: row.password,
+        nickName: row.nickName,
+        phone: row.phone,
+        role: row.role._id ? row.role._id : row.role
+      };
+      
+      // 检查密码强度
+      this.checkPasswordStrength();
     },
     handleDelete(row) {
       console.log(row);
@@ -604,6 +787,25 @@ export default {
       this.dialogFormVisible = true;
       this.dialogStatus = "create";
       this.qrCodeUrl = ""; // 清空二维码
+      
+      // 重置表单数据
+      this.formData = {
+        userName: "",
+        password: "Enterprise123@",
+        nickName: "",
+        phone: "",
+        role: ""
+      };
+      
+      // 检查默认密码强度
+      this.checkPasswordStrength();
+      
+      // 清除表单验证
+      this.$nextTick(() => {
+        if (this.$refs.dataForm) {
+          this.$refs.dataForm.clearValidate();
+        }
+      });
     },
     // 生成加密ID
     generateEncryptedId() {
@@ -632,17 +834,30 @@ export default {
     },
     // 修改createData方法
     async createData() {
+      // 先进行表单验证
+      try {
+        await this.$refs.dataForm.validate();
+      } catch (error) {
+        this.$notify({
+          title: "表单验证失败",
+          message: "请检查输入信息",
+          type: "warning",
+          duration: 2000,
+        });
+        return;
+      }
+
       if (
-        this.number != "" &&
-        this.name != "" &&
-        this.password != "" &&
-        this.phone != "" &&
-        this.role != ""
+        this.formData.userName != "" &&
+        this.formData.nickName != "" &&
+        this.formData.password != "" &&
+        this.formData.phone != "" &&
+        this.formData.role != ""
       ) {
         // 先检查数据库中是否已存在此用户名
         try {
           const checkExist = await getData("user_login", {
-            query: { userName: this.number },
+            query: { userName: this.formData.userName },
           });
 
           if (checkExist.data && checkExist.data.length > 0) {
@@ -658,8 +873,8 @@ export default {
           // 创建用户数据对象
           const userData = {
             _id: Date.now().toString(), // 临时ID，实际应该由后端生成
-            userName: this.number,
-            password: this.password,
+            userName: this.formData.userName,
+            password: this.formData.password,
           };
 
           // 加密用户数据
@@ -674,11 +889,11 @@ export default {
           }
 
           var data = {
-            nickName: this.name,
-            userName: this.number,
-            password: this.password,
-            phone: this.phone,
-            role: this.role,
+            nickName: this.formData.nickName,
+            userName: this.formData.userName,
+            password: this.formData.password,
+            phone: this.formData.phone,
+            role: this.formData.role,
             qrCode: this.qrCodeUrl,
           };
 
@@ -689,8 +904,8 @@ export default {
               // 创建成功后立即显示二维码弹窗
               this.currentQRCode = this.qrCodeUrl;
               this.currentUser = {
-                nickName: this.name,
-                userName: this.number,
+                nickName: this.formData.nickName,
+                userName: this.formData.userName,
               };
               this.qrCodeDialogVisible = true;
 
@@ -730,18 +945,31 @@ export default {
 
     // 修改editData方法
     async editData() {
+      // 先进行表单验证
+      try {
+        await this.$refs.dataForm.validate();
+      } catch (error) {
+        this.$notify({
+          title: "表单验证失败",
+          message: "请检查输入信息",
+          type: "warning",
+          duration: 2000,
+        });
+        return;
+      }
+
       if (
-        this.number != "" &&
-        this.name != "" &&
-        this.phone != "" &&
-        this.password != "" &&
-        this.role != ""
+        this.formData.userName != "" &&
+        this.formData.nickName != "" &&
+        this.formData.phone != "" &&
+        this.formData.password != "" &&
+        this.formData.role != ""
       ) {
         // 检查是否存在同名账号（除了当前编辑的用户）
         try {
           const checkExist = await getData("user_login", {
             query: {
-              userName: this.number,
+              userName: this.formData.userName,
               _id: { $ne: this._id }, // 排除当前正在编辑的用户
             },
           });
@@ -758,15 +986,15 @@ export default {
 
           // 根据权限决定是否更新密码
           const updateData = {
-            nickName: this.name,
-            userName: this.number,
-            phone: this.phone,
-            role: this.role,
+            nickName: this.formData.nickName,
+            userName: this.formData.userName,
+            phone: this.formData.phone,
+            role: this.formData.role,
           };
 
           // 只有拥有修改密码权限的用户才能更新密码
           if (this.$checkPermission('用户列表修改密码')) {
-            updateData.password = this.password;
+            updateData.password = this.formData.password;
           } else {
             // 没有权限时，使用原始密码
             updateData.password = this.originalPassword;
@@ -1871,6 +2099,104 @@ export default {
 
       &:hover {
         color: #f78989;
+      }
+    }
+  }
+}
+
+// 密码强度样式
+.password-strength {
+  margin-top: 10px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+
+  .strength-indicator {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .strength-label {
+      font-size: 14px;
+      color: #606266;
+      margin-right: 10px;
+      min-width: 70px;
+    }
+
+    .strength-bars {
+      display: flex;
+      gap: 4px;
+      margin-right: 10px;
+
+      .strength-bar {
+        width: 20px;
+        height: 4px;
+        background: #e9ecef;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+
+        &.active {
+          &.weak {
+            background: #f56c6c;
+          }
+
+          &.medium {
+            background: #e6a23c;
+          }
+
+          &.strong {
+            background: #67c23a;
+          }
+        }
+      }
+    }
+
+    .strength-text {
+      font-size: 14px;
+      font-weight: 600;
+
+      &.weak {
+        color: #f56c6c;
+      }
+
+      &.medium {
+        color: #e6a23c;
+      }
+
+      &.strong {
+        color: #67c23a;
+      }
+    }
+  }
+
+  .password-tips {
+    .tip-item {
+      display: flex;
+      align-items: center;
+      margin: 6px 0;
+      font-size: 13px;
+      line-height: 1.4;
+
+      i {
+        margin-right: 8px;
+        font-size: 14px;
+      }
+
+      &.success {
+        color: #67c23a;
+
+        i {
+          color: #67c23a;
+        }
+      }
+
+      &.error {
+        color: #f56c6c;
+
+        i {
+          color: #f56c6c;
+        }
       }
     }
   }

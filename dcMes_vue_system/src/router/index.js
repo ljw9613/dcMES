@@ -80,6 +80,12 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/autoLogoutTest',
+    component: () => import('@/views/test/AutoLogoutTest'),
+    hidden: true
+  },
+  
 ];
 
 // 动态路由，基于用户权限动态去加载

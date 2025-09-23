@@ -28,8 +28,8 @@ module.exports = {
   //国内版本
   // publicPath: "/dcMes/",
   // outputDir: "../dcMes_server/admin",
-  publicPath: "/dcMesManage/",
-  outputDir: "../dcMes_server/adminManage",
+  // publicPath: "/dcMesManage/",
+  // outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
   // outputDir: "../dcMes_server/adminPzManage",
   // publicPath: "/dcMesCs/",
@@ -45,8 +45,8 @@ module.exports = {
   // outputDir: "../dcMes_server/adminVNCN",
   // publicPath: "/dcMesVNCS/",
   // outputDir: "../dcMes_server/adminVNCS",
-  // publicPath: "/dcMesVNCNCS/",
-  // outputDir: "../dcMes_server/adminVNCNCS",
+  publicPath: "/dcMesVNCNCS/",
+  outputDir: "../dcMes_server/adminVNCNCS",
 
   // assetsDir: "static",
   // lintOnSave: process.env.NODE_ENV === "development",

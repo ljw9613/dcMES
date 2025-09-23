@@ -252,6 +252,26 @@ materialPalletizingSchema.index({ "productLineId": 1, "status": 1, "materialId":
 materialPalletizingSchema.index({ "saleOrderId": 1, "materialId": 1 });
 materialPalletizingSchema.index({ "productionPlanWorkOrderId": 1, "status": 1 });
 
+// 添加pre-save中间件，自动更新updateAt字段
+materialPalletizingSchema.pre('save', function(next) {
+  // 只在文档被修改时更新updateAt字段
+  if (this.isModified() && !this.isNew) {
+    this.updateAt = new Date();
+  }
+  next();
+});
+
+// 添加pre-updateOne中间件，自动更新updateAt字段
+materialPalletizingSchema.pre(['updateOne', 'findOneAndUpdate'], function() {
+  // 确保所有updateOne和findOneAndUpdate操作都包含updateAt
+  if (this.getUpdate() && !this.getUpdate().$set?.updateAt) {
+    if (!this.getUpdate().$set) {
+      this.getUpdate().$set = {};
+    }
+    this.getUpdate().$set.updateAt = new Date();
+  }
+});
+
 module.exports = mongoose.model(
   "material_palletizing",
   materialPalletizingSchema

@@ -12,6 +12,49 @@
 
 ## 最近修复记录
 
+### 2024-09-22 用户15分钟无活动自动退出功能
+
+**功能描述：**
+实现了用户登录后15分钟无活动自动退出的安全功能，包含前端活动监听和后端token验证。
+
+**实现特性：**
+
+1. **前端活动监听**
+   - 监听用户鼠标、键盘、滚动等活动
+   - 15分钟无活动自动退出
+   - 14分钟时显示警告提示
+   - 页面刷新时检查活动超时
+
+2. **后端token增强**
+   - JWT token包含登录时间和最后活动时间
+   - 中间件自动检查活动超时
+   - 自动更新token中的活动时间
+   - 接近超时时在响应头中发送警告
+
+3. **核心文件修改**
+   - `dcMes_vue_system/src/utils/userActivity.js` - 用户活动监听工具
+   - `dcMes_vue_system/src/App.vue` - 集成活动监听
+   - `dcMes_vue_system/src/store/modules/user.js` - 登录退出时启停监听
+   - `dcMes_vue_system/src/utils/request.js` - 处理服务器返回的新token
+   - `dcMes_server/middleware/activityCheck.js` - 活动检查中间件
+   - `dcMes_server/routes/managerlogin.js` - 增强token生成
+   - `dcMes_server/app.js` - 集成活动检查中间件
+
+4. **测试页面**
+   - `dcMes_vue_system/src/views/test/AutoLogoutTest.vue` - 功能测试页面
+
+**使用说明：**
+- 用户登录后自动启动活动监听
+- 任何用户操作都会重置15分钟计时器
+- 第14分钟显示"1分钟后将自动退出"警告
+- 15分钟后自动清除用户状态并跳转到登录页
+- 页面刷新时会检查上次活动时间，超时立即退出
+
+**安全特性：**
+- 防止用户长时间离开后被他人操作
+- 服务器端双重验证，确保token时效性
+- 优雅的用户体验，提前警告避免数据丢失
+
 ### 2024年扫码页面防重复提交修复
 
 **问题描述：**
@@ -199,6 +242,66 @@ async handleExportSingleHistory(row) {
   - 最新检测数据来自 `InspectionLastData` 集合
   - 历史检验数据来自 `InspectionData` 集合
 - **特色功能**：支持物料编码和销售订单的关联查询，自动匹配工单和流程条码
+
+## 版本管理系统
+
+### 2024年9月新增版本管理功能
+
+**功能概述：**
+为德昌MES系统新增了完整的前端版本管理功能，支持版本号显示、版本信息查看和多语言支持。
+
+**核心文件：**
+- `dcMes_vue_system/src/config/version.js` - 版本配置文件
+- `dcMes_vue_system/src/layout/components/Navbar.vue` - 导航栏组件（新增版本显示）
+
+**版本配置结构：**
+```javascript
+{
+  major: 4,                    // 主版本号  
+  minor: 2,                    // 次版本号
+  patch: 1,                    // 修订版本号
+  build: '20240919',           // 构建日期
+  status: 'stable',            // 版本状态
+  releaseDate: '2024-09-19',   // 发布日期
+  codeName: 'Phoenix',         // 版本代号
+  environment: 'development',  // 运行环境
+  description: '德昌MES制造执行系统 - 生产管理一体化解决方案'
+}
+```
+
+**功能特性：**
+- ✅ **版本号显示**：在导航栏右侧显示当前系统版本号
+- ✅ **详细信息**：点击版本号可查看完整版本信息
+- ✅ **多语言支持**：支持中文、英文、越南语三种语言界面
+- ✅ **环境标识**：自动识别开发/生产环境
+- ✅ **状态管理**：支持dev、beta、rc、stable四种版本状态
+- ✅ **视觉反馈**：不同版本状态显示不同的颜色标识
+
+**版本更新流程：**
+1. 修改 `src/config/version.js` 中的版本号和相关信息
+2. 更新构建日期和发布日期
+3. 根据版本类型选择合适的状态标识
+4. 版本信息将自动在导航栏中更新显示
+
+**多语言支持：**
+版本相关文本已添加到以下语言文件：
+- `src/lang/zh-CN.js` - 中文简体
+- `src/lang/en-US.js` - 英文
+- `src/lang/vi-VN.js` - 越南语
+
+**使用示例：**
+```javascript
+import { getVersion, getVersionInfo, getVersionColor } from '@/config/version'
+
+// 获取版本号：v4.2.1
+const version = getVersion()
+
+// 获取完整版本信息
+const versionInfo = getVersionInfo()
+
+// 获取版本状态颜色
+const color = getVersionColor()
+```
 
 ## 开发规范
 

@@ -230,6 +230,12 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="更新时间" width="160">
+          <template slot-scope="scope">
+            {{ formatDate(scope.row.updateAt) }}
+          </template>
+        </el-table-column>
+
         <el-table-column label="备注" prop="remark" min-width="150">
           <template slot-scope="scope">
             <el-tooltip

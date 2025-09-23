@@ -123,6 +123,9 @@ const stockSchema = new Schema(
     FDeptId: { type: String },
     FIsZYStock: { type: Boolean, default: false },
     FStockFlexItem: { type: Array },
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now },
   },
   {
     timestamps: true,

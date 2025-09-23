@@ -191,7 +191,10 @@ const pickMtrlSchema = new Schema(
     FVmiBusiness: Boolean,
     
     // 明细信息
-    FEntity: [pickMtrlEntrySchema]
+    FEntity: [pickMtrlEntrySchema],
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now },
   },
   {
     timestamps: true

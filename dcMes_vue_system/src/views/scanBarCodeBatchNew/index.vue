@@ -417,14 +417,25 @@
                     $t("scanBarCodeBatchNew.scanning.materialMatching")
                   }}</span>
                 </div>
-                <el-tooltip
-                  content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除"
-                  placement="top"
-                >
-                  <el-tag type="info" size="small">{{
-                    $t("scanBarCodeBatchNew.scanning.batchCacheEnabled")
-                  }}</el-tag>
-                </el-tooltip>
+                <div class="batch-cache-controls">
+                  <el-tooltip
+                    content="批次物料扫描后会自动缓存，组托完成不会清除缓存，更换工单时才会清除"
+                    placement="top"
+                  >
+                    <el-tag type="info" size="small">{{
+                      $t("scanBarCodeBatchNew.scanning.batchCacheEnabled")
+                    }}</el-tag>
+                  </el-tooltip>
+                  <el-switch
+                    v-model="clearBatchCacheOnSubmit"
+                    :active-text="$t('scanBarCodeBatchNew.scanning.clearCacheOnSubmit')"
+                    :inactive-text="$t('scanBarCodeBatchNew.scanning.keepCacheOnSubmit')"
+                    class="batch-cache-switch"
+                    size="mini"
+                    @change="handleClearBatchCacheChange"
+                  >
+                  </el-switch>
+                </div>
               </div>
 
               <div class="material-section">
@@ -693,6 +704,9 @@ export default {
 
       // 焦点检查定时器
       focusCheckTimer: null,
+
+      // 清理批次物料缓存开关状态
+      clearBatchCacheOnSubmit: false,
     };
   },
   computed: {
@@ -813,6 +827,15 @@ export default {
         } catch (error) {
           console.error("保存模板到缓存失败:", error);
         }
+      },
+    },
+    // 清理批次物料缓存开关状态的本地存储
+    clearBatchCacheOnSubmitSetting: {
+      get() {
+        return localStorage.getItem("clearBatchCacheOnSubmit") === "true";
+      },
+      set(value) {
+        localStorage.setItem("clearBatchCacheOnSubmit", value);
       },
     },
   },
@@ -2442,6 +2465,8 @@ export default {
                 });
                 this.palletForm.palletCode = "";
                 this.scannedList = [];
+                
+                // 处理批次物料缓存清理
                 for (const material of this.processMaterials) {
                   if (
                     material.isBatch &&
@@ -2454,11 +2479,14 @@ export default {
                     );
                     const newUsage = currentUsage + 1;
                     localStorage.setItem(usageKey, newUsage.toString());
-                    if (
-                      material.batchQuantity &&
+                    
+                    // 根据开关状态或用量限制决定是否清理缓存
+                    const shouldClearByQuantity = material.batchQuantity &&
                       newUsage >= material.batchQuantity &&
-                      material.batchQuantity > 0
-                    ) {
+                      material.batchQuantity > 0;
+                    const shouldClearBySwitch = this.clearBatchCacheOnSubmit;
+                    
+                    if (shouldClearByQuantity || shouldClearBySwitch) {
                       localStorage.removeItem(cacheKey);
                       localStorage.removeItem(usageKey);
                       this.$set(this.scanForm.barcodes, material._id, "");
@@ -2473,6 +2501,7 @@ export default {
                 this.scanForm.mainBarcode = "";
                 this.$set(this.validateStatus, "mainBarcode", false);
               } else {
+                // 处理批次物料缓存清理（未完成托盘时）
                 for (const material of this.processMaterials) {
                   if (
                     material.isBatch &&
@@ -2485,11 +2514,14 @@ export default {
                     );
                     const newUsage = currentUsage + 1;
                     localStorage.setItem(usageKey, newUsage.toString());
-                    if (
-                      material.batchQuantity &&
+                    
+                    // 根据开关状态或用量限制决定是否清理缓存
+                    const shouldClearByQuantity = material.batchQuantity &&
                       newUsage >= material.batchQuantity &&
-                      material.batchQuantity > 0
-                    ) {
+                      material.batchQuantity > 0;
+                    const shouldClearBySwitch = this.clearBatchCacheOnSubmit;
+                    
+                    if (shouldClearByQuantity || shouldClearBySwitch) {
                       localStorage.removeItem(cacheKey);
                       localStorage.removeItem(usageKey);
                       this.$set(this.scanForm.barcodes, material._id, "");
@@ -3609,6 +3641,18 @@ export default {
     handleSaveSettings() {
       this.$message.info("打包托盘保存设置");
     },
+
+    // 处理清理批次物料缓存开关变化
+    handleClearBatchCacheChange(value) {
+      this.clearBatchCacheOnSubmitSetting = value;
+      // 同步更新实际使用的变量
+      this.clearBatchCacheOnSubmit = value;
+      this.$message.success(
+        value 
+          ? "已开启批次物料缓存清理，提交后将清空批次物料缓存" 
+          : "已关闭批次物料缓存清理，提交后将保留批次物料缓存"
+      );
+    },
   },
   async created() {
     // 从本地存储中恢复自动打印开关状态
@@ -3616,6 +3660,9 @@ export default {
     if (savedAutoPrint !== null) {
       this.autoPrint = savedAutoPrint === "true";
     }
+
+    // 从本地存储中恢复清理批次物料缓存开关状态
+    this.clearBatchCacheOnSubmit = this.clearBatchCacheOnSubmitSetting;
 
     this.initWebSocket(); // 初始化WebSocket连接
     // 从本地存储获取自动初始化设置
@@ -4448,6 +4495,27 @@ export default {
 .scan-input-section.processing {
   border-color: #e6a23c;
   background: #fdf6ec;
+}
+
+/* 批次缓存控制区域样式 */
+.batch-cache-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.batch-cache-switch {
+  margin-left: 10px;
+}
+
+.batch-cache-switch >>> .el-switch__label {
+  color: #606266;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.batch-cache-switch >>> .el-switch__label.is-active {
+  color: #409eff;
 }
 </style>
 

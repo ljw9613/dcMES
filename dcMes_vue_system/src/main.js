@@ -126,6 +126,13 @@ Vue.use(Dict, {
 import permission from '@/utils/permission'
 // 添加全局指令
 import directives from '@/directives'
+// 开发环境下加载调试工具
+if (process.env.NODE_ENV === 'development') {
+  import('@/utils/debugActivityMonitor')
+  import('@/utils/activityDiagnostic')
+  import('@/utils/activityQuickTest')
+  import('@/utils/activityFix')
+}
 
 // 权限方法挂载
 Vue.prototype.$checkPermission = permission.checkPermission

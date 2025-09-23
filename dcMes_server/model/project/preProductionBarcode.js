@@ -86,4 +86,24 @@ preProductionBarcodeSchema.index({ lineNum: 1 });
 preProductionBarcodeSchema.index({ productionLineId: 1 });
 preProductionBarcodeSchema.index({ batchNo: 1 });
 
+// 添加pre-save中间件，自动更新updateAt字段
+preProductionBarcodeSchema.pre('save', function(next) {
+  // 只在文档被修改时更新updateAt字段
+  if (this.isModified() && !this.isNew) {
+    this.updateAt = new Date();
+  }
+  next();
+});
+
+// 添加pre-updateOne中间件，自动更新updateAt字段
+preProductionBarcodeSchema.pre(['updateOne', 'findOneAndUpdate'], function() {
+  // 确保所有updateOne和findOneAndUpdate操作都包含updateAt
+  if (this.getUpdate() && !this.getUpdate().$set?.updateAt) {
+    if (!this.getUpdate().$set) {
+      this.getUpdate().$set = {};
+    }
+    this.getUpdate().$set.updateAt = new Date();
+  }
+});
+
 module.exports = mongoose.model("preProductionBarcode", preProductionBarcodeSchema); 

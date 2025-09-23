@@ -169,7 +169,12 @@ async function syncK3Data(modelName, formId, primaryKey, filterString = "") {
           try {
             const updatePromises = batch.map((item) => {
               const query = { [primaryKey]: parseInt(item[primaryKey]) };
-              return Model.findOneAndUpdate(query, item, {
+              // 添加更新时间字段
+              const itemWithSyncTime = {
+                ...item,
+                lastSyncTime: new Date()
+              };
+              return Model.findOneAndUpdate(query, itemWithSyncTime, {
                 upsert: true,
                 new: true,
                 setDefaultsOnInsert: true,
@@ -363,6 +368,9 @@ async function syncStockData(modelName, filterString, syncTask) {
 
           // 处理仓位值集
           FStockFlexItem: stockData.StockFlexItem,
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
 
         // 更新或插入数据
@@ -557,6 +565,9 @@ async function syncPurchaseOrderData(modelName, filterString, syncTask) {
             DEMANDBILLNO: entry.DEMANDBILLNO,
             DEMANDTYPE: entry.DEMANDTYPE,
           })),
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
 
         // 更新或插入数据
@@ -772,6 +783,9 @@ async function syncPickMtrlData(modelName, filterString, syncTask) {
             // 状态
             FPickingStatus: entry.PickingStatus,
           })),
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
 
         // 更新或插入数据
@@ -1033,6 +1047,9 @@ async function syncDeliveryNoticeData(modelName, filterString, syncTask) {
             FF_dcdj_ETD: entry.F_dcdj_ETD,
             FF_dcdj_shsl: entry.F_dcdj_shsl,
           })),
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
 
         // 更新或插入数据
@@ -1231,6 +1248,9 @@ async function syncInStockData(modelName, filterString, syncTask) {
               FEntity_Link_FBasePrdRealQty: link.BasePrdRealQty,
             })),
           })),
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
 
         // 更新或插入数据
@@ -1478,6 +1498,9 @@ async function syncRequisitionBillData(modelName, filterString, syncTask) {
             F_TFQJ_lowPrice: entry.F_TFQJ_lowPrice,
             F_TFQJ_CheckBox: entry.F_TFQJ_CheckBox,
           })),
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
 
         // 更新或插入数据
@@ -1864,6 +1887,9 @@ async function syncOutStockData(modelName, filterString, syncTask) {
               FPushReturnNotice: serial.PushReturnNotice,
             })),
           })),
+          
+          // 添加同步时间字段
+          lastSyncTime: new Date(),
         };
         console.log(JSON.stringify(transformedData));
 

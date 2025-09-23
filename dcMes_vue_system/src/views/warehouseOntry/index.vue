@@ -392,7 +392,7 @@
 
         <el-table-column label="时间信息" align="center">
           <template slot-scope="scope">
-            <div>创建: {{ formatDate(scope.row.createAt) }}</div>
+            <div>更新: {{ formatDate(scope.row.updateAt) }}</div>
             <div v-if="scope.row.startTime">
               开始: {{ formatDate(scope.row.startTime) }}
             </div>

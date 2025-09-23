@@ -14,6 +14,7 @@ import elementZhLocale from 'element-ui/lib/locale/lang/zh-CN' // element-ui中�
 
 // 导入自定义语言包
 import zhCN from './zh-CN'
+import enUS from './en-US'
 import viVN from './vi-VN'
 
 Vue.use(VueI18n)
@@ -24,6 +25,11 @@ export const languages = [
     label: '中文',
     value: 'zh-CN',
     flag: '🇨🇳'
+  },
+  {
+    label: 'English',
+    value: 'en-US',
+    flag: '🇺🇸'
   },
   {
     label: 'Tiếng Việt',
@@ -37,6 +43,10 @@ const messages = {
   'zh-CN': {
     ...zhCN,
     el: elementZhLocale.el
+  },
+  'en-US': {
+    ...enUS,
+    el: elementEnLocale.el
   },
   'vi-VN': {
     ...viVN,

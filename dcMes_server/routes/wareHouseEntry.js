@@ -200,6 +200,7 @@ router.post("/api/v1/warehouse_entry/scan", async (req, res) => {
       updateAt: new Date(),
     });
 
+    entry.updateAt = new Date();
     await entry.save();
 
     // 9. 调用第三方接口通知托盘入库

@@ -28,6 +28,7 @@ export function setToken(token) {
 
 export function removeToken() {
   console.log('从Cookie移除token')
+  console.trace('removeToken调用堆栈:')
   return Cookies.remove(TokenKey)
 }
 
@@ -48,5 +49,6 @@ export function setid(id) {
 
 export function removeid() {
   console.log('从Cookie移除用户ID')
+  console.trace('removeid调用堆栈:')
   return Cookies.remove(TokenKey1)
 }

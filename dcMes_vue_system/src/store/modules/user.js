@@ -11,6 +11,7 @@ import { resetRouter } from "@/router";
 import { jsencrypt } from "@/utils/jsencrypt";
 import { formatRole2Auth } from "@/utils/format2Tree";
 import store from "../index";
+import userActivityMonitor from "@/utils/userActivity";
 
 const getDefaultState = () => {
   const token = getToken();
@@ -91,6 +92,10 @@ const actions = {
             commit("SET_SERVE", "user.serve");
             setToken(token);
             setid(user._id);
+            
+            // 登录成功后启动用户活动监听
+            userActivityMonitor.start();
+            
             resolve();
           })
           .catch(error => {
@@ -112,6 +117,10 @@ const actions = {
             commit("SET_SERVE", "user.serve");
             setToken(token);
             setid(user._id);
+            
+            // 登录成功后启动用户活动监听
+            userActivityMonitor.start();
+            
             resolve();
           })
           .catch(error => {
@@ -186,11 +195,19 @@ const actions = {
     return new Promise((resolve, reject) => {
       logout(state.token)
         .then(() => {
+          // 停止用户活动监听
+          userActivityMonitor.stop();
+          
           removeToken(); // must remove  token  first
           removeid(); // must remove  token  first
           resetRouter();
           store.commit("SET_ROUTES", []);
           store.commit("SET_SIDEBAR_ROUTERS", []);
+          
+          // 清除所有标签页视图数据
+          store.dispatch("tagsView/delAllViews");
+          console.log("清除所有标签页视图数据");
+          
           console.log("resetRouter", store.getters.router);
 
           commit("RESET_STATE");
@@ -205,8 +222,19 @@ const actions = {
   // remove token
   resetToken({ commit }) {
     return new Promise(resolve => {
+      console.log('resetToken被调用')
+      console.trace('resetToken调用堆栈:')
+      
+      // 停止用户活动监听
+      userActivityMonitor.stop();
+      
       removeToken(); // must remove  token  first
       removeid();
+      
+      // 清除所有标签页视图数据
+      store.dispatch("tagsView/delAllViews");
+      console.log("resetToken: 清除所有标签页视图数据");
+      
       commit("RESET_STATE");
       resolve();
     });

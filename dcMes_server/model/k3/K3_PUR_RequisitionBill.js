@@ -146,7 +146,10 @@ const requisitionSchema = new Schema(
     FEntity: [requisitionEntrySchema],
     
     // 自定义字段
-    F_TFQJ_zkjg1: Boolean // 折扣价格
+    F_TFQJ_zkjg1: Boolean, // 折扣价格
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now },
   },
   {
     timestamps: true

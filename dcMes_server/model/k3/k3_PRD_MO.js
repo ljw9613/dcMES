@@ -79,6 +79,9 @@ var productionOrderSchema = new mongoose.Schema({
     // 新增自定义字段
     F_TFQJ_rjh: { type: String }, // 日计划
     F_TFQJ_sfwwzzz: { type: Boolean }, // 是否委外转自制
+    
+    // 同步时间字段
+    lastSyncTime: { type: Date, default: Date.now }, // 最后同步时间
 });
 
 // 创建索引：按照单据日期降序
