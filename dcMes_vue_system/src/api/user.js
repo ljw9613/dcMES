@@ -61,3 +61,21 @@ export function deleteManager(data) {
   })
 }
 
+// 获取用户锁定状态
+export function getUserLockStatus(data) {
+  return request({
+    url: '/user/lockStatus',
+    method: 'post',
+    data
+  })
+}
+
+// 解锁用户账号
+export function unlockUser(data) {
+  return request({
+    url: '/user/unlock',
+    method: 'post',
+    data
+  })
+}
+

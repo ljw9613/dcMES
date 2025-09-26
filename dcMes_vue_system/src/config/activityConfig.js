@@ -45,7 +45,7 @@ const activityConfig = {
   
   // 自定义提示信息
   messages: {
-    warningMessage: '您已经1分钟没有操作了，系统将在1分钟后自动退出，请点击任意位置继续使用',
+    warningMessage: '您已经14分钟没有操作了，系统将在1分钟后自动退出，请点击任意位置继续使用',
     expiredMessage: '会话已过期，请进行任意操作以重新登录',
     logoutMessage: '会话已过期，系统自动退出',
     forceReloginTitle: '会话过期',
@@ -138,6 +138,14 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   console.log('📚 [活动监听配置] 可用方法: get(), update(config), reset(), enable(), disable(), isEnabled()')
   console.log(`🎯 [活动监听配置] 当前状态: ${activityConfig.enabled ? '✅ 已启用' : '❌ 已禁用'}`)
   console.log(`⏰ [活动监听配置] 超时设置: ${activityConfig.sessionTimeout / 1000 / 60} 分钟`)
+  
+  // 导入并暴露测试配置工具
+  import('./activityConfig.test.js').then(() => {
+    console.log('🧪 [活动监听配置] 测试配置工具已加载')
+    console.log('💡 [活动监听配置] 使用 window.testActivityConfig.applyTest() 快速测试页面刷新恢复功能')
+  }).catch(err => {
+    console.warn('⚠️ [活动监听配置] 测试配置工具加载失败:', err.message)
+  })
 }
 
 export default activityConfig

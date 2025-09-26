@@ -140,13 +140,22 @@ service.interceptors.response.use(
       });
     }
     if (res.code === 4022) {
-      // to re-login
-      Message({
-        message: res.message || "Error",
-        type: "error",
-        duration: 5 * 1000
+      // 登录失败，但不需要重新登录
+      return Promise.reject({
+        code: res.code,
+        message: res.message || "登录失败",
+        remainingAttempts: res.remainingAttempts
       });
-      return Promise.reject(error);
+    }
+    
+    if (res.code === 4023) {
+      // 账号被锁定
+      return Promise.reject({
+        code: res.code,
+        message: res.message || "账号已被锁定",
+        lockedUntil: res.lockedUntil,
+        remainingMinutes: res.remainingMinutes
+      });
     }
     
     // JWT验证失败的处理

@@ -85,18 +85,22 @@ const actions = {
         login({ encryptedId: userInfo.encryptedId })
           .then(response => {
             const { token, user } = response;
-            commit("SET_TOKEN", token);
-            commit("SET_ID", user._id);
-            commit("SET_USERNAME", user.userName);
-            commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
-            commit("SET_SERVE", "user.serve");
-            setToken(token);
-            setid(user._id);
-            
-            // 登录成功后启动用户活动监听
-            userActivityMonitor.start();
-            
-            resolve();
+            if (token && user) {
+              commit("SET_TOKEN", token);
+              commit("SET_ID", user._id);
+              commit("SET_USERNAME", user.userName);
+              commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
+              commit("SET_SERVE", "user.serve");
+              setToken(token);
+              setid(user._id);
+              
+              // 登录成功后启动用户活动监听
+              userActivityMonitor.start();
+              
+              resolve();
+            } else {
+              reject(new Error('登录响应数据不完整'));
+            }
           })
           .catch(error => {
             reject(error);
@@ -110,18 +114,22 @@ const actions = {
         })
           .then(response => {
             const { token, user } = response;
-            commit("SET_TOKEN", token);
-            commit("SET_ID", user._id);
-            commit("SET_USERNAME", user.userName);
-            commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
-            commit("SET_SERVE", "user.serve");
-            setToken(token);
-            setid(user._id);
-            
-            // 登录成功后启动用户活动监听
-            userActivityMonitor.start();
-            
-            resolve();
+            if (token && user) {
+              commit("SET_TOKEN", token);
+              commit("SET_ID", user._id);
+              commit("SET_USERNAME", user.userName);
+              commit("SET_AVATAR", user.avatar || require("@/assets/ren1.png"));
+              commit("SET_SERVE", "user.serve");
+              setToken(token);
+              setid(user._id);
+              
+              // 登录成功后启动用户活动监听
+              userActivityMonitor.start();
+              
+              resolve();
+            } else {
+              reject(new Error('登录响应数据不完整'));
+            }
           })
           .catch(error => {
             reject(error);

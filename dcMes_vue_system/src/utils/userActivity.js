@@ -23,6 +23,8 @@ class UserActivityMonitor {
     this.warningShown = false
     this.isExpired = false // 新增：是否已过期标志
     this.forceReloginShown = false // 新增：是否已显示强制重新登录弹窗
+    this.isFromUserActivity = false // 新增：标记是否来自用户活动的重置
+    this.shouldShowWarningImmediately = false // 新增：是否需要立即显示警告
     
     // 调试用：事件计数器
     this.eventCounters = {}
@@ -42,15 +44,15 @@ class UserActivityMonitor {
   navigateToLogin() {
     try {
       // 优先使用Vue Router进行导航，自动处理publicPath
-      router.push('/login').catch(err => {
-        console.warn('🔄 [活动监听] Vue Router导航失败，使用window.location跳转:', err)
-        // 如果路由导航失败，回退到直接跳转
-        window.location.href = '/login'
+      router.go(0).catch(err => {
+        console.warn('🔄 [活动监听] Vue Router导航失败，使用window.location.reload刷新:', err)
+        // 如果路由导航失败，回退到直接刷新
+        window.location.reload()
       })
     } catch (error) {
-      console.error('🔄 [活动监听] 导航过程中发生错误，使用window.location跳转:', error)
-      // 如果出现任何错误，确保仍能跳转到登录页
-      window.location.href = '/login'
+      console.error('🔄 [活动监听] 导航过程中发生错误，使用window.location.reload刷新:', error)
+      // 如果出现任何错误，确保仍能刷新当前页面
+      window.location.reload()
     }
   }
 
@@ -179,6 +181,9 @@ class UserActivityMonitor {
     
     this.lastEventTime = now
     
+    // 标记这是来自用户活动的重置
+    this.isFromUserActivity = true
+    
     // 调用实际的重置计时器逻辑
     this.resetTimer()
   }
@@ -209,6 +214,9 @@ class UserActivityMonitor {
     
     console.log(`🔄 [活动监听] 用户活动检测到，重置计时器 - 时间: ${currentTime}`)
     console.log(`📊 [活动监听] 距离上次重置: ${Math.round(timeSinceLastReset / 1000)} 秒`)
+    console.log(`🔧 [活动监听] 当前配置 - 超时: ${this.timeout / 1000}秒, 警告: ${this.warningTime / 1000}秒`)
+    console.log(`🔍 [活动监听] 过期状态: ${this.isExpired ? '已过期' : '未过期'}`)
+    console.log(`🔍 [活动监听] 监听状态: ${this.isActive ? '激活' : '未激活'}`)
     
     // 如果重置过于频繁（小于5秒），输出警告
     if (timeSinceLastReset < 5000 && timeSinceLastReset > 0) {
@@ -228,17 +236,54 @@ class UserActivityMonitor {
     // 重置警告状态
     this.warningShown = false
     
-    // 设置警告计时器
-    this.warningTimer = setTimeout(this.showWarning.bind(this), this.warningTime)
-    console.log(`⚠️ [活动监听] 警告计时器已设置: ${this.warningTime / 1000 / 60} 分钟后显示警告`)
+    // 检查是否需要基于现有的lastActivityTime来计算剩余时间
+    const existingLastActivityTime = localStorage.getItem('lastActivityTime')
+    let actualWarningTime = this.warningTime
+    let actualTimeout = this.timeout
+    
+    if (existingLastActivityTime && !this.isFromUserActivity) {
+      // 页面刷新情况：基于现有的最后活动时间计算剩余时间
+      const timeSinceLastActivity = now - parseInt(existingLastActivityTime)
+      const remainingTimeout = Math.max(0, this.timeout - timeSinceLastActivity)
+      const remainingWarningTime = Math.max(0, this.warningTime - timeSinceLastActivity)
+      
+      if (remainingTimeout > 0) {
+        actualTimeout = remainingTimeout
+        actualWarningTime = remainingWarningTime
+        
+        console.log(`🔄 [活动监听] 页面刷新模式 - 基于现有活动时间计算剩余时间`)
+        console.log(`📊 [活动监听] 剩余超时时间: ${Math.round(actualTimeout / 1000)} 秒`)
+        console.log(`📊 [活动监听] 剩余警告时间: ${Math.round(actualWarningTime / 1000)} 秒`)
+        
+        // 如果需要立即显示警告
+        if (this.shouldShowWarningImmediately || actualWarningTime <= 0) {
+          console.log(`⚠️ [活动监听] 立即显示警告（已过警告时间）`)
+          this.showWarning()
+          this.shouldShowWarningImmediately = false
+        }
+      }
+    } else {
+      // 正常用户活动或首次启动：使用完整时间并更新lastActivityTime
+      this.isFromUserActivity = false // 重置标志
+    }
+    
+    // 设置警告计时器（如果还有剩余警告时间）
+    if (actualWarningTime > 0) {
+      this.warningTimer = setTimeout(this.showWarning.bind(this), actualWarningTime)
+      console.log(`⚠️ [活动监听] 警告计时器已设置: ${Math.round(actualWarningTime / 1000)} 秒后显示警告`)
+    }
     
     // 设置自动退出计时器
-    this.timer = setTimeout(this.markExpired.bind(this), this.timeout)
-    console.log(`⏰ [活动监听] 超时计时器已设置: ${this.timeout / 1000 / 60} 分钟后会话过期`)
+    this.timer = setTimeout(this.markExpired.bind(this), actualTimeout)
+    console.log(`⏰ [活动监听] 超时计时器已设置: ${Math.round(actualTimeout / 1000)} 秒后会话过期`)
     
     // 更新最后活动时间到localStorage
     localStorage.setItem('lastActivityTime', now.toString())
     console.log(`💾 [活动监听] 最后活动时间已更新: ${currentTime}`)
+    
+    // 更新预期过期时间日志
+    const expectedExpireTime = new Date(now + this.timeout).toLocaleString()
+    console.log(`💾 [活动监听] 预期过期时间: ${expectedExpireTime}`)
   }
 
   /**
@@ -268,9 +313,15 @@ class UserActivityMonitor {
    */
   markExpired() {
     const expiredTime = new Date().toLocaleString()
+    const lastActivityTime = localStorage.getItem('lastActivityTime')
+    const timeSinceLastActivity = lastActivityTime ? Date.now() - parseInt(lastActivityTime) : 0
+    
     console.error(`❌ [活动监听] 会话已过期 - 时间: ${expiredTime}`)
-    console.error(`⏰ [活动监听] 超时时长: ${this.timeout / 1000 / 60} 分钟`)
+    console.error(`⏰ [活动监听] 超时时长: ${this.timeout / 1000} 秒`)
+    console.error(`📊 [活动监听] 最后活动时间: ${lastActivityTime ? new Date(parseInt(lastActivityTime)).toLocaleString() : '无记录'}`)
+    console.error(`📊 [活动监听] 距离最后活动: ${Math.round(timeSinceLastActivity / 1000)} 秒`)
     console.error(`🔍 [活动监听] 监听器激活状态: ${this.isActive ? '激活' : '未激活'}`)
+    console.error(`🔍 [活动监听] 当前过期状态: ${this.isExpired ? '已过期' : '未过期'}`)
     console.trace('🔍 [活动监听] markExpired调用堆栈:') // 添加调用堆栈跟踪
     
     // 标记为过期（无论监听器是否激活）
@@ -424,23 +475,27 @@ class UserActivityMonitor {
         return true // 仍然返回true，允许页面加载，但会话已过期
       } else {
         console.log(`✅ [活动监听] 会话仍有效，剩余时间: ${Math.round((this.timeout - timeSinceLastActivity) / 1000 / 60)} 分钟`)
-      }
-      
-      // 如果接近超时，显示警告并调整计时器
-      if (timeSinceLastActivity > this.warningTime) {
-        const remainingTime = this.timeout - timeSinceLastActivity
         
-        if (remainingTime > 0) {
-          // 立即显示警告
-          this.showWarning()
-          
-          // 设置剩余时间的过期计时器
-          this.timer = setTimeout(this.markExpired.bind(this), remainingTime)
-        } else {
-          this.isExpired = true
-          this.markExpired()
+        // 页面刷新后，记录需要特殊处理的状态
+        const remainingTime = this.timeout - timeSinceLastActivity
+        const remainingWarningTime = this.warningTime - timeSinceLastActivity
+        
+        console.log(`📊 [活动监听] 剩余超时时间: ${Math.round(remainingTime / 1000)} 秒`)
+        console.log(`📊 [活动监听] 剩余警告时间: ${Math.round(remainingWarningTime / 1000)} 秒`)
+        
+        // 如果已经过了警告时间但还没过期，标记需要立即显示警告
+        if (remainingWarningTime <= 0 && remainingTime > 0) {
+          console.log(`⚠️ [活动监听] 页面刷新时发现已过警告时间，将在start方法中立即显示警告`)
+          this.shouldShowWarningImmediately = true
         }
+        
+        // 不在这里设置计时器，让start方法中的resetTimer来处理
+        // 这样可以避免重复设置计时器的问题
       }
+    } else {
+      // 没有最后活动时间记录，初始化为当前时间
+      console.log('💾 [活动监听] 未找到最后活动时间记录，将在resetTimer中初始化')
+      // 不在这里设置计时器，让start方法中的resetTimer来处理
     }
     
     return true

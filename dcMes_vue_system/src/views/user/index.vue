@@ -148,6 +148,43 @@
         </template>
       </el-table-column>
 
+      <el-table-column align="center" label="锁定状态" min-width="120">
+        <template slot-scope="scope">
+          <div v-if="scope.row.lockInfo">
+            <el-tag v-if="scope.row.lockInfo.isLocked" type="danger" size="small">
+              <i class="el-icon-lock"></i>
+              已锁定
+            </el-tag>
+            <el-tag v-else type="success" size="small">
+              <i class="el-icon-unlock"></i>
+              正常
+            </el-tag>
+            
+            <!-- 锁定倒计时显示（仅在自动解锁启用时显示） -->
+            <div v-if="scope.row.lockInfo.isLocked && scope.row.lockInfo.autoUnlockEnabled && scope.row.lockInfo.remainingMinutes > 0" 
+                 class="lock-countdown">
+              剩余: {{ scope.row.lockInfo.remainingMinutes }}分钟
+            </div>
+            
+            <!-- 永久锁定显示（自动解锁禁用时） -->
+            <div v-if="scope.row.lockInfo.isLocked && !scope.row.lockInfo.autoUnlockEnabled" 
+                 class="lock-permanent">
+              需管理员解锁
+            </div>
+            
+            <!-- 失败计数显示 -->
+            <div v-if="scope.row.lockInfo.loginFailCount > 0" 
+                 class="fail-count">
+              失败: {{ scope.row.lockInfo.loginFailCount }}/{{ scope.row.lockInfo.maxFailCount || 5 }}次
+            </div>
+          </div>
+          <el-tag v-else type="info" size="small">
+            <i class="el-icon-loading"></i>
+            检查中...
+          </el-tag>
+        </template>
+      </el-table-column>
+
       <el-table-column
         align="center"
         label="创建时间"
@@ -183,7 +220,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column align="center" label="操作" min-width="200">
+      <el-table-column align="center" label="操作" min-width="280">
         <template slot-scope="{ row }">
           <el-button
             size="mini"
@@ -202,6 +239,17 @@
             v-if="$checkPermission('用户列表删除')"
           >
             删除
+          </el-button>
+          <!-- 解锁按钮 -->
+          <el-button
+            v-if="row.lockInfo && row.lockInfo.isLocked && $checkPermission('用户列表解锁')"
+            size="mini"
+            type="warning"
+            @click="handleUnlockUser(row)"
+            style="margin-right: 8px"
+          >
+            <i class="el-icon-unlock"></i>
+            {{ row.lockInfo.autoUnlockEnabled ? '立即解锁' : '解锁' }}
           </el-button>
           <el-button
             v-if="!row.status && $checkPermission('用户列表上线')"
@@ -470,6 +518,61 @@
       </el-upload>
     </el-dialog>
 
+    <!-- 解锁用户确认对话框 -->
+    <el-dialog
+      title="解锁用户确认"
+      :visible.sync="unlockDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <div class="unlock-dialog-content">
+        <div class="warning-icon">
+          <i class="el-icon-warning" style="color: #e6a23c; font-size: 24px;"></i>
+        </div>
+        <div class="unlock-info">
+          <p><strong>确定要解锁以下用户吗？</strong></p>
+          <div class="user-details">
+            <p><span class="label">用户名：</span>{{ selectedUser.nickName }}</p>
+            <p><span class="label">账号：</span>{{ selectedUser.userName }}</p>
+            <p v-if="selectedUser.lockInfo && selectedUser.lockInfo.isLocked" class="lock-status">
+              <span class="label">锁定状态：</span>
+              <el-tag type="danger" size="small">
+                <i class="el-icon-lock"></i>
+                <span v-if="selectedUser.lockInfo.autoUnlockEnabled">
+                  已锁定 {{ selectedUser.lockInfo.remainingMinutes || 0 }}分钟
+                </span>
+                <span v-else>永久锁定</span>
+              </el-tag>
+            </p>
+            <p v-if="selectedUser.lockInfo && selectedUser.lockInfo.loginFailCount > 0" class="fail-info">
+              <span class="label">失败次数：</span>{{ selectedUser.lockInfo.loginFailCount }}/{{ selectedUser.lockInfo.maxFailCount || 5 }}次
+            </p>
+            <p v-if="selectedUser.lockInfo" class="auto-unlock-info">
+              <span class="label">自动解锁：</span>
+              <el-tag :type="selectedUser.lockInfo.autoUnlockEnabled ? 'success' : 'warning'" size="small">
+                {{ selectedUser.lockInfo.autoUnlockEnabled ? '已启用' : '已禁用' }}
+              </el-tag>
+            </p>
+          </div>
+          <p class="unlock-warning">
+            <span v-if="selectedUser.lockInfo && selectedUser.lockInfo.autoUnlockEnabled">
+              解锁后该用户可以立即尝试登录，或等待自动解锁
+            </span>
+            <span v-else>
+              解锁后该用户可以立即尝试登录
+            </span>
+          </p>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="unlockDialogVisible = false">取消</el-button>
+        <el-button type="warning" @click="confirmUnlockUser" :loading="unlockLoading">
+          <i class="el-icon-unlock"></i>
+          确认解锁
+        </el-button>
+      </div>
+    </el-dialog>
+
     <!-- 在表格底部添加分页 -->
     <div class="pagination-container">
       <el-pagination
@@ -490,6 +593,7 @@
 <script>
 import { getData, addData, removeData } from "@/api/data";
 import { postuserlist, putuserlist } from "@/api/user_list";
+import { getUserLockStatus, unlockUser } from "@/api/user";
 import QRCode from "qrcode";
 import CryptoJS from "crypto-js";
 import JSZip from "jszip";
@@ -592,6 +696,12 @@ export default {
       },
       originalPassword: "", // 存储编辑时的原始密码
       
+      // 解锁相关数据
+      unlockDialogVisible: false,
+      unlockLoading: false,
+      selectedUser: {}, // 选中要解锁的用户
+      lockStatusTimer: null, // 锁定状态刷新定时器
+      
       // 表单数据对象
       formData: {
         userName: "",
@@ -638,6 +748,14 @@ export default {
   created() {
     this.getUserRole();
     this.fetchData();
+  },
+  mounted() {
+    // 启动锁定状态定时刷新
+    this.startLockStatusTimer();
+  },
+  beforeDestroy() {
+    // 组件销毁前清理定时器
+    this.stopLockStatusTimer();
   },
   beforeCreate() {
     that = this;
@@ -702,10 +820,113 @@ export default {
         this.categorylist = response;
         this.categorylist1 = this.categorylist;
         this.total = countnum;
+        
+        // 获取完用户列表后，获取每个用户的锁定状态
+        await this.loadLockStatus();
       } catch (error) {
         console.error("获取数据失败:", error);
       } finally {
         this.listLoading = false;
+      }
+    },
+
+    // 获取所有用户的锁定状态
+    async loadLockStatus() {
+      try {
+        const promises = this.categorylist.map(async (user) => {
+          try {
+            const response = await getUserLockStatus({ userName: user.userName });
+            if (response.code === 200) {
+              this.$set(user, 'lockInfo', response.data);
+            } else {
+              this.$set(user, 'lockInfo', {
+                isLocked: false,
+                remainingMinutes: 0,
+                loginFailCount: 0
+              });
+            }
+          } catch (error) {
+            console.error(`获取用户 ${user.userName} 锁定状态失败:`, error);
+            this.$set(user, 'lockInfo', {
+              isLocked: false,
+              remainingMinutes: 0,
+              loginFailCount: 0
+            });
+          }
+        });
+        
+        await Promise.all(promises);
+      } catch (error) {
+        console.error("批量获取锁定状态失败:", error);
+      }
+    },
+
+    // 处理解锁用户按钮点击
+    handleUnlockUser(row) {
+      this.selectedUser = { ...row };
+      this.unlockDialogVisible = true;
+    },
+
+    // 确认解锁用户
+    async confirmUnlockUser() {
+      if (!this.selectedUser.userName) {
+        this.$message.error('用户信息不完整');
+        return;
+      }
+
+      this.unlockLoading = true;
+      try {
+        const response = await unlockUser({ userName: this.selectedUser.userName });
+        
+        if (response.code === 200) {
+          this.$message.success(response.message || '用户解锁成功');
+          this.unlockDialogVisible = false;
+          
+          // 刷新锁定状态
+          await this.refreshSingleUserLockStatus(this.selectedUser.userName);
+        } else {
+          this.$message.error(response.message || '解锁失败');
+        }
+      } catch (error) {
+        console.error('解锁用户失败:', error);
+        this.$message.error('解锁失败，请重试');
+      } finally {
+        this.unlockLoading = false;
+      }
+    },
+
+    // 刷新单个用户的锁定状态
+    async refreshSingleUserLockStatus(userName) {
+      try {
+        const response = await getUserLockStatus({ userName });
+        if (response.code === 200) {
+          const userIndex = this.categorylist.findIndex(user => user.userName === userName);
+          if (userIndex !== -1) {
+            this.$set(this.categorylist[userIndex], 'lockInfo', response.data);
+          }
+        }
+      } catch (error) {
+        console.error(`刷新用户 ${userName} 锁定状态失败:`, error);
+      }
+    },
+
+    // 启动锁定状态定时刷新
+    startLockStatusTimer() {
+      if (this.lockStatusTimer) {
+        clearInterval(this.lockStatusTimer);
+      }
+      
+      // 每30秒刷新一次锁定状态
+      this.lockStatusTimer = setInterval(() => {
+        this.loadLockStatus();
+      }, 30000);
+    },
+
+    // 停止锁定状态定时刷新
+    stopLockStatusTimer() {
+      if (this.lockStatusTimer) {
+        clearInterval(this.lockStatusTimer);
+        this.lockStatusTimer = null;
       }
     },
     handleEdit(row) {
@@ -2100,6 +2321,92 @@ export default {
       &:hover {
         color: #f78989;
       }
+    }
+  }
+}
+
+// 锁定状态相关样式
+.lock-countdown {
+  font-size: 12px;
+  color: #f56c6c;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.fail-count {
+  font-size: 12px;
+  color: #e6a23c;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.lock-permanent {
+  font-size: 12px;
+  color: #f56c6c;
+  margin-top: 4px;
+  text-align: center;
+  font-weight: 600;
+}
+
+// 解锁对话框样式
+.unlock-dialog-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 10px 0;
+
+  .warning-icon {
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .unlock-info {
+    flex: 1;
+
+    p {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+
+    .user-details {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border-left: 4px solid #409eff;
+
+      p {
+        margin: 6px 0;
+        font-size: 14px;
+
+        .label {
+          font-weight: 600;
+          color: #606266;
+          min-width: 80px;
+          display: inline-block;
+        }
+      }
+
+      .lock-status {
+        .el-tag {
+          margin-left: 5px;
+        }
+      }
+
+      .fail-info {
+        color: #e6a23c;
+        font-weight: 500;
+      }
+    }
+
+    .unlock-warning {
+      color: #f56c6c;
+      font-size: 13px;
+      background: #fef0f0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #fde2e2;
+      margin-top: 10px;
     }
   }
 }

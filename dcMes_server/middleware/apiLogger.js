@@ -165,6 +165,34 @@ const apiLogger = (serviceName) => {
           return;
         }
 
+        // 特殊处理登录接口 - 从响应体中获取用户信息
+        let logUserId = userId;
+        let logUserName = userName;
+        let logRealName = realName;
+        let logRoleId = roleId;
+
+        if (req.path.includes("/user/login") && responseBody?.code === 200 && responseBody?.user) {
+          // 登录成功时，从响应中获取用户信息
+          logUserId = responseBody.user._id;
+          logUserName = responseBody.user.userName;
+          logRealName = responseBody.user.realName || responseBody.user.userName;
+          logRoleId = responseBody.user.role ? responseBody.user.role._id : null;
+        } else if (req.path.includes("/user/info") && !userId && req.body?.id) {
+          // 用户信息接口，如果token解析失败但请求体中有用户ID，尝试从请求体获取
+          try {
+            const user_login = require("../model/system/user_login");
+            const user = await user_login.findOne({ _id: req.body.id }).populate('role');
+            if (user) {
+              logUserId = user._id;
+              logUserName = user.userName;
+              logRealName = user.realName || user.userName;
+              logRoleId = user.role ? user.role._id : null;
+            }
+          } catch (userLookupErr) {
+            console.error(`[${serviceName}] 从请求体查找用户信息失败:`, userLookupErr);
+          }
+        }
+
         // 创建日志记录
         const logEntry = new ApiLog({
           endpoint: req.originalUrl || req.url,
@@ -181,10 +209,10 @@ const apiLogger = (serviceName) => {
             responseBody?.message && !responseBody?.success
               ? responseBody.message
               : null,
-          userId: userId,
-          userName: userName,
-          realName: realName,
-          roleId: roleId,
+          userId: logUserId,
+          userName: logUserName,
+          realName: logRealName,
+          roleId: logRoleId,
           userIp: req.ip || req.connection.remoteAddress,
           timestamp: new Date(),
         });

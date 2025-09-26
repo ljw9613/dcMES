@@ -68,6 +68,15 @@ router.beforeEach((to, from, next) => {
         // 判断当前用户是否已拉取完user_info信息
         store.dispatch('user/getInfo').then(() => {
           isRelogin.show = false
+          
+          // 用户信息获取成功后，启动活动监听器
+          if (isActivityMonitorEnabled()) {
+            console.log('🔄 [权限路由] 用户信息获取成功，启动活动监听器')
+            userActivityMonitor.start()
+            // 检查页面加载时的活动状态
+            userActivityMonitor.checkActivityOnLoad()
+          }
+          
           store.dispatch('GenerateRoutes').then(async accessRoutes => {
             // 根据roles权限生成可访问的路由表
             // console.log('accessRoutes: ',accessRoutes);
@@ -97,6 +106,14 @@ router.beforeEach((to, from, next) => {
           })
         })
       } else { // 动态路由已加载
+        // 如果动态路由已加载但活动监听器未启动，则启动它
+        if (isActivityMonitorEnabled() && !userActivityMonitor.isActive) {
+          console.log('🔄 [权限路由] 动态路由已存在，启动活动监听器')
+          userActivityMonitor.start()
+          // 检查页面加载时的活动状态
+          userActivityMonitor.checkActivityOnLoad()
+        }
+        
         // 检查目标路由是否存在于已加载的路由中
         // to.matched 在此时应该是准确的，因为动态路由已添加完成，并且我们不是在 addRoutes 后的立即重定向中
         if (to.matched.length === 0 && to.path !== '/') {

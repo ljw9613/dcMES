@@ -29,9 +29,25 @@
                     :icon="['fas', 'eye-slash']" /></span>
                 <span v-else class="show-pwd" @click="showPwd"><byui-icon :icon="['fas', 'eye']" /></span>
               </el-form-item>
-              <el-button :loading="accountLoading" class="login-btn" type="primary"
+              <!-- 锁定状态提示 -->
+              <div v-if="isAccountLocked" class="lock-warning">
+                <i class="el-icon-lock"></i>
+                <div class="lock-content">
+                  <div v-if="autoUnlockEnabled && lockRemainingTime > 0" class="lock-countdown">
+                    账号已被锁定，剩余时间：{{ formatRemainingTime(lockRemainingTime) }}
+                  </div>
+                  <div v-else-if="!autoUnlockEnabled" class="lock-permanent">
+                    账号已被锁定，请联系管理员解锁
+                  </div>
+                  <div v-if="unlockHint" class="unlock-hint">
+                    {{ unlockHint }}
+                  </div>
+                </div>
+              </div>
+              
+              <el-button :loading="accountLoading" :disabled="isAccountLocked" class="login-btn" type="primary"
                 @click.native.prevent="handleAccountLogin">
-                账号登录
+                {{ isAccountLocked ? '账号已锁定' : '账号登录' }}
               </el-button>
             </el-tab-pane>
             <el-tab-pane label="扫码登录" name="qrcode">
@@ -141,6 +157,11 @@ export default {
       inputLoading: false,
       scanTimer: null,
       scanBuffer: '',
+      isAccountLocked: false, // 账号是否被锁定
+      lockRemainingTime: 0, // 锁定剩余时间（秒）
+      lockCountdownTimer: null, // 倒计时定时器
+      autoUnlockEnabled: true, // 是否启用自动解锁
+      unlockHint: '', // 解锁提示信息
     };
   },
   created() {
@@ -176,7 +197,62 @@ export default {
         return null;
       }
     },
+    // 处理账号锁定状态
+    handleAccountLock(errorData) {
+      this.isAccountLocked = true;
+      this.autoUnlockEnabled = errorData.autoUnlockEnabled;
+      this.unlockHint = errorData.unlockHint || '';
+      
+      if (this.autoUnlockEnabled && errorData.remainingMinutes) {
+        this.lockRemainingTime = errorData.remainingMinutes * 60; // 转换为秒
+        // 启动倒计时
+        this.startLockCountdown();
+      } else {
+        // 自动解锁禁用时，不启动倒计时
+        this.lockRemainingTime = 0;
+      }
+    },
+    // 启动锁定倒计时
+    startLockCountdown() {
+      if (this.lockCountdownTimer) {
+        clearInterval(this.lockCountdownTimer);
+      }
+      
+      this.lockCountdownTimer = setInterval(() => {
+        this.lockRemainingTime--;
+        
+        if (this.lockRemainingTime <= 0) {
+          this.clearAccountLock();
+        }
+      }, 1000);
+    },
+    // 清除账号锁定状态
+    clearAccountLock() {
+      this.isAccountLocked = false;
+      this.lockRemainingTime = 0;
+      
+      if (this.lockCountdownTimer) {
+        clearInterval(this.lockCountdownTimer);
+        this.lockCountdownTimer = null;
+      }
+    },
+    // 格式化剩余时间显示
+    formatRemainingTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${minutes}分${secs}秒`;
+    },
     async handleAccountLogin() {
+      // 如果账号被锁定，禁止登录
+      if (this.isAccountLocked) {
+        if (this.autoUnlockEnabled && this.lockRemainingTime > 0) {
+          this.$message.warning(`账号已被锁定，请等待${this.formatRemainingTime(this.lockRemainingTime)}后再试`);
+        } else {
+          this.$message.warning('账号已被锁定，请联系管理员解锁');
+        }
+        return;
+      }
+
       this.$refs.loginForm.validate(async (valid) => {
         if (valid) {
           try {
@@ -187,10 +263,23 @@ export default {
             };
 
             const response = await this.$store.dispatch('user/login', loginData);
+            // 登录成功，清除锁定状态
+            this.clearAccountLock();
             this.$router.push('/');
           } catch (error) {
-            console.error('登录失败:', error && error.message || '未知错误');
-            this.$message.error(error && error.message || '登录失败，请重试');
+            console.error('登录失败:', error);
+            
+            // 处理不同的错误码
+            if (error.code === 4023) {
+              // 账号被锁定
+              this.handleAccountLock(error);
+              this.$message.error(error.message);
+            } else if (error.code === 4022) {
+              // 密码错误但未锁定
+              this.$message.error(error.message);
+            } else {
+              this.$message.error(error.message || '登录失败，请重试');
+            }
           } finally {
             this.accountLoading = false;
           }
@@ -259,6 +348,12 @@ export default {
     if (this.loginType === 'qrcode') {
       this.focusScanInput();
     }
+  },
+  beforeDestroy() {
+    // 清理定时器
+    if (this.lockCountdownTimer) {
+      clearInterval(this.lockCountdownTimer);
+    }
   }
 };
 </script>
@@ -285,6 +380,50 @@ export default {
     color: rgba(14, 18, 26, 1);
   }
 
+  .lock-warning {
+    display: flex;
+    align-items: flex-start;
+    margin: 15px 0;
+    padding: 12px;
+    background-color: #fef0f0;
+    border: 1px solid #fde2e2;
+    border-radius: 6px;
+    color: #f56c6c;
+    font-size: 14px;
+
+    .el-icon-lock {
+      margin-right: 10px;
+      margin-top: 2px;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .lock-content {
+      flex: 1;
+      line-height: 1.5;
+
+      .lock-countdown {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .lock-permanent {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .unlock-hint {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 6px;
+        padding: 6px 8px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #e6a23c;
+      }
+    }
+  }
+
   .login-btn {
     display: inherit;
     width: 220px;
@@ -294,6 +433,11 @@ export default {
 
     &:hover {
       opacity: 0.9;
+    }
+
+    &:disabled {
+      background-color: #c0c4cc !important;
+      cursor: not-allowed;
     }
   }
 

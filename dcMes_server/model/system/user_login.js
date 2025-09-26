@@ -21,6 +21,8 @@ var user_loginSchema = new mongoose.Schema({
     avatar: { type: String },//用户头像
     role: { type: mongoose.Schema.ObjectId, ref: "role", default: "6756975f8ed7216e7fd54b24" },//角色Id
     status: { type: Boolean, default: true },//账号状态
+    loginFailCount: { type: Number, default: 0 }, // 登录失败次数
+    lockedUntil: { type: Date }, // 账号锁定到期时间
     createBy: { type: String }, // 创建人
     updateBy: { type: String }, // 更新人
     createAt: { type: Date, default: Date.now }, // 创建时间
