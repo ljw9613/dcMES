@@ -12,6 +12,7 @@
 
 <script>
 import userActivityMonitor from '@/utils/userActivity'
+import '@/utils/productionActivityTest'
 
 export default {
   name: 'App',

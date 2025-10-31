@@ -599,6 +599,7 @@ import { createBatch } from "@/api/materialBarcodeBatch";
 import {
   handlePalletBarcode,
   getPalletProcessingStatus,
+  updatePalletQuantity,
 } from "@/api/materialPalletizing";
 import ZrSelect from "@/components/ZrSelect";
 import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
@@ -3258,11 +3259,24 @@ export default {
 
         // 检查是否有托盘单据
         if (this.palletForm.palletCode) {
-          // 如果有托盘单据，调用更新方法
-          updateData("material_palletizing", {
-            query: { palletCode: this.palletForm.palletCode },
-            update: { totalQuantity: this.batchForm.batchSize },
+          // 如果有托盘单据，调用后端接口更新数量
+          const updateResult = await updatePalletQuantity({
+            palletCode: this.palletForm.palletCode,
+            totalQuantity: this.batchForm.batchSize,
+            userId: this.$store.state.user.id,
           });
+
+          if (updateResult.code === 200) {
+            console.log("托盘数量更新成功:", updateResult.data);
+            // 如果托盘状态变为已完成，需要提示用户
+            if (updateResult.data.status === "STACKED") {
+              this.$message.success(
+                `托盘数量已更新并完成组托 (${updateResult.data.barcodeCount}/${updateResult.data.newQuantity})`
+              );
+            }
+          } else {
+            throw new Error(updateResult.message || "更新托盘数量失败");
+          }
         }
 
         // 保存到本地存储

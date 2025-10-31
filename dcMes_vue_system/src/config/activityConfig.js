@@ -41,7 +41,8 @@ const activityConfig = {
   monitorVisibilityChange: true,
   
   // 调试模式
-  debug: process.env.NODE_ENV === 'development',
+  // debug: process.env.NODE_ENV === 'development',
+  debug: true,
   
   // 自定义提示信息
   messages: {

@@ -329,4 +329,49 @@ router.post("/api/v1/updatePalletInspectionStatus", async (req, res) => {
   }
 });
 
+// 更新托盘数量接口
+router.post("/api/v1/updatePalletQuantity", async (req, res) => {
+  try {
+    const { palletCode, totalQuantity, userId } = req.body;
+
+    // 参数验证
+    if (!palletCode || !totalQuantity || !userId) {
+      return res.status(200).json({
+        code: 400,
+        success: false,
+        message: "缺少必要参数：托盘编号、数量、用户ID不能为空",
+      });
+    }
+
+    // 验证数量是否为正整数
+    if (!Number.isInteger(totalQuantity) || totalQuantity <= 0) {
+      return res.status(200).json({
+        code: 400,
+        success: false,
+        message: "托盘数量必须是大于0的整数",
+      });
+    }
+
+    const result = await materialPalletizingService.updatePalletQuantity(
+      palletCode,
+      totalQuantity,
+      userId
+    );
+
+    return res.status(200).json({
+      code: 200,
+      success: true,
+      data: result,
+      message: "托盘数量更新成功",
+    });
+  } catch (error) {
+    console.error("更新托盘数量失败:", error);
+    return res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;

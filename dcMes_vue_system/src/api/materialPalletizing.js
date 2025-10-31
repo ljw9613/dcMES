@@ -71,6 +71,15 @@ export function handleForceCompletePallet(data) {
     })
 }
 
+// 更新托盘数量接口
+export function updatePalletQuantity(data) {
+    return request({
+        url: '/updatePalletQuantity',
+        method: 'post',
+        data
+    })
+}
+
 // 装箱条码原子操作 - 获取或创建装箱条码
 export function getOrCreatePackBarcode(data) {
     return request({

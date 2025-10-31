@@ -150,8 +150,8 @@
 
       <el-table-column align="center" label="锁定状态" min-width="120">
         <template slot-scope="scope">
-          <div v-if="scope.row.lockInfo">
-            <el-tag v-if="scope.row.lockInfo.isLocked" type="danger" size="small">
+          <div>
+            <el-tag v-if="scope.row.lockedUntil && new Date(scope.row.lockedUntil) > new Date()" type="danger" size="small">
               <i class="el-icon-lock"></i>
               已锁定
             </el-tag>
@@ -160,28 +160,12 @@
               正常
             </el-tag>
             
-            <!-- 锁定倒计时显示（仅在自动解锁启用时显示） -->
-            <div v-if="scope.row.lockInfo.isLocked && scope.row.lockInfo.autoUnlockEnabled && scope.row.lockInfo.remainingMinutes > 0" 
-                 class="lock-countdown">
-              剩余: {{ scope.row.lockInfo.remainingMinutes }}分钟
-            </div>
-            
-            <!-- 永久锁定显示（自动解锁禁用时） -->
-            <div v-if="scope.row.lockInfo.isLocked && !scope.row.lockInfo.autoUnlockEnabled" 
-                 class="lock-permanent">
-              需管理员解锁
-            </div>
-            
             <!-- 失败计数显示 -->
-            <div v-if="scope.row.lockInfo.loginFailCount > 0" 
+            <div v-if="scope.row.loginFailCount > 0" 
                  class="fail-count">
-              失败: {{ scope.row.lockInfo.loginFailCount }}/{{ scope.row.lockInfo.maxFailCount || 5 }}次
+              失败: {{ scope.row.loginFailCount }}/5次
             </div>
           </div>
-          <el-tag v-else type="info" size="small">
-            <i class="el-icon-loading"></i>
-            检查中...
-          </el-tag>
         </template>
       </el-table-column>
 
@@ -242,14 +226,14 @@
           </el-button>
           <!-- 解锁按钮 -->
           <el-button
-            v-if="row.lockInfo && row.lockInfo.isLocked && $checkPermission('用户列表解锁')"
+            v-if="row.lockedUntil && new Date(row.lockedUntil) > new Date() && $checkPermission('用户列表解锁')"
             size="mini"
             type="warning"
             @click="handleUnlockUser(row)"
             style="margin-right: 8px"
           >
             <i class="el-icon-unlock"></i>
-            {{ row.lockInfo.autoUnlockEnabled ? '立即解锁' : '解锁' }}
+            解锁
           </el-button>
           <el-button
             v-if="!row.status && $checkPermission('用户列表上线')"
@@ -534,33 +518,19 @@
           <div class="user-details">
             <p><span class="label">用户名：</span>{{ selectedUser.nickName }}</p>
             <p><span class="label">账号：</span>{{ selectedUser.userName }}</p>
-            <p v-if="selectedUser.lockInfo && selectedUser.lockInfo.isLocked" class="lock-status">
+            <p v-if="selectedUser.lockedUntil && new Date(selectedUser.lockedUntil) > new Date()" class="lock-status">
               <span class="label">锁定状态：</span>
               <el-tag type="danger" size="small">
                 <i class="el-icon-lock"></i>
-                <span v-if="selectedUser.lockInfo.autoUnlockEnabled">
-                  已锁定 {{ selectedUser.lockInfo.remainingMinutes || 0 }}分钟
-                </span>
-                <span v-else>永久锁定</span>
+                已锁定
               </el-tag>
             </p>
-            <p v-if="selectedUser.lockInfo && selectedUser.lockInfo.loginFailCount > 0" class="fail-info">
-              <span class="label">失败次数：</span>{{ selectedUser.lockInfo.loginFailCount }}/{{ selectedUser.lockInfo.maxFailCount || 5 }}次
-            </p>
-            <p v-if="selectedUser.lockInfo" class="auto-unlock-info">
-              <span class="label">自动解锁：</span>
-              <el-tag :type="selectedUser.lockInfo.autoUnlockEnabled ? 'success' : 'warning'" size="small">
-                {{ selectedUser.lockInfo.autoUnlockEnabled ? '已启用' : '已禁用' }}
-              </el-tag>
+            <p v-if="selectedUser.loginFailCount > 0" class="fail-info">
+              <span class="label">失败次数：</span>{{ selectedUser.loginFailCount }}/5次
             </p>
           </div>
           <p class="unlock-warning">
-            <span v-if="selectedUser.lockInfo && selectedUser.lockInfo.autoUnlockEnabled">
-              解锁后该用户可以立即尝试登录，或等待自动解锁
-            </span>
-            <span v-else>
-              解锁后该用户可以立即尝试登录
-            </span>
+            解锁后该用户可以立即尝试登录
           </p>
         </div>
       </div>
@@ -593,7 +563,7 @@
 <script>
 import { getData, addData, removeData } from "@/api/data";
 import { postuserlist, putuserlist } from "@/api/user_list";
-import { getUserLockStatus, unlockUser } from "@/api/user";
+import { unlockUser } from "@/api/user";
 import QRCode from "qrcode";
 import CryptoJS from "crypto-js";
 import JSZip from "jszip";
@@ -700,7 +670,6 @@ export default {
       unlockDialogVisible: false,
       unlockLoading: false,
       selectedUser: {}, // 选中要解锁的用户
-      lockStatusTimer: null, // 锁定状态刷新定时器
       
       // 表单数据对象
       formData: {
@@ -750,12 +719,10 @@ export default {
     this.fetchData();
   },
   mounted() {
-    // 启动锁定状态定时刷新
-    this.startLockStatusTimer();
+    // 组件挂载完成
   },
   beforeDestroy() {
-    // 组件销毁前清理定时器
-    this.stopLockStatusTimer();
+    // 组件销毁前清理
   },
   beforeCreate() {
     that = this;
@@ -820,9 +787,6 @@ export default {
         this.categorylist = response;
         this.categorylist1 = this.categorylist;
         this.total = countnum;
-        
-        // 获取完用户列表后，获取每个用户的锁定状态
-        await this.loadLockStatus();
       } catch (error) {
         console.error("获取数据失败:", error);
       } finally {
@@ -830,36 +794,6 @@ export default {
       }
     },
 
-    // 获取所有用户的锁定状态
-    async loadLockStatus() {
-      try {
-        const promises = this.categorylist.map(async (user) => {
-          try {
-            const response = await getUserLockStatus({ userName: user.userName });
-            if (response.code === 200) {
-              this.$set(user, 'lockInfo', response.data);
-            } else {
-              this.$set(user, 'lockInfo', {
-                isLocked: false,
-                remainingMinutes: 0,
-                loginFailCount: 0
-              });
-            }
-          } catch (error) {
-            console.error(`获取用户 ${user.userName} 锁定状态失败:`, error);
-            this.$set(user, 'lockInfo', {
-              isLocked: false,
-              remainingMinutes: 0,
-              loginFailCount: 0
-            });
-          }
-        });
-        
-        await Promise.all(promises);
-      } catch (error) {
-        console.error("批量获取锁定状态失败:", error);
-      }
-    },
 
     // 处理解锁用户按钮点击
     handleUnlockUser(row) {
@@ -882,8 +816,8 @@ export default {
           this.$message.success(response.message || '用户解锁成功');
           this.unlockDialogVisible = false;
           
-          // 刷新锁定状态
-          await this.refreshSingleUserLockStatus(this.selectedUser.userName);
+          // 刷新用户列表数据
+          await this.fetchData();
         } else {
           this.$message.error(response.message || '解锁失败');
         }
@@ -895,40 +829,6 @@ export default {
       }
     },
 
-    // 刷新单个用户的锁定状态
-    async refreshSingleUserLockStatus(userName) {
-      try {
-        const response = await getUserLockStatus({ userName });
-        if (response.code === 200) {
-          const userIndex = this.categorylist.findIndex(user => user.userName === userName);
-          if (userIndex !== -1) {
-            this.$set(this.categorylist[userIndex], 'lockInfo', response.data);
-          }
-        }
-      } catch (error) {
-        console.error(`刷新用户 ${userName} 锁定状态失败:`, error);
-      }
-    },
-
-    // 启动锁定状态定时刷新
-    startLockStatusTimer() {
-      if (this.lockStatusTimer) {
-        clearInterval(this.lockStatusTimer);
-      }
-      
-      // 每30秒刷新一次锁定状态
-      this.lockStatusTimer = setInterval(() => {
-        this.loadLockStatus();
-      }, 30000);
-    },
-
-    // 停止锁定状态定时刷新
-    stopLockStatusTimer() {
-      if (this.lockStatusTimer) {
-        clearInterval(this.lockStatusTimer);
-        this.lockStatusTimer = null;
-      }
-    },
     handleEdit(row) {
       this.dialogFormVisible = true;
       this._id = row._id;

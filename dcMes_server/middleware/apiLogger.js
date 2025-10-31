@@ -81,8 +81,12 @@ const apiLogger = (serviceName) => {
         if (!isLoginRoute && !isPublicRoute && !isDeviceRoute) {
           // 记录验证失败日志
           try {
+            // 处理 endpoint，防止过长的 URL 导致索引失败
+            const fullUrl = req.originalUrl || req.url;
+            const endpoint = fullUrl.length > 500 ? fullUrl.substring(0, 500) + '...[截断]' : fullUrl;
+
             const logEntry = new ApiLog({
-              endpoint: req.originalUrl || req.url,
+              endpoint: endpoint,
               method: req.method,
               serviceName: serviceName,
               requestParams: req.params,
@@ -120,8 +124,12 @@ const apiLogger = (serviceName) => {
 
       // 记录未提供Token的日志
       try {
+        // 处理 endpoint，防止过长的 URL 导致索引失败
+        const fullUrl = req.originalUrl || req.url;
+        const endpoint = fullUrl.length > 500 ? fullUrl.substring(0, 500) + '...[截断]' : fullUrl;
+
         const logEntry = new ApiLog({
-          endpoint: req.originalUrl || req.url,
+          endpoint: endpoint,
           method: req.method,
           serviceName: serviceName,
           requestParams: req.params,
@@ -193,9 +201,14 @@ const apiLogger = (serviceName) => {
           }
         }
 
+        // 处理 endpoint，防止过长的 URL 导致索引失败
+        // 截断到最大 500 字符，因为 MongoDB 索引键有大小限制（约 1024 字节）
+        const fullUrl = req.originalUrl || req.url;
+        const endpoint = fullUrl.length > 500 ? fullUrl.substring(0, 500) + '...[截断]' : fullUrl;
+
         // 创建日志记录
         const logEntry = new ApiLog({
-          endpoint: req.originalUrl || req.url,
+          endpoint: endpoint,
           method: req.method,
           serviceName: serviceName,
           requestParams: req.params,

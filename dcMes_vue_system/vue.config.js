@@ -41,12 +41,12 @@ module.exports = {
   // outputDir: "../dcMes_server/adminManageVN",
   // publicPath: "/dcMesPzManageVN/",
   // outputDir: "../dcMes_server/adminPzManageVN",
-  // publicPath: "/dcMesVNCN/",
-  // outputDir: "../dcMes_server/adminVNCN",
+  publicPath: "/dcMesVNCN/",
+  outputDir: "../dcMes_server/adminVNCN",
   // publicPath: "/dcMesVNCS/",
   // outputDir: "../dcMes_server/adminVNCS",
-  publicPath: "/dcMesVNCNCS/",
-  outputDir: "../dcMes_server/adminVNCNCS",
+  // publicPath: "/dcMesVNCNCS/",
+  // outputDir: "../dcMes_server/adminVNCNCS",
 
   // assetsDir: "static",
   // lintOnSave: process.env.NODE_ENV === "development",
@@ -102,7 +102,7 @@ module.exports = {
         new TerserPlugin({
           terserOptions: {
             compress: {
-              drop_console: true, // 改为false，避免压缩问题
+              drop_console: false, // 允许控制台打印输出
               warnings: false,
               drop_debugger: true
             },

@@ -1,0 +1,89 @@
+{
+    _id: ObjectId("68eb571f3c66cd99ba2fee37"),
+    palletCode: "YDC-SN-1760253727268",
+    saleOrderId: ObjectId("68486493e4e960eee9ff26de"),
+    saleOrderNo: "2025-NO.MOVA008",
+    productionOrderId: ObjectId("6848650be4e960eee9ff2df4"),
+    productionOrderNo: "MO2551615",
+    processStepId: ObjectId("681d9343c257d42a07fec4e4"),
+    workOrders: [
+        {
+            productionOrderId: ObjectId("6848650be4e960eee9ff2df4"),
+            productionOrderNo: "MO2551615",
+            workOrderNo: "P202507031751502779591",
+            productionPlanWorkOrderId: ObjectId("6865cfb2729ea7dcde500927"),
+            quantity: NumberInt("4"),
+            _id: ObjectId("68eb571f3c66cd99ba2fee38")
+        }
+    ],
+    workOrderNo: "P202507031751502779591",
+    productionPlanWorkOrderId: ObjectId("6865cfb2729ea7dcde500927"),
+    productLineId: ObjectId("67de0a494304b80d3a763c91"),
+    productLineName: "德昌追觅E线",
+    materialId: ObjectId("683f2a12e4e960eee98e6909"),
+    materialCode: "1101502015",
+    materialName: "MOVA S1整机（欧版）V2513A",
+    materialSpec: " ",
+    isLastPallet: false,
+    status: "STACKING",
+    inWarehouseStatus: "PENDING",
+    repairStatus: "PENDING",
+    totalQuantity: NumberInt("4"),
+    boxCount: NumberInt("0"),
+    barcodeCount: NumberInt("4"),
+    boxItems: [ ],
+    palletBarcodes: [
+        {
+            barcode: "V2513A58MEU00109A8",
+            barcodeType: "MAIN",
+            scanTime: ISODate("2025-10-12T07:22:07.35Z"),
+            inWarehouseStatus: "PENDING",
+            outWarehouseStatus: "PENDING",
+            inspectionStatus: "PENDING",
+            inspectionResult: "PENDING",
+            productionPlanWorkOrderId: ObjectId("6865cfb2729ea7dcde500927"),
+            _id: ObjectId("68eb571f3c66cd99ba2fee6a")
+        },
+        {
+            barcode: "V2513A593EU00285A8",
+            barcodeType: "MAIN",
+            scanTime: ISODate("2025-10-12T07:22:10.876Z"),
+            inWarehouseStatus: "PENDING",
+            outWarehouseStatus: "PENDING",
+            inspectionStatus: "PENDING",
+            inspectionResult: "PENDING",
+            productionPlanWorkOrderId: ObjectId("6865cfb2729ea7dcde500927"),
+            _id: ObjectId("68eb57225f466053ba92ae16")
+        },
+        {
+            barcode: "V2513A593EU00400A8",
+            barcodeType: "MAIN",
+            scanTime: ISODate("2025-10-12T07:22:13.845Z"),
+            inWarehouseStatus: "PENDING",
+            outWarehouseStatus: "PENDING",
+            inspectionStatus: "PENDING",
+            inspectionResult: "PENDING",
+            productionPlanWorkOrderId: ObjectId("6865cfb2729ea7dcde500927"),
+            _id: ObjectId("68eb572570f2e7f288c1c196")
+        },
+        {
+            barcode: "V2513A593EU00354A8",
+            barcodeType: "MAIN",
+            scanTime: ISODate("2025-10-12T07:29:41.009Z"),
+            inWarehouseStatus: "PENDING",
+            outWarehouseStatus: "PENDING",
+            inspectionStatus: "PENDING",
+            inspectionResult: "PENDING",
+            productionPlanWorkOrderId: ObjectId("6865cfb2729ea7dcde500927"),
+            _id: ObjectId("68eb58e53a24bd2c448a44f6")
+        }
+    ],
+    inWarehouseState: "PENDING",
+    outWarehouseState: "PENDING",
+    inspectionStatus: "PENDING",
+    createBy: ObjectId("67d791124f31c06c540915c5"),
+    createAt: ISODate("2025-10-12T07:22:07.268Z"),
+    updateAt: ISODate("2025-10-12T07:29:41.009Z"),
+    __v: NumberInt("0"),
+    updateBy: "67d791124f31c06c540915c5"
+} 

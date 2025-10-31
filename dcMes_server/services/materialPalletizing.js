@@ -1576,6 +1576,73 @@ class MaterialPalletizingService {
   }
 
   /**
+   * 更新托盘数量并检查状态
+   * @param {String} palletCode - 托盘编号
+   * @param {Number} totalQuantity - 新的总数量
+   * @param {String} userId - 操作用户ID
+   * @returns {Object} 更新后的托盘信息
+   */
+  static async updatePalletQuantity(palletCode, totalQuantity, userId) {
+    try {
+      console.log(`开始更新托盘数量: ${palletCode}, 新数量: ${totalQuantity}`);
+      
+      const pallet = await MaterialPalletizing.findOne({ palletCode });
+      
+      if (!pallet) {
+        throw new Error("未找到对应的托盘记录");
+      }
+
+      // 检查托盘是否已出库
+      if (pallet.inWarehouseStatus === "OUT_WAREHOUSE") {
+        throw new Error("已出库的托盘不允许修改数量");
+      }
+
+      // 检查新数量是否小于已扫描数量
+      if (totalQuantity < pallet.barcodeCount) {
+        throw new Error(
+          `托盘数量(${totalQuantity})不能小于已入托数量(${pallet.barcodeCount})`
+        );
+      }
+
+      // 保存原数量用于日志
+      const oldQuantity = pallet.totalQuantity;
+
+      // 更新托盘数量
+      pallet.totalQuantity = totalQuantity;
+      pallet.updateBy = userId;
+      
+      // 关键修复：检查是否需要更新状态
+      if (pallet.barcodeCount >= totalQuantity && pallet.status === "STACKING") {
+        pallet.status = "STACKED";
+        if (pallet.repairStatus === "REPAIRING") {
+          pallet.repairStatus = "REPAIRED";
+        }
+        console.log(`托盘 ${palletCode} 因数量调整已完成组托 (${pallet.barcodeCount}/${totalQuantity})`);
+      } else if (pallet.barcodeCount < totalQuantity && pallet.status === "STACKED") {
+        // 如果数量增加导致未满足完成条件，重置为组托中
+        pallet.status = "STACKING";
+        console.log(`托盘 ${palletCode} 因数量增加重置为组托中状态 (${pallet.barcodeCount}/${totalQuantity})`);
+      }
+
+      await pallet.save();
+      
+      console.log(`托盘 ${palletCode} 数量更新成功: ${oldQuantity} -> ${totalQuantity}, 状态: ${pallet.status}`);
+      
+      return {
+        palletCode: pallet.palletCode,
+        oldQuantity,
+        newQuantity: totalQuantity,
+        barcodeCount: pallet.barcodeCount,
+        status: pallet.status,
+        message: `托盘数量已从 ${oldQuantity} 更新为 ${totalQuantity}`,
+      };
+    } catch (error) {
+      console.error("更新托盘数量失败:", error);
+      throw error;
+    }
+  }
+
+  /**
    * 更新托盘检测状态
    * @param {String} barcode - 托盘条码/产品条码
    * @param {String} userId - 操作用户ID

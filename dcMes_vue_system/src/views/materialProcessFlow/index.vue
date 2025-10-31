@@ -1971,7 +1971,7 @@ export default {
           barcode = preProductionResponse.data[0].printBarcode;
         }
         req.query.$and.push({
-          barcode: { $regex: barcode, $options: "i" },
+          barcode: barcode,
         });
       }
       if (this.searchForm.materialCode && this.searchForm.materialCode.trim()) {
@@ -2064,7 +2064,7 @@ export default {
           // 先查询托盘数据
           const palletResult = await getData("material_palletizing", {
             query: {
-              palletCode: { $regex: this.searchForm.palletCode.trim(), $options: "i" }
+              palletCode: this.searchForm.palletCode.trim()
             },
             select: "palletBarcodes.materialProcessFlowId",
           });

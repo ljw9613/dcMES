@@ -45,7 +45,8 @@
     "process-key-mutex": "^1.0.1",
     "request": "^2.88.2",
     "tedious": "^14.7.0",
-    "tencentcloud-sdk-nodejs": "^4.0.320"
+    "tencentcloud-sdk-nodejs": "^4.0.320",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "supertest": "^4.0.2"
