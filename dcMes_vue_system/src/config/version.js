@@ -13,21 +13,21 @@
 const VERSION_CONFIG = {
   // 主要版本信息
   major: 1,           // 主版本号
-  minor: 0,           // 次版本号  
+  minor: 1,           // 次版本号  
   patch: 0,           // 修订版本号
   
   // 构建信息
-  build: '20251022',  // 构建日期 YYYYMMDD
+  build: '20251113',  // 构建日期 YYYYMMDD
   
   // 版本状态标识
-  status: 'stable',   // 版本状态: dev(开发版), beta(测试版), rc(候选版), stable(稳定版)
+  status: '管理后台版',   // 版本状态: dev(开发版), beta(测试版), rc(候选版), stable(稳定版)
   
   // 发布信息
-  releaseDate: '2025-10-22',  // 发布日期
+  releaseDate: '2025-11-13',  // 发布日期
   codeName: 'Raptor',        // 版本代号
   
   // 环境标识
-  environment: 'production',  // 当前环境 生产环境
+  environment: '正式环境',  // 当前环境 测试环境
   
   // 版本描述
   description: '德昌MES制造执行系统 - 生产管理一体化解决方案'

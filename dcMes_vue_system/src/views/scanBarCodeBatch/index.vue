@@ -981,7 +981,7 @@ export default {
           try {
             // 🔧 优化：尝试通过托盘编号获取最新数据
             console.log(`尝试获取托盘最新数据: ${res.data.palletCode}`);
-            
+
             const latestData = await getData("material_palletizing", {
               query: { palletCode: res.data.palletCode },
               populate: JSON.stringify([
@@ -993,15 +993,19 @@ export default {
             if (latestData.data && latestData.data.length > 0) {
               const palletData = latestData.data[0];
               console.log("获取到最新托盘数据:", palletData);
-              
+
               // 🔧 修复：检查是否为最新状态（有新的条码添加）
               const originalBarcodeCount = res.data.barcodeCount || 0;
-              const currentBarcodeCount = palletData.palletBarcodes ? palletData.palletBarcodes.length : 0;
-              
+              const currentBarcodeCount = palletData.palletBarcodes
+                ? palletData.palletBarcodes.length
+                : 0;
+
               if (currentBarcodeCount > originalBarcodeCount) {
-                console.log(`检测到条码数量变化: ${originalBarcodeCount} -> ${currentBarcodeCount}`);
+                console.log(
+                  `检测到条码数量变化: ${originalBarcodeCount} -> ${currentBarcodeCount}`
+                );
                 this.$message.success("处理已完成，数据已同步更新");
-                
+
                 // 🔧 关键修复：格式化托盘数据，确保与正常处理流程一致
                 const printData = { ...palletData };
                 printData.createAt = this.formatDate(printData.createAt);
@@ -1012,36 +1016,44 @@ export default {
                 printData.qrcode = `${printData.palletCode}#${
                   printData.saleOrderNo
                 }#${printData.materialCode}#${printData.totalQuantity}#${
-                  (printData.productLineId && printData.productLineId.lineCode) ||
+                  (printData.productLineId &&
+                    printData.productLineId.lineCode) ||
                   "未记录生产线"
                 }`;
-                
+
                 // 确保 palletBarcodes 格式正确
                 if (Array.isArray(printData.palletBarcodes)) {
-                  printData.palletBarcodes = printData.palletBarcodes.map((item) => {
-                    // 格式化时间
-                    if (item.scanTime) {
-                      item.scanTime = this.formatDate(item.scanTime);
+                  printData.palletBarcodes = printData.palletBarcodes.map(
+                    (item) => {
+                      // 格式化时间
+                      if (item.scanTime) {
+                        item.scanTime = this.formatDate(item.scanTime);
+                      }
+                      return item;
                     }
-                    return item;
-                  });
+                  );
                 } else {
                   printData.palletBarcodes = [];
                 }
-                
+
                 // 🔧 重要：立即更新页面状态，模拟正常处理流程
                 this.printData = printData;
-                
+
                 // 更新扫描列表，确保页面进度正确显示
-                this.scannedList = this.printData.palletBarcodes.map((pbItem) => ({
-                  barcode: pbItem.barcode,
-                  scanTime: pbItem.scanTime,
-                  type: pbItem.barcodeType,
-                  boxBarcode: pbItem.boxBarcode,
-                }));
-                
-                console.log("页面状态已更新，扫描列表长度:", this.scannedList.length);
-                
+                this.scannedList = this.printData.palletBarcodes.map(
+                  (pbItem) => ({
+                    barcode: pbItem.barcode,
+                    scanTime: pbItem.scanTime,
+                    type: pbItem.barcodeType,
+                    boxBarcode: pbItem.boxBarcode,
+                  })
+                );
+
+                console.log(
+                  "页面状态已更新，扫描列表长度:",
+                  this.scannedList.length
+                );
+
                 return {
                   code: 200,
                   success: true,
@@ -1051,12 +1063,14 @@ export default {
                     palletCode: palletData.palletCode,
                     barcodeCount: currentBarcodeCount,
                     totalQuantity: palletData.totalQuantity,
-                    _id: palletData._id
+                    _id: palletData._id,
                   },
                   message: "处理完成（已同步最新数据）",
                 };
               } else {
-                console.log(`条码数量未变化: ${currentBarcodeCount}，可能仍在处理中`);
+                console.log(
+                  `条码数量未变化: ${currentBarcodeCount}，可能仍在处理中`
+                );
               }
             }
           } catch (refreshError) {
@@ -2529,6 +2543,135 @@ export default {
             // 记录最后一次成功的结果
             lastResult = res;
           } else {
+            // 【关键修复】检测条码规则不匹配错误，自动刷新规则缓存
+            if (
+              res.message &&
+              (res.message.includes("条码不符合任何已配置的规则") ||
+                res.message.includes("物料不匹配") ||
+                res.message.includes("不符合物料") ||
+                res.message.includes("条码规则"))
+            ) {
+              console.warn(
+                "⚠️ 检测到条码规则不匹配，可能是规则已更新，正在刷新规则缓存..."
+              );
+
+              try {
+                // 重新获取所有相关物料的条码规则
+                const allMaterialIds = [
+                  this.workmainMaterialId, // 主物料ID
+                  ...this.processMaterials.map((m) => m.materialId), // 子物料IDs
+                ];
+                await this.getProductBarcodeRules(allMaterialIds);
+                this.$message.success("条码规则已更新，请重新扫描");
+                // 初始化批次物料缓存并进行条码校验
+                if (this.processMaterials && this.processMaterials.length > 0) {
+                  for (const material of this.processMaterials) {
+                    if (material.isBatch) {
+                      const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                      const usageKey = `${cacheKey}_usage`;
+                      const cachedBarcode = localStorage.getItem(cacheKey);
+
+                      if (cachedBarcode) {
+                        console.log(`检查缓存的批次物料条码: ${cachedBarcode}`);
+
+                        try {
+                          // 1. 先进行条码规则校验
+                          const validateResult = await this.validateBarcode(
+                            cachedBarcode
+                          );
+
+                          if (!validateResult.isValid) {
+                            // 条码不符合当前规则，清除缓存
+                            console.warn(
+                              `批次物料条码 ${cachedBarcode} 不符合当前规则，清除缓存`
+                            );
+                            localStorage.removeItem(cacheKey);
+                            localStorage.removeItem(usageKey);
+                            this.$set(this.scanForm.barcodes, material._id, "");
+                            this.$set(this.validateStatus, material._id, false);
+                            this.$message.warning(
+                              `批次物料 ${material.materialName} 的缓存条码不符合当前规则，已清除`
+                            );
+                            continue;
+                          }
+
+                          // 2. 校验物料编码是否匹配
+                          if (
+                            validateResult.materialCode !==
+                            material.materialCode
+                          ) {
+                            console.warn(
+                              `批次物料条码 ${cachedBarcode} 的物料编码不匹配，清除缓存`
+                            );
+                            localStorage.removeItem(cacheKey);
+                            localStorage.removeItem(usageKey);
+                            this.$set(this.scanForm.barcodes, material._id, "");
+                            this.$set(this.validateStatus, material._id, false);
+                            this.$message.warning(
+                              `批次物料 ${material.materialName} 的缓存条码物料编码不匹配，已清除`
+                            );
+                            continue;
+                          }
+
+                          // 3. 检查使用次数
+                          const count = await this.queryBatchUsageCount(
+                            cachedBarcode,
+                            material.materialId
+                          );
+                          console.log(
+                            `批次条码 ${cachedBarcode} 已使用次数: ${count}`
+                          );
+
+                          // 如果设置了批次用量限制且已达到上限
+                          if (
+                            material.batchQuantity &&
+                            count >= material.batchQuantity &&
+                            material.batchQuantity > 0
+                          ) {
+                            console.warn(
+                              `批次条码 ${cachedBarcode} 使用次数已达到上限`
+                            );
+                            localStorage.removeItem(cacheKey);
+                            localStorage.removeItem(usageKey);
+                            this.$set(this.scanForm.barcodes, material._id, "");
+                            this.$set(this.validateStatus, material._id, false);
+                            this.$message.warning(
+                              `批次物料 ${material.materialName} 的条码使用次数已达到上限，已清除`
+                            );
+                            continue;
+                          }
+
+                          // 4. 所有校验通过，恢复缓存
+                          console.log(
+                            `批次物料条码 ${cachedBarcode} 校验通过，恢复缓存`
+                          );
+                          this.$set(
+                            this.scanForm.barcodes,
+                            material._id,
+                            cachedBarcode
+                          );
+                          this.$set(this.validateStatus, material._id, true);
+                          this.$set(this.batchUsageCount, material._id, count);
+                        } catch (error) {
+                          // 校验过程出错，清除缓存
+                          console.error(
+                            `批次物料条码 ${cachedBarcode} 校验失败:`,
+                            error
+                          );
+                          localStorage.removeItem(cacheKey);
+                          localStorage.removeItem(usageKey);
+                          this.$set(this.scanForm.barcodes, material._id, "");
+                          this.$set(this.validateStatus, material._id, false);
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (refreshError) {
+                console.error("刷新条码规则失败:", refreshError);
+              }
+            }
+
             this.$message.error(res.message);
             this.popupType = "ng";
             this.showPopup = true;
@@ -2859,6 +3002,134 @@ export default {
           this.showPopup = true;
           this.$message.success("条码扫描成功");
         } else {
+          // 【关键修复】检测条码规则不匹配错误，自动刷新规则缓存
+          if (
+            res.message &&
+            (res.message.includes("条码不符合任何已配置的规则") ||
+              res.message.includes("物料不匹配") ||
+              res.message.includes("不符合物料") ||
+              res.message.includes("条码规则"))
+          ) {
+            console.warn(
+              "⚠️ 检测到条码规则不匹配，可能是规则已更新，正在刷新规则缓存..."
+            );
+
+            try {
+              // 重新获取所有相关物料的条码规则
+              const allMaterialIds = [
+                this.workmainMaterialId, // 主物料ID
+                ...this.processMaterials.map((m) => m.materialId), // 子物料IDs
+              ];
+              await this.getProductBarcodeRules(allMaterialIds);
+              this.$message.success("条码规则已更新，请重新扫描");
+              // 初始化批次物料缓存并进行条码校验
+              if (this.processMaterials && this.processMaterials.length > 0) {
+                for (const material of this.processMaterials) {
+                  if (material.isBatch) {
+                    const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                    const usageKey = `${cacheKey}_usage`;
+                    const cachedBarcode = localStorage.getItem(cacheKey);
+
+                    if (cachedBarcode) {
+                      console.log(`检查缓存的批次物料条码: ${cachedBarcode}`);
+
+                      try {
+                        // 1. 先进行条码规则校验
+                        const validateResult = await this.validateBarcode(
+                          cachedBarcode
+                        );
+
+                        if (!validateResult.isValid) {
+                          // 条码不符合当前规则，清除缓存
+                          console.warn(
+                            `批次物料条码 ${cachedBarcode} 不符合当前规则，清除缓存`
+                          );
+                          localStorage.removeItem(cacheKey);
+                          localStorage.removeItem(usageKey);
+                          this.$set(this.scanForm.barcodes, material._id, "");
+                          this.$set(this.validateStatus, material._id, false);
+                          this.$message.warning(
+                            `批次物料 ${material.materialName} 的缓存条码不符合当前规则，已清除`
+                          );
+                          continue;
+                        }
+
+                        // 2. 校验物料编码是否匹配
+                        if (
+                          validateResult.materialCode !== material.materialCode
+                        ) {
+                          console.warn(
+                            `批次物料条码 ${cachedBarcode} 的物料编码不匹配，清除缓存`
+                          );
+                          localStorage.removeItem(cacheKey);
+                          localStorage.removeItem(usageKey);
+                          this.$set(this.scanForm.barcodes, material._id, "");
+                          this.$set(this.validateStatus, material._id, false);
+                          this.$message.warning(
+                            `批次物料 ${material.materialName} 的缓存条码物料编码不匹配，已清除`
+                          );
+                          continue;
+                        }
+
+                        // 3. 检查使用次数
+                        const count = await this.queryBatchUsageCount(
+                          cachedBarcode,
+                          material.materialId
+                        );
+                        console.log(
+                          `批次条码 ${cachedBarcode} 已使用次数: ${count}`
+                        );
+
+                        // 如果设置了批次用量限制且已达到上限
+                        if (
+                          material.batchQuantity &&
+                          count >= material.batchQuantity &&
+                          material.batchQuantity > 0
+                        ) {
+                          console.warn(
+                            `批次条码 ${cachedBarcode} 使用次数已达到上限`
+                          );
+                          localStorage.removeItem(cacheKey);
+                          localStorage.removeItem(usageKey);
+                          this.$set(this.scanForm.barcodes, material._id, "");
+                          this.$set(this.validateStatus, material._id, false);
+                          this.$message.warning(
+                            `批次物料 ${material.materialName} 的条码使用次数已达到上限，已清除`
+                          );
+                          continue;
+                        }
+
+                        // 4. 所有校验通过，恢复缓存
+                        console.log(
+                          `批次物料条码 ${cachedBarcode} 校验通过，恢复缓存`
+                        );
+                        this.$set(
+                          this.scanForm.barcodes,
+                          material._id,
+                          cachedBarcode
+                        );
+                        this.$set(this.validateStatus, material._id, true);
+                        this.$set(this.batchUsageCount, material._id, count);
+                      } catch (error) {
+                        // 校验过程出错，清除缓存
+                        console.error(
+                          `批次物料条码 ${cachedBarcode} 校验失败:`,
+                          error
+                        );
+                        localStorage.removeItem(cacheKey);
+                        localStorage.removeItem(usageKey);
+                        this.$set(this.scanForm.barcodes, material._id, "");
+                        this.$set(this.validateStatus, material._id, false);
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (refreshError) {
+              console.error("刷新条码规则失败:", refreshError);
+            }
+          }
+
           this.$message.error(res.message);
           this.popupType = "ng";
           this.showPopup = true;
@@ -3243,6 +3514,10 @@ export default {
             type: "warning",
           }
         );
+        //当打印模板未选择时提醒
+        if (!this.$refs.hirInput.selectedTemplate) {
+          this.$message.warning("请先选择打印模板");
+        }
 
         // 获取已入托数量
         const usedQuantity = this.scannedList.length;
@@ -3268,11 +3543,109 @@ export default {
 
           if (updateResult.code === 200) {
             console.log("托盘数量更新成功:", updateResult.data);
-            // 如果托盘状态变为已完成，需要提示用户
+            // 如果托盘状态变为已完成，需要提示用户并触发打印、清空页面
             if (updateResult.data.status === "STACKED") {
-              this.$message.success(
-                `托盘数量已更新并完成组托 (${updateResult.data.barcodeCount}/${updateResult.data.newQuantity})`
+              // 获取最新的托盘数据用于打印
+              const materialPalletizingPrintData = await getData(
+                "material_palletizing",
+                {
+                  query: { palletCode: this.palletForm.palletCode },
+                  populate: JSON.stringify([
+                    { path: "productLineId", select: "lineCode" },
+                    { path: "productionOrderId", select: "FWorkShopID_FName" },
+                  ]),
+                }
               );
+
+              if (
+                materialPalletizingPrintData.data &&
+                materialPalletizingPrintData.data[0]
+              ) {
+                let printData = materialPalletizingPrintData.data[0];
+                printData.createAt = this.formatDate(printData.createAt);
+                printData.workshop =
+                  (printData.productionOrderId &&
+                    printData.productionOrderId.FWorkShopID_FName) ||
+                  "未记录生产车间";
+                printData.qrcode = `${printData.palletCode}#${
+                  printData.saleOrderNo
+                }#${printData.materialCode}#${printData.totalQuantity}#${
+                  (printData.productLineId &&
+                    printData.productLineId.lineCode) ||
+                  "未记录生产线"
+                }`;
+
+                // 格式化托盘条码数据
+                if (Array.isArray(printData.palletBarcodes)) {
+                  printData.palletBarcodes = printData.palletBarcodes.map(
+                    (item) => {
+                      // 获取条码对应的工单号
+                      let workOrderNo = "";
+                      if (item.productionPlanWorkOrderId) {
+                        // 如果有工单数组，从中查找匹配的工单
+                        if (
+                          printData.workOrders &&
+                          printData.workOrders.length
+                        ) {
+                          const workOrder = printData.workOrders.find(
+                            (wo) =>
+                              wo.productionPlanWorkOrderId &&
+                              wo.productionPlanWorkOrderId ===
+                                item.productionPlanWorkOrderId
+                          );
+                          if (workOrder) {
+                            workOrderNo = workOrder.workOrderNo;
+                          }
+                        }
+                      }
+                      // 向后兼容：使用旧字段
+                      if (!workOrderNo) {
+                        workOrderNo = printData.workOrderNo || "";
+                      }
+
+                      item.scanTime = this.formatDate(item.scanTime);
+                      item.workOrderNo = workOrderNo;
+                      return item;
+                    }
+                  );
+                } else {
+                  printData.palletBarcodes = [];
+                }
+
+                // 处理多工单托盘的情况
+                if (
+                  Array.isArray(printData.workOrders) &&
+                  printData.workOrders.length > 1
+                ) {
+                  printData.workOrderNo = printData.workOrders
+                    .map((item) => item.workOrderNo)
+                    .join(",");
+                }
+
+                if (printData.isLastPallet) {
+                  printData.isLastPallet = "尾数托盘";
+                } else {
+                  printData.isLastPallet = "";
+                }
+
+                this.printData = printData;
+
+                // 触发打印
+                this.$nextTick(() => {
+                  this.$refs.hirInput.handlePrints2();
+                });
+
+                // 清空托盘信息和扫描列表
+                this.palletForm.palletCode = "";
+                this.palletForm.totalQuantity = 0;
+                this.scannedList = [];
+
+                this.$message.success(
+                  `托盘数量已更新并完成组托 (${updateResult.data.barcodeCount}/${updateResult.data.newQuantity})`
+                );
+              }
+            } else {
+              this.$message.success("托盘数量更新成功");
             }
           } else {
             throw new Error(updateResult.message || "更新托盘数量失败");
@@ -3518,17 +3891,6 @@ export default {
 
     if (this.processStepId) {
       await this.getProcessMaterials();
-      // 初始化批次物料缓存
-      this.processMaterials.forEach((material) => {
-        if (material.isBatch) {
-          const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
-          const cachedBarcode = localStorage.getItem(cacheKey);
-          if (cachedBarcode) {
-            this.$set(this.scanForm.barcodes, material._id, cachedBarcode);
-            this.$set(this.validateStatus, material._id, true);
-          }
-        }
-      });
     }
 
     // 加载本地缓存的打印模板
@@ -3547,6 +3909,92 @@ export default {
 
     // 初始化批次数量
     this.initBatchSize();
+
+    // 初始化批次物料缓存并进行条码校验
+    if (this.processMaterials && this.processMaterials.length > 0) {
+      for (const material of this.processMaterials) {
+        if (material.isBatch) {
+          const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+          const usageKey = `${cacheKey}_usage`;
+          const cachedBarcode = localStorage.getItem(cacheKey);
+
+          if (cachedBarcode) {
+            console.log(`检查缓存的批次物料条码: ${cachedBarcode}`);
+
+            try {
+              // 1. 先进行条码规则校验
+              const validateResult = await this.validateBarcode(cachedBarcode);
+
+              if (!validateResult.isValid) {
+                // 条码不符合当前规则，清除缓存
+                console.warn(
+                  `批次物料条码 ${cachedBarcode} 不符合当前规则，清除缓存`
+                );
+                localStorage.removeItem(cacheKey);
+                localStorage.removeItem(usageKey);
+                this.$set(this.scanForm.barcodes, material._id, "");
+                this.$set(this.validateStatus, material._id, false);
+                this.$message.warning(
+                  `批次物料 ${material.materialName} 的缓存条码不符合当前规则，已清除`
+                );
+                continue;
+              }
+
+              // 2. 校验物料编码是否匹配
+              if (validateResult.materialCode !== material.materialCode) {
+                console.warn(
+                  `批次物料条码 ${cachedBarcode} 的物料编码不匹配，清除缓存`
+                );
+                localStorage.removeItem(cacheKey);
+                localStorage.removeItem(usageKey);
+                this.$set(this.scanForm.barcodes, material._id, "");
+                this.$set(this.validateStatus, material._id, false);
+                this.$message.warning(
+                  `批次物料 ${material.materialName} 的缓存条码物料编码不匹配，已清除`
+                );
+                continue;
+              }
+
+              // 3. 检查使用次数
+              const count = await this.queryBatchUsageCount(
+                cachedBarcode,
+                material.materialId
+              );
+              console.log(`批次条码 ${cachedBarcode} 已使用次数: ${count}`);
+
+              // 如果设置了批次用量限制且已达到上限
+              if (
+                material.batchQuantity &&
+                count >= material.batchQuantity &&
+                material.batchQuantity > 0
+              ) {
+                console.warn(`批次条码 ${cachedBarcode} 使用次数已达到上限`);
+                localStorage.removeItem(cacheKey);
+                localStorage.removeItem(usageKey);
+                this.$set(this.scanForm.barcodes, material._id, "");
+                this.$set(this.validateStatus, material._id, false);
+                this.$message.warning(
+                  `批次物料 ${material.materialName} 的条码使用次数已达到上限，已清除`
+                );
+                continue;
+              }
+
+              // 4. 所有校验通过，恢复缓存
+              console.log(`批次物料条码 ${cachedBarcode} 校验通过，恢复缓存`);
+              this.$set(this.scanForm.barcodes, material._id, cachedBarcode);
+              this.$set(this.validateStatus, material._id, true);
+            } catch (error) {
+              // 校验过程出错，清除缓存
+              console.error(`批次物料条码 ${cachedBarcode} 校验失败:`, error);
+              localStorage.removeItem(cacheKey);
+              localStorage.removeItem(usageKey);
+              this.$set(this.scanForm.barcodes, material._id, "");
+              this.$set(this.validateStatus, material._id, false);
+            }
+          }
+        }
+      }
+    }
   },
   mounted() {
     console.log("Complete roles data:", this.$store.getters.roles);

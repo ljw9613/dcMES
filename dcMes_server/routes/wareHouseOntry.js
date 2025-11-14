@@ -366,6 +366,29 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
       });
     }
 
+    // 【新增】计算托盘中可以出库的产品数量
+    const availableBarcodes = pallet.palletBarcodes.filter(
+      (item) => item.outWarehouseStatus !== "COMPLETED"
+    );
+    const availableQuantity = availableBarcodes.length;
+
+    // 【新增】如果是整托出库模式，检查托盘可用数量是否超过应出库数量
+    if (entryInfo.outboundMode === "PALLET" || palletFinished === true) {
+      if (availableQuantity > entryInfo.outboundQuantity) {
+        return res.status(200).json({
+          code: 404,
+          message: `整托出库失败：托盘可出库数量(${availableQuantity})超过应出库数量(${entryInfo.outboundQuantity})。建议：1. 增加应出库数量至${availableQuantity}；2. 使用单品出库模式`,
+        });
+      }
+      
+      if (availableQuantity === 0) {
+        return res.status(200).json({
+          code: 404,
+          message: "托盘中没有可出库的产品",
+        });
+      }
+    }
+
     // start 根据pallet.saleOrderNo(销售单号)去wareHouseOntry表查询是否有值
     console.log("pallet.saleOrderNo", pallet.saleOrderNo, pallet.saleOrderId);
     //判断当前托盘和
@@ -619,6 +642,15 @@ router.post("/api/v1/warehouse_entry/scan_on", async (req, res) => {
           "未找到有效的出库单，请确认：1. 出库单号是否正确 2. 该出库单是否已完成出库 3. 该出库单是否已被删除",
       });
     }
+
+    // 2.1 检查出库单状态，防止已完成的出库单继续添加托盘
+    if (entry.status === "COMPLETED") {
+      return res.status(200).json({
+        code: 403,
+        message: `出库单${entry.entryNo}已完成，无法继续添加托盘。如需继续出库，请创建新的出库单。`,
+      });
+    }
+
     // 3. 校验物料信息是否一致
     if (pallet.materialId.toString() !== entry.materialId.toString()) {
       return res.status(200).json({
@@ -1623,6 +1655,31 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
       });
     }
 
+    // 4.1 检查出库单状态，防止已完成的出库单继续添加产品
+    if (entry.status === "COMPLETED") {
+      return res.status(200).json({
+        code: 403,
+        message: `出库单${entry.entryNo}已完成，无法继续添加产品。如需继续出库，请创建新的出库单。`,
+      });
+    }
+
+    // 4.2 检查是否已达到应出库数量
+    if (entry.outNumber >= entry.outboundQuantity) {
+      return res.status(200).json({
+        code: 403,
+        message: `出库单${entry.entryNo}已达到应出库数量(${entry.outboundQuantity})，当前已出库：${entry.outNumber}。无法继续添加产品。`,
+      });
+    }
+
+    // 4.3 预检查：添加该产品后是否会超出应出库数量
+    const newOutNumberAfterAdd = entry.outNumber + 1;
+    if (newOutNumberAfterAdd > entry.outboundQuantity) {
+      return res.status(200).json({
+        code: 403,
+        message: `添加该产品会超出应出库数量。应出库：${entry.outboundQuantity}，当前已出库：${entry.outNumber}，添加后将变为：${newOutNumberAfterAdd}`,
+      });
+    }
+
     // 5. 校验物料信息是否一致
     if (pallet.materialId.toString() !== entry.materialId.toString()) {
       return res.status(200).json({
@@ -1762,7 +1819,25 @@ router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
     );
 
     // 检查是否完成出库
-    if (entry.outNumber >= entry.outboundQuantity) {
+    if (entry.outNumber > entry.outboundQuantity) {
+      // 如果超出应出库数量，记录严重错误
+      console.error(`🚨 严重错误: 出库单${entry.entryNo}数量超出! 应出库=${entry.outboundQuantity}, 实际=${entry.outNumber}, 超出=${entry.outNumber - entry.outboundQuantity}`);
+      
+      // 不标记为完成，保持进行中状态以便修正
+      entry.status = "IN_PROGRESS";
+      
+      // 尝试发送告警通知（如果服务存在）
+      if (typeof warehouseService.sendAlert === 'function') {
+        warehouseService.sendAlert({
+          type: "QUANTITY_EXCEEDED",
+          entryNo: entry.entryNo,
+          outboundQuantity: entry.outboundQuantity,
+          outNumber: entry.outNumber,
+          exceeded: entry.outNumber - entry.outboundQuantity
+        }).catch(err => console.error('发送告警失败:', err));
+      }
+    } else if (entry.outNumber === entry.outboundQuantity) {
+      // 精确匹配时才标记为完成
       entry.status = "COMPLETED";
       entry.endTime = new Date();
       // 调用通知接口

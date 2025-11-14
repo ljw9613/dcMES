@@ -8,7 +8,7 @@
   <div class="app-container">
     <div class="userstatus">
       <div class="flexs">
-        <img :src="userdata.avatar" class="user-avatar" />
+        <img :src="require('@/assets/dc.png')" class="user-avatar" />
         <div class="imgtext">您好，{{ userdata.name }}</div>
       </div>
       <div class="flexs">

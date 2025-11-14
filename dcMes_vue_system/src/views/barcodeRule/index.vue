@@ -78,7 +78,7 @@
                         <el-button type="text" size="small" @click="handleEdit(row)" v-if="$checkPermission('条码匹配规则编辑')">
                             <i class="el-icon-edit"></i> 编辑
                         </el-button>
-                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)"v-if="$checkPermission('条码匹配规则删除')">
+                        <el-button type="text" size="small" class="delete-btn" @click="handleDelete(row)" v-if="$checkPermission('条码匹配规则删除')">
                             <i class="el-icon-delete"></i> 删除
                         </el-button>
                     </template>
@@ -431,6 +431,7 @@
 
 <script>
 import { getData, addData, updateData, removeData } from "@/api/data";
+import { clearBarcodeRuleCache } from "@/api/barcodeRule";
 import Pagination from '@/components/Pagination'
 
 export default {
@@ -501,6 +502,55 @@ export default {
     },
 
     methods: {
+        /**
+         * 清理条码规则缓存
+         * @param {string|Array<string>} materialIds - 物料ID（可选，不传则清除所有）
+         */
+        async clearCache(materialIds = null) {
+            try {
+                const params = {};
+                if (materialIds) {
+                    if (Array.isArray(materialIds)) {
+                        params.materialId = materialIds.join(',');
+                    } else {
+                        params.materialId = materialIds;
+                    }
+                }
+                
+                const result = await clearBarcodeRuleCache(params);
+                
+                if (result.success) {
+                    console.log('✅ 缓存清理成功:', result.message);
+                } else {
+                    console.warn('⚠️ 缓存清理失败:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ 清理缓存异常:', error);
+                // 缓存清理失败不影响主流程，只记录日志
+            }
+        },
+
+        /**
+         * 获取规则关联的所有物料ID
+         * @param {string} ruleId - 规则ID
+         * @returns {Promise<Array<string>>} 物料ID数组
+         */
+        async getMaterialIdsByRule(ruleId) {
+            try {
+                const result = await getData('productBarcodeRule', {
+                    query: { barcodeRule: ruleId },
+                    select: 'productId'
+                });
+                if (result.data && result.data.length > 0) {
+                    return result.data.map(item => item.productId).filter(id => id);
+                }
+                return [];
+            } catch (error) {
+                console.error('获取规则关联物料失败:', error);
+                return [];
+            }
+        },
+
         searchData() {
             let req = {
                 query: {
@@ -628,6 +678,10 @@ export default {
                 });
 
                 this.$message.success('物料绑定成功');
+                
+                // 绑定物料后：清除该物料的缓存
+                await this.clearCache(this.materialForm.productId);
+                
                 this.addMaterialDialogVisible = false;
                 await this.fetchMaterialList(this.currentRuleId);
             } catch (error) {
@@ -642,8 +696,15 @@ export default {
                     type: 'warning'
                 });
 
+                // 保存物料ID用于清除缓存
+                const materialId = row.productId._id;
+
                 await removeData('productBarcodeRule', { query: { _id: row._id } });
                 this.$message.success('解除绑定成功');
+                
+                // 解绑物料后：清除该物料的缓存
+                await this.clearCache(materialId);
+                
                 await this.fetchMaterialList(this.currentRuleId);
             } catch (error) {
                 if (error !== 'cancel') {
@@ -666,8 +727,31 @@ export default {
             }).then(async () => {
                 try {
                     const ids = this.selection.map(item => item._id);
+                    
+                    // 检查是否包含全局规则
+                    const hasGlobalRule = this.selection.some(item => item.isGlobal);
+                    
+                    // 如果没有全局规则，收集所有物料ID
+                    let allMaterialIds = [];
+                    if (!hasGlobalRule) {
+                        for (const item of this.selection) {
+                            const materialIds = await this.getMaterialIdsByRule(item._id);
+                            allMaterialIds = allMaterialIds.concat(materialIds);
+                        }
+                        // 去重
+                        allMaterialIds = [...new Set(allMaterialIds)];
+                    }
+                    
                     await removeData('barcodeRule', { query: { _id: { $in: ids } } });
                     this.$message.success('批量删除成功');
+                    
+                    // 批量删除规则：如果包含全局规则，清除所有缓存；否则清除相关物料缓存
+                    if (hasGlobalRule) {
+                        await this.clearCache(); // 清除所有缓存
+                    } else if (allMaterialIds.length > 0) {
+                        await this.clearCache(allMaterialIds); // 清除特定物料缓存
+                    }
+                    
                     this.fetchRules();
                 } catch (error) {
                     console.error('批量删除失败:', error);
@@ -681,9 +765,27 @@ export default {
                 if (this.dialogStatus === 'create') {
                     await addData('barcodeRule', this.currentRule);
                     this.$message.success('新增成功');
+                    
+                    // 新增规则：如果是全局规则，清除所有缓存；否则不需要清除（因为还没有物料绑定）
+                    if (this.currentRule.isGlobal) {
+                        await this.clearCache(); // 清除所有缓存
+                    }
                 } else {
-                    await updateData('barcodeRule', { query: { _id: this.currentRule._id }, update: this.currentRule });
+                    // 获取规则关联的所有物料ID
+                    const materialIds = await this.getMaterialIdsByRule(this.currentRule._id);
+                    let requpdateData = {
+                        ...this.currentRule,
+                        updateAt: new Date()
+                    };
+                    await updateData('barcodeRule', { query: { _id: this.currentRule._id }, update: requpdateData });
                     this.$message.success('更新成功');
+                    
+                    // 更新规则：清除相关物料的缓存（如果是全局规则则清除所有）
+                    if (this.currentRule.isGlobal) {
+                        await this.clearCache(); // 清除所有缓存
+                    } else if (materialIds.length > 0) {
+                        await this.clearCache(materialIds); // 清除特定物料缓存
+                    }
                 }
                 this.dialogVisible = false;
                 this.fetchRules();
@@ -720,8 +822,19 @@ export default {
                     type: 'warning'
                 })
 
+                // 获取规则关联的所有物料ID
+                const materialIds = await this.getMaterialIdsByRule(row._id);
+
                 await removeData('barcodeRule', { query: { _id: row._id } })
                 this.$message.success('删除成功')
+                
+                // 删除规则：清除相关物料的缓存（如果是全局规则则清除所有）
+                if (row.isGlobal) {
+                    await this.clearCache(); // 清除所有缓存
+                } else if (materialIds.length > 0) {
+                    await this.clearCache(materialIds); // 清除特定物料缓存
+                }
+                
                 this.fetchRules()
             } catch (error) {
                 if (error !== 'cancel') {

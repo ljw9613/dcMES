@@ -154,6 +154,7 @@ app.use('/', require('./routes/productRepair.js'));
 app.use('/', require('./routes/uploadMesFile.js'));
 app.use('/', require('./routes/dashboard.js'));
 app.use('/', require('./routes/inspectionImageUpload.js'));
+app.use('/', require('./routes/barcodeRule.js'));
 // 装箱条码原子操作路由
 app.use('/', require('./routes/packBarcodeAtomic'));
 

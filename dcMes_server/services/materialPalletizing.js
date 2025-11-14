@@ -1629,12 +1629,16 @@ class MaterialPalletizingService {
       console.log(`托盘 ${palletCode} 数量更新成功: ${oldQuantity} -> ${totalQuantity}, 状态: ${pallet.status}`);
       
       return {
+        _id: pallet._id,
         palletCode: pallet.palletCode,
         oldQuantity,
         newQuantity: totalQuantity,
         barcodeCount: pallet.barcodeCount,
         status: pallet.status,
+        repairStatus: pallet.repairStatus,
         message: `托盘数量已从 ${oldQuantity} 更新为 ${totalQuantity}`,
+        // 如果状态变为STACKED，添加提示信息
+        isCompleted: pallet.status === "STACKED",
       };
     } catch (error) {
       console.error("更新托盘数量失败:", error);
