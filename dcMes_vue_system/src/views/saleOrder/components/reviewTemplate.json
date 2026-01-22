@@ -1,0 +1,286 @@
+{
+  "panels": [
+    {
+      "index": 0,
+      "name": "合同/订单评审表",
+      "paperType": "A4",
+      "height": 297,
+      "width": 210,
+      "paperHeader": 20,
+      "paperFooter": 780,
+      "printElements": [
+        {
+          "options": {
+            "left": 234,
+            "top": 27,
+            "height": 18,
+            "width": 120,
+            "title": "合同/订单评审表",
+            "fontSize": 14,
+            "fontWeight": "bold",
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 50,
+            "height": 18,
+            "width": 556.5,
+            "content": "□初次评审... □修订（原评审表号：____________）...........NO:___",
+            "textAlign": "left",
+            "textContentVerticalAlign": "middle",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 70,
+            "height": 25,
+            "width": 80,
+            "content": "客户名称",
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 102,
+            "top": 70,
+            "height": 25,
+            "width": 180,
+            "field": "FCustName",
+            "hideTitle": true,
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 282,
+            "top": 70,
+            "height": 25,
+            "width": 80,
+            "content": "产品名称",
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 362,
+            "top": 70,
+            "height": 25,
+            "width": 216.5,
+            "field": "FProductName",
+            "hideTitle": true,
+            "textAlign": "center",
+            "textContentVerticalAlign": "middle",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 160,
+            "height": 60,
+            "width": 120,
+            "content": "客户对产品的要求（如技术要求、质量要求、支持服务、包装、认证、价格等）",
+            "textAlign": "left",
+            "textContentVerticalAlign": "middle",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 142,
+            "top": 160,
+            "height": 60,
+            "width": 300,
+            "field": "FCustomerRequirement",
+            "hideTitle": true,
+            "textAlign": "left",
+            "textContentVerticalAlign": "top",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 442,
+            "top": 160,
+            "height": 60,
+            "width": 136.5,
+            "content": "销售部评审人：_________\n日期：_________",
+            "textAlign": "left",
+            "textContentVerticalAlign": "middle",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 220,
+            "height": 60,
+            "width": 120,
+            "content": "产品的质量标准、检测、检验能力",
+            "textAlign": "left",
+            "textContentVerticalAlign": "middle",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 280,
+            "height": 60,
+            "width": 120,
+            "content": "产品技术资料如图纸、BOM表、产品规格书等、测试能力、实现认证是否满足客户要求",
+            "textAlign": "left",
+            "textContentVerticalAlign": "middle",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 340,
+            "height": 40,
+            "width": 120,
+            "content": "客户交货期是否能满足客户要求",
+            "textAlign": "left",
+            "textContentVerticalAlign": "middle",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 640,
+            "height": 40,
+            "width": 556.5,
+            "content": "评审结论：",
+            "textAlign": "left",
+            "textContentVerticalAlign": "top",
+            "borderLeft": "solid",
+            "borderTop": "solid",
+            "borderRight": "solid",
+            "borderBottom": "solid",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        },
+        {
+          "options": {
+            "left": 22,
+            "top": 680,
+            "height": 18,
+            "width": 556.5,
+            "content": "总经理：_________  日期：_________",
+            "textAlign": "right",
+            "textContentVerticalAlign": "middle",
+            "borderWidth": "0.75"
+          },
+          "printElementType": {
+            "title": "文本",
+            "type": "text"
+          }
+        }
+      ],
+      "paperNumberContinue": true,
+      "backgroundColor": "#ffffff",
+      "overPrintOptions": {},
+      "watermarkOptions": {}
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+pm2 start ./backup_mongodb.js --name "dcMes-backup-scheduler" 

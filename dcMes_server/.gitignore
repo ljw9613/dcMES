@@ -1,0 +1,16 @@
+node_modules
+dist/
+admin/
+adminVN/
+adminYN/
+adminVNCN/
+adminVNCS/
+adminManage/
+adminPzManageVN/
+adminManageVN/
+adminCs/
+adminVNCNCS/
+adminPzManage/
+/public/uploads/
+logs/
+Tools/

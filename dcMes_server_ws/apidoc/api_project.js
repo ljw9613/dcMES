@@ -1,0 +1,16 @@
+define({
+  "name": "这是文档标题",
+  "version": "0.1.0",
+  "description": "这是文档描述",
+  "title": "这是html标题",
+  "url": "这是公共接口地址",
+  "sampleUrl": false,
+  "defaultVersion": "0.0.0",
+  "apidoc": "0.3.0",
+  "generator": {
+    "name": "apidoc",
+    "time": "2020-02-18T10:25:43.135Z",
+    "url": "http://apidocjs.com",
+    "version": "0.20.0"
+  }
+});

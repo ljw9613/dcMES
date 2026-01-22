@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配网码生成算法测试</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .match {
+            color: green;
+            font-weight: bold;
+        }
+        .no-match {
+            color: red;
+            font-weight: bold;
+        }
+        pre {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>配网码生成算法测试</h1>
+        
+        <div class="test-section">
+            <h2>identityCode 算法验证</h2>
+            <p><strong>输入数字:</strong> 10025843</p>
+            <p><strong>期望结果:</strong> 09HYVK</p>
+            <div id="identityResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>完整配网码生成测试</h2>
+            <div id="fullResult"></div>
+        </div>
+
+        <button onclick="runTest()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            运行测试
+        </button>
+    </div>
+
+    <script>
+        // 32进制编码集合
+        const base32Codes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+
+        function generateIdentityCode(input) {
+            let number = parseInt(input) || 10025843;
+            
+            console.log('用于计算的数字:', number);
+            
+            // 按照图片中的算法：递归除以32，取余数
+            const remainders = [];
+            let tempNumber = number;
+            let steps = [];
+            
+            // 执行递归除法运算，收集余数
+            while (tempNumber > 0) {
+                const remainder = tempNumber % 32;
+                remainders.push(remainder);
+                const quotient = Math.floor(tempNumber / 32);
+                steps.push(`${tempNumber}/32=${quotient}......${remainder}`);
+                tempNumber = quotient;
+            }
+            
+            console.log('余数的集合为:', remainders);
+            
+            // 余数数组倒序（从最高位开始）
+            remainders.reverse();
+            
+            // 用余数作为index，从32进制编码集合中获取对应的字符
+            let identityCode = '';
+            for (let i = 0; i < remainders.length && i < 6; i++) {
+                const index = remainders[i];
+                identityCode += base32Codes[index];
+            }
+            
+            // 如果生成的码位数不足6位，左边用'0'补齐
+            identityCode = identityCode.padStart(6, '0');
+            
+            return {
+                identityCode,
+                steps,
+                remainders: remainders.reverse(), // 显示时恢复原顺序
+                calculation: remainders.map(r => base32Codes[r]).join('')
+            };
+        }
+
+        function runTest() {
+            const input = "10025843";
+            const result = generateIdentityCode(input);
+            
+            const identityDiv = document.getElementById('identityResult');
+            const expected = "09HYVK";
+            const isMatch = result.identityCode === expected;
+            
+            identityDiv.innerHTML = `
+                <div class="result">
+                    <h3>计算步骤:</h3>
+                    <pre>${result.steps.join('\n')}</pre>
+                    <p><strong>余数集合:</strong> {${result.remainders.join(', ')}}</p>
+                    <p><strong>对应编码:</strong> ${result.remainders.map(r => `${r}→${base32Codes[r]}`).join(', ')}</p>
+                    <p><strong>生成结果:</strong> <span class="${isMatch ? 'match' : 'no-match'}">${result.identityCode}</span></p>
+                    <p><strong>匹配状态:</strong> <span class="${isMatch ? 'match' : 'no-match'}">${isMatch ? '✓ 匹配' : '✗ 不匹配'}</span></p>
+                </div>
+            `;
+
+            // 测试完整配网码
+            const today = new Date();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+            const monthCodes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C"];
+            const dayCodes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X"];
+            
+            const daymoncode = monthCodes[month - 1] + dayCodes[day - 1];
+            const lst4code = "0001";
+            const fullNetCode = daymoncode + result.identityCode + lst4code;
+
+            const fullDiv = document.getElementById('fullResult');
+            fullDiv.innerHTML = `
+                <div class="result">
+                    <h3>完整配网码组成:</h3>
+                    <p><strong>daymoncode:</strong> ${daymoncode} (月份:${month}→${monthCodes[month-1]}, 日期:${day}→${dayCodes[day-1]})</p>
+                    <p><strong>identityCode:</strong> ${result.identityCode}</p>
+                    <p><strong>lst4code:</strong> ${lst4code}</p>
+                    <p><strong>完整配网码:</strong> <strong style="font-size: 18px; color: #007bff;">${fullNetCode}</strong></p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html> 
