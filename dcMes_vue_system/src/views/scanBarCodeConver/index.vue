@@ -6,7 +6,7 @@
         <div class="card-header">
           <span>
             <i class="el-icon-setting"></i>
-            {{ $t('scanBarCodeConver.processSettings.title') }}</span
+            {{ $t("scanBarCodeConver.processSettings.title") }}</span
           >
           <div class="switch-group">
             <el-switch
@@ -25,12 +25,20 @@
             <div class="section-header">
               <el-tag :type="websocketConnected ? 'success' : 'danger'">
                 <i class="el-icon-goods"></i>
-                {{ websocketConnected ? $t('scanBarCodeConver.processSettings.connected') : $t('scanBarCodeConver.processSettings.disconnected') }}</el-tag
+                {{
+                  websocketConnected
+                    ? $t("scanBarCodeConver.processSettings.connected")
+                    : $t("scanBarCodeConver.processSettings.disconnected")
+                }}</el-tag
               >
-              <span> {{ $t('scanBarCodeConver.processSettings.basicInfo') }} </span>
+              <span>
+                {{ $t("scanBarCodeConver.processSettings.basicInfo") }}
+              </span>
             </div>
 
-            <el-form-item :label="$t('scanBarCodeConver.processSettings.productModel')">
+            <el-form-item
+              :label="$t('scanBarCodeConver.processSettings.productModel')"
+            >
               <zr-select
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
@@ -40,7 +48,11 @@
                 label-key="FName"
                 sub-key="FMATERIALID"
                 :multiple="false"
-                :placeholder="$t('scanBarCodeConver.processSettings.productModelPlaceholder')"
+                :placeholder="
+                  $t(
+                    'scanBarCodeConver.processSettings.productModelPlaceholder'
+                  )
+                "
                 @select="handleProductChange"
               >
                 <template #option="{ item }">
@@ -59,15 +71,23 @@
               <el-input
                 v-else
                 v-model="formData.productName"
-                :placeholder="$t('scanBarCodeConver.processSettings.productModelPlaceholder')"
+                :placeholder="
+                  $t(
+                    'scanBarCodeConver.processSettings.productModelPlaceholder'
+                  )
+                "
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
 
-            <el-form-item :label="$t('scanBarCodeConver.processSettings.processStep')">
+            <el-form-item
+              :label="$t('scanBarCodeConver.processSettings.processStep')"
+            >
               <el-select
                 v-model="formData.processStep"
-                :placeholder="$t('scanBarCodeConver.processSettings.processStepPlaceholder')"
+                :placeholder="
+                  $t('scanBarCodeConver.processSettings.processStepPlaceholder')
+                "
                 @change="handleProcessChange"
                 class="custom-select"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -90,7 +110,9 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item :label="$t('scanBarCodeConver.processSettings.productionLine')">
+            <el-form-item
+              :label="$t('scanBarCodeConver.processSettings.productionLine')"
+            >
               <zr-select
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
@@ -101,13 +123,21 @@
                 tag-key="lineCode"
                 sub-key="workshop"
                 :multiple="false"
-                :placeholder="$t('scanBarCodeConver.processSettings.productionLinePlaceholder')"
+                :placeholder="
+                  $t(
+                    'scanBarCodeConver.processSettings.productionLinePlaceholder'
+                  )
+                "
                 @select="handleProductionLineSelect"
               />
               <el-input
                 v-else
                 v-model="formData.lineName"
-                :placeholder="$t('scanBarCodeConver.processSettings.productionLinePlaceholder')"
+                :placeholder="
+                  $t(
+                    'scanBarCodeConver.processSettings.productionLinePlaceholder'
+                  )
+                "
                 :disabled="!!mainMaterialId && !!processStepId"
               />
             </el-form-item>
@@ -121,7 +151,7 @@
               icon="el-icon-close"
               v-if="mainMaterialId && processStepId"
             >
-              {{ $t('scanBarCodeConver.processSettings.cancelSettings') }}
+              {{ $t("scanBarCodeConver.processSettings.cancelSettings") }}
             </el-button>
             <el-button
               type="primary"
@@ -129,20 +159,24 @@
               @click="handleSave"
               icon="el-icon-check"
             >
-              {{ $t('scanBarCodeConver.processSettings.saveSettings') }}
+              {{ $t("scanBarCodeConver.processSettings.saveSettings") }}
             </el-button>
           </div>
         </el-form>
       </el-card>
     </div>
     <div class="right-content">
-      <template v-if="mainMaterialId && processStepId && processStepData.processType != 'F'">
+      <template
+        v-if="
+          mainMaterialId && processStepId && processStepData.processType != 'F'
+        "
+      >
         <el-card class="scan-card">
           <!-- 标题部分 -->
           <div class="card-header">
             <div class="header-left">
               <i class="el-icon-scan"></i>
-              <span>{{ $t('scanBarCodeConver.scanning.title') }}</span>
+              <span>{{ $t("scanBarCodeConver.scanning.title") }}</span>
               <el-button type="text" @click="toggleCollapse">
                 <i
                   :class="
@@ -151,7 +185,11 @@
                       : 'el-icon-d-arrow-left'
                   "
                 ></i>
-                {{ isCollapsed ? $t('scanBarCodeBatch.batchScanning.expand') : $t('scanBarCodeBatch.batchScanning.collapse') }}
+                {{
+                  isCollapsed
+                    ? $t("scanBarCodeBatch.batchScanning.expand")
+                    : $t("scanBarCodeBatch.batchScanning.collapse")
+                }}
               </el-button>
             </div>
             <el-button
@@ -159,14 +197,14 @@
               @click="handleClearCache"
               icon="el-icon-delete"
             >
-              {{ $t('scanBarCodeBatch.batchScanning.clearCache') }}
+              {{ $t("scanBarCodeBatch.batchScanning.clearCache") }}
             </el-button>
           </div>
 
           <el-form :model="scanForm" ref="scanForm" label-width="100%">
             <div class="section-header">
               <i class="el-icon-camera"></i>
-              <span>{{ $t('scanBarCodeConver.scanning.title') }}</span>
+              <span>{{ $t("scanBarCodeConver.scanning.title") }}</span>
             </div>
             <div class="scan-input-section">
               <el-input
@@ -184,7 +222,7 @@
             <div class="section-header">
               <div class="section-title">
                 <i class="el-icon-goods"></i>
-                <span>{{ $t('scanBarCodeConver.scanning.mainMaterial') }}</span>
+                <span>{{ $t("scanBarCodeConver.scanning.mainMaterial") }}</span>
               </div>
               <el-switch
                 v-model="enableConversion"
@@ -208,14 +246,20 @@
             </div>
             <div class="material-section">
               <el-form-item
-                :label="`${$t('scanBarCodeConver.materialInfo.materialNumber')}${mainMaterialCode}  ${$t('scanBarCodeConver.materialInfo.materialName')}${mainMaterialName}`"
+                :label="`${$t(
+                  'scanBarCodeConver.materialInfo.materialNumber'
+                )}${mainMaterialCode}  ${$t(
+                  'scanBarCodeConver.materialInfo.materialName'
+                )}${mainMaterialName}`"
                 label-width="100%"
                 class="vertical-form-item"
               >
                 <div class="input-with-status">
                   <el-input
                     v-model="scanForm.mainBarcode"
-                    :placeholder="$t('scanBarCodeConver.scanning.mainBarcodePlaceholder')"
+                    :placeholder="
+                      $t('scanBarCodeConver.scanning.mainBarcodePlaceholder')
+                    "
                     :class="{ 'valid-input': validateStatus['mainBarcode'] }"
                     readonly
                   >
@@ -236,7 +280,7 @@
             <!-- 子物料部分 -->
             <div class="section-header">
               <i class="el-icon-box"></i>
-              <span>{{ $t('scanBarCodeConver.scanning.subMaterial') }}</span>
+              <span>{{ $t("scanBarCodeConver.scanning.subMaterial") }}</span>
             </div>
             <div class="material-section">
               <el-row :gutter="20">
@@ -246,7 +290,11 @@
                   :key="material._id"
                 >
                   <el-form-item
-                    :label="`${$t('scanBarCodeConver.materialInfo.materialNumber')}${material.materialCode}  ${$t('scanBarCodeConver.materialInfo.materialName')}${material.materialName}  `"
+                    :label="`${$t(
+                      'scanBarCodeConver.materialInfo.materialNumber'
+                    )}${material.materialCode}  ${$t(
+                      'scanBarCodeConver.materialInfo.materialName'
+                    )}${material.materialName}  `"
                     class="vertical-form-item"
                   >
                     <div class="input-with-status">
@@ -255,7 +303,9 @@
                         :placeholder="
                           !material.scanOperation
                             ? $t('scanBarCodeConver.scanning.noScanRequired')
-                            : $t('scanBarCodeConver.scanning.subBarcodePlaceholder')
+                            : $t(
+                                'scanBarCodeConver.scanning.subBarcodePlaceholder'
+                              )
                         "
                         :class="{ 'valid-input': validateStatus[material._id] }"
                         :readonly="material.scanOperation"
@@ -266,7 +316,9 @@
                         </template>
                         <template slot="suffix">
                           <template v-if="!material.scanOperation">
-                            <el-tag type="info">{{ $t('scanBarCodeConver.scanning.noScanRequired') }}</el-tag>
+                            <el-tag type="info">{{
+                              $t("scanBarCodeConver.scanning.noScanRequired")
+                            }}</el-tag>
                           </template>
                           <template v-else-if="material.isBatch">
                             <el-tag
@@ -275,7 +327,9 @@
                             >
                               {{ getBatchUsageText(material._id) }}
                             </el-tag>
-                            <el-tag type="warning" v-else>{{ $t('scanBarCodeConver.scanning.batchMaterial') }}</el-tag>
+                            <el-tag type="warning" v-else>{{
+                              $t("scanBarCodeConver.scanning.batchMaterial")
+                            }}</el-tag>
                           </template>
                         </template>
                       </el-input>
@@ -294,16 +348,20 @@
 
             <!-- 按钮组 -->
             <div class="button-group">
-              <el-button plain @click="resetScanForm" icon="el-icon-refresh"
-                >{{ $t('scanBarCodeConver.scanning.reset') }}</el-button
-              >
+              <el-button plain @click="resetScanForm" icon="el-icon-refresh">{{
+                $t("scanBarCodeConver.scanning.reset")
+              }}</el-button>
               <el-button
                 type="primary"
                 @click="handleConfirm"
                 icon="el-icon-check"
                 :loading="isSubmitting"
                 :disabled="isSubmitting"
-                >{{ isSubmitting ? '提交中...' : $t('scanBarCodeConver.scanning.confirm') }}</el-button
+                >{{
+                  isSubmitting
+                    ? "提交中..."
+                    : $t("scanBarCodeConver.scanning.confirm")
+                }}</el-button
               >
             </div>
           </el-form>
@@ -313,7 +371,7 @@
         <div class="init-tip">
           <div class="overlay">
             <i class="el-icon-warning-outline pulse"></i>
-            <p>{{ $t('scanBarCodeConver.initTip.message') }}</p>
+            <p>{{ $t("scanBarCodeConver.initTip.message") }}</p>
           </div>
         </div>
       </template>
@@ -400,10 +458,10 @@ export default {
       loading: false, // 加载状态
       unifiedScanInput: "", // 新增统一扫描输入框的值
       hasEditPermission: false, // 添加权限控制状态
-      
+
       // 添加防重复提交标志位
       isSubmitting: false,
-      
+
       batchMaterialCache: {}, // 新增：用于存储批次物料缓存
       printDialogVisible: false,
       currentBatchBarcode: "", // 当前要打印的批次条码
@@ -569,7 +627,11 @@ export default {
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
-      this.$message.success(value ? this.$t('scanBarCodeConver.messages.autoInitEnabled') : this.$t('scanBarCodeConver.messages.autoInitDisabled'));
+      this.$message.success(
+        value
+          ? this.$t("scanBarCodeConver.messages.autoInitEnabled")
+          : this.$t("scanBarCodeConver.messages.autoInitDisabled")
+      );
 
       if (value) {
         // 如果开启自动模式，立即获取机器进度
@@ -633,17 +695,24 @@ export default {
               this.productLineName = lineId.lineName;
               this.formData.lineName = lineId.lineName;
             }
-            this.$message.success(this.$t('scanBarCodeConver.messages.autoInitSuccess'));
+            this.$message.success(
+              this.$t("scanBarCodeConver.messages.autoInitSuccess")
+            );
 
             // 对比当前设置的工序和缓存工序是否一致，不一致时调用handleSave()
             if (processStepIdValue !== this.processStepId) {
               this.handleSave();
             }
           } else {
-            this.$message.warning(this.$t('scanBarCodeConver.messages.noMachineProgressConfig'));
+            this.$message.warning(
+              this.$t("scanBarCodeConver.messages.noMachineProgressConfig")
+            );
           }
         } else {
-          throw new Error(response.message || this.$t('scanBarCodeConver.messages.getMachineProgressFailed'));
+          throw new Error(
+            response.message ||
+              this.$t("scanBarCodeConver.messages.getMachineProgressFailed")
+          );
         }
       } catch (error) {
         localStorage.removeItem("mainMaterialId");
@@ -653,7 +722,11 @@ export default {
         this.formData.productModel = "";
         this.formData.processStep = "";
         console.error("自动初始化失败:", error);
-        this.$message.error(this.$t('scanBarCodeConver.messages.autoInitFailed') + ": " + error.message);
+        this.$message.error(
+          this.$t("scanBarCodeConver.messages.autoInitFailed") +
+            ": " +
+            error.message
+        );
       }
     },
     // 获取产品关联的条码规则
@@ -711,7 +784,9 @@ export default {
         });
       } catch (error) {
         console.error("获取条码规则失败:", error);
-        this.$message.error(this.$t('scanBarCodeConver.messages.getBarcodeRulesFailed'));
+        this.$message.error(
+          this.$t("scanBarCodeConver.messages.getBarcodeRulesFailed")
+        );
       }
     },
     handleWorkOrderSelect(item) {
@@ -789,7 +864,9 @@ export default {
           this.productOptions = result.data;
         } catch (error) {
           console.error("获取产品型号失败:", error);
-          this.$message.error(this.$t('scanBarCodeConver.messages.getProductModelFailed'));
+          this.$message.error(
+            this.$t("scanBarCodeConver.messages.getProductModelFailed")
+          );
         } finally {
           this.materialLoading = false;
         }
@@ -815,7 +892,9 @@ export default {
         this.formData.productModel = materialId;
       } catch (error) {
         console.error("获取工序列表失败:", error);
-        this.$message.error(this.$t('scanBarCodeConver.messages.getProcessStepsFailed'));
+        this.$message.error(
+          this.$t("scanBarCodeConver.messages.getProcessStepsFailed")
+        );
       }
     },
 
@@ -925,7 +1004,9 @@ export default {
 
             // 设置打印模板到本地存储
             this.localPrintTemplate = printTemplate;
-            this.$message.success(this.$t('scanBarCodeConver.messages.autoApplyPrintTemplate'));
+            this.$message.success(
+              this.$t("scanBarCodeConver.messages.autoApplyPrintTemplate")
+            );
 
             // 确保UI组件更新
             this.$nextTick(() => {
@@ -937,7 +1018,9 @@ export default {
         }
       } catch (error) {
         console.error("获取工序关联打印模板失败:", error);
-        this.$message.warning(this.$t('scanBarCodeConver.messages.getPrintTemplateFailed'));
+        this.$message.warning(
+          this.$t("scanBarCodeConver.messages.getPrintTemplateFailed")
+        );
       }
     },
 
@@ -948,7 +1031,9 @@ export default {
         !this.formData.processStep ||
         !this.formData.productLine
       ) {
-        this.$message.warning(this.$t('scanBarCodeConver.messages.pleaseSelectProductProcessLine'));
+        this.$message.warning(
+          this.$t("scanBarCodeConver.messages.pleaseSelectProductProcessLine")
+        );
         return;
       }
 
@@ -990,7 +1075,9 @@ export default {
           this.processName = processStep.processName;
         }
 
-        this.$message.success(this.$t('scanBarCodeConver.messages.saveSuccess'));
+        this.$message.success(
+          this.$t("scanBarCodeConver.messages.saveSuccess")
+        );
 
         // 模拟延迟以显示加载图标
         setTimeout(() => {
@@ -1001,7 +1088,7 @@ export default {
         }, 500);
       } catch (error) {
         console.error("保存失败:", error);
-        this.$message.error(this.$t('scanBarCodeConver.messages.saveFailed'));
+        this.$message.error(this.$t("scanBarCodeConver.messages.saveFailed"));
         loading.close(); // 确保在错误情况下关闭加载动画
       }
     },
@@ -1027,7 +1114,9 @@ export default {
         }
       } catch (error) {
         console.error("获取主物料信息失败:", error);
-        this.$message.error(this.$t('scanBarCodeConver.messages.getMainMaterialInfoFailed'));
+        this.$message.error(
+          this.$t("scanBarCodeConver.messages.getMainMaterialInfoFailed")
+        );
         this.mainMaterialName = "";
         this.mainMaterialCode = "";
       }
@@ -1074,7 +1163,9 @@ export default {
 
               // 设置打印模板到本地存储
               this.localPrintTemplate = printTemplate;
-              this.$message.success(this.$t('scanBarCodeConver.messages.autoApplyPrintTemplate'));
+              this.$message.success(
+                this.$t("scanBarCodeConver.messages.autoApplyPrintTemplate")
+              );
 
               // 确保UI组件更新
               this.$nextTick(() => {
@@ -1085,7 +1176,9 @@ export default {
             }
           } catch (error) {
             console.error("获取工序关联打印模板失败:", error);
-            this.$message.warning(this.$t('scanBarCodeConver.messages.getPrintTemplateFailed'));
+            this.$message.warning(
+              this.$t("scanBarCodeConver.messages.getPrintTemplateFailed")
+            );
           }
         }
 
@@ -1173,14 +1266,19 @@ export default {
           }
         } catch (error) {
           console.error("获取工序物料失败:", error);
-          this.$message.error(this.$t('scanBarCodeConver.messages.getProcessMaterialsFailed'));
+          this.$message.error(
+            this.$t("scanBarCodeConver.messages.getProcessMaterialsFailed")
+          );
           this.processMaterials = [];
           this.validateStatus = { mainBarcode: false };
           this.scanForm.barcodes = {};
         }
       } catch (error) {
         console.error("获取工序物料失败:", error);
-        this.$message.error(error.message || this.$t('scanBarCodeConver.messages.getProcessMaterialsFailed'));
+        this.$message.error(
+          error.message ||
+            this.$t("scanBarCodeConver.messages.getProcessMaterialsFailed")
+        );
         this.processMaterials = [];
         this.validateStatus = { mainBarcode: false };
         this.scanForm.barcodes = {};
@@ -1197,7 +1295,9 @@ export default {
         });
 
         if (response.data.length === 0) {
-          this.$message.error(this.$t('scanBarCodeConver.messages.diCodeNotExist'));
+          this.$message.error(
+            this.$t("scanBarCodeConver.messages.diCodeNotExist")
+          );
           return { isValid: false };
         }
 
@@ -1207,7 +1307,9 @@ export default {
           .map((item) => item.productId.FNumber);
 
         if (possibleMaterialCodes.length === 0) {
-          this.$message.error(this.$t('scanBarCodeConver.messages.diCodeNoMaterial'));
+          this.$message.error(
+            this.$t("scanBarCodeConver.messages.diCodeNoMaterial")
+          );
           return { isValid: false };
         }
 
@@ -1223,7 +1325,9 @@ export default {
         );
 
         if (!matchedMaterialCode) {
-          this.$message.error(this.$t('scanBarCodeConver.messages.diCodeMaterialMismatch'));
+          this.$message.error(
+            this.$t("scanBarCodeConver.messages.diCodeMaterialMismatch")
+          );
           this.errorMessage = "该DI编码对应的物料与当前工序不匹配";
           return { isValid: false };
         }
@@ -1235,7 +1339,9 @@ export default {
         };
       } catch (error) {
         console.error("DI码验证失败:", error);
-        this.$message.error(this.$t('scanBarCodeConver.messages.diCodeValidationFailed'));
+        this.$message.error(
+          this.$t("scanBarCodeConver.messages.diCodeValidationFailed")
+        );
         return { isValid: false };
       }
     },
@@ -1404,7 +1510,9 @@ export default {
         if (response.data && response.data.length > 0) {
           // 条码已存在，获取流程信息
           const flowData = response.data[0];
-          this.$message.success(this.$t('scanBarCodeConver.messages.scanSuccess'));
+          this.$message.success(
+            this.$t("scanBarCodeConver.messages.scanSuccess")
+          );
         } else {
           // 使用工序对应的主物料信息创建新的流程记录
           const createResponse = await createFlow({
@@ -1430,7 +1538,7 @@ export default {
         this.errorMessage = error;
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio('tmyw');
+        playAudio("tmyw");
         throw error;
       }
     },
@@ -1457,13 +1565,15 @@ export default {
         }
 
         this.validateStatus[materialId] = true;
-        this.$message.success(this.$t('scanBarCodeConver.messages.scanSuccessful'));
+        this.$message.success(
+          this.$t("scanBarCodeConver.messages.scanSuccessful")
+        );
       } catch (error) {
         this.errorMessage = error;
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio('tmyw');
+        playAudio("tmyw");
         throw error;
       }
     },
@@ -1534,24 +1644,43 @@ export default {
       if (!this.$refs.hirInput.selectedTemplate) {
         this.unifiedScanInput = "";
         this.$refs.scanInput.focus();
-        this.$message.warning(this.$t('scanBarCodeConver.messages.printTemplateRequired'));
+        this.$message.warning(
+          this.$t("scanBarCodeConver.messages.printTemplateRequired")
+        );
         return;
       }
 
       try {
-        const cleanValue = value.trim().replace(/[\r\n]/g, "");
+        let cleanValue = value.trim().replace(/[\r\n]/g, "");
         if (!cleanValue) return;
+
+        if (value.includes("DCZZ-")) {
+          // 先检查是否为自制条码
+          const diyCodeResponse = await getData("material_process_flow", {
+            query: {
+              diyCode: cleanValue,
+            },
+          });
+
+          if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+            cleanValue = diyCodeResponse.data[0].barcode;
+          }
+        }
 
         const isValidResult = await this.validateBarcode(cleanValue);
         if (!isValidResult.isValid) {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('tmyw');
+            playAudio("tmyw");
           }, 300);
           this.$notify({
-            title: this.$t('scanBarCodeConver.messages.barcodeValidationFailed'),
-            message: this.$t('scanBarCodeConver.messages.barcodeFormatIncorrect'),
+            title: this.$t(
+              "scanBarCodeConver.messages.barcodeValidationFailed"
+            ),
+            message: this.$t(
+              "scanBarCodeConver.messages.barcodeFormatIncorrect"
+            ),
             type: "error",
             duration: 3000,
             position: "top-right",
@@ -1576,7 +1705,7 @@ export default {
             this.errorMessage = "该条码存在未完成的维修记录";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio('dwx');
+            playAudio("dwx");
             return;
           }
           if (
@@ -1589,7 +1718,7 @@ export default {
               this.$message.error("该条码已完成报废处理");
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio('tmyw');
+              playAudio("tmyw");
               return;
             }
             this.unifiedScanInput = "";
@@ -1598,7 +1727,7 @@ export default {
             this.errorMessage = "该条码已完成维修,但维修结果为不合格";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio('wxsb');
+            playAudio("wxsb");
             return;
           }
         }
@@ -1633,7 +1762,7 @@ export default {
                   this.errorMessage = "该条码已作废";
                   this.popupType = "ng";
                   this.showPopup = true;
-                  playAudio('tmyw');
+                  playAudio("tmyw");
                   return;
                 }
               }
@@ -1704,7 +1833,7 @@ export default {
             }
           });
 
-          playAudio('smcg');
+          playAudio("smcg");
           this.$notify({
             title: "扫描成功",
             dangerouslyUseHTMLString: true,
@@ -1729,7 +1858,7 @@ export default {
 
           // 检查是否已经在提交中，避免重复提交
           if (this.isSubmitting) {
-            console.warn('已经在提交中，跳过自动提交');
+            console.warn("已经在提交中，跳过自动提交");
             return;
           }
 
@@ -1741,13 +1870,13 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('tmyw');
+            playAudio("tmyw");
           }, 300);
         }
       } catch (error) {
         console.error("扫描处理失败:", error);
         setTimeout(() => {
-          playAudio('tmyw');
+          playAudio("tmyw");
         }, 1000);
         this.$notify({
           title: "扫描失败",
@@ -1843,7 +1972,7 @@ export default {
     async handleConfirm() {
       // 防重复提交检查
       if (this.isSubmitting) {
-        console.warn('正在提交中，请勿重复操作');
+        console.warn("正在提交中，请勿重复操作");
         return;
       }
 
@@ -1958,8 +2087,11 @@ export default {
           this.popupType = "ok";
           this.showPopup = true;
 
+          let diyCode = scanResponse.data && scanResponse.data.diyCode;
+
           let printData = {
             printBarcode: mainBarcode,
+            diyCode: diyCode,
           };
 
           if (this.craftInfo && this.craftInfo.isProduct) {
@@ -2069,6 +2201,16 @@ export default {
               "," +
               printData.quantity;
 
+            //追觅综合字段固定20251221
+            printData.printBarcodeZH2025 =
+              printData.printBarcode +
+              "," +
+              printData.FCustPO +
+              "," +
+              "20251221" +
+              "," +
+              printData.quantity;
+
             //createDate
             printData.createDate = `${year}.${month}`;
 
@@ -2083,7 +2225,7 @@ export default {
           });
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
-            playAudio('bdcg');
+            playAudio("bdcg");
           }, 1000);
         }
 
@@ -2098,7 +2240,7 @@ export default {
         if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
           setTimeout(() => {
-            playAudio('pcwlxz');
+            playAudio("pcwlxz");
             this.errorMessage = "批次物料条码已达到使用次数限制";
             this.popupType = "ng";
             this.showPopup = true;
@@ -2125,21 +2267,21 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('cfbd'); // 延迟播放
+            playAudio("cfbd"); // 延迟播放
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('cxwgd'); // 延迟播放
+            playAudio("cxwgd"); // 延迟播放
           }, 1000);
         } else {
           this.$message.error("确认失败:" + error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio('tmyw'); // 延迟播放
+            playAudio("tmyw"); // 延迟播放
           }, 1000);
         }
       } finally {
@@ -2394,7 +2536,11 @@ export default {
     handleConversionChange(value) {
       this.enableConversion = value;
       this.conversionMode = value; // 保存到本地存储
-      this.$message.success(value ? this.$t('scanBarCodeConver.messages.conversionEnabled') : this.$t('scanBarCodeConver.messages.conversionDisabled'));
+      this.$message.success(
+        value
+          ? this.$t("scanBarCodeConver.messages.conversionEnabled")
+          : this.$t("scanBarCodeConver.messages.conversionDisabled")
+      );
 
       if (value) {
         // 如果开启转化模式，可以在这里添加相关逻辑
@@ -2465,7 +2611,7 @@ export default {
               this.errorMessage = "批次条码使用次数已达到上限";
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio('pcwlxz'); // 播放批次物料条码已达到使用次数限制提示音
+              playAudio("pcwlxz"); // 播放批次物料条码已达到使用次数限制提示音
               localStorage.removeItem(cacheKey);
               this.$set(this.scanForm.barcodes, material._id, "");
               this.$set(this.validateStatus, material._id, false);

@@ -8,7 +8,8 @@ let mongoose = require("mongoose");
 
 module.exports = app => {
   let mongodbUrl =
-    "mongodb://dcMes:dcMes123.@47.115.19.76:27017/dcMes";
+    "mongodb://dcmes:bA6GNfZGy7rF4TRp@106.52.179.92:27017/dcmes";
+    // "mongodb://dcMes:dcMes123.@47.115.19.76:27017/dcMes";
   // "mongodb://seafoodStreet:seafoodStreet888@47.115.19.76:27017/seafoodStreet";//本地测试
   // 'mongodb://dcMesCs:ZxbM3zijfmDCjHZY@127.0.0.1:27017/dcMesCs';//线上测试
   

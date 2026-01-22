@@ -77,9 +77,14 @@
         </div>
 
         <el-form-item>
-          <el-button type="primary" @click="search" >查询搜索</el-button>
-          <el-button @click="resetForm" >重置</el-button>
-          <el-button type="primary" @click="handleScan" v-if="$checkPermission('条码抽检扫码二维码')">扫码二维码</el-button>
+          <el-button type="primary" @click="search">查询搜索</el-button>
+          <el-button @click="resetForm">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleScan"
+            v-if="$checkPermission('条码抽检扫码二维码')"
+            >扫码二维码</el-button
+          >
         </el-form-item>
       </el-form>
     </el-card>
@@ -90,16 +95,10 @@
         <div class="screen_content_first">
           <i class="el-icon-tickets">抽检记录表</i>
           <div>
-            <el-button
-              type="primary"
-              @click="handleAllExcel"
-             >
+            <el-button type="primary" @click="handleAllExcel">
               导出数据表
             </el-button>
-            <el-button
-              type="primary"
-              @click="handleAllExport"
-              >
+            <el-button type="primary" @click="handleAllExport">
               批量导出数据
             </el-button>
           </div>
@@ -262,14 +261,11 @@
           </template>
         </el-table-column>
 
-       
-
         <!-- <el-table-column label="完成进度" width="200">
                     <template slot-scope="scope">
                         <el-progress :percentage="scope.row.progress || 0"></el-progress>
                     </template>
                 </el-table-column> -->
-
       </template>
     </base-table>
 
@@ -360,13 +356,7 @@
             </el-tag>
           </el-form-item>
           <el-form-item label="流程状态">
-            <el-tag
-              :type="
-                flowStatus === 'COMPLETED'
-                  ? 'success'
-                  : 'danger'
-              "
-            >
+            <el-tag :type="flowStatus === 'COMPLETED' ? 'success' : 'danger'">
               {{ getFlowStatusText(flowStatus) }}
             </el-tag>
           </el-form-item>
@@ -1815,9 +1805,22 @@ export default {
 
       try {
         // 查询 material_process_flow 表获取产品信息
-        const result = await getData("material_process_flow", {
-          query: { barcode: this.scanForm.barcode },
-        });
+
+        // 检查主条码是否已完成
+        let result;
+
+        if (this.scanForm.barcode.includes("DCZZ-")) {
+          // 先检查是否为自制条码
+          result = await getData("material_process_flow", {
+            query: {
+              diyCode: this.scanForm.barcode,
+            },
+          });
+        } else {
+          result = await getData("material_process_flow", {
+            query: { barcode: this.scanForm.barcode },
+          });
+        }
 
         if (result.code === 200 && result.data.length > 0) {
           this.currentFlowData = result.data[0];
@@ -1832,7 +1835,6 @@ export default {
 
           // 保存流程状态信息
           this.flowStatus = this.currentFlowData.status;
-
 
           // 查找最后一个完成的节点
           if (
@@ -1866,9 +1868,22 @@ export default {
     // 处理扫码确认
     async handleScanConfirm() {
       try {
+
+        let barcode = this.scanForm.barcode;
+
+        if (barcode.includes("DCZZ-")) {
+          const diyCodeResponse = await getData("material_process_flow", {
+            query: {
+              diyCode: barcode,
+            },
+          });
+          if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+            barcode = diyCodeResponse.data[0].barcode;
+          }
+        }
         // 检查主条码是否已完成
         const flowresult = await getData("material_process_flow", {
-          query: { barcode: this.scanForm.barcode },
+          query: { barcode: barcode },
         });
 
         if (flowresult.code === 200 && flowresult.data.length > 0) {
@@ -1887,7 +1902,9 @@ export default {
           if (flowData.processNodes && flowData.processNodes.length > 0) {
             // 按照完成时间降序排序，找出最后完成的节点
             const completedNodes = flowData.processNodes
-              .filter((node) => node.status === "COMPLETED" && node.processStepId)
+              .filter(
+                (node) => node.status === "COMPLETED" && node.processStepId
+              )
               .sort(
                 (a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0)
               );
@@ -1921,10 +1938,45 @@ export default {
           }
         }
 
+        // 检查条码所在的托盘状态
+        const palletQuery = {
+          $or: [
+            { "palletBarcodes.barcode": barcode },
+            { "boxItems.boxBarcode": barcode },
+          ],
+        };
+        const palletResult = await getData("material_palletizing", {
+          query: palletQuery,
+          select: "palletCode inWarehouseStatus",
+        });
+
+        if (palletResult.code === 200 && palletResult.data.length > 0) {
+          const pallet = palletResult.data[0];
+          // 检查托盘出入库状态
+          if (
+            pallet.inWarehouseStatus === "IN_WAREHOUSE" ||
+            pallet.inWarehouseStatus === "OUT_WAREHOUSE" ||
+            pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+          ) {
+            const statusText =
+              pallet.inWarehouseStatus === "IN_WAREHOUSE"
+                ? "已入库"
+                : pallet.inWarehouseStatus === "OUT_WAREHOUSE"
+                ? "已出库"
+                : "部分出库";
+            this.$message.error(
+              `该条码所在的托盘（${pallet.palletCode}）状态为${statusText}，不允许进行抽检`
+            );
+            this.scanForm.barcode = "";
+            this.$refs.barcodeInput.focus();
+            return;
+          }
+        }
+
         // 先检查是否已经存在抽检记录
         const existingRecord = await getData("sampling_inspection_flow", {
           query: {
-            barcode: this.scanForm.barcode,
+            barcode: barcode,
             samplingStatus: { $ne: "VOIDED" }, // 排除已作废的记录
           },
         });
@@ -1944,7 +1996,7 @@ export default {
 
             // 作废原记录
             const voidResult = await updateData("sampling_inspection_flow", {
-              query: { barcode: this.scanForm.barcode },
+              query: { barcode: barcode },
               update: {
                 $set: {
                   samplingStatus: "VOIDED",
@@ -1975,7 +2027,7 @@ export default {
 
             // 构建抽检记录数据
             const inspectionData = {
-              barcode: this.scanForm.barcode,
+              barcode: barcode,
               materialProcessFlowId: this.currentFlowData._id,
               materialCode: this.currentFlowData.materialCode,
               materialName: this.currentFlowData.materialName,
@@ -2011,7 +2063,7 @@ export default {
 
             //生成抽检记录时需要将托盘条码更新为已抽检
             await updatePalletInspectionStatus({
-              barcode: this.scanForm.barcode,
+              barcode: barcode,
               userId: this.$store.state.user.id,
               remarks: "抽检中",
               status: this.scanForm.isQualified,
@@ -2064,12 +2116,12 @@ export default {
       };
       return statusMap[status] || status;
     },
-        // 已删除作废功能
+    // 已删除作废功能
     handleDetail(row) {
-      this.$message.info('条码抽检查看详情功能待实现');
+      this.$message.info("条码抽检查看详情功能待实现");
     },
     handleScanQRCode(row) {
-      this.$message.info('条码抽检扫码二维码功能待实现');
+      this.$message.info("条码抽检扫码二维码功能待实现");
     },
   },
   created() {

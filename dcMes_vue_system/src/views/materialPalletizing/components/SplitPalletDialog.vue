@@ -112,8 +112,8 @@
           <span>条码扫描</span>
           <!-- 添加包装箱校验提示 -->
           <div v-if="hasBoxItems" class="box-scan-hint">
-            <i class="el-icon-warning" style="color: #e6a23c;"></i>
-            <span style="color: #e6a23c; font-size: 12px; margin-left: 5px;">
+            <i class="el-icon-warning" style="color: #e6a23c"></i>
+            <span style="color: #e6a23c; font-size: 12px; margin-left: 5px">
               当前托盘包含包装箱，请扫描包装箱条码进行拆分
             </span>
           </div>
@@ -236,7 +236,9 @@ export default {
       return this.selectedBarcodes.length > 0;
     },
     hasBoxItems() {
-      return this.originalPallet.boxItems && this.originalPallet.boxItems.length > 0;
+      return (
+        this.originalPallet.boxItems && this.originalPallet.boxItems.length > 0
+      );
     },
   },
   watch: {
@@ -275,6 +277,18 @@ export default {
         this.scanCode = this.scanCode.split(",")[0];
       }
 
+      // 是否为自制条码
+      if (this.scanCode.includes("DCZZ-")) {
+        const diyCodeResponse = await getData("material_process_flow", {
+          query: {
+            diyCode: this.scanCode.trim(),
+          },
+        });
+        if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+          this.scanCode = diyCodeResponse.data[0].barcode;
+        }
+      }
+      
       //是否为升级条码
       const preProductionResponse = await getData("preProductionBarcode", {
         query: {
@@ -315,9 +329,11 @@ export default {
             break;
           }
         }
-        
+
         if (belongsToBox) {
-          this.$message.error("当前托盘包含包装箱，请扫描对应的包装箱条码，不能直接扫描单个条码");
+          this.$message.error(
+            "当前托盘包含包装箱，请扫描对应的包装箱条码，不能直接扫描单个条码"
+          );
           this.scanCode = "";
           this.loading = false;
           return;
@@ -473,9 +489,11 @@ export default {
         const hasIndividualBarcodes = this.selectedBarcodes.some(
           (item) => !item.boxBarcode
         );
-        
+
         if (hasIndividualBarcodes) {
-          this.$message.error("当前托盘包含包装箱，必须通过扫描包装箱条码进行拆分，请清空当前选择并重新扫描包装箱条码");
+          this.$message.error(
+            "当前托盘包含包装箱，必须通过扫描包装箱条码进行拆分，请清空当前选择并重新扫描包装箱条码"
+          );
           return;
         }
       }

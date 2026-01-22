@@ -7,6 +7,30 @@
  * @since 2024年9月
  */
 
+/**
+ * 获取当前日期（格式：YYYY-MM-DD）
+ * @returns {string} 当前日期字符串
+ */
+function getCurrentDate() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * 获取当前构建日期（格式：YYYYMMDD）
+ * @returns {string} 构建日期字符串
+ */
+function getBuildDate() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}${month}${day}`
+}
+
 // 主版本号：当你做了不兼容的 API 修改
 // 次版本号：当你做了向下兼容的功能性新增  
 // 修订号：当你做了向下兼容的问题修正
@@ -14,16 +38,16 @@ const VERSION_CONFIG = {
   // 主要版本信息
   major: 1,           // 主版本号
   minor: 1,           // 次版本号  
-  patch: 0,           // 修订版本号
+  patch: 2,           // 修订版本号
   
-  // 构建信息
-  build: '20251113',  // 构建日期 YYYYMMDD
+  // 构建信息（自动获取当前日期）
+  build: getBuildDate(),  // 构建日期 YYYYMMDD（自动更新）
   
   // 版本状态标识
-  status: '管理后台版',   // 版本状态: dev(开发版), beta(测试版), rc(候选版), stable(稳定版)
+  status: '产线生产版',   
   
-  // 发布信息
-  releaseDate: '2025-11-13',  // 发布日期
+  // 发布信息（自动获取当前日期）
+  releaseDate: getCurrentDate(),  // 发布日期（自动更新）
   codeName: 'Raptor',        // 版本代号
   
   // 环境标识

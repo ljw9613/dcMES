@@ -10,10 +10,14 @@ export function handlePalletBarcode(data) {
 }
 
 // 查询托盘处理状态接口（用于队列模式）
+// 使用查询参数而不是路径参数，避免URL条码中的特殊字符导致路由解析错误
 export function getPalletProcessingStatus(jobId) {
     return request({
-        url: `/getPalletProcessingStatus/${jobId}`,
-        method: 'get'
+        url: '/getPalletProcessingStatus',
+        method: 'get',
+        params: {
+            jobId: jobId
+        }
     })
 }
 

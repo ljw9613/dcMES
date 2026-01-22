@@ -24,7 +24,9 @@
             clearable
           >
             <template slot="append">
-              <el-button @click="handleBarcodeSearch">{{ $t('editDialog.form.confirm') }}</el-button>
+              <el-button @click="handleBarcodeSearch">{{
+                $t("editDialog.form.confirm")
+              }}</el-button>
             </template>
           </el-input>
         </el-form-item>
@@ -57,15 +59,26 @@
             </el-select>
             <!-- 部件更换提示信息 -->
             <div
-              v-if="form.solution === 'COMPONENT_REPLACEMENT' || form.solution === '部件更换'"
-              style="margin-top: 8px; padding: 10px; background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 4px;"
+              v-if="
+                form.solution === 'COMPONENT_REPLACEMENT' ||
+                form.solution === '部件更换'
+              "
+              style="
+                margin-top: 8px;
+                padding: 10px;
+                background-color: #fff7e6;
+                border: 1px solid #ffd591;
+                border-radius: 4px;
+              "
             >
-              <p style="margin: 0; color: #fa8c16; font-size: 13px;">
+              <p style="margin: 0; color: #fa8c16; font-size: 13px">
                 <i class="el-icon-warning-outline"></i>
-                <strong>{{ $t('editDialog.tips.componentReplacementTitle') }}</strong>
+                <strong>{{
+                  $t("editDialog.tips.componentReplacementTitle")
+                }}</strong>
               </p>
-              <p style="margin: 5px 0 0 0; color: #8c8c8c; font-size: 12px;">
-                {{ $t('editDialog.tips.componentReplacementContent') }}
+              <p style="margin: 5px 0 0 0; color: #8c8c8c; font-size: 12px">
+                {{ $t("editDialog.tips.componentReplacementContent") }}
               </p>
             </div>
           </el-form-item>
@@ -75,7 +88,10 @@
       <!-- 维修信息 -->
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item :label="$t('editDialog.form.defectDescription')" prop="defectDescription">
+          <el-form-item
+            :label="$t('editDialog.form.defectDescription')"
+            prop="defectDescription"
+          >
             <el-input
               type="textarea"
               v-model="form.defectDescription"
@@ -88,7 +104,10 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item :label="$t('editDialog.form.materialNumber')" prop="materialNumber">
+          <el-form-item
+            :label="$t('editDialog.form.materialNumber')"
+            prop="materialNumber"
+          >
             <el-input
               v-model="form.materialNumber"
               :placeholder="$t('editDialog.form.materialNumberPlaceholder')"
@@ -97,7 +116,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item :label="$t('editDialog.form.materialName')" prop="materialName">
+          <el-form-item
+            :label="$t('editDialog.form.materialName')"
+            prop="materialName"
+          >
             <el-input
               v-model="form.materialName"
               :placeholder="$t('editDialog.form.materialNamePlaceholder')"
@@ -106,7 +128,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item :label="$t('editDialog.form.materialSpec')" prop="materialSpec">
+          <el-form-item
+            :label="$t('editDialog.form.materialSpec')"
+            prop="materialSpec"
+          >
             <el-input
               v-model="form.materialSpec"
               :placeholder="$t('editDialog.form.materialSpecPlaceholder')"
@@ -115,7 +140,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item :label="$t('editDialog.form.workOrderNo')" prop="workOrderNo">
+          <el-form-item
+            :label="$t('editDialog.form.workOrderNo')"
+            prop="workOrderNo"
+          >
             <el-input
               v-model="form.workOrderNo"
               :placeholder="$t('editDialog.form.workOrderNoPlaceholder')"
@@ -124,7 +152,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item :label="$t('editDialog.form.businessType')" prop="businessType">
+          <el-form-item
+            :label="$t('editDialog.form.businessType')"
+            prop="businessType"
+          >
             <el-select
               v-model="form.businessType"
               clearable
@@ -145,7 +176,10 @@
 
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item :label="$t('editDialog.form.causeAnalysis')" prop="causeAnalysis">
+          <el-form-item
+            :label="$t('editDialog.form.causeAnalysis')"
+            prop="causeAnalysis"
+          >
             <el-input
               type="textarea"
               v-model="form.causeAnalysis"
@@ -158,7 +192,10 @@
 
       <el-row :gutter="20">
         <el-col :span="24">
-          <el-form-item :label="$t('editDialog.form.repairDescription')" prop="repairDescription">
+          <el-form-item
+            :label="$t('editDialog.form.repairDescription')"
+            prop="repairDescription"
+          >
             <el-input
               type="textarea"
               v-model="form.repairDescription"
@@ -188,19 +225,29 @@
 
       <el-row :gutter="20" v-if="form.repairResult">
         <el-col :span="24">
-          <el-form-item :label="$t('editDialog.form.repairResult')" prop="repairResult">
+          <el-form-item
+            :label="$t('editDialog.form.repairResult')"
+            prop="repairResult"
+          >
             <el-tag
               :type="form.repairResult === 'QUALIFIED' ? 'success' : 'danger'"
               v-if="form.repairResult"
             >
-              {{ form.repairResult === "QUALIFIED" ? $t('productRepair.repairResult.qualified') : $t('productRepair.repairResult.unqualified') }}
+              {{
+                form.repairResult === "QUALIFIED"
+                  ? $t("productRepair.repairResult.qualified")
+                  : $t("productRepair.repairResult.unqualified")
+              }}
             </el-tag>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="20" v-if="form.adverseEffect">
         <el-col :span="24">
-          <el-form-item :label="$t('editDialog.form.adverseEffect')" prop="adverseEffect">
+          <el-form-item
+            :label="$t('editDialog.form.adverseEffect')"
+            prop="adverseEffect"
+          >
             <el-input
               type="textarea"
               v-model="form.adverseEffect"
@@ -221,9 +268,18 @@
               style="width: 100%"
               v-if="dialogStatus == 'edit'"
             >
-              <el-option :label="$t('productRepair.status.pendingReview')" value="PENDING_REVIEW" />
-              <el-option :label="$t('productRepair.status.reviewed')" value="REVIEWED" />
-              <el-option :label="$t('productRepair.status.voided')" value="VOIDED" />
+              <el-option
+                :label="$t('productRepair.status.pendingReview')"
+                value="PENDING_REVIEW"
+              />
+              <el-option
+                :label="$t('productRepair.status.reviewed')"
+                value="REVIEWED"
+              />
+              <el-option
+                :label="$t('productRepair.status.voided')"
+                value="VOIDED"
+              />
             </el-select>
 
             <el-tag :type="getStatusType(form.status)" v-else>
@@ -248,7 +304,7 @@
           @click="handleSubmit"
           :loading="submitLoading"
           v-if="dialogStatus != 'view'"
-          >{{ $t('editDialog.buttons.saveAndSubmit') }}</el-button
+          >{{ $t("editDialog.buttons.saveAndSubmit") }}</el-button
         >
       </div>
 
@@ -256,7 +312,9 @@
       <el-form-item :label="$t('editDialog.form.barcodeList')">
         <div class="barcode-list-container">
           <div class="barcode-count" v-if="form.barcodes.length > 0">
-            {{ $t('editDialog.form.scannedCount') }}：{{ form.barcodes.length }}/100
+            {{ $t("editDialog.form.scannedCount") }}：{{
+              form.barcodes.length
+            }}/100
           </div>
           <el-table
             :data="form.barcodes"
@@ -297,7 +355,7 @@
                   @click="handleRemoveBarcode(scope.$index)"
                   class="delete-btn"
                 >
-                  {{ $t('editDialog.form.delete') }}
+                  {{ $t("editDialog.form.delete") }}
                 </el-button>
               </template>
             </el-table-column>
@@ -307,7 +365,9 @@
     </el-form>
 
     <div slot="footer" class="dialog-footer">
-      <el-button @click="handleClose">{{ $t('editDialog.buttons.cancel') }}</el-button>
+      <el-button @click="handleClose">{{
+        $t("editDialog.buttons.cancel")
+      }}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -370,7 +430,9 @@ export default {
             required: true,
             validator: (rule, value, callback) => {
               if (!value || value.length === 0) {
-                callback(new Error(this.$t('editDialog.validation.barcodeRequired')));
+                callback(
+                  new Error(this.$t("editDialog.validation.barcodeRequired"))
+                );
               } else {
                 callback();
               }
@@ -378,15 +440,39 @@ export default {
             trigger: "change",
           },
         ],
-        materialSpec: [{ message: this.$t('editDialog.validation.materialSpecRequired'), trigger: "blur" }],
-        batchNumber: [{ message: this.$t('editDialog.validation.batchNumberRequired'), trigger: "blur" }],
+        materialSpec: [
+          {
+            message: this.$t("editDialog.validation.materialSpecRequired"),
+            trigger: "blur",
+          },
+        ],
+        batchNumber: [
+          {
+            message: this.$t("editDialog.validation.batchNumberRequired"),
+            trigger: "blur",
+          },
+        ],
         defectDescription: [
-          { required: true, message: this.$t('editDialog.validation.defectDescriptionRequired'), trigger: "blur" },
+          {
+            required: true,
+            message: this.$t("editDialog.validation.defectDescriptionRequired"),
+            trigger: "blur",
+          },
         ],
         solution: [
-          { required: true, message: this.$t('editDialog.validation.solutionRequired'), trigger: "change" },
+          {
+            required: true,
+            message: this.$t("editDialog.validation.solutionRequired"),
+            trigger: "change",
+          },
         ],
-        status: [{ required: true, message: this.$t('editDialog.validation.statusRequired'), trigger: "change" }],
+        status: [
+          {
+            required: true,
+            message: this.$t("editDialog.validation.statusRequired"),
+            trigger: "change",
+          },
+        ],
       },
       submitLoading: false,
     };
@@ -429,7 +515,9 @@ export default {
     // 处理条码搜索
     async handleBarcodeSearch() {
       if (!this.barcode.trim()) {
-        this.$message.warning(this.$t('editDialog.messages.scanBarcodeWarning'));
+        this.$message.warning(
+          this.$t("editDialog.messages.scanBarcodeWarning")
+        );
         return;
       }
 
@@ -453,25 +541,32 @@ export default {
             mainBarcodeResult.data.length > 0
           ) {
             // 检查产品进度，如果进度为0则不允许创建维修工单
-            if (mainBarcodeResult.data[0].isProduct && mainBarcodeResult.data[0].progress === 0) {
-              this.$message.warning('成品产品未投入产线不可创建维修工单');
-              this.barcode = '';
+            if (
+              mainBarcodeResult.data[0].isProduct &&
+              mainBarcodeResult.data[0].progress === 0
+            ) {
+              this.$message.warning("成品产品未投入产线不可创建维修工单");
+              this.barcode = "";
               this.searchLoading = false;
               return;
             }
 
             // 检查产品状态是否为完成状态
-            if (mainBarcodeResult.data[0].status === 'COMPLETED') {
+            if (mainBarcodeResult.data[0].status === "COMPLETED") {
               try {
-                await this.$confirm('该产品已处于完成状态，继续操作将把产品状态变更为"维修中"，是否继续？', '状态变更提示', {
-                  confirmButtonText: '确认变更',
-                  cancelButtonText: '取消',
-                  type: 'warning'
-                });
+                await this.$confirm(
+                  '该产品已处于完成状态，继续操作将把产品状态变更为"维修中"，是否继续？',
+                  "状态变更提示",
+                  {
+                    confirmButtonText: "确认变更",
+                    cancelButtonText: "取消",
+                    type: "warning",
+                  }
+                );
                 // 用户确认，继续执行
               } catch (error) {
                 // 用户取消，终止操作
-                this.barcode = '';
+                this.barcode = "";
                 this.searchLoading = false;
                 return;
               }
@@ -483,7 +578,7 @@ export default {
         // 查询当前条码
         let currentSearchQuery = {
           query: {
-            barcode: this.barcode,
+            $or: [{ barcode: this.barcode }, { diyCode: this.barcode }],
           },
         };
         const currentBarcodeResult = await getData(
@@ -497,32 +592,39 @@ export default {
           currentBarcodeResult.data.length > 0
         ) {
           //如果产品状态为报废状态，不允许创建维修工单
-          if (currentBarcodeResult.data[0].productStatus === 'SCRAP') {
-            this.$message.warning('报废产品不可创建维修工单');
-            this.barcode = '';
+          if (currentBarcodeResult.data[0].productStatus === "SCRAP") {
+            this.$message.warning("报废产品不可创建维修工单");
+            this.barcode = "";
             this.searchLoading = false;
             return;
           }
           // 检查产品进度，如果进度为0则不允许创建维修工单
-          if (currentBarcodeResult.data[0].isProduct && currentBarcodeResult.data[0].progress === 0) {
-            this.$message.warning('成品产品未投入产线不可创建维修工单');
-            this.barcode = '';
+          if (
+            currentBarcodeResult.data[0].isProduct &&
+            currentBarcodeResult.data[0].progress === 0
+          ) {
+            this.$message.warning("成品产品未投入产线不可创建维修工单");
+            this.barcode = "";
             this.searchLoading = false;
             return;
           }
 
           // 检查产品状态是否为完成状态
-          if (currentBarcodeResult.data[0].status === 'COMPLETED') {
+          if (currentBarcodeResult.data[0].status === "COMPLETED") {
             try {
-              await this.$confirm('该产品已处于完成状态，继续操作将把产品状态变更为"维修中"，是否继续？', '状态变更提示', {
-                confirmButtonText: '确认变更',
-                cancelButtonText: '取消',
-                type: 'warning'
-              });
+              await this.$confirm(
+                '该产品已处于完成状态，继续操作将把产品状态变更为"维修中"，是否继续？',
+                "状态变更提示",
+                {
+                  confirmButtonText: "确认变更",
+                  cancelButtonText: "取消",
+                  type: "warning",
+                }
+              );
               // 用户确认，继续执行
             } catch (error) {
               // 用户取消，终止操作
-              this.barcode = '';
+              this.barcode = "";
               this.searchLoading = false;
               return;
             }
@@ -531,10 +633,12 @@ export default {
           return;
         }
 
-        this.$message.warning(this.$t('editDialog.messages.noDataFound'));
+        this.$message.warning(this.$t("editDialog.messages.noDataFound"));
       } catch (error) {
         console.error("搜索失败:", error);
-        this.$message.error(this.$t('editDialog.messages.searchFailed') + ": " + error.message);
+        this.$message.error(
+          this.$t("editDialog.messages.searchFailed") + ": " + error.message
+        );
       } finally {
         this.barcode = "";
         this.searchLoading = false;
@@ -554,14 +658,14 @@ export default {
 
         // 添加条码数量限制检查
         if (this.form.barcodes.length >= 100) {
-          this.$message.warning(this.$t('editDialog.messages.maxBarcodeLimit'));
+          this.$message.warning(this.$t("editDialog.messages.maxBarcodeLimit"));
           this.barcode = "";
           return;
         }
 
         // 判断条码是否已存在
-        if (this.form.barcodes.some(item => item.barcode === barcode)) {
-          this.$message.warning(this.$t('editDialog.messages.barcodeExists'));
+        if (this.form.barcodes.some((item) => item.barcode === barcode)) {
+          this.$message.warning(this.$t("editDialog.messages.barcodeExists"));
           this.barcode = "";
           return;
         }
@@ -574,17 +678,20 @@ export default {
         };
         const flowResult = await getData("material_process_flow", flowQuery);
         let isCompletedProduct = false;
-        
+
         // 检查是否为已完成状态的产品
-        if (flowResult.code === 200 && 
-            flowResult.data && 
-            flowResult.data.length > 0 && 
-            flowResult.data[0].status === 'COMPLETED') {
+        if (
+          flowResult.code === 200 &&
+          flowResult.data &&
+          flowResult.data.length > 0 &&
+          flowResult.data[0].status === "COMPLETED"
+        ) {
           isCompletedProduct = true;
           // 记录原始产品状态
-          this.form.originalProductStatus = flowResult.data[0].productStatus || 'NORMAL';
+          this.form.originalProductStatus =
+            flowResult.data[0].productStatus || "NORMAL";
         }
-        
+
         // 调用托盘出库API
         const response = await scanProductRepair({
           barcode,
@@ -622,7 +729,7 @@ export default {
         this.form.barcodes.push({ barcode: barcode });
         this.barcode = "";
 
-        this.$message.success(this.$t('editDialog.messages.scanSuccess'));
+        this.$message.success(this.$t("editDialog.messages.scanSuccess"));
       } catch (error) {
         console.error("扫描失败:", error);
       }
@@ -670,20 +777,22 @@ export default {
         }
 
         if (!this.form.barcodes || this.form.barcodes.length === 0) {
-          this.$message.error(this.$t('editDialog.messages.atLeastOneBarcodeRequired'));
+          this.$message.error(
+            this.$t("editDialog.messages.atLeastOneBarcodeRequired")
+          );
           return;
         }
 
         // 如果存在原始产品状态，且是从"COMPLETED"状态变更来的，再次确认
-        if (this.form.originalProductStatus && this.dialogStatus === 'create') {
+        if (this.form.originalProductStatus && this.dialogStatus === "create") {
           try {
             await this.$confirm(
-              '确认将完成状态的产品变更为维修状态？此操作将影响产品后续处理流程。', 
-              '最终确认', 
+              "确认将完成状态的产品变更为维修状态？此操作将影响产品后续处理流程。",
+              "最终确认",
               {
-                confirmButtonText: '确认提交',
-                cancelButtonText: '取消',
-                type: 'warning'
+                confirmButtonText: "确认提交",
+                cancelButtonText: "取消",
+                type: "warning",
               }
             );
           } catch (error) {
@@ -728,7 +837,7 @@ export default {
           this.handleClose();
         } catch (error) {
           console.error("提交失败:", error);
-          this.$message.error(this.$t('editDialog.messages.submitFailed'));
+          this.$message.error(this.$t("editDialog.messages.submitFailed"));
         } finally {
           this.submitLoading = false;
         }

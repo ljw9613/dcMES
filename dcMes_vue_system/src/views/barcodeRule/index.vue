@@ -206,6 +206,8 @@
                                 <el-option label="物料编码" value="materialCode" />
                                 <el-option label="DI码" value="DI" />
                                 <el-option label="关联单据" value="relatedBill" />
+                                <el-option label="SN码" value="snCode" />
+                                <el-option label="型号" value="modelCode" />
                             </el-select>
                         </el-form-item>
 

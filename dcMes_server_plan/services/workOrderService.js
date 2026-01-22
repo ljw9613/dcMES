@@ -24,6 +24,46 @@ class WorkOrderService {
 
       const updateField = type === 'input' ? 'inputQuantity' : 'outputQuantity';
 
+      // 防重复检查：针对条码扫描的首道工序投入操作
+      // 检查同一条码是否已经在同一工单、同一工序中增加过投入量
+      if (
+        type === 'input' && 
+        quantity > 0 && 
+        logContext.relatedBarcode && 
+        logContext.barcodeOperation === 'SCAN_PROCESS' &&
+        logContext.processStepId
+      ) {
+        const { relatedBarcode, processStepId } = logContext;
+        
+        // 查找该条码在该工单、该工序中是否已经有过投入量增加的记录
+        const existingInputLog = await WorkOrderQuantityLog.findOne({
+          workOrderId: workOrderId,
+          relatedBarcode: relatedBarcode,
+          processStepId: processStepId,
+          changeType: 'input',
+          changeQuantity: { $gt: 0 }, // 只查找增加投入量的记录
+          barcodeOperation: 'SCAN_PROCESS'
+        }).sort({ operateTime: -1 });
+
+        if (existingInputLog) {
+          // 查找是否有后续的扣减操作（比如解绑）
+          const subsequentDecreaseLog = await WorkOrderQuantityLog.findOne({
+            workOrderId: workOrderId,
+            relatedBarcode: relatedBarcode,
+            changeType: 'input',
+            changeQuantity: { $lt: 0 }, // 查找扣减投入量的记录
+            operateTime: { $gt: existingInputLog.operateTime } // 在增加记录之后
+          }).sort({ operateTime: -1 });
+
+          // 如果存在增加记录且没有后续的扣减记录，说明已经增加过，跳过重复操作
+          if (!subsequentDecreaseLog) {
+            const errorMsg = `条码 ${relatedBarcode} 已在工单 ${workOrderId} 的工序中增加过投入量，操作时间: ${existingInputLog.operateTime.toISOString()}`;
+            console.warn(`⚠️ ${errorMsg}`);
+            throw new Error(`重复操作：${errorMsg}`);
+          }
+        }
+      }
+
       // 先获取更新前的工单信息
       const beforeWorkOrder = await ProductionPlanWorkOrder
         .findById(workOrderId)

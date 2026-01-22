@@ -189,4 +189,16 @@ workOrderQuantityLogSchema.index({ materialId: 1, operateTime: -1 });
 workOrderQuantityLogSchema.index({ operateTime: -1 });
 workOrderQuantityLogSchema.index({ changeType: 1, operateTime: -1 });
 
+// 复合索引：用于防重复检查 - 查询同一条码在同一工单、同一工序中的投入量增加记录
+workOrderQuantityLogSchema.index({ 
+  workOrderId: 1, 
+  relatedBarcode: 1, 
+  processStepId: 1, 
+  changeType: 1, 
+  operateTime: -1 
+}, { 
+  name: 'idx_workorder_barcode_process_duplicate_check',
+  background: true 
+});
+
 module.exports = mongoose.model("workOrderQuantityLog", workOrderQuantityLogSchema); 

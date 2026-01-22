@@ -2045,6 +2045,19 @@ export default {
         return;
       }
 
+      if (value.includes("DCZZ-")) {
+        // 先检查是否为自制条码
+        const diyCodeResponse = await getData("material_process_flow", {
+          query: {
+            diyCode: value,
+          },
+        });
+
+        if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+          value = diyCodeResponse.data[0].barcode;
+        }
+      }
+
       //当打印模板未选择时提醒
       if (!this.$refs.hirInput.selectedTemplate) {
         this.unifiedScanInput = "";

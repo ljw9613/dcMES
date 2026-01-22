@@ -71,6 +71,9 @@ const processNodeSchema = new mongoose.Schema(
 // 主条码工艺流程记录表
 const materialProcessFlowSchema = new mongoose.Schema({
   barcode: { type: String, required: true, unique: true }, // 主物料条码
+  snCode: { type: String, default: "" }, // 序列号
+  modelCode: { type: String, default: "" }, // 型号
+  diyCode:{type:String,default:""}, // 自制定制码
   relatedBill: { type: String, default: "" }, // 相关单据
   productLineId: { type: mongoose.Schema.ObjectId, ref: "product_line" }, // 产线ID
   productLineName: { type: String }, // 产线名称
@@ -139,6 +142,7 @@ materialProcessFlowSchema.index({ status: 1 });
 materialProcessFlowSchema.index({ productionPlanWorkOrderId: 1 });
 materialProcessFlowSchema.index({ "processNodes.barcode": 1 });
 materialProcessFlowSchema.index({ createAt: -1 });
+materialProcessFlowSchema.index({ diyCode: 1 }); // 自制定制码索引
 
 // 添加pre-save中间件，自动更新updateAt字段
 materialProcessFlowSchema.pre('save', function(next) {

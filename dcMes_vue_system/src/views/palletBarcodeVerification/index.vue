@@ -536,6 +536,29 @@ export default {
         return
       }
 
+      if (this.barcode.includes("DCZZ-")) {
+        const diyCodeResponse = await getData("material_process_flow", {
+          query: {
+            diyCode: this.barcode,
+          },
+        });
+        if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+          this.barcode = diyCodeResponse.data[0].barcode;
+        }
+      }
+
+      //是否为升级条码
+
+      const preProductionResponse = await getData("preProductionBarcode", {
+        query: {
+          transformedPrintBarcode: this.barcode,
+        },
+      });
+      if (preProductionResponse.data && preProductionResponse.data.length > 0) {
+        console.log("升级条码:", preProductionResponse.data[0]);
+        this.barcode = preProductionResponse.data[0].printBarcode;
+      }
+
       // 在前端校验条码是否在托盘中
       const barcodeInPallet = this.palletInfo.barcodes.find(item => item.barcode === this.barcode)
 

@@ -306,7 +306,10 @@ export default {
         } else {
           const currentQuery = {
             query: {
-              barcode: this.searchBarcode,
+              $or: [
+                { barcode: this.searchBarcode },
+                { diyCode: this.searchBarcode },
+              ],
             },
           };
           const currentResult = await getData(

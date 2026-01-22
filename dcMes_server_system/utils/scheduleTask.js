@@ -99,7 +99,7 @@ const k3DataSyncTask = async () => {
         },
         {
           FieldName: "FCreateDate",
-          Compare: ">",
+          Compare: ">=",
           Value: `${startDate.toISOString().split("T")[0]} 00:00:00`,
           Left: "",
           Right: "",
@@ -107,7 +107,7 @@ const k3DataSyncTask = async () => {
         },
         {
           FieldName: "FCreateDate",
-          Compare: "<",
+          Compare: "<=",
           Value: `${endDate.toISOString().split("T")[0]} 23:59:59`,
           Left: "",
           Right: "",

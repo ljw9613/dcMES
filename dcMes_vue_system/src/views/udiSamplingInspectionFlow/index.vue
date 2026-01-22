@@ -104,7 +104,12 @@
         <el-form-item>
           <el-button type="primary" @click="search">查询搜索</el-button>
           <el-button @click="resetForm">重置</el-button>
-          <el-button type="primary" @click="handleScan" v-if="$checkPermission('UDI抽检扫描二维码')">抽检扫描二维码</el-button>
+          <el-button
+            type="primary"
+            @click="handleScan"
+            v-if="$checkPermission('UDI抽检扫描二维码')"
+            >抽检扫描二维码</el-button
+          >
         </el-form-item>
       </el-form>
     </el-card>
@@ -530,9 +535,7 @@
               <div class="detail-row">
                 <div class="detail-label">产品状态</div>
                 <div class="detail-value">
-                  <el-tag
-                    :type="getProductStatusType(scope.row.productStatus)"
-                  >
+                  <el-tag :type="getProductStatusType(scope.row.productStatus)">
                     {{ getProductStatusText(scope.row.productStatus) }}
                   </el-tag>
                 </div>
@@ -548,10 +551,7 @@
           :show-header="false"
           v-if="currentDetail.lastCompletedNode"
         >
-          <el-table-column
-            prop="lastCompletedNode"
-            label="最后完成节点"
-          >
+          <el-table-column prop="lastCompletedNode" label="最后完成节点">
             <template slot-scope="scope">
               <div class="detail-row">
                 <div class="detail-label">最后完成节点</div>
@@ -681,7 +681,6 @@
         </div>
       </div>
     </el-dialog>
-
 
     <!-- 摄像头对话框 -->
     <el-dialog
@@ -1332,7 +1331,11 @@ export default {
             select: "_id",
           });
 
-          if (workOrderResult.code === 200 && workOrderResult.data && workOrderResult.data.length > 0) {
+          if (
+            workOrderResult.code === 200 &&
+            workOrderResult.data &&
+            workOrderResult.data.length > 0
+          ) {
             const workOrderIds = workOrderResult.data.map((wo) => wo._id);
             req.query.$and.push({
               productionPlanWorkOrderId: { $in: workOrderIds },
@@ -1924,8 +1927,11 @@ export default {
 
         // 先获取总数
         const countReq = { ...baseReq, count: true, limit: 1 };
-        const countResult = await getData("udi_sampling_inspection_flow", countReq);
-        
+        const countResult = await getData(
+          "udi_sampling_inspection_flow",
+          countReq
+        );
+
         if (countResult.code !== 200) {
           throw new Error(countResult.msg || "获取数据总数失败");
         }
@@ -1952,14 +1958,17 @@ export default {
             limit: batchSize,
           };
 
-          const batchResult = await getData("udi_sampling_inspection_flow", batchReq);
-          
+          const batchResult = await getData(
+            "udi_sampling_inspection_flow",
+            batchReq
+          );
+
           if (batchResult.code !== 200) {
             throw new Error(`获取第${i + 1}批数据失败: ${batchResult.msg}`);
           }
 
           allData = allData.concat(batchResult.data || []);
-          
+
           // 更新进度
           const currentCount = Math.min((i + 1) * batchSize, total);
           loading.setText(`正在获取数据：${currentCount}/${total}`);
@@ -1977,43 +1986,75 @@ export default {
           主条码: item.barcode || "-",
           物料编码: item.materialCode || "-",
           物料名称: item.materialName || "-",
-          
+
           // 抽检结果
           检验结果: item.isQualified ? "合格" : "不合格",
           抽检状态: this.getSamplingStatusText(item.samplingStatus) || "-",
           抽检人员: item.samplingOperator || "-",
-          抽检时间: item.samplingTime ? this.formatDate(item.samplingTime) : "-",
-          
+          抽检时间: item.samplingTime
+            ? this.formatDate(item.samplingTime)
+            : "-",
+
           // 条码验证信息
-          彩箱条码: (item.barcodeValidation && item.barcodeValidation.printBarcode) || "-",
-          彩箱条码验证: (item.barcodeValidation && item.barcodeValidation.isPrintBarcodeValid) ? "验证通过" : "验证失败",
-          黄板箱条码: (item.barcodeValidation && item.barcodeValidation.transformedBarcode) || "-",
-          黄板箱条码验证: (item.barcodeValidation && item.barcodeValidation.isTransformedBarcodeValid) ? "验证通过" : "验证失败",
-          验证时间: (item.barcodeValidation && item.barcodeValidation.validationTime) ? this.formatDate(item.barcodeValidation.validationTime) : "-",
-          
+          彩箱条码:
+            (item.barcodeValidation && item.barcodeValidation.printBarcode) ||
+            "-",
+          彩箱条码验证:
+            item.barcodeValidation && item.barcodeValidation.isPrintBarcodeValid
+              ? "验证通过"
+              : "验证失败",
+          黄板箱条码:
+            (item.barcodeValidation &&
+              item.barcodeValidation.transformedBarcode) ||
+            "-",
+          黄板箱条码验证:
+            item.barcodeValidation &&
+            item.barcodeValidation.isTransformedBarcodeValid
+              ? "验证通过"
+              : "验证失败",
+          验证时间:
+            item.barcodeValidation && item.barcodeValidation.validationTime
+              ? this.formatDate(item.barcodeValidation.validationTime)
+              : "-",
+
           // 工单信息
-          销售订单号: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.saleOrderNo) ||
-                     (item.materialProcessFlowId && 
-                      item.materialProcessFlowId.productionPlanWorkOrderId &&
-                      item.materialProcessFlowId.productionPlanWorkOrderId.saleOrderNo) || "-",
-          生产订单号: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.productionOrderNo) ||
-                     (item.materialProcessFlowId && 
-                      item.materialProcessFlowId.productionPlanWorkOrderId &&
-                      item.materialProcessFlowId.productionPlanWorkOrderId.productionOrderNo) || "-",
-          客户PO: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.custPO) ||
-                 (item.materialProcessFlowId && 
-                  item.materialProcessFlowId.productionPlanWorkOrderId &&
-                  item.materialProcessFlowId.productionPlanWorkOrderId.custPO) || "-",
-          生产线: (item.productionPlanWorkOrderId && item.productionPlanWorkOrderId.productionLineName) ||
-                 (item.materialProcessFlowId && 
-                  item.materialProcessFlowId.productionPlanWorkOrderId &&
-                  item.materialProcessFlowId.productionPlanWorkOrderId.productionLineName) || "-",
-          
+          销售订单号:
+            (item.productionPlanWorkOrderId &&
+              item.productionPlanWorkOrderId.saleOrderNo) ||
+            (item.materialProcessFlowId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId
+                .saleOrderNo) ||
+            "-",
+          生产订单号:
+            (item.productionPlanWorkOrderId &&
+              item.productionPlanWorkOrderId.productionOrderNo) ||
+            (item.materialProcessFlowId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId
+                .productionOrderNo) ||
+            "-",
+          客户PO:
+            (item.productionPlanWorkOrderId &&
+              item.productionPlanWorkOrderId.custPO) ||
+            (item.materialProcessFlowId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId.custPO) ||
+            "-",
+          生产线:
+            (item.productionPlanWorkOrderId &&
+              item.productionPlanWorkOrderId.productionLineName) ||
+            (item.materialProcessFlowId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId &&
+              item.materialProcessFlowId.productionPlanWorkOrderId
+                .productionLineName) ||
+            "-",
+
           // 作废信息（如果有）
           作废原因: item.voidReason || "-",
           作废时间: item.voidTime ? this.formatDate(item.voidTime) : "-",
           作废人员: item.voidOperator || "-",
-          
+
           // 其他信息
           备注说明: item.remark || "-",
           是否有照片: item.photoUrl ? "是" : "否",
@@ -2075,7 +2116,9 @@ export default {
         });
 
         // 生成文件名（使用当前时间戳）
-        const fileName = `UDI抽检记录_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        const fileName = `UDI抽检记录_${new Date()
+          .toISOString()
+          .slice(0, 10)}.xlsx`;
 
         // 下载文件
         FileSaver.saveAs(blob, fileName);
@@ -2378,9 +2421,25 @@ export default {
 
       try {
         // 检查主条码是否已完成
-        const flowresult = await getData("material_process_flow", {
-          query: { barcode: this.scanForm.barcode },
-        });
+        let flowresult;
+        let barcode = this.scanForm.barcode;
+        if (barcode.includes("DCZZ-")) {
+          // 先检查是否为自制条码
+          flowresult = await getData("material_process_flow", {
+            query: {
+              diyCode: barcode,
+            },
+          });
+          if (flowresult.data && flowresult.data.length > 0) {
+            barcode = flowresult.data[0].barcode;
+          }
+        } else {
+          flowresult = await getData("material_process_flow", {
+            query: { barcode: barcode },
+          });
+        }
+
+        //
 
         if (flowresult.code === 200 && flowresult.data.length > 0) {
           // 保存流程状态信息
@@ -2439,10 +2498,46 @@ export default {
           }
         }
 
+        // 检查条码所在的托盘状态
+        const palletQuery = {
+          $or: [
+            { "palletBarcodes.barcode": barcode },
+            { "boxItems.boxBarcode": barcode },
+          ],
+        };
+        const palletResult = await getData("material_palletizing", {
+          query: palletQuery,
+          select: "palletCode inWarehouseStatus",
+        });
+
+        if (palletResult.code === 200 && palletResult.data.length > 0) {
+          const pallet = palletResult.data[0];
+          // 检查托盘出入库状态
+          if (
+            pallet.inWarehouseStatus === "IN_WAREHOUSE" ||
+            pallet.inWarehouseStatus === "OUT_WAREHOUSE" ||
+            pallet.inWarehouseStatus === "PART_OUT_WAREHOUSE"
+          ) {
+            const statusText =
+              pallet.inWarehouseStatus === "IN_WAREHOUSE"
+                ? "已入库"
+                : pallet.inWarehouseStatus === "OUT_WAREHOUSE"
+                ? "已出库"
+                : "部分出库";
+            this.$message.error(
+              `该条码所在的托盘（${pallet.palletCode}）状态为${statusText}，不允许进行抽检`
+            );
+            this.scanForm.barcode = "";
+            this.$refs.barcodeInput.focus();
+            this.isProcessingBarcode = false;
+            return;
+          }
+        }
+
         // 先检查是否已经存在抽检记录
         const existingRecord = await getData("udi_sampling_inspection_flow", {
           query: {
-            barcode: this.scanForm.barcode,
+            barcode: barcode,
             samplingStatus: { $ne: "VOIDED" }, // 排除已作废的记录
           },
           sort: { _id: -1 },
@@ -2465,7 +2560,7 @@ export default {
             const voidResult = await updateData(
               "udi_sampling_inspection_flow",
               {
-                query: { barcode: this.scanForm.barcode },
+                query: { barcode: barcode },
                 update: {
                   samplingStatus: "VOIDED",
                   voidReason: "重新抽检",
@@ -2492,7 +2587,7 @@ export default {
 
         // 查询预生产条码记录
         const result = await getData("preProductionBarcode", {
-          query: { printBarcode: this.scanForm.barcode },
+          query: { printBarcode: barcode },
         });
 
         if (result.code !== 200 || result.data.length === 0) {
@@ -2504,7 +2599,7 @@ export default {
 
         //查询对应的条码记录
         const result2 = await getData("material_process_flow", {
-          query: { barcode: this.scanForm.barcode },
+          query: { barcode: barcode },
         });
 
         if (result2.code !== 200 || result2.data.length === 0) {
@@ -2515,7 +2610,11 @@ export default {
         }
 
         // 再次检查产品状态是否为报废
-        if (result2.code === 200 && result2.data.length > 0 && result2.data[0].productStatus === "SCRAP") {
+        if (
+          result2.code === 200 &&
+          result2.data.length > 0 &&
+          result2.data[0].productStatus === "SCRAP"
+        ) {
           this.$message.error("该产品已报废，不可进行抽检");
           this.scanForm.barcode = "";
           this.$refs.barcodeInput.focus();
@@ -2528,7 +2627,8 @@ export default {
           this.currentBarcodeData = result.data[0];
           this.currentBarcodeData.materialProcessFlowId = result2.data[0]._id;
           // 保存工单计划ID，用于后续查询销售订单
-          this.currentBarcodeData.productionPlanWorkOrderId = result2.data[0].productionPlanWorkOrderId;
+          this.currentBarcodeData.productionPlanWorkOrderId =
+            result2.data[0].productionPlanWorkOrderId;
           this.showBarcodeValidation = true;
           this.barcodeValidation.barcode = true;
 
@@ -2670,7 +2770,8 @@ export default {
         const inspectionData = {
           barcode: this.scanForm.barcode,
           materialProcessFlowId: this.currentBarcodeData.materialProcessFlowId,
-          productionPlanWorkOrderId: this.currentBarcodeData.productionPlanWorkOrderId, // 添加工单计划ID
+          productionPlanWorkOrderId:
+            this.currentBarcodeData.productionPlanWorkOrderId, // 添加工单计划ID
           materialCode: this.currentBarcodeData.materialNumber,
           materialName: this.currentBarcodeData.materialName,
           isQualified: this.isAllBarcodeValid, // 所有条码都匹配则为合格
@@ -2775,7 +2876,11 @@ export default {
           this.$set(this.currentDetail, "flowStatus", flowData.status);
 
           // 添加产品状态到当前详情中
-          this.$set(this.currentDetail, "productStatus", flowData.productStatus);
+          this.$set(
+            this.currentDetail,
+            "productStatus",
+            flowData.productStatus
+          );
 
           console.log(flowData.processNodes, "flowData.processNodes");
           // 查找最后一个完成的节点

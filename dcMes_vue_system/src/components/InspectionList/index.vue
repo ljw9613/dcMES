@@ -228,6 +228,7 @@ export default {
           // 获取所有有效条码
           const allBarcodes = [
             dataForm.barcode,
+            dataForm.diyCode,
             ...processNodes.map((item) => item.barcode),
           ].filter((barcode) => barcode && barcode.trim());
 

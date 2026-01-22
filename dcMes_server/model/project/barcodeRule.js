@@ -44,7 +44,7 @@ var barcodeRuleSchema = new mongoose.Schema({
   extractionConfigs: [{
     target: { 
       type: String, 
-      enum: ['materialCode', 'DI', 'relatedBill'], 
+      enum: ['materialCode', 'DI', 'relatedBill', 'snCode', 'modelCode'], 
       required: true 
     }, // 提取目标字段
     

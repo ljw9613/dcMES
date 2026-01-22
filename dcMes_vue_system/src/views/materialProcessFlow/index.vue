@@ -127,6 +127,24 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
+            <el-form-item label="SN码">
+              <el-input
+                v-model="searchForm.snCode"
+                placeholder="请输入SN码"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="型号">
+              <el-input
+                v-model="searchForm.modelCode"
+                placeholder="请输入型号"
+                clearable
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
             <el-form-item label="业务类型">
               <el-select
                 v-model="searchForm.businessType"
@@ -207,14 +225,14 @@
                 <el-input
                   v-model="searchForm.minProgress"
                   placeholder="最小进度"
-                  style="width: 130px;"
+                  style="width: 130px"
                   @input="validateNumber('minProgress')"
                 ></el-input>
-                <span style="margin: 0 10px;">至</span>
+                <span style="margin: 0 10px">至</span>
                 <el-input
                   v-model="searchForm.maxProgress"
                   placeholder="最大进度"
-                  style="width: 130px;"
+                  style="width: 130px"
                   @input="validateNumber('maxProgress')"
                 ></el-input>
               </el-form-item>
@@ -223,10 +241,12 @@
         </div>
 
         <el-form-item>
-          <el-button type="primary" @click="search" >查询搜索</el-button>
-          <el-button @click="resetForm" >重置</el-button>
-          <el-button type="primary" @click="openBarcodeSearch"
-                     v-if="$checkPermission('条码记录成品追溯')"
+          <el-button type="primary" @click="search">查询搜索</el-button>
+          <el-button @click="resetForm">重置</el-button>
+          <el-button
+            type="primary"
+            @click="openBarcodeSearch"
+            v-if="$checkPermission('条码记录成品追溯')"
             >成品追溯</el-button
           >
           <el-button
@@ -250,7 +270,10 @@
             <el-button type="primary" @click="handleAllExcel"
               >导出表格数据</el-button
             >
-            <el-button type="primary" @click="handleAllExport" v-if="$checkPermission('条码记录批量导出数据')"
+            <el-button
+              type="primary"
+              @click="handleAllExport"
+              v-if="$checkPermission('条码记录批量导出数据')"
               >导出条码详情数据(包含物料条码数据)</el-button
             >
             <el-button
@@ -302,17 +325,50 @@
           width="55"
           align="center"
         ></el-table-column>
-        <el-table-column label="产品条码" prop="barcode">
+        <el-table-column label="条码内容" prop="barcode" width="180">
           <template slot-scope="scope">
             {{ scope.row.barcode }}
           </template>
         </el-table-column>
 
-        <el-table-column label="物料信息">
+        <el-table-column label="物料信息" min-width="220">
           <template slot-scope="scope">
-            <div>编码：{{ scope.row.materialCode }}</div>
-            <div>名称：{{ scope.row.materialName }}</div>
-            <div>规格：{{ scope.row.materialSpec }}</div>
+            <div class="material-info-cell">
+              <div class="info-row">
+                <span class="label">编码：</span>
+                <span class="value">{{ scope.row.materialCode || "-" }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">名称：</span>
+                <span class="value">{{ scope.row.materialName || "-" }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">规格：</span>
+                <span class="value">{{ scope.row.materialSpec || "-" }}</span>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="SN码" prop="snCode" width="150">
+          <template slot-scope="scope">
+            <div class="material-info-cell">
+              <div class="info-row">
+                <span class="label">SN码:</span>
+                <span class="value">{{ scope.row.snCode || "-" }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">自制条码:</span>
+                <span class="value">{{ scope.row.diyCode || "-" }}</span>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="型号" prop="modelCode" width="150">
+          <template slot-scope="scope">
+            <span v-if="scope.row.modelCode">{{ scope.row.modelCode }}</span>
+            <span v-else class="no-data">-</span>
           </template>
         </el-table-column>
 
@@ -424,7 +480,7 @@
 
         <el-table-column label="操作" fixed="right" width="200">
           <template slot-scope="scope">
-            <el-button type="text" size="small"  @click="handleView(scope.row)"
+            <el-button type="text" size="small" @click="handleView(scope.row)"
               >查看</el-button
             >
             <el-button
@@ -496,20 +552,34 @@
                       <label>产品条码：</label>
                       <span>{{ dataForm.barcode }}</span>
                     </div>
+                    <div class="info-item">
+                      <label>物料编码：</label>
+                      <span>{{ dataForm.materialCode || "-" }}</span>
+                    </div>
                   </div>
                   <div class="info-row">
                     <div class="info-item">
                       <label>物料名称：</label>
-                      <span>{{ dataForm.materialName }}</span>
+                      <span>{{ dataForm.materialName || "-" }}</span>
                     </div>
                     <div class="info-item">
                       <label>规格型号：</label>
-                      <span>{{ dataForm.materialSpec }}</span>
+                      <span>{{ dataForm.materialSpec || "-" }}</span>
                     </div>
-                    <!-- <div class="info-item">
-                                            <label>工艺版本：</label>
-                                            <span>{{ dataForm.craftVersion }}</span>
-                                        </div> -->
+                  </div>
+                  <div class="info-row">
+                    <div class="info-item">
+                      <label>SN码：</label>
+                      <span>{{ dataForm.snCode || "-" }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label>型号：</label>
+                      <span>{{ dataForm.modelCode || "-" }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label>关联单据：</label>
+                      <span>{{ dataForm.relatedBill || "-" }}</span>
+                    </div>
                   </div>
                   <div class="info-row">
                     <div class="info-item">
@@ -1023,7 +1093,6 @@
                 <el-button
                   type="text"
                   style="color: red"
-
                   @click="handleInit(scope.row)"
                   >成品初始化</el-button
                 >
@@ -1073,7 +1142,7 @@
         </el-button>
       </div>
     </el-dialog>
-    
+
     <!-- 导出详情数据选项弹窗 -->
     <el-dialog
       title="导出详情数据选项"
@@ -1211,13 +1280,16 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="saleOrderExportDialogVisible = false">取 消</el-button>
+        <el-button @click="saleOrderExportDialogVisible = false"
+          >取 消</el-button
+        >
         <el-button
           type="primary"
           :loading="saleOrderExportLoading"
           @click="confirmSaleOrderExport"
           :disabled="!selectedSaleOrderNo"
-        >确 定</el-button>
+          >确 定</el-button
+        >
       </div>
     </el-dialog>
   </div>
@@ -1234,7 +1306,7 @@ import {
   fixFlowProgress,
   replaceComponent, // 添加新的API引入
   initializeProduct, // 添加新的API引入
-  exportBySaleOrder
+  exportBySaleOrder,
 } from "@/api/materialProcessFlowService";
 import XLSX from "xlsx";
 import JSZip from "jszip";
@@ -1256,6 +1328,8 @@ export default {
         saleOrderNo: "",
         productionOrderNo: "",
         productModel: "",
+        snCode: "",
+        modelCode: "",
         businessType: "",
         status: "",
         productStatus: "",
@@ -1643,7 +1717,7 @@ export default {
         // 调用成品初始化API
         const result = await initializeProduct({
           barcode: row.barcode,
-          userId: this.$store.state.user.id || "system"
+          userId: this.$store.state.user.id || "system",
         });
 
         if (result.code === 200 && result.success) {
@@ -1967,7 +2041,10 @@ export default {
           limit: 1,
         });
         let barcode = this.searchForm.barcode.trim();
-        if (preProductionResponse.code === 200 && preProductionResponse.data.length > 0) {
+        if (
+          preProductionResponse.code === 200 &&
+          preProductionResponse.data.length > 0
+        ) {
           barcode = preProductionResponse.data[0].printBarcode;
         }
         req.query.$and.push({
@@ -1991,6 +2068,22 @@ export default {
         req.query.$and.push({
           materialSpec: {
             $regex: this.searchForm.productModel.trim(),
+            $options: "i",
+          },
+        });
+      }
+      if (this.searchForm.snCode && this.searchForm.snCode.trim()) {
+        req.query.$and.push({
+          snCode: {
+            $regex: this.searchForm.snCode.trim(),
+            $options: "i",
+          },
+        });
+      }
+      if (this.searchForm.modelCode && this.searchForm.modelCode.trim()) {
+        req.query.$and.push({
+          modelCode: {
+            $regex: this.searchForm.modelCode.trim(),
             $options: "i",
           },
         });
@@ -2064,17 +2157,21 @@ export default {
           // 先查询托盘数据
           const palletResult = await getData("material_palletizing", {
             query: {
-              palletCode: this.searchForm.palletCode.trim()
+              palletCode: this.searchForm.palletCode.trim(),
             },
             select: "palletBarcodes.materialProcessFlowId",
           });
 
-          if (palletResult.code === 200 && palletResult.data && palletResult.data.length > 0) {
+          if (
+            palletResult.code === 200 &&
+            palletResult.data &&
+            palletResult.data.length > 0
+          ) {
             // 提取所有关联的materialProcessFlowId
             const materialProcessFlowIds = [];
-            palletResult.data.forEach(pallet => {
+            palletResult.data.forEach((pallet) => {
               if (pallet.palletBarcodes && pallet.palletBarcodes.length > 0) {
-                pallet.palletBarcodes.forEach(item => {
+                pallet.palletBarcodes.forEach((item) => {
                   if (item.materialProcessFlowId) {
                     materialProcessFlowIds.push(item.materialProcessFlowId);
                   }
@@ -2084,31 +2181,34 @@ export default {
 
             if (materialProcessFlowIds.length > 0) {
               req.query.$and.push({
-                _id: { $in: materialProcessFlowIds }
+                _id: { $in: materialProcessFlowIds },
               });
             } else {
               // 如果没有找到匹配的记录，添加一个不可能匹配的条件
               req.query.$and.push({
-                _id: null
+                _id: null,
               });
             }
           } else {
             // 如果没有找到匹配的托盘，添加一个不可能匹配的条件
             req.query.$and.push({
-              _id: null
+              _id: null,
             });
           }
         } catch (error) {
           console.error("查询托盘数据失败:", error);
           // 发生错误时添加一个不可能匹配的条件
           req.query.$and.push({
-            _id: null
+            _id: null,
           });
         }
       }
 
       // 处理进度范围查询
-      if (this.searchForm.minProgress !== "" || this.searchForm.maxProgress !== "") {
+      if (
+        this.searchForm.minProgress !== "" ||
+        this.searchForm.maxProgress !== ""
+      ) {
         const progressQuery = {};
         if (this.searchForm.minProgress !== "") {
           progressQuery.$gte = Number(this.searchForm.minProgress);
@@ -2139,6 +2239,8 @@ export default {
         saleOrderNo: "",
         productionOrderNo: "",
         productModel: "",
+        snCode: "",
+        modelCode: "",
         businessType: "",
         status: "",
         productStatus: "",
@@ -2549,11 +2651,11 @@ export default {
       this.exportForm.exportOption = "current"; // 默认选择当前页
       this.exportTableDialogVisible = true;
     },
-    
+
     // 确认导出表格数据
     async confirmTableExport() {
       const exportOption = this.exportForm.exportOption;
-      
+
       try {
         // 显示加载提示
         const loading = this.$loading({
@@ -2562,14 +2664,14 @@ export default {
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
-        
+
         let exportData = [];
-        
+
         // 根据选择获取要导出的数据
         if (exportOption === "current") {
           // 导出当前页数据
           exportData = this.tableList;
-          
+
           if (!exportData || exportData.length === 0) {
             this.$message.warning("当前页没有可导出的数据");
             loading.close();
@@ -2578,43 +2680,52 @@ export default {
         } else if (exportOption === "all" || exportOption === "search") {
           // 导出所有搜索结果数据
           loading.text = "正在获取所有搜索结果数据，请稍候...";
-          
+
           // 获取搜索条件但不分页
           let req = await this.searchData();
           req.sort = { createAt: -1 };
           delete req.page;
           delete req.skip;
           delete req.limit;
-          
+
           const result = await getData("material_process_flow", req);
-          
+
           if (result.code !== 200) {
             throw new Error(result.msg || "获取数据失败");
           }
-          
+
           exportData = result.data;
-          
+
           if (!exportData || exportData.length === 0) {
             this.$message.warning("没有符合条件的数据可导出");
             loading.close();
             return;
           }
         }
-        
+
         // 转换数据为Excel格式
         const excelData = exportData.map((item) => ({
           产品条码: item.barcode || "-",
           物料编码: item.materialCode || "-",
           物料名称: item.materialName || "-",
           规格型号: item.materialSpec || "-",
+          SN码: item.snCode || "-",
+          型号: item.modelCode || "-",
           流程状态: this.getProcessStatusText(item.status) || "-",
-          产品状态: this.getProductStatusText(item.productStatus || "NORMAL") || "-",
+          产品状态:
+            this.getProductStatusText(item.productStatus || "NORMAL") || "-",
           完成进度: item.progress || 0,
           开始时间: item.startTime ? this.formatDate(item.startTime) : "-",
           结束时间: item.endTime ? this.formatDate(item.endTime) : "-",
-          工单号: item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.workOrderNo : "-",
-          销售单号: item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.saleOrderNo || "-" : "-",
-          生产单号: item.productionPlanWorkOrderId ? item.productionPlanWorkOrderId.productionOrderNo || "-" : "-",
+          工单号: item.productionPlanWorkOrderId
+            ? item.productionPlanWorkOrderId.workOrderNo
+            : "-",
+          销售单号: item.productionPlanWorkOrderId
+            ? item.productionPlanWorkOrderId.saleOrderNo || "-"
+            : "-",
+          生产单号: item.productionPlanWorkOrderId
+            ? item.productionPlanWorkOrderId.productionOrderNo || "-"
+            : "-",
         }));
 
         // 创建工作簿
@@ -2627,6 +2738,8 @@ export default {
           { wch: 15 }, // 物料编码
           { wch: 20 }, // 物料名称
           { wch: 15 }, // 规格型号
+          { wch: 15 }, // SN码
+          { wch: 15 }, // 型号
           { wch: 10 }, // 流程状态
           { wch: 10 }, // 产品状态
           { wch: 10 }, // 完成进度
@@ -2678,7 +2791,7 @@ export default {
     // 确认导出
     async confirmExport() {
       const exportOption = this.exportForm.exportOption;
-      
+
       try {
         // 如果选择导出搜索结果，进行二次确认
         if (exportOption === "search") {
@@ -2713,7 +2826,7 @@ export default {
         if (exportOption === "current") {
           // 导出当前页数据
           exportData = this.tableList;
-          
+
           if (!exportData || exportData.length === 0) {
             this.$message.warning("当前页没有可导出的数据");
             progressLoading.close();
@@ -2753,7 +2866,10 @@ export default {
               limit: batchSize,
             };
 
-            const batchResult = await getData("material_process_flow", batchReq);
+            const batchResult = await getData(
+              "material_process_flow",
+              batchReq
+            );
 
             if (batchResult.code !== 200) {
               throw new Error(
@@ -3252,7 +3368,7 @@ export default {
         event.preventDefault();
         event.stopPropagation();
       }
-      
+
       if (!this.replaceForm.newBarcode) {
         this.replaceForm.validationStatus = false;
         this.replaceForm.validationMessage = "请输入新物料条码";
@@ -3352,11 +3468,11 @@ export default {
     },
     openSaleOrderExportDialog() {
       this.saleOrderExportDialogVisible = true;
-      this.selectedSaleOrderNo = '';
+      this.selectedSaleOrderNo = "";
     },
     async confirmSaleOrderExport() {
       if (!this.selectedSaleOrderNo) {
-        this.$message.warning('请选择销售订单');
+        this.$message.warning("请选择销售订单");
         return;
       }
       this.saleOrderExportLoading = true;
@@ -3364,9 +3480,9 @@ export default {
         // 显示加载提示
         const loading = this.$loading({
           lock: true,
-          text: '开始导出数据，请稍候...',
-          spinner: 'el-icon-loading',
-          background: 'rgba(0, 0, 0, 0.7)'
+          text: "开始导出数据，请稍候...",
+          spinner: "el-icon-loading",
+          background: "rgba(0, 0, 0, 0.7)",
         });
 
         let allData = [];
@@ -3382,10 +3498,10 @@ export default {
           const res = await exportBySaleOrder({
             saleOrderNo: this.selectedSaleOrderNo,
             page: currentPage,
-            pageSize
+            pageSize,
           });
 
-          if (res.code !== 200) throw new Error(res.message || '接口异常');
+          if (res.code !== 200) throw new Error(res.message || "接口异常");
 
           const { data, hasMore: more, total: totalCount } = res;
           allData = allData.concat(data || []);
@@ -3400,27 +3516,34 @@ export default {
 
         // 导出Excel
         if (allData.length > 0) {
-          loading.text = '正在生成Excel文件...';
+          loading.text = "正在生成Excel文件...";
 
           // 字段顺序与表头
           const headers = [
-            'WORK_ORDER(PO号)', 'UDI', 'MASTER_CARTON_UDI（外箱UDI）', 'PART_NO(部件编码)',
-            'QR_COED（条码）', 'SN_NO（客户物料编码）', 'STATION（工序描述）',
-            'RESULT（绑定结果）', 'TEST_TIME（操作时间）', 'EMPNAME（操作人）'
+            "WORK_ORDER(PO号)",
+            "UDI",
+            "MASTER_CARTON_UDI（外箱UDI）",
+            "PART_NO(部件编码)",
+            "QR_COED（条码）",
+            "SN_NO（客户物料编码）",
+            "STATION（工序描述）",
+            "RESULT（绑定结果）",
+            "TEST_TIME（操作时间）",
+            "EMPNAME（操作人）",
           ];
 
           // 字段映射
-          const data = allData.map(item => ({
-            'WORK_ORDER(PO号)': item.WORK_ORDER,
-            'UDI': item.UDI,
-            'MASTER_CARTON_UDI（外箱UDI）': item.MASTER_CARTON_UDI,
-            'PART_NO(部件编码)': item.PART_NO,
-            'QR_COED（条码）': item.QR_COED,
-            'SN_NO（客户物料编码）': item.SN_NO,
-            'STATION（工序描述）': item.STATION,
-            'RESULT（绑定结果）': item.RESULT,
-            'TEST_TIME（操作时间）': item.TEST_TIME,
-            'EMPNAME（操作人）': item.EMPNAME
+          const data = allData.map((item) => ({
+            "WORK_ORDER(PO号)": item.WORK_ORDER,
+            UDI: item.UDI,
+            "MASTER_CARTON_UDI（外箱UDI）": item.MASTER_CARTON_UDI,
+            "PART_NO(部件编码)": item.PART_NO,
+            "QR_COED（条码）": item.QR_COED,
+            "SN_NO（客户物料编码）": item.SN_NO,
+            "STATION（工序描述）": item.STATION,
+            "RESULT（绑定结果）": item.RESULT,
+            "TEST_TIME（操作时间）": item.TEST_TIME,
+            "EMPNAME（操作人）": item.EMPNAME,
           }));
 
           // 创建工作簿
@@ -3438,46 +3561,51 @@ export default {
             { wch: 20 }, // STATION
             { wch: 15 }, // RESULT
             { wch: 20 }, // TEST_TIME
-            { wch: 15 }  // EMPNAME
+            { wch: 15 }, // EMPNAME
           ];
-          ws['!cols'] = colWidths;
+          ws["!cols"] = colWidths;
 
           // 设置表头样式
-          const range = XLSX.utils.decode_range(ws['!ref']);
+          const range = XLSX.utils.decode_range(ws["!ref"]);
           for (let C = range.s.c; C <= range.e.c; ++C) {
             const address = XLSX.utils.encode_cell({ r: 0, c: C });
             if (!ws[address]) continue;
             ws[address].s = {
               font: { bold: true },
-              alignment: { horizontal: 'center' },
-              fill: { fgColor: { rgb: 'f5f7fa' } }
+              alignment: { horizontal: "center" },
+              fill: { fgColor: { rgb: "f5f7fa" } },
             };
           }
 
           // 将工作表添加到工作簿
-          XLSX.utils.book_append_sheet(wb, ws, '成品流程记录');
+          XLSX.utils.book_append_sheet(wb, ws, "成品流程记录");
 
           // 生成Excel文件并下载
-          loading.text = '正在下载文件...';
-          const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          loading.text = "正在下载文件...";
+          const excelBuffer = XLSX.write(wb, {
+            bookType: "xlsx",
+            type: "array",
+          });
           const blob = new Blob([excelBuffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           });
 
           // 生成文件名
-          const fileName = `销售订单${this.selectedSaleOrderNo}成品流程记录_${new Date().toLocaleDateString()}.xlsx`;
+          const fileName = `销售订单${
+            this.selectedSaleOrderNo
+          }成品流程记录_${new Date().toLocaleDateString()}.xlsx`;
 
           // 下载文件
           FileSaver.saveAs(blob, fileName);
 
-          this.$message.success('导出成功');
+          this.$message.success("导出成功");
           this.saleOrderExportDialogVisible = false;
         } else {
-          this.$message.warning('没有可导出的数据');
+          this.$message.warning("没有可导出的数据");
         }
       } catch (error) {
-        console.error('导出失败:', error);
-        this.$message.error(error.message || '导出失败');
+        console.error("导出失败:", error);
+        this.$message.error(error.message || "导出失败");
       } finally {
         this.saleOrderExportLoading = false;
         this.$loading().close();
@@ -3486,11 +3614,11 @@ export default {
     // 添加数字校验方法
     validateNumber(field) {
       // 移除非数字字符
-      this.searchForm[field] = this.searchForm[field].replace(/[^\d]/g, '');
-      
+      this.searchForm[field] = this.searchForm[field].replace(/[^\d]/g, "");
+
       // 如果输入的数字大于100，则限制为100
       if (this.searchForm[field] && Number(this.searchForm[field]) > 100) {
-        this.searchForm[field] = '100';
+        this.searchForm[field] = "100";
       }
     },
     // 批量更新流程节点
@@ -3501,17 +3629,17 @@ export default {
       }
 
       // 过滤掉已完成和报废状态的记录
-      const validRecords = this.selection.filter(row => {
+      const validRecords = this.selection.filter((row) => {
         return row.status !== "COMPLETED" && row.productStatus !== "SCRAP";
       });
 
-      const invalidRecords = this.selection.filter(row => {
+      const invalidRecords = this.selection.filter((row) => {
         return row.status === "COMPLETED" || row.productStatus === "SCRAP";
       });
 
       // 如果有无效记录，提示用户
       if (invalidRecords.length > 0) {
-        const invalidMessages = invalidRecords.map(row => {
+        const invalidMessages = invalidRecords.map((row) => {
           if (row.status === "COMPLETED") {
             return `${row.barcode}（已完成）`;
           }
@@ -3519,15 +3647,19 @@ export default {
             return `${row.barcode}（已报废）`;
           }
         });
-        
+
         this.$message.warning(
-          `以下${invalidRecords.length}条记录因状态限制将被跳过：${invalidMessages.join("、")}`
+          `以下${
+            invalidRecords.length
+          }条记录因状态限制将被跳过：${invalidMessages.join("、")}`
         );
       }
 
       // 如果没有有效记录，停止操作
       if (validRecords.length === 0) {
-        this.$message.warning("所选记录均为已完成或已报废状态，无法执行更新操作");
+        this.$message.warning(
+          "所选记录均为已完成或已报废状态，无法执行更新操作"
+        );
         return;
       }
 
@@ -3623,7 +3755,7 @@ export default {
             confirmButtonText: "确认强制更新",
             cancelButtonText: "取消",
             type: "warning",
-            dangerouslyUseHTMLString: true
+            dangerouslyUseHTMLString: true,
           }
         );
 
@@ -3665,8 +3797,12 @@ export default {
       }
 
       // 统计各种状态的记录数量，用于向用户展示
-      const completedCount = this.selection.filter(row => row.status === "COMPLETED").length;
-      const scrapCount = this.selection.filter(row => row.productStatus === "SCRAP").length;
+      const completedCount = this.selection.filter(
+        (row) => row.status === "COMPLETED"
+      ).length;
+      const scrapCount = this.selection.filter(
+        (row) => row.productStatus === "SCRAP"
+      ).length;
       const normalCount = this.selection.length - completedCount - scrapCount;
 
       try {
@@ -3675,7 +3811,8 @@ export default {
         confirmMessage += `⚠️ 警告：此操作将忽略所有状态检查，强制执行更新！\n\n`;
         confirmMessage += `记录状态统计：\n`;
         if (normalCount > 0) confirmMessage += `• 正常状态：${normalCount}条\n`;
-        if (completedCount > 0) confirmMessage += `• 已完成状态：${completedCount}条\n`;
+        if (completedCount > 0)
+          confirmMessage += `• 已完成状态：${completedCount}条\n`;
         if (scrapCount > 0) confirmMessage += `• 已报废状态：${scrapCount}条\n`;
         confirmMessage += `\n所有记录都将被强制更新！`;
 
@@ -3683,7 +3820,7 @@ export default {
           confirmButtonText: "确认强制更新",
           cancelButtonText: "取消",
           type: "warning",
-          dangerouslyUseHTMLString: true
+          dangerouslyUseHTMLString: true,
         });
 
         // 显示加载中
@@ -3875,6 +4012,7 @@ export default {
         font-weight: 600;
         background: linear-gradient(120deg, #409eff, #36cfc9);
         -webkit-background-clip: text;
+        background-clip: text;
         -webkit-text-fill-color: transparent;
       }
     }
@@ -4521,7 +4659,7 @@ export default {
 
     .progress-input {
       flex: 1;
-      
+
       :deep(.el-input__inner) {
         background: transparent;
         border: none;
@@ -4535,7 +4673,8 @@ export default {
           color: #c0c4cc;
         }
 
-        &:hover, &:focus {
+        &:hover,
+        &:focus {
           background: transparent;
         }
       }
@@ -4553,5 +4692,39 @@ export default {
       margin-left: 5px;
     }
   }
+}
+
+// 物料信息单元格样式优化
+.material-info-cell {
+  .info-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    line-height: 1.6;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .label {
+      color: #909399;
+      font-size: 12px;
+      min-width: 40px;
+      margin-right: 4px;
+    }
+
+    .value {
+      color: #303133;
+      font-size: 12px;
+      flex: 1;
+      word-break: break-all;
+    }
+  }
+}
+
+// 无数据样式
+.no-data {
+  color: #c0c4cc;
+  font-style: italic;
 }
 </style>

@@ -1899,8 +1899,21 @@ export default {
 
       try {
         // 更严格地清理输入值中的所有空格和换行符
-        const cleanValue = value.replace(/[\s\r\n]/g, "");
+        let cleanValue = value.replace(/[\s\r\n]/g, "");
         if (!cleanValue) return;
+
+        if (value.includes("DCZZ-")) {
+          // 先检查是否为自制条码
+          const diyCodeResponse = await getData("material_process_flow", {
+            query: {
+              diyCode: cleanValue,
+            },
+          });
+
+          if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+            cleanValue = diyCodeResponse.data[0].barcode;
+          }
+        }
 
         //特殊处理
         if (cleanValue.includes("102251-114010190087")) {
@@ -2759,6 +2772,16 @@ export default {
                 printData.FCustPO +
                 "," +
                 printData.productionDate +
+                "," +
+                printData.quantity;
+
+              //追觅综合字段固定20251221
+              printData.printBarcodeZH2025 =
+                printData.printBarcode +
+                "," +
+                printData.FCustPO +
+                "," +
+                "20251221" +
                 "," +
                 printData.quantity;
 

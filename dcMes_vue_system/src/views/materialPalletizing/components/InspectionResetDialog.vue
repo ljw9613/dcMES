@@ -273,10 +273,25 @@ export default {
         return;
       }
 
+      let barcode = this.scanForm.barcode.trim();
+
+      if (barcode.includes("DCZZ-")) {
+        // 先检查是否为自制条码
+        const diyCodeResponse = await getData("material_process_flow", {
+          query: {
+            diyCode: barcode,
+          },
+        });
+
+        if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+          barcode = diyCodeResponse.data[0].barcode;
+        }
+      }
+
       //是否为升级条码
       const preProductionResponse = await getData("preProductionBarcode", {
         query: {
-          transformedPrintBarcode: this.scanForm.barcode.trim(),
+          transformedPrintBarcode: barcode,
         },
         select: {
           transformedPrintBarcode: 1,
@@ -287,7 +302,7 @@ export default {
 
       if (preProductionResponse.data && preProductionResponse.data.length > 0) {
         console.log("升级条码:", preProductionResponse.data[0]);
-        this.scanForm.barcode = preProductionResponse.data[0].printBarcode;
+        barcode = preProductionResponse.data[0].printBarcode;
       }
 
       this.scanning = true;
@@ -295,7 +310,7 @@ export default {
       try {
         // 查找条码是否存在于托盘中并且状态为抽检中
         const barcodeIndex = this.barcodesTableData.findIndex(
-          (item) => item.barcode === this.scanForm.barcode
+          (item) => item.barcode === barcode
         );
 
         if (barcodeIndex === -1) {

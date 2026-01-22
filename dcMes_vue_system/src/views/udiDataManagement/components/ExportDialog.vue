@@ -239,7 +239,7 @@ export default {
             "COLOR_BOX_UDI#":
               (barcodeValidation && barcodeValidation.printBarcode) || "-",
             "UNIT_UDI#": item.barcode || "-",
-            "RFID_NO#": rfidBarcode,
+            "RFID_NO#": rfidBarcode !== "-" ? rfidBarcode.replace(/[A-Z]/g, char => char.toLowerCase()) : rfidBarcode,
             MANUFACTURING_DATE: item.endTime
               ? this.formatDateForExport(item.endTime)
               : this.formatDateForExport(item.createAt),
@@ -253,8 +253,14 @@ export default {
           ...exportData.map((item) =>
             headers
               .map(
-                (header) =>
-                  `"${String(item[header]).replace(/"/g, '""')}"`
+                (header) => {
+                  // MANUFACTURING_DATE字段使用特殊格式，让Excel识别为文本
+                  if (header === 'MANUFACTURING_DATE' && item[header] !== '-') {
+                    return `="${item[header]}"`;
+                  }
+                  // 其他字段正常处理，用双引号包围
+                  return `"${String(item[header]).replace(/"/g, '""')}"`;
+                }
               )
               .join(",")
           ),
@@ -281,10 +287,10 @@ export default {
     formatDateForExport(date) {
       if (!date) return "-";
       const d = new Date(date);
-      const month = d.getMonth() + 1;
-      const day = d.getDate();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
       const year = d.getFullYear();
-      return `${month}/${day}/${year}`;
+      return `${year}-${month}-${day}`;
     },
   },
 };

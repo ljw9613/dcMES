@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 
 // 数据库连接URL
 const mongodbUrl = process.env.MONGODB_URI || 
-  "mongodb://dcMes:dcMes123.@47.115.19.76:27017/dcMes";
+  "mongodb://dcmes:bA6GNfZGy7rF4TRp@106.52.179.92:27017/dcmes";
 
 // 连接选项配置
 const connectOptions = {

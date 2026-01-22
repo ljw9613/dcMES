@@ -757,7 +757,21 @@ export default {
           const [boxBarcode, materialCode, scanTime, quantity] = barcode.split(",");
           barcode = boxBarcode;
         }
-        
+
+        // 是否为自制条码
+        if (barcode.includes("DCZZ-")) {
+          const diyCodeResponse = await getData("material_process_flow", {
+            query: {
+              diyCode: barcode,
+            },
+          });
+          if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+            barcode = diyCodeResponse.data[0].barcode;
+          }
+        }
+
+     
+
         // 防重复扫码检查：检查产品条码是否已在当前出库单中
         if (this.entryInfo && this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
           // 检查是否存在相同的产品条码

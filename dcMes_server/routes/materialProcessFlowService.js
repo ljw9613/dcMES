@@ -870,14 +870,54 @@ router.get("/api/v1/validate-recent-flows", async (req, res) => {
   }
 });
 
-// 检查条码节点完成情况
+// 检查条码节点完成情况（支持查询参数，用于处理包含特殊字符的条码）
+router.get("/api/v1/check-barcode-completion", async (req, res) => {
+  try {
+    console.log("[API] 检查条码节点完成情况 - 请求参数:", {
+      params: req.params,
+      query: req.query,
+    });
+    const barcode = req.query.barcode;
+
+    if (!barcode) {
+      const errorCode = matchErrorCode("条码参数不能为空");
+      return res.status(200).json({
+        code: 400,
+        success: false,
+        message: "条码参数不能为空",
+        errorCode: errorCode,
+      });
+    }
+
+    const result = await MaterialProcessFlowService.checkBarcodeCompletion(
+      barcode
+    );
+
+    res.json({
+      code: 200,
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const errorCode = matchErrorCode(error.message);
+    res.status(200).json({
+      code: 500,
+      success: false,
+      message: error.message,
+      errorCode: errorCode,
+    });
+  }
+});
+
+// 检查条码节点完成情况（兼容旧版本，支持路径参数）
 router.get("/api/v1/check-barcode-completion/:barcode", async (req, res) => {
   try {
     console.log("[API] 检查条码节点完成情况 - 请求参数:", {
       params: req.params,
       query: req.query,
     });
-    const { barcode } = req.params;
+    // 优先从查询参数读取，如果没有则从路径参数读取（兼容旧版本）
+    const barcode = req.query.barcode || req.params.barcode;
 
     if (!barcode) {
       const errorCode = matchErrorCode("条码参数不能为空");

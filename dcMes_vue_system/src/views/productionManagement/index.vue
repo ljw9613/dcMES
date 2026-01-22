@@ -720,7 +720,7 @@ export default {
                             },
                             {
                                 "FieldName": "FCreateDate",
-                                "Compare": ">",
+                                "Compare": ">=",
                                 "Value": `${startDate} 00:00:00`,
                                 "Left": "",
                                 "Right": "",
@@ -728,7 +728,7 @@ export default {
                             },
                             {
                                 "FieldName": "FCreateDate",
-                                "Compare": "<",
+                                "Compare": "<=",
                                 "Value": `${endDate} 23:59:59`,
                                 "Left": "",
                                 "Right": "",

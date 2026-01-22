@@ -904,9 +904,9 @@ export default {
               (row.barcodeValidation && row.barcodeValidation.printBarcode) ||
               "-",
             "UNIT_UDI#": row.barcode || "-",
-            "RFID_NO#": row.rfidBarcode || "-",
+            "RFID_NO#": row.rfidBarcode ? row.rfidBarcode.replace(/[A-Z]/g, char => char.toLowerCase()) : "-",
             MANUFACTURING_DATE: row.createAt
-              ? this.formatDate(row.createAt)
+              ? this.formatDateForExport(row.createAt)
               : "-",
           },
         ];
@@ -918,9 +918,14 @@ export default {
           ...csvData.map((item) =>
             headers
               .map(
-                (header) =>
-                  // 处理可能包含逗号的内容，用双引号包围
-                  `"${String(item[header]).replace(/"/g, '""')}"`
+                (header) => {
+                  // MANUFACTURING_DATE字段使用特殊格式，让Excel识别为文本
+                  if (header === 'MANUFACTURING_DATE' && item[header] !== '-') {
+                    return `="${item[header]}"`;
+                  }
+                  // 其他字段正常处理，用双引号包围
+                  return `"${String(item[header]).replace(/"/g, '""')}"`;
+                }
               )
               .join(",")
           ),
@@ -1156,7 +1161,7 @@ export default {
             (item.barcodeValidation && item.barcodeValidation.printBarcode) ||
             "-",
           "UNIT_UDI#": item.barcode || "-",
-          RFID_NO: item.rfidBarcode || "-",
+          RFID_NO: item.rfidBarcode ? item.rfidBarcode.replace(/[A-Z]/g, char => char.toLowerCase()) : "-",
           MANUFACTURING_DATE: item.endTime
             ? this.formatDateForExport(item.endTime)
             : this.formatDateForExport(item.createAt),
@@ -1169,9 +1174,14 @@ export default {
           ...csvData.map((item) =>
             headers
               .map(
-                (header) =>
-                  // 处理可能包含逗号的内容，用双引号包围
-                  `"${String(item[header]).replace(/"/g, '""')}"`
+                (header) => {
+                  // MANUFACTURING_DATE字段使用特殊格式，让Excel识别为文本
+                  if (header === 'MANUFACTURING_DATE' && item[header] !== '-') {
+                    return `="${item[header]}"`;
+                  }
+                  // 其他字段正常处理，用双引号包围
+                  return `"${String(item[header]).replace(/"/g, '""')}"`;
+                }
               )
               .join(",")
           ),
@@ -1198,14 +1208,14 @@ export default {
         this.$loading().close();
       }
     },
-    // 为导出格式化日期 (MM/DD/YYYY)
+    // 为导出格式化日期 (YYYY-MM-DD)
     formatDateForExport(date) {
       if (!date) return "-";
       const d = new Date(date);
-      const month = d.getMonth() + 1;
-      const day = d.getDate();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
       const year = d.getFullYear();
-      return `${month}/${day}/${year}`;
+      return `${year}-${month}-${day}`;
     },
     showExportDialog() {
       this.exportDialogVisible = true;

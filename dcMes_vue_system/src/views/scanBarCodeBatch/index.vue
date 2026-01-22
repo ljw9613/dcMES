@@ -2031,6 +2031,19 @@ export default {
       if (cleanValue.includes(",")) {
         cleanValue = cleanValue.split(",")[0];
       }
+      
+      if (value.includes("DCZZ-")) {
+        // 先检查是否为自制条码
+        const diyCodeResponse = await getData("material_process_flow", {
+          query: {
+            diyCode: cleanValue,
+          },
+        });
+
+        if (diyCodeResponse.data && diyCodeResponse.data.length > 0) {
+          cleanValue = diyCodeResponse.data[0].barcode;
+        }
+      }
 
       // 添加条码处理锁定机制，防止并发重复提交
       if (this.processingBarcodes.has(cleanValue) || this.isSubmitting) {

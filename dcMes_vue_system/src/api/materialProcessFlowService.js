@@ -73,8 +73,9 @@ export function fixFlowProgress(data) {
 ///api/v1/check-barcode-completion
 export function checkBarcodeCompletion(barcode) {
     return request({
-        url: `/check-barcode-completion/${barcode}`,
-        method: 'get'
+        url: `/check-barcode-completion`,
+        method: 'get',
+        params: { barcode }
     })
 }
 

@@ -84,9 +84,10 @@ router.post("/api/v1/handlePalletBarcode", async (req, res) => {
 });
 
 // 添加队列状态查询接口
-router.get("/api/v1/getPalletProcessingStatus/:jobId", async (req, res) => {
+// 使用查询参数而不是路径参数，避免URL条码中的特殊字符导致路由解析错误
+router.get("/api/v1/getPalletProcessingStatus", async (req, res) => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.query; // 从查询参数获取，而不是路径参数
     
     if (!jobId) {
       return res.status(200).json({
@@ -139,7 +140,7 @@ router.get("/api/v1/getPalletProcessingStatus/:jobId", async (req, res) => {
     });
     
   } catch (error) {
-    console.error(`查询托盘处理状态失败: ${req.params.jobId}`, error);
+    console.error(`查询托盘处理状态失败: ${req.query.jobId}`, error);
     
     return res.status(200).json({
       code: 500,
