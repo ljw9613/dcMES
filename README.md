@@ -1,4 +1,4 @@
-# 德昌MES系统
+# -MES-（德昌MES系统）
 
 ## 项目概述
 
@@ -328,4 +328,3 @@ const color = getVersionColor()
 - 支持多环境配置
 - 完整的日志系统
 - 自动化备份机制
-
