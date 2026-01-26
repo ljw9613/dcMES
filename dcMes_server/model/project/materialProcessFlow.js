@@ -75,7 +75,7 @@ const materialProcessFlowSchema = new mongoose.Schema({
   modelCode: { type: String, default: "" }, // 型号
   diyCode:{type:String,default:""}, // 自制定制码
   relatedBill: { type: String, default: "" }, // 相关单据
-  productLineId: { type: mongoose.Schema.ObjectId, ref: "product_line" }, // 产线ID
+  productLineId: { type: mongoose.Schema.ObjectId, ref: "production_line" }, // 产线ID（修正：使用正确的模型名称）
   productLineName: { type: String }, // 产线名称
   // 主物料信息
   materialId: { type: mongoose.Schema.ObjectId, ref: "k3_BD_MATERIAL" }, // 物料ID

@@ -37,30 +37,60 @@
             <div style="width: 120px">工单编号:</div>
             <el-input
               v-model="workOrderNo"
+              :placeholder="workOrderNoSearchMode === 'exact' ? '请输入完整工单编号（精确查询）' : '请输入工单编号（模糊查询）'"
               clearable
-              placeholder="请输入工单编号"
               @clear="clearFilter"
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="workOrderNoSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleWorkOrderNoSearchMode"
+                :title="workOrderNoSearchMode === 'exact' ? '当前：精确查询（快速，推荐）' : '当前：模糊查询（较慢，但更灵活）'"
+                style="min-width: 60px"
+              >
+                {{ workOrderNoSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </div>
           <!-- 物料编码筛选 -->
           <div class="screen_content_second_one">
             <div style="width: 120px">物料编码:</div>
             <el-input
               v-model="materialCode"
+              :placeholder="materialCodeSearchMode === 'exact' ? '请输入完整物料编码（精确查询）' : '请输入物料编码（模糊查询）'"
               clearable
-              placeholder="请输入物料编码"
               @clear="clearFilter"
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="materialCodeSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleMaterialCodeSearchMode"
+                :title="materialCodeSearchMode === 'exact' ? '当前：精确查询（快速，推荐）' : '当前：模糊查询（较慢，但更灵活）'"
+                style="min-width: 60px"
+              >
+                {{ materialCodeSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </div>
           <!-- 相关条码筛选 -->
           <div class="screen_content_second_one">
             <div style="width: 120px">相关条码:</div>
             <el-input
               v-model="relatedBarcode"
+              :placeholder="relatedBarcodeSearchMode === 'exact' ? '请输入完整相关条码（精确查询）' : '请输入相关条码（模糊查询）'"
               clearable
-              placeholder="请输入相关条码"
               @clear="clearFilter"
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="relatedBarcodeSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleRelatedBarcodeSearchMode"
+                :title="relatedBarcodeSearchMode === 'exact' ? '当前：精确查询（快速，推荐）' : '当前：模糊查询（较慢，但更灵活）'"
+                style="min-width: 60px"
+              >
+                {{ relatedBarcodeSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </div>
           <!-- 变更类型筛选 -->
           <div class="screen_content_second_one">
@@ -99,10 +129,20 @@
             <div style="width: 100px">操作人员:</div>
             <el-input
               v-model="operatorId"
+              :placeholder="operatorIdSearchMode === 'exact' ? '请输入完整操作人员（精确查询）' : '请输入操作人员（模糊查询）'"
               clearable
-              placeholder="请输入操作人员"
               @clear="clearFilter"
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="operatorIdSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleOperatorIdSearchMode"
+                :title="operatorIdSearchMode === 'exact' ? '当前：精确查询（快速，推荐）' : '当前：模糊查询（较慢，但更灵活）'"
+                style="min-width: 60px"
+              >
+                {{ operatorIdSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </div>
           <!-- 日期范围筛选 -->
           <div class="screen_content_second_one date-range">
@@ -527,6 +567,11 @@ export default {
         page: 1,
         limit: 10,
       },
+      // 查询模式状态变量（精确/模糊查询切换）
+      workOrderNoSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
+      materialCodeSearchMode: "exact",
+      relatedBarcodeSearchMode: "exact",
+      operatorIdSearchMode: "exact",
 
       // 详情弹窗
       logDetailVisible: false,
@@ -635,20 +680,92 @@ export default {
       });
     },
 
-    // 构建查询条件
+    // 切换查询模式的方法
+    toggleWorkOrderNoSearchMode() {
+      this.workOrderNoSearchMode = this.workOrderNoSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.workOrderNoSearchMode === "exact" 
+        ? "工单编号已切换到精确查询模式（快速，推荐）" 
+        : "工单编号已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleMaterialCodeSearchMode() {
+      this.materialCodeSearchMode = this.materialCodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.materialCodeSearchMode === "exact" 
+        ? "物料编码已切换到精确查询模式（快速，推荐）" 
+        : "物料编码已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleRelatedBarcodeSearchMode() {
+      this.relatedBarcodeSearchMode = this.relatedBarcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.relatedBarcodeSearchMode === "exact" 
+        ? "相关条码已切换到精确查询模式（快速，推荐）" 
+        : "相关条码已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleOperatorIdSearchMode() {
+      this.operatorIdSearchMode = this.operatorIdSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.operatorIdSearchMode === "exact" 
+        ? "操作人员已切换到精确查询模式（快速，推荐）" 
+        : "操作人员已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    // 构建查询条件（支持精确/模糊查询切换）
     buildQuery() {
       const query = {};
+      const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      if (this.workOrderNo) {
-        query.workOrderNo = { $regex: this.workOrderNo, $options: 'i' };
+      if (this.workOrderNo && this.workOrderNo.trim()) {
+        const workOrderNoInput = this.workOrderNo.trim();
+        if (this.workOrderNoSearchMode === "exact") {
+          query.workOrderNo = workOrderNoInput;
+        } else {
+          if (workOrderNoInput.length < 3) {
+            this.$message.warning({
+              message: "工单编号模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.workOrderNo = {
+            $regex: escapeRegex(workOrderNoInput),
+            $options: "i",
+          };
+        }
       }
 
-      if (this.materialCode) {
-        query.materialCode = { $regex: this.materialCode, $options: 'i' };
+      if (this.materialCode && this.materialCode.trim()) {
+        const materialCodeInput = this.materialCode.trim();
+        if (this.materialCodeSearchMode === "exact") {
+          query.materialCode = materialCodeInput;
+        } else {
+          if (materialCodeInput.length < 3) {
+            this.$message.warning({
+              message: "物料编码模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.materialCode = {
+            $regex: escapeRegex(materialCodeInput),
+            $options: "i",
+          };
+        }
       }
 
-      if (this.relatedBarcode) {
-        query.relatedBarcode = { $regex: this.relatedBarcode, $options: 'i' };
+      if (this.relatedBarcode && this.relatedBarcode.trim()) {
+        const relatedBarcodeInput = this.relatedBarcode.trim();
+        if (this.relatedBarcodeSearchMode === "exact") {
+          query.relatedBarcode = relatedBarcodeInput;
+        } else {
+          if (relatedBarcodeInput.length < 3) {
+            this.$message.warning({
+              message: "相关条码模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.relatedBarcode = {
+            $regex: escapeRegex(relatedBarcodeInput),
+            $options: "i",
+          };
+        }
       }
 
       if (this.changeType) {
@@ -659,8 +776,22 @@ export default {
         query.barcodeOperation = this.barcodeOperation;
       }
 
-      if (this.operatorId) {
-        query.operatorId = { $regex: this.operatorId, $options: 'i' };
+      if (this.operatorId && this.operatorId.trim()) {
+        const operatorIdInput = this.operatorId.trim();
+        if (this.operatorIdSearchMode === "exact") {
+          query.operatorId = operatorIdInput;
+        } else {
+          if (operatorIdInput.length < 3) {
+            this.$message.warning({
+              message: "操作人员模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.operatorId = {
+            $regex: escapeRegex(operatorIdInput),
+            $options: "i",
+          };
+        }
       }
 
       // 处理日期范围
@@ -797,6 +928,11 @@ export default {
       this.barcodeOperation = "";
       this.operatorId = "";
       this.dateRange = [];
+      // 重置所有查询模式为精确查询
+      this.workOrderNoSearchMode = "exact";
+      this.materialCodeSearchMode = "exact";
+      this.relatedBarcodeSearchMode = "exact";
+      this.operatorIdSearchMode = "exact";
       this.listQuery.page = 1;
       this.fetchData();
       this.loadSummaryData();

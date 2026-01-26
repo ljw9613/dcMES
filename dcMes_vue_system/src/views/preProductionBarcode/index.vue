@@ -11,36 +11,76 @@
             <el-form-item label="工单号">
               <el-input
                 v-model="searchForm.workOrderNo"
-                placeholder="请输入工单号"
+                :placeholder="workOrderNoSearchMode === 'exact' ? '请输入完整工单号（精确查询）' : '请输入工单号（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="workOrderNoSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleWorkOrderNoSearchMode"
+                  :title="workOrderNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ workOrderNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="物料编码">
               <el-input
                 v-model="searchForm.materialNumber"
-                placeholder="请输入物料编码"
+                :placeholder="materialNumberSearchMode === 'exact' ? '请输入完整物料编码（精确查询）' : '请输入物料编码（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="materialNumberSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleMaterialNumberSearchMode"
+                  :title="materialNumberSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ materialNumberSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="明码">
               <el-input
                 v-model="searchForm.barcode"
-                placeholder="请输入明码"
+                :placeholder="barcodeSearchMode === 'exact' ? '请输入完整明码（精确查询）' : '请输入明码（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="barcodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleBarcodeSearchMode"
+                  :title="barcodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ barcodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="暗码">
               <el-input
                 v-model="searchForm.printBarcode"
-                placeholder="请输入暗码"
+                :placeholder="printBarcodeSearchMode === 'exact' ? '请输入完整暗码（精确查询）' : '请输入暗码（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="printBarcodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="togglePrintBarcodeSearchMode"
+                  :title="printBarcodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ printBarcodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -49,27 +89,57 @@
             <el-form-item label="转换明码">
               <el-input
                 v-model="searchForm.transformedBarcode"
-                placeholder="请输入转换明码"
+                :placeholder="transformedBarcodeSearchMode === 'exact' ? '请输入完整转换明码（精确查询）' : '请输入转换明码（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="transformedBarcodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleTransformedBarcodeSearchMode"
+                  :title="transformedBarcodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ transformedBarcodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="转换暗码">
               <el-input
                 v-model="searchForm.transformedPrintBarcode"
-                placeholder="请输入转换暗码"
+                :placeholder="transformedPrintBarcodeSearchMode === 'exact' ? '请输入完整转换暗码（精确查询）' : '请输入转换暗码（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="transformedPrintBarcodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleTransformedPrintBarcodeSearchMode"
+                  :title="transformedPrintBarcodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ transformedPrintBarcodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="批次号">
               <el-input
                 v-model="searchForm.batchNo"
-                placeholder="请输入批次号"
+                :placeholder="batchNoSearchMode === 'exact' ? '请输入完整批次号（精确查询）' : '请输入批次号（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="batchNoSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleBatchNoSearchMode"
+                  :title="batchNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ batchNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -578,6 +648,14 @@ export default {
           { required: true, message: "请输入暂停原因", trigger: "blur" },
         ],
       },
+      // 查询模式状态变量
+      workOrderNoSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
+      materialNumberSearchMode: "exact",
+      barcodeSearchMode: "exact",
+      printBarcodeSearchMode: "exact",
+      transformedBarcodeSearchMode: "exact",
+      transformedPrintBarcodeSearchMode: "exact",
+      batchNoSearchMode: "exact",
     };
   },
 
@@ -668,47 +746,182 @@ export default {
       }
     },
 
+    // 切换查询模式的方法
+    toggleWorkOrderNoSearchMode() {
+      this.workOrderNoSearchMode = this.workOrderNoSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.workOrderNoSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleMaterialNumberSearchMode() {
+      this.materialNumberSearchMode = this.materialNumberSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.materialNumberSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleBarcodeSearchMode() {
+      this.barcodeSearchMode = this.barcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.barcodeSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    togglePrintBarcodeSearchMode() {
+      this.printBarcodeSearchMode = this.printBarcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.printBarcodeSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleTransformedBarcodeSearchMode() {
+      this.transformedBarcodeSearchMode = this.transformedBarcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.transformedBarcodeSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleTransformedPrintBarcodeSearchMode() {
+      this.transformedPrintBarcodeSearchMode = this.transformedPrintBarcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.transformedPrintBarcodeSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleBatchNoSearchMode() {
+      this.batchNoSearchMode = this.batchNoSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.batchNoSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
     // 构建查询条件
     buildQuery() {
       const query = {};
-      if (this.searchForm.workOrderNo) {
-        query.workOrderNo = {
-          $regex: this.searchForm.workOrderNo,
-          $options: "i",
-        };
+      const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      
+      if (this.searchForm.workOrderNo && this.searchForm.workOrderNo.trim()) {
+        const workOrderNoInput = this.searchForm.workOrderNo.trim();
+        if (this.workOrderNoSearchMode === "exact") {
+          query.workOrderNo = workOrderNoInput;
+        } else {
+          if (workOrderNoInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.workOrderNo = {
+            $regex: escapeRegex(workOrderNoInput),
+            $options: "i",
+          };
+        }
       }
-      if (this.searchForm.materialNumber) {
-        query.materialNumber = {
-          $regex: this.searchForm.materialNumber,
-          $options: "i",
-        };
+      if (this.searchForm.materialNumber && this.searchForm.materialNumber.trim()) {
+        const materialNumberInput = this.searchForm.materialNumber.trim();
+        if (this.materialNumberSearchMode === "exact") {
+          query.materialNumber = materialNumberInput;
+        } else {
+          if (materialNumberInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.materialNumber = {
+            $regex: escapeRegex(materialNumberInput),
+            $options: "i",
+          };
+        }
       }
-      if (this.searchForm.barcode) {
-        query.barcode = { $regex: this.searchForm.barcode, $options: "i" };
+      if (this.searchForm.barcode && this.searchForm.barcode.trim()) {
+        const barcodeInput = this.searchForm.barcode.trim();
+        if (this.barcodeSearchMode === "exact") {
+          query.barcode = barcodeInput;
+        } else {
+          if (barcodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.barcode = {
+            $regex: escapeRegex(barcodeInput),
+            $options: "i",
+          };
+        }
       }
-      if (this.searchForm.printBarcode) {
-        query.printBarcode = {
-          $regex: this.searchForm.printBarcode,
-          $options: "i",
-        };
+      if (this.searchForm.printBarcode && this.searchForm.printBarcode.trim()) {
+        const printBarcodeInput = this.searchForm.printBarcode.trim();
+        if (this.printBarcodeSearchMode === "exact") {
+          query.printBarcode = printBarcodeInput;
+        } else {
+          if (printBarcodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.printBarcode = {
+            $regex: escapeRegex(printBarcodeInput),
+            $options: "i",
+          };
+        }
       }
-      if (this.searchForm.transformedBarcode) {
-        query.transformedBarcode = {
-          $regex: this.searchForm.transformedBarcode,
-          $options: "i",
-        };
+      if (this.searchForm.transformedBarcode && this.searchForm.transformedBarcode.trim()) {
+        const transformedBarcodeInput = this.searchForm.transformedBarcode.trim();
+        if (this.transformedBarcodeSearchMode === "exact") {
+          query.transformedBarcode = transformedBarcodeInput;
+        } else {
+          if (transformedBarcodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.transformedBarcode = {
+            $regex: escapeRegex(transformedBarcodeInput),
+            $options: "i",
+          };
+        }
       }
-      if (this.searchForm.transformedPrintBarcode) {
-        query.transformedPrintBarcode = {
-          $regex: this.searchForm.transformedPrintBarcode,
-          $options: "i",
-        };
+      if (this.searchForm.transformedPrintBarcode && this.searchForm.transformedPrintBarcode.trim()) {
+        const transformedPrintBarcodeInput = this.searchForm.transformedPrintBarcode.trim();
+        if (this.transformedPrintBarcodeSearchMode === "exact") {
+          query.transformedPrintBarcode = transformedPrintBarcodeInput;
+        } else {
+          if (transformedPrintBarcodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.transformedPrintBarcode = {
+            $regex: escapeRegex(transformedPrintBarcodeInput),
+            $options: "i",
+          };
+        }
       }
       if (this.searchForm.status) {
         query.status = this.searchForm.status;
       }
-      if (this.searchForm.batchNo) {
-        query.batchNo = { $regex: this.searchForm.batchNo, $options: "i" };
+      if (this.searchForm.batchNo && this.searchForm.batchNo.trim()) {
+        const batchNoInput = this.searchForm.batchNo.trim();
+        if (this.batchNoSearchMode === "exact") {
+          query.batchNo = batchNoInput;
+        } else {
+          if (batchNoInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          query.batchNo = {
+            $regex: escapeRegex(batchNoInput),
+            $options: "i",
+          };
+        }
       }
       return query;
     },
@@ -1493,6 +1706,14 @@ export default {
         status: "",
         batchNo: "",
       };
+      // 重置所有查询模式为精确查询
+      this.workOrderNoSearchMode = "exact";
+      this.materialNumberSearchMode = "exact";
+      this.barcodeSearchMode = "exact";
+      this.printBarcodeSearchMode = "exact";
+      this.transformedBarcodeSearchMode = "exact";
+      this.transformedPrintBarcodeSearchMode = "exact";
+      this.batchNoSearchMode = "exact";
       this.currentPage = 1;
       this.fetchData();
     },

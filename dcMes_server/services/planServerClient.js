@@ -8,7 +8,7 @@ const request = require('request');
 // 工单处理服务配置
 const PLAN_SERVER_CONFIG = {
   host: process.env.PLAN_SERVER_HOST || 'localhost',
-  port: process.env.PLAN_SERVER_PORT || 2228,
+  port: process.env.PLAN_SERVER_PORT || 3001,
   timeout: 30000 // 请求超时30秒
 };
 

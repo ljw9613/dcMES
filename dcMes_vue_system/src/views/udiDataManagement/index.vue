@@ -12,23 +12,77 @@
           <el-form-item label="型号" prop="materialName">
             <el-input
               v-model="searchForm.materialName"
-              placeholder="请输入型号"
+              :placeholder="
+                materialNameSearchMode === 'exact'
+                  ? '请输入完整型号（精确查询）'
+                  : '请输入型号（模糊查询）'
+              "
               clearable
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="materialNameSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleMaterialNameSearchMode"
+                :title="
+                  materialNameSearchMode === 'exact'
+                    ? '当前：精确查询（推荐，性能更好）'
+                    : '当前：模糊查询（更灵活，但可能较慢）'
+                "
+                style="min-width: 60px"
+              >
+                {{ materialNameSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </el-form-item>
           <el-form-item label="UDI序列号" prop="barcode">
             <el-input
               v-model="searchForm.barcode"
-              placeholder="请输入UDI序列号"
+              :placeholder="
+                barcodeSearchMode === 'exact'
+                  ? '请输入完整UDI序列号（精确查询）'
+                  : '请输入UDI序列号（模糊查询）'
+              "
               clearable
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="barcodeSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleBarcodeSearchMode"
+                :title="
+                  barcodeSearchMode === 'exact'
+                    ? '当前：精确查询（推荐，性能更好）'
+                    : '当前：模糊查询（更灵活，但可能较慢）'
+                "
+                style="min-width: 60px"
+              >
+                {{ barcodeSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </el-form-item>
           <el-form-item label="生产批号" prop="batchNo">
             <el-input
               v-model="searchForm.batchNo"
-              placeholder="请输入生产批号"
+              :placeholder="
+                batchNoSearchMode === 'exact'
+                  ? '请输入完整生产批号（精确查询）'
+                  : '请输入生产批号（模糊查询）'
+              "
               clearable
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="batchNoSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleBatchNoSearchMode"
+                :title="
+                  batchNoSearchMode === 'exact'
+                    ? '当前：精确查询（推荐，性能更好）'
+                    : '当前：模糊查询（更灵活，但可能较慢）'
+                "
+                style="min-width: 60px"
+              >
+                {{ batchNoSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </el-form-item>
           <el-form-item label="销售订单" prop="saleOrderNo">
             <zr-select
@@ -58,16 +112,52 @@
           <el-form-item label="客户订单号" prop="custOrderNo">
             <el-input
               v-model="searchForm.custOrderNo"
-              placeholder="请输入客户订单号"
+              :placeholder="
+                custOrderNoSearchMode === 'exact'
+                  ? '请输入完整客户订单号（精确查询）'
+                  : '请输入客户订单号（模糊查询）'
+              "
               clearable
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="custOrderNoSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleCustOrderNoSearchMode"
+                :title="
+                  custOrderNoSearchMode === 'exact'
+                    ? '当前：精确查询（推荐，性能更好）'
+                    : '当前：模糊查询（更灵活，但可能较慢）'
+                "
+                style="min-width: 60px"
+              >
+                {{ custOrderNoSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </el-form-item>
           <el-form-item label="RFID标签" prop="rfidBarcode">
             <el-input
               v-model="searchForm.rfidBarcode"
-              placeholder="请输入RFID标签"
+              :placeholder="
+                rfidBarcodeSearchMode === 'exact'
+                  ? '请输入完整RFID标签（精确查询）'
+                  : '请输入RFID标签（模糊查询）'
+              "
               clearable
-            ></el-input>
+            >
+              <el-button
+                slot="prepend"
+                :type="rfidBarcodeSearchMode === 'exact' ? 'primary' : ''"
+                @click="toggleRfidBarcodeSearchMode"
+                :title="
+                  rfidBarcodeSearchMode === 'exact'
+                    ? '当前：精确查询（推荐，性能更好）'
+                    : '当前：模糊查询（更灵活，但可能较慢）'
+                "
+                style="min-width: 60px"
+              >
+                {{ rfidBarcodeSearchMode === "exact" ? "精确" : "模糊" }}
+              </el-button>
+            </el-input>
           </el-form-item>
           <el-form-item label="生产日期" prop="dateRange">
             <el-date-picker
@@ -526,6 +616,16 @@ export default {
       detailDialogVisible: false,
       currentDetail: null,
       exportDialogVisible: false,
+      // 导出配置（防止一次性导出过多导致浏览器卡死）
+      exportBatchSize: 500, // 每批次请求条数
+      exportMaxRows: 50000, // 单次导出最大行数上限
+      isExportingAll: false, // 导出中防重复点击
+      // 查询模式（精确 / 模糊），默认精确
+      materialNameSearchMode: "exact",
+      barcodeSearchMode: "exact",
+      batchNoSearchMode: "exact",
+      custOrderNoSearchMode: "exact",
+      rfidBarcodeSearchMode: "exact",
     };
   },
   methods: {
@@ -661,6 +761,57 @@ export default {
       this.fetchData();
     },
 
+    // 查询模式切换（型号）
+    toggleMaterialNameSearchMode() {
+      this.materialNameSearchMode =
+        this.materialNameSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText =
+        this.materialNameSearchMode === "exact"
+          ? "型号已切换到精确查询模式（推荐，性能更好）"
+          : "型号已切换到模糊查询模式（更灵活，但可能较慢）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    // 查询模式切换（UDI序列号）
+    toggleBarcodeSearchMode() {
+      this.barcodeSearchMode =
+        this.barcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText =
+        this.barcodeSearchMode === "exact"
+          ? "UDI序列号已切换到精确查询模式（推荐，性能更好）"
+          : "UDI序列号已切换到模糊查询模式（更灵活，但可能较慢）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    // 查询模式切换（生产批号）
+    toggleBatchNoSearchMode() {
+      this.batchNoSearchMode =
+        this.batchNoSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText =
+        this.batchNoSearchMode === "exact"
+          ? "生产批号已切换到精确查询模式（推荐，性能更好）"
+          : "生产批号已切换到模糊查询模式（更灵活，但可能较慢）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    // 查询模式切换（客户订单号）
+    toggleCustOrderNoSearchMode() {
+      this.custOrderNoSearchMode =
+        this.custOrderNoSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText =
+        this.custOrderNoSearchMode === "exact"
+          ? "客户订单号已切换到精确查询模式（推荐，性能更好）"
+          : "客户订单号已切换到模糊查询模式（更灵活，但可能较慢）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    // 查询模式切换（RFID标签）
+    toggleRfidBarcodeSearchMode() {
+      this.rfidBarcodeSearchMode =
+        this.rfidBarcodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText =
+        this.rfidBarcodeSearchMode === "exact"
+          ? "RFID标签已切换到精确查询模式（推荐，性能更好）"
+          : "RFID标签已切换到模糊查询模式（更灵活，但可能较慢）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+
     // 搜索方法
     search() {
       this.currentPage = 1;
@@ -679,11 +830,17 @@ export default {
         custOrderNo: "",
         dateRange: [],
       };
+      // 重置所有查询模式为精确
+      this.materialNameSearchMode = "exact";
+      this.barcodeSearchMode = "exact";
+      this.batchNoSearchMode = "exact";
+      this.custOrderNoSearchMode = "exact";
+      this.rfidBarcodeSearchMode = "exact";
       this.currentPage = 1;
       this.fetchData();
     },
 
-    // 构建查询条件
+    // 构建查询条件（支持精确 / 模糊查询切换）
     async searchData() {
       let req = {
         query: {
@@ -691,29 +848,107 @@ export default {
         },
       };
 
+      const escapeRegex = (string) =>
+        string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
       // 处理型号查询
       if (this.searchForm.materialName && this.searchForm.materialName.trim()) {
-        req.query.$and.push({
-          materialName: {
-            $regex: this.searchForm.materialName.trim(),
-            $options: "i",
-          },
-        });
+        const materialNameInput = this.searchForm.materialName.trim();
+        if (this.materialNameSearchMode === "exact") {
+          req.query.$and.push({
+            materialName: materialNameInput,
+          });
+        } else {
+          if (materialNameInput.length < 3) {
+            this.$message.warning({
+              message:
+                "型号模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            materialName: {
+              $regex: escapeRegex(materialNameInput),
+              $options: "i",
+            },
+          });
+        }
       }
 
       // 处理UDI序列号查询
       if (this.searchForm.barcode && this.searchForm.barcode.trim()) {
-        req.query.$and.push({
-          barcode: this.searchForm.barcode.trim(),
-        });
+        const barcodeInput = this.searchForm.barcode.trim();
+        if (this.barcodeSearchMode === "exact") {
+          req.query.$and.push({
+            barcode: barcodeInput,
+          });
+        } else {
+          if (barcodeInput.length < 3) {
+            this.$message.warning({
+              message:
+                "UDI序列号模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            barcode: {
+              $regex: escapeRegex(barcodeInput),
+              $options: "i",
+            },
+          });
+        }
       }
 
-      // 处理生产批号查询
+      // 处理 RFID 标签查询（直接在主表上查）
+      if (this.searchForm.rfidBarcode && this.searchForm.rfidBarcode.trim()) {
+        const rfidInput = this.searchForm.rfidBarcode.trim();
+        if (this.rfidBarcodeSearchMode === "exact") {
+          req.query.$and.push({
+            rfidBarcode: rfidInput,
+          });
+        } else {
+          if (rfidInput.length < 3) {
+            this.$message.warning({
+              message:
+                "RFID标签模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            rfidBarcode: {
+              $regex: escapeRegex(rfidInput),
+              $options: "i",
+            },
+          });
+        }
+      }
+
+      // 处理生产批号查询（通过生产计划工单关联）
       if (this.searchForm.batchNo && this.searchForm.batchNo.trim()) {
+        const batchNoInput = this.searchForm.batchNo.trim();
+        let workOrderQuery;
+        if (this.batchNoSearchMode === "exact") {
+          workOrderQuery = { custPO: batchNoInput };
+        } else {
+          if (batchNoInput.length < 3) {
+            this.$message.warning({
+              message:
+                "生产批号模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          workOrderQuery = {
+            custPO: {
+              $regex: escapeRegex(batchNoInput),
+              $options: "i",
+            },
+          };
+        }
+
         let productionPlanWorkOrderData = await getData(
           "production_plan_work_order",
           {
-            query: { custPO: this.searchForm.batchNo.trim() },
+            query: workOrderQuery,
             select: "_id",
           }
         );
@@ -723,20 +958,44 @@ export default {
             (item) => item._id
           );
         }
-        req.query.$and.push({
-          productionPlanWorkOrderId: {
-            $in: productionPlanWorkOrderIds,
-          },
-        });
+        if (productionPlanWorkOrderIds.length) {
+          req.query.$and.push({
+            productionPlanWorkOrderId: {
+              $in: productionPlanWorkOrderIds,
+            },
+          });
+        } else {
+          // 没有匹配的工单，直接构造空结果
+          req.query.$and.push({ _id: "no_match" });
+        }
       }
 
-      // 处理客户订单号查询
+      // 处理客户订单号查询（通过生产计划工单关联）
       if (this.searchForm.custOrderNo && this.searchForm.custOrderNo.trim()) {
-        // 先查询包含该客户订单号的生产计划工单
+        const custOrderNoInput = this.searchForm.custOrderNo.trim();
+        let workOrderQuery;
+        if (this.custOrderNoSearchMode === "exact") {
+          workOrderQuery = { FSapId: custOrderNoInput };
+        } else {
+          if (custOrderNoInput.length < 3) {
+            this.$message.warning({
+              message:
+                "客户订单号模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          workOrderQuery = {
+            FSapId: {
+              $regex: escapeRegex(custOrderNoInput),
+              $options: "i",
+            },
+          };
+        }
+
         let productionPlanWorkOrderData = await getData(
           "production_plan_work_order",
           {
-            query: { FSapId: this.searchForm.custOrderNo.trim() },
+            query: workOrderQuery,
             select: "_id",
           }
         );
@@ -748,14 +1007,18 @@ export default {
           );
         }
 
-        req.query.$and.push({
-          productionPlanWorkOrderId: {
-            $in: productionPlanWorkOrderIds,
-          },
-        });
+        if (productionPlanWorkOrderIds.length) {
+          req.query.$and.push({
+            productionPlanWorkOrderId: {
+              $in: productionPlanWorkOrderIds,
+            },
+          });
+        } else {
+          req.query.$and.push({ _id: "no_match" });
+        }
       }
 
-      // 处理销售订单查询
+      // 处理销售订单查询（保持精确匹配，通过下拉选择）
       if (this.searchForm.saleOrderNo && this.searchForm.saleOrderNo.trim()) {
         // 先查询包含该销售订单号的生产计划工单
         let productionPlanWorkOrderData = await getData(
@@ -773,34 +1036,56 @@ export default {
           );
         }
 
-        req.query.$and.push({
-          productionPlanWorkOrderId: {
-            $in: productionPlanWorkOrderIds,
-          },
-        });
+        if (productionPlanWorkOrderIds.length) {
+          req.query.$and.push({
+            productionPlanWorkOrderId: {
+              $in: productionPlanWorkOrderIds,
+            },
+          });
+        } else {
+          req.query.$and.push({ _id: "no_match" });
+        }
       }
 
-      // 处理生产批号和客户订单号查询
+      // 处理生产批号和客户订单号组合查询（使用 custPOLineNo / custPO）
       if (
         (this.searchForm.batchNo && this.searchForm.batchNo.trim()) ||
         (this.searchForm.custOrderNo && this.searchForm.custOrderNo.trim())
       ) {
-        // 构建查询条件
         let workOrderQuery = { $or: [] };
 
         if (this.searchForm.batchNo && this.searchForm.batchNo.trim()) {
-          workOrderQuery.$or.push({
-            custPOLineNo: this.searchForm.batchNo.trim(),
-          });
+          const batchNoInput = this.searchForm.batchNo.trim();
+          if (this.batchNoSearchMode === "exact") {
+            workOrderQuery.$or.push({
+              custPOLineNo: batchNoInput,
+            });
+          } else {
+            workOrderQuery.$or.push({
+              custPOLineNo: {
+                $regex: escapeRegex(batchNoInput),
+                $options: "i",
+              },
+            });
+          }
         }
 
         if (this.searchForm.custOrderNo && this.searchForm.custOrderNo.trim()) {
-          workOrderQuery.$or.push({
-            custPO: this.searchForm.custOrderNo.trim(),
-          });
+          const custOrderNoInput = this.searchForm.custOrderNo.trim();
+          if (this.custOrderNoSearchMode === "exact") {
+            workOrderQuery.$or.push({
+              custPO: custOrderNoInput,
+            });
+          } else {
+            workOrderQuery.$or.push({
+              custPO: {
+                $regex: escapeRegex(custOrderNoInput),
+                $options: "i",
+              },
+            });
+          }
         }
 
-        // 发送查询请求
         let productionPlanWorkOrderData = await getData(
           "production_plan_work_order",
           {
@@ -816,7 +1101,6 @@ export default {
           );
         }
 
-        // 如果找到了匹配的工单，添加到查询条件中
         if (productionPlanWorkOrderIds.length > 0) {
           req.query.$and.push({
             productionPlanWorkOrderId: {
@@ -875,8 +1159,9 @@ export default {
 
     // 导出单条数据
     async handleExportSingle(row) {
+      let loading = null;
       try {
-        const loading = this.$loading({
+        loading = this.$loading({
           lock: true,
           text: "正在导出数据，请稍候...",
           spinner: "el-icon-loading",
@@ -950,23 +1235,32 @@ export default {
         console.error("导出失败:", error);
         this.$message.error("导出失败: " + error.message);
       } finally {
-        this.$loading().close();
+        if (loading) {
+          loading.close();
+        }
       }
     },
 
-    // 导出所有数据
+    // 导出所有数据（分批 + 数量上限，避免卡死）
     async handleAllExcel() {
+      if (this.isExportingAll) {
+        this.$message.warning("正在导出中，请不要重复点击");
+        return;
+      }
+      this.isExportingAll = true;
+
+      let loading = null;
       try {
         // 显示加载提示
-        const loading = this.$loading({
+        loading = this.$loading({
           lock: true,
           text: "正在导出数据，请稍候...",
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
 
-        // 设置每批次请求的数据量
-        const batchSize = 100;
+        // 设置每批次请求的数据量（可配置）
+        const batchSize = this.exportBatchSize || 500;
 
         // 将存储所有批次的数据
         let allResultData = [];
@@ -977,6 +1271,7 @@ export default {
         let hasMoreData = true;
         let currentBatch = 0;
         let totalCount = 0;
+        let maxTotal = this.exportMaxRows || 50000;
 
         // 分批次请求数据，直到没有更多数据
         while (hasMoreData) {
@@ -1011,7 +1306,16 @@ export default {
             if (totalCount === 0) {
               this.$message.info("没有找到符合条件的数据");
               loading.close();
+              this.isExportingAll = false;
               return;
+            }
+
+            // 计算本次导出的实际上限
+            maxTotal = Math.min(totalCount, maxTotal);
+            if (totalCount > maxTotal) {
+              this.$message.warning(
+                `符合条件的数据共有 ${totalCount} 条，本次最多导出 ${maxTotal} 条，已自动截断以避免浏览器卡死`
+              );
             }
           }
 
@@ -1075,18 +1379,31 @@ export default {
             };
           });
 
-          allResultData = [...allResultData, ...processedBatchData];
+          // 累加当前批次数据，并根据最大行数上限截断
+          const remaining = maxTotal - allResultData.length;
+          if (remaining <= 0) {
+            hasMoreData = false;
+          } else {
+            const toTake =
+              processedBatchData.length > remaining
+                ? processedBatchData.slice(0, remaining)
+                : processedBatchData;
+            allResultData = [...allResultData, ...toTake];
+          }
           currentBatch++;
 
           // 显示加载进度
-          const loadedPercent = Math.min(
-            100,
-            Math.floor((allResultData.length / totalCount) * 100)
-          );
+          const baseTotal = maxTotal || totalCount || allResultData.length;
+          const loadedPercent = baseTotal
+            ? Math.min(
+                100,
+                Math.floor((allResultData.length / baseTotal) * 100)
+              )
+            : 100;
           loading.text = `正在获取数据，进度：${loadedPercent}%...`;
 
-          // 如果已加载数据达到总数，结束加载
-          if (allResultData.length >= totalCount) {
+          // 如果已加载数据达到本次导出上限，结束加载
+          if (allResultData.length >= maxTotal) {
             hasMoreData = false;
           }
         }
@@ -1199,13 +1516,18 @@ export default {
         // 下载文件
         FileSaver.saveAs(blob, fileName);
 
-        this.$message.success("导出成功");
+        this.$message.success(
+          `导出成功，本次共导出 ${csvData.length} 条数据`
+        );
       } catch (error) {
         console.error("导出失败:", error);
         this.$message.error("导出失败: " + error.message);
       } finally {
         // 关闭加载提示
-        this.$loading().close();
+        if (loading) {
+          loading.close();
+        }
+        this.isExportingAll = false;
       }
     },
     // 为导出格式化日期 (YYYY-MM-DD)

@@ -8,7 +8,12 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["mes", "workorder", "queue", "production"],
+  "keywords": [
+    "mes",
+    "workorder",
+    "queue",
+    "production"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -31,4 +36,3 @@
     "node": ">=14.0.0"
   }
 }
-

@@ -4,49 +4,36 @@
     <el-card class="filter-container">
       <div slot="header" class="clearfix">
         <span>筛选搜索</span>
-        <el-button
-          style="float: right; padding: 3px 0"
-          type="text"
-          @click="toggleAdvanced"
-        >
+        <el-button style="float: right; padding: 3px 0" type="text" @click="toggleAdvanced">
           {{ showAdvanced ? "收起" : "展开" }}高级搜索
         </el-button>
       </div>
 
       <el-form :model="searchForm" ref="searchForm" class="demo-form-inline">
+        <!-- 第一行：基础信息 -->
         <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="产品条码">
-              <el-input
-                v-model="searchForm.barcode"
-                placeholder="请输入产品条码"
-                clearable
-              ></el-input>
+              <el-input v-model="searchForm.barcode" placeholder="请输入产品条码" clearable></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="物料编码">
-              <el-input
-                v-model="searchForm.materialCode"
-                placeholder="请输入物料编码"
-                clearable
-              ></el-input>
+              <el-input v-model="searchForm.materialCode"
+                :placeholder="materialCodeSearchMode === 'exact' ? '请输入完整物料编码（精确查询）' : '请输入物料编码（模糊查询）'" clearable>
+                <el-button slot="prepend" :type="materialCodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleMaterialCodeSearchMode"
+                  :title="materialCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ materialCodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="销售订单">
-              <zr-select
-                v-model="searchForm.saleOrderNo"
-                collection="k3_SAL_SaleOrder"
-                :search-fields="['FBillNo']"
-                label-key="FBillNo"
-                value-key="FBillNo"
-                sub-key="FBillNo"
-                :multiple="false"
-                placeholder="请输入销售单号"
-                clearable
-                style="width: 100%"
-              >
+              <zr-select v-model="searchForm.saleOrderNo" collection="k3_SAL_SaleOrder" :search-fields="['FBillNo']"
+                label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false" placeholder="请输入销售单号"
+                clearable style="width: 100%">
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
@@ -62,18 +49,9 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="生产订单">
-              <zr-select
-                v-model="searchForm.productionOrderNo"
-                collection="k3_PRD_MO"
-                :search-fields="['FBillNo']"
-                label-key="FBillNo"
-                value-key="FBillNo"
-                sub-key="FBillNo"
-                :multiple="false"
-                placeholder="请输入生产单号"
-                clearable
-                style="width: 100%"
-              >
+              <zr-select v-model="searchForm.productionOrderNo" collection="k3_PRD_MO" :search-fields="['FBillNo']"
+                label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false" placeholder="请输入生产单号"
+                clearable style="width: 100%">
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
@@ -89,21 +67,13 @@
           </el-col>
         </el-row>
 
+        <!-- 第二行：工单和型号信息 -->
         <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="生产计划工单">
-              <zr-select
-                v-model="searchForm.productionPlanWorkOrderId"
-                collection="production_plan_work_order"
-                :search-fields="['workOrderNo']"
-                label-key="workOrderNo"
-                value-key="_id"
-                sub-key="materialNumber"
-                :multiple="false"
-                placeholder="请选择生产计划工单"
-                clearable
-                style="width: 100%"
-              >
+              <zr-select v-model="searchForm.productionPlanWorkOrderId" collection="production_plan_work_order"
+                :search-fields="['workOrderNo']" label-key="workOrderNo" value-key="_id" sub-key="materialNumber"
+                :multiple="false" placeholder="请选择生产计划工单" clearable style="width: 100%">
                 <template #option="{ item }">
                   <div class="select-option">
                     <div class="option-main">
@@ -119,56 +89,55 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="产品型号">
-              <el-input
-                v-model="searchForm.productModel"
-                placeholder="请输入产品型号"
-                clearable
-              ></el-input>
+              <el-input v-model="searchForm.productModel"
+                :placeholder="productModelSearchMode === 'exact' ? '请输入完整产品型号（精确查询）' : '请输入产品型号（模糊查询）'" clearable>
+                <el-button slot="prepend" :type="productModelSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleProductModelSearchMode"
+                  :title="productModelSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ productModelSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="SN码">
-              <el-input
-                v-model="searchForm.snCode"
-                placeholder="请输入SN码"
-                clearable
-              ></el-input>
+              <el-input v-model="searchForm.snCode"
+                :placeholder="snCodeSearchMode === 'exact' ? '请输入完整SN码（精确查询）' : '请输入SN码（模糊查询）'" clearable>
+                <el-button slot="prepend" :type="snCodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleSnCodeSearchMode" :title="snCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;">
+                  {{ snCodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="型号">
-              <el-input
-                v-model="searchForm.modelCode"
-                placeholder="请输入型号"
-                clearable
-              ></el-input>
+              <el-input v-model="searchForm.modelCode"
+                :placeholder="modelCodeSearchMode === 'exact' ? '请输入完整型号（精确查询）' : '请输入型号（模糊查询）'" clearable>
+                <el-button slot="prepend" :type="modelCodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleModelCodeSearchMode"
+                  :title="modelCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ modelCodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <!-- 第三行：状态和托盘信息 -->
+        <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="业务类型">
-              <el-select
-                v-model="searchForm.businessType"
-                placeholder="请选择业务类型"
-                clearable
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="dict in dict.type.businessType"
-                  :key="dict.value"
-                  :label="dict.label"
-                  :value="dict.value"
-                />
+              <el-select v-model="searchForm.businessType" placeholder="请选择业务类型" clearable style="width: 100%">
+                <el-option v-for="dict in dict.type.businessType" :key="dict.value" :label="dict.label"
+                  :value="dict.value" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="流程状态">
-              <el-select
-                v-model="searchForm.status"
-                placeholder="请选择流程状态"
-                clearable
-                style="width: 100%"
-              >
+              <el-select v-model="searchForm.status" placeholder="请选择流程状态" clearable style="width: 100%">
                 <el-option label="待处理" value="PENDING" />
                 <el-option label="进行中" value="IN_PROCESS" />
                 <el-option label="已完成" value="COMPLETED" />
@@ -176,17 +145,9 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="产品状态">
-              <el-select
-                v-model="searchForm.productStatus"
-                placeholder="请选择产品状态"
-                clearable
-                style="width: 100%"
-              >
+              <el-select v-model="searchForm.productStatus" placeholder="请选择产品状态" clearable style="width: 100%">
                 <el-option label="正常" value="NORMAL" />
                 <el-option label="维修中" value="REPAIRING" />
                 <el-option label="报废" value="SCRAP" />
@@ -195,68 +156,50 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="托盘编号">
-              <el-input
-                v-model="searchForm.palletCode"
-                placeholder="请输入托盘编号"
-                clearable
-              ></el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="开始时间">
-              <el-date-picker
-                v-model="searchForm.dateRange"
-                type="daterange"
-                range-separator="至"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
-                value-format="yyyy-MM-dd"
-                style="width: 100%"
-              >
-              </el-date-picker>
+              <el-input v-model="searchForm.palletCode" placeholder="请输入托盘编号" clearable></el-input>
             </el-form-item>
           </el-col>
         </el-row>
 
+        <!-- 第四行：时间范围和其他信息 -->
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-form-item label="开始时间">
+              <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至"
+                start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" style="width: 100%">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <!-- 预留空间，保持布局整齐 -->
+          <el-col :span="18"></el-col>
+        </el-row>
+
+        <!-- 高级搜索区域 -->
         <div v-show="showAdvanced">
           <el-row :gutter="20">
-            <el-col :span="12">
+            <el-col :span="6">
               <el-form-item label="完成进度">
-                <el-input
-                  v-model="searchForm.minProgress"
-                  placeholder="最小进度"
-                  style="width: 130px"
-                  @input="validateNumber('minProgress')"
-                ></el-input>
+                <el-input v-model="searchForm.minProgress" placeholder="最小进度" style="width: 130px"
+                  @input="validateNumber('minProgress')"></el-input>
                 <span style="margin: 0 10px">至</span>
-                <el-input
-                  v-model="searchForm.maxProgress"
-                  placeholder="最大进度"
-                  style="width: 130px"
-                  @input="validateNumber('maxProgress')"
-                ></el-input>
+                <el-input v-model="searchForm.maxProgress" placeholder="最大进度" style="width: 130px"
+                  @input="validateNumber('maxProgress')"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
         </div>
 
-        <el-form-item>
-          <el-button type="primary" @click="search">查询搜索</el-button>
-          <el-button @click="resetForm">重置</el-button>
-          <el-button
-            type="primary"
-            @click="openBarcodeSearch"
-            v-if="$checkPermission('条码记录成品追溯')"
-            >成品追溯</el-button
-          >
-          <el-button
-            type="primary"
-            @click="openSaleOrderExportDialog"
-            v-if="$checkPermission('销售订单导出')"
-          >
-            销售订单导出
-          </el-button>
-          <!-- <el-button type="success" @click="exportData">导出数据</el-button> -->
+        <!-- 操作按钮区域 -->
+        <el-form-item class="search-actions">
+          <div class="action-buttons">
+            <el-button type="primary" icon="el-icon-search" @click="search">查询搜索</el-button>
+            <el-button icon="el-icon-refresh" @click="resetForm">重置</el-button>
+            <el-divider direction="vertical"></el-divider>
+            <el-button type="primary" icon="el-icon-connection" @click="openBarcodeSearch" v-if="$checkPermission('条码记录成品追溯')">成品追溯</el-button>
+            <el-button type="primary" icon="el-icon-download" @click="openSaleOrderExportDialog" v-if="$checkPermission('销售订单导出')">
+              销售订单导出
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
     </el-card>
@@ -267,64 +210,29 @@
         <div class="screen_content_first">
           <i class="el-icon-tickets">产品条码生产流程列表</i>
           <div>
-            <el-button type="primary" @click="handleAllExcel"
-              >导出表格数据</el-button
-            >
-            <el-button
-              type="primary"
-              @click="handleAllExport"
-              v-if="$checkPermission('条码记录批量导出数据')"
-              >导出条码详情数据(包含物料条码数据)</el-button
-            >
-            <el-button
-              type="primary"
-              v-if="$checkPermission('条码记录批量修复异常节点')"
-              @click="handleBatchAutoFixInconsistentProcessNodes"
-              >批量修复异常节点</el-button
-            >
-            <el-button
-              type="primary"
-              v-if="$checkPermission('条码记录批量修复流程进度')"
-              @click="handleBatchFixFlowProgress"
-              >批量修复流程进度</el-button
-            >
-            <el-button
-              type="primary"
-              v-if="$checkPermission('条码记录批量更新流程节点')"
-              @click="handleBatchUpdateFlowNodes"
-              >批量更新流程节点</el-button
-            >
-            <el-button
-              type="danger"
-              v-if="$checkPermission('条码记录批量强制更新流程节点')"
-              @click="handleBatchForceUpdateFlowNodes"
-              >批量强制更新流程节点</el-button
-            >
+            <el-button type="primary" @click="handleAllExcel">导出表格数据</el-button>
+            <el-button type="primary" @click="handleAllExport"
+              v-if="$checkPermission('条码记录批量导出数据')">导出条码详情数据(包含物料条码数据)</el-button>
+            <el-button type="primary" v-if="$checkPermission('条码记录批量修复异常节点')"
+              @click="handleBatchAutoFixInconsistentProcessNodes">批量修复异常节点</el-button>
+            <el-button type="primary" v-if="$checkPermission('条码记录批量修复流程进度')"
+              @click="handleBatchFixFlowProgress">批量修复流程进度</el-button>
+            <el-button type="primary" v-if="$checkPermission('条码记录批量更新流程节点')"
+              @click="handleBatchUpdateFlowNodes">批量更新流程节点</el-button>
+            <el-button type="danger" v-if="$checkPermission('条码记录批量强制更新流程节点')"
+              @click="handleBatchForceUpdateFlowNodes">批量强制更新流程节点</el-button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 表格区域 -->
-    <base-table
-      ref="baseTable"
-      :currentPage="currentPage"
-      :highlight-current-row="true"
-      :pageSize="pageSize"
-      :tableData="tableList"
-      :tableDataloading="listLoading"
-      :total="total"
-      @selection-change="handleSelectionChange"
-      @handleCurrentChange="baseTableHandleCurrentChange"
-      :cell-style="{ textAlign: 'center' }"
-      @handleSizeChange="baseTableHandleSizeChange"
-    >
+    <base-table ref="baseTable" :currentPage="currentPage" :highlight-current-row="true" :pageSize="pageSize"
+      :tableData="tableList" :tableDataloading="listLoading" :total="total" @selection-change="handleSelectionChange"
+      @handleCurrentChange="baseTableHandleCurrentChange" :cell-style="{ textAlign: 'center' }"
+      @handleSizeChange="baseTableHandleSizeChange">
       <template slot="law">
-        <el-table-column
-          type="selection"
-          width="55"
-          align="center"
-        ></el-table-column>
+        <el-table-column type="selection" width="55" align="center"></el-table-column>
         <el-table-column label="条码内容" prop="barcode" width="180">
           <template slot-scope="scope">
             {{ scope.row.barcode }}
@@ -382,9 +290,7 @@
 
         <el-table-column label="产品状态" width="100">
           <template slot-scope="scope">
-            <el-tag
-              :type="getProductStatusType(scope.row.productStatus || 'NORMAL')"
-            >
+            <el-tag :type="getProductStatusType(scope.row.productStatus || 'NORMAL')">
               {{ getProductStatusText(scope.row.productStatus || "NORMAL") }}
             </el-tag>
           </template>
@@ -418,14 +324,10 @@
               <el-link type="primary" @click="handleView(scope.row)">
                 {{ scope.row.productionPlanWorkOrderId.workOrderNo }}
               </el-link>
-              <el-tag
-                size="mini"
-                :type="
-                  getWorkOrderStatusType(
-                    scope.row.productionPlanWorkOrderId.status
-                  )
-                "
-              >
+              <el-tag size="mini" :type="getWorkOrderStatusType(
+                scope.row.productionPlanWorkOrderId.status
+              )
+                ">
                 {{
                   getWorkOrderStatusText(
                     scope.row.productionPlanWorkOrderId.status
@@ -480,37 +382,18 @@
 
         <el-table-column label="操作" fixed="right" width="200">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleView(scope.row)"
-              >查看</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('条码记录更新流程节点')"
-              @click="handleUpdateFlowNodes(scope.row)"
-              >更新流程节点</el-button
-            >
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('条码记录修复异常节点')"
-              @click="handleAutoFixInconsistentProcessNodes(scope.row)"
-            >
+            <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录更新流程节点')"
+              @click="handleUpdateFlowNodes(scope.row)">更新流程节点</el-button>
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录修复异常节点')"
+              @click="handleAutoFixInconsistentProcessNodes(scope.row)">
               修复异常节点
             </el-button>
-            <el-button
-              type="text"
-              size="small"
-              v-if="$checkPermission('条码记录修复异常节点')"
-              @click="handleFixFlowProgress(scope.row)"
-            >
+            <el-button type="text" size="small" v-if="$checkPermission('条码记录修复异常节点')"
+              @click="handleFixFlowProgress(scope.row)">
               修复流程进度
             </el-button>
-            <el-button
-              type="text"
-              size="small"
-              @click="handleSingleMainExport(scope.row)"
-            >
+            <el-button type="text" size="small" @click="handleSingleMainExport(scope.row)">
               导出条码数据
             </el-button>
           </template>
@@ -519,16 +402,10 @@
     </base-table>
 
     <!-- 在template最后添加弹窗组件 -->
-    <el-dialog
-      :title="'工艺流程详情 - ' + dataForm.barcode"
-      :visible.sync="dialogFormVisible"
-      width="80%"
-      class="process-flow-dialog"
-      :close-on-click-modal="false"
-      :before-close="handleDialogClose"
-      @closed="handleDialogClosed"
-    >
-      <div class="process-flow-container">
+    <el-dialog :title="'工艺流程详情 - ' + (dataForm.barcode || '加载中...')" :visible.sync="dialogFormVisible" width="80%"
+      class="process-flow-dialog" :close-on-click-modal="false" :before-close="handleDialogClose"
+      @closed="handleDialogClosed">
+      <div v-loading="dialogLoading" element-loading-text="正在加载详情数据..." class="process-flow-container">
         <!-- 右侧工序流程 -->
         <div class="process-section">
           <el-card class="process-card">
@@ -584,9 +461,7 @@
                   <div class="info-row">
                     <div class="info-item">
                       <label>整体进度：</label>
-                      <el-progress
-                        :percentage="dataForm.progress || 0"
-                      ></el-progress>
+                      <el-progress :percentage="dataForm.progress || 0"></el-progress>
                     </div>
                     <div class="info-item">
                       <label>当前状态：</label>
@@ -596,13 +471,10 @@
                     </div>
                     <div class="info-item">
                       <label>产品状态：</label>
-                      <el-tag
-                        :type="
-                          getProductStatusType(
-                            dataForm.productStatus || 'NORMAL'
-                          )
-                        "
-                      >
+                      <el-tag :type="getProductStatusType(
+                        dataForm.productStatus || 'NORMAL'
+                      )
+                        ">
                         {{
                           getProductStatusText(
                             dataForm.productStatus || "NORMAL"
@@ -617,11 +489,7 @@
               <el-tabs v-model="activeTab" type="border-card">
                 <!-- 工序信息 -->
                 <el-tab-pane label="工序信息" name="process">
-                  <process-step-list
-                    ref="processStepList"
-                    :loading="listLoading"
-                    :flow-data="processedFlowChartData"
-                  >
+                  <process-step-list ref="processStepList" :loading="listLoading" :flow-data="processedFlowChartData">
                   </process-step-list>
                 </el-tab-pane>
 
@@ -635,36 +503,26 @@
                     </div>
 
                     <!-- 表格区域 -->
-                    <el-table
-                      :data="
-                        processedFlowChartData[0] &&
-                        processedFlowChartData[0].children
-                          ? processedFlowChartData[0].children.filter(
-                              (item) => item.nodeType === 'PROCESS_STEP'
-                            )
-                          : []
-                      "
-                      border
-                      class="material-table"
-                      :header-cell-style="{
+                    <el-table :data="processedFlowChartData[0] &&
+                      processedFlowChartData[0].children
+                      ? processedFlowChartData[0].children.filter(
+                        (item) => item.nodeType === 'PROCESS_STEP'
+                      )
+                      : []
+                      " border class="material-table" :header-cell-style="{
                         background: '#f5f7fa',
                         color: '#606266',
                         fontWeight: 'bold',
                         fontSize: '14px',
                         textAlign: 'center',
                         height: '50px',
-                      }"
-                      :cell-style="{
+                      }" :cell-style="{
                         textAlign: 'center',
-                      }"
-                    >
+                      }">
                       <el-table-column label="工序" width="300">
                         <template slot-scope="scope">
                           <div class="process-info">
-                            <el-tag
-                              size="medium"
-                              :type="getProcessStatusType(scope.row.status)"
-                            >
+                            <el-tag size="medium" :type="getProcessStatusType(scope.row.status)">
                               {{ scope.row.processName }}
                               <el-tag size="mini" type="info">{{
                                 scope.row.processCode
@@ -676,35 +534,17 @@
 
                       <el-table-column label="关联物料">
                         <template slot-scope="scope">
-                          <el-table
-                            v-if="
-                              scope.row.children && scope.row.children.length
-                            "
-                            :data="
-                              scope.row.children.filter(
-                                (item) => item.nodeType === 'MATERIAL'
-                              )
-                            "
-                            border
-                            class="inner-table"
-                          >
-                            <el-table-column
-                              label="物料编码"
-                              prop="materialCode"
-                              min-width="120"
-                            >
+                          <el-table v-if="
+                            scope.row.children && scope.row.children.length
+                          " :data="scope.row.children.filter(
+                            (item) => item.nodeType === 'MATERIAL'
+                          )
+                            " border class="inner-table">
+                            <el-table-column label="物料编码" prop="materialCode" min-width="120">
                             </el-table-column>
-                            <el-table-column
-                              label="物料名称"
-                              prop="materialName"
-                              min-width="150"
-                            >
+                            <el-table-column label="物料名称" prop="materialName" min-width="150">
                             </el-table-column>
-                            <el-table-column
-                              label="规格型号"
-                              prop="materialSpec"
-                              min-width="120"
-                            >
+                            <el-table-column label="规格型号" prop="materialSpec" min-width="120">
                             </el-table-column>
                             <el-table-column label="数量" width="80">
                               <template slot-scope="innerScope">
@@ -714,12 +554,8 @@
                             </el-table-column>
                             <el-table-column label="状态" width="100">
                               <template slot-scope="innerScope">
-                                <el-tag
-                                  :type="
-                                    getProcessStatusType(innerScope.row.status)
-                                  "
-                                  size="small"
-                                >
+                                <el-tag :type="getProcessStatusType(innerScope.row.status)
+                                  " size="small">
                                   {{
                                     getProcessStatusText(innerScope.row.status)
                                   }}
@@ -738,28 +574,19 @@
                               <template slot-scope="innerScope">
                                 <template v-if="innerScope.row.relatedBill">
                                   <div>
-                                    <span
-                                      >单号：{{
-                                        innerScope.row.relatedBill
-                                      }}</span
-                                    >
-                                    <el-tag
-                                      v-if="
-                                        innerScope.row.purchaseInfo &&
-                                        innerScope.row.purchaseInfo.supplierName
-                                      "
-                                      size="mini"
-                                      type="success"
-                                    >
+                                    <span>单号：{{
+                                      innerScope.row.relatedBill
+                                    }}</span>
+                                    <el-tag v-if="
+                                      innerScope.row.purchaseInfo &&
+                                      innerScope.row.purchaseInfo.supplierName
+                                    " size="mini" type="success">
                                       {{
                                         innerScope.row.purchaseInfo.supplierName
                                       }}
                                     </el-tag>
                                   </div>
-                                  <div
-                                    v-if="innerScope.row.purchaseInfo"
-                                    class="supplier-info"
-                                  >
+                                  <div v-if="innerScope.row.purchaseInfo" class="supplier-info">
                                     <span>供应商编码：</span>
                                     <span class="supplier-code">{{
                                       innerScope.row.purchaseInfo.supplierCode
@@ -771,25 +598,12 @@
                             </el-table-column>
                             <el-table-column label="类型" width="100">
                               <template slot-scope="innerScope">
-                                <el-tag
-                                  v-if="innerScope.row.isComponent"
-                                  type="warning"
-                                  size="mini"
-                                  >组件</el-tag
-                                >
-                                <el-tag
-                                  v-if="innerScope.row.isKeyMaterial"
-                                  type="danger"
-                                  size="mini"
-                                  >关键</el-tag
-                                >
-                                <span
-                                  v-if="
-                                    !innerScope.row.isComponent &&
-                                    !innerScope.row.isKeyMaterial
-                                  "
-                                  >-</span
-                                >
+                                <el-tag v-if="innerScope.row.isComponent" type="warning" size="mini">组件</el-tag>
+                                <el-tag v-if="innerScope.row.isKeyMaterial" type="danger" size="mini">关键</el-tag>
+                                <span v-if="
+                                  !innerScope.row.isComponent &&
+                                  !innerScope.row.isKeyMaterial
+                                ">-</span>
                               </template>
                             </el-table-column>
                           </el-table>
@@ -798,24 +612,13 @@
                       </el-table-column>
                       <el-table-column label="操作" width="120" fixed="right">
                         <template slot-scope="scope">
-                          <el-button
-                            type="text"
-                            size="small"
-                            @click="handleUnbind(scope.row)"
-                            >解绑</el-button
-                          >
-                          <el-button
-                            v-if="
-                              scope.row.children &&
-                              scope.row.children.some(
-                                (item) => item.nodeType === 'MATERIAL'
-                              )
-                            "
-                            type="text"
-                            size="small"
-                            @click="handleReplaceComponent(scope.row)"
-                            >替换</el-button
-                          >
+                          <el-button type="text" size="small" @click="handleUnbind(scope.row)">解绑</el-button>
+                          <el-button v-if="
+                            scope.row.children &&
+                            scope.row.children.some(
+                              (item) => item.nodeType === 'MATERIAL'
+                            )
+                          " type="text" size="small" @click="handleReplaceComponent(scope.row)">替换</el-button>
                         </template>
                       </el-table-column>
                     </el-table>
@@ -824,56 +627,23 @@
 
                 <!-- 物料条码信息 -->
                 <el-tab-pane label="物料条码信息" name="materialBarcode">
-                  <el-table
-                    :data="processedMaterialBarcodeData"
-                    border
-                    :header-cell-style="{
-                      background: '#f5f7fa',
-                      color: '#606266',
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                    }"
-                    :cell-style="{ textAlign: 'center' }"
-                  >
-                    <el-table-column
-                      label="条码"
-                      prop="barcode"
-                      min-width="150"
-                    ></el-table-column>
-                    <el-table-column
-                      label="物料编码"
-                      prop="materialCode"
-                      min-width="120"
-                    ></el-table-column>
-                    <el-table-column
-                      label="物料名称"
-                      prop="materialName"
-                      min-width="150"
-                    ></el-table-column>
-                    <el-table-column
-                      label="规格型号"
-                      prop="materialSpec"
-                      min-width="120"
-                    ></el-table-column>
-                    <el-table-column
-                      label="相关单号"
-                      prop="relatedBill"
-                      min-width="120"
-                    ></el-table-column>
-                    <el-table-column
-                      label="供应商"
-                      prop="purchaseInfo"
-                      min-width="120"
-                    >
+                  <el-table :data="processedMaterialBarcodeData" border :header-cell-style="{
+                    background: '#f5f7fa',
+                    color: '#606266',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                  }" :cell-style="{ textAlign: 'center' }">
+                    <el-table-column label="条码" prop="barcode" min-width="150"></el-table-column>
+                    <el-table-column label="物料编码" prop="materialCode" min-width="120"></el-table-column>
+                    <el-table-column label="物料名称" prop="materialName" min-width="150"></el-table-column>
+                    <el-table-column label="规格型号" prop="materialSpec" min-width="120"></el-table-column>
+                    <el-table-column label="相关单号" prop="relatedBill" min-width="120"></el-table-column>
+                    <el-table-column label="供应商" prop="purchaseInfo" min-width="120">
                       <template slot-scope="scope">
-                        <el-tag
-                          v-if="
-                            scope.row.purchaseInfo &&
-                            scope.row.purchaseInfo.supplierName
-                          "
-                          size="mini"
-                          type="success"
-                        >
+                        <el-tag v-if="
+                          scope.row.purchaseInfo &&
+                          scope.row.purchaseInfo.supplierName
+                        " size="mini" type="success">
                           {{ scope.row.purchaseInfo.supplierName }}
                         </el-tag>
                       </template>
@@ -889,11 +659,7 @@
                       <template slot-scope="scope">
                         <el-tag size="medium" type="info">
                           {{ scope.row.processName }}
-                          <el-tag
-                            size="mini"
-                            type="info"
-                            v-if="scope.row.processCode"
-                          >
+                          <el-tag size="mini" type="info" v-if="scope.row.processCode">
                             {{ scope.row.processCode }}
                           </el-tag>
                         </el-tag>
@@ -924,17 +690,12 @@
 
                 <!-- 解绑信息 -->
                 <el-tab-pane label="解绑信息" name="unbind">
-                  <el-table
-                    :data="unbindRecord || []"
-                    border
-                    :header-cell-style="{
-                      background: '#f5f7fa',
-                      color: '#606266',
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                    }"
-                    :cell-style="{ textAlign: 'center' }"
-                  >
+                  <el-table :data="unbindRecord || []" border :header-cell-style="{
+                    background: '#f5f7fa',
+                    color: '#606266',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                  }" :cell-style="{ textAlign: 'center' }">
                     <el-table-column label="解绑时间" width="160">
                       <template slot-scope="scope">
                         {{ formatDate(scope.row.operateTime) }}
@@ -944,11 +705,7 @@
                       <template slot-scope="scope">
                         <el-tag size="medium" type="info">
                           {{ scope.row.processName }}
-                          <el-tag
-                            size="mini"
-                            type="info"
-                            v-if="scope.row.processCode"
-                          >
+                          <el-tag size="mini" type="info" v-if="scope.row.processCode">
                             {{ scope.row.processCode }}
                           </el-tag>
                         </el-tag>
@@ -956,33 +713,15 @@
                     </el-table-column>
                     <el-table-column label="解绑物料" min-width="200">
                       <template slot-scope="scope">
-                        <el-table
-                          v-if="
-                            scope.row.unbindMaterials &&
-                            scope.row.unbindMaterials.length
-                          "
-                          :data="scope.row.unbindMaterials"
-                          border
-                          size="mini"
-                          class="inner-table"
-                        >
-                          <el-table-column
-                            label="物料编码"
-                            prop="materialCode"
-                            min-width="120"
-                          >
+                        <el-table v-if="
+                          scope.row.unbindMaterials &&
+                          scope.row.unbindMaterials.length
+                        " :data="scope.row.unbindMaterials" border size="mini" class="inner-table">
+                          <el-table-column label="物料编码" prop="materialCode" min-width="120">
                           </el-table-column>
-                          <el-table-column
-                            label="物料名称"
-                            prop="materialName"
-                            min-width="150"
-                          >
+                          <el-table-column label="物料名称" prop="materialName" min-width="150">
                           </el-table-column>
-                          <el-table-column
-                            label="原条码"
-                            prop="originalBarcode"
-                            min-width="150"
-                          >
+                          <el-table-column label="原条码" prop="originalBarcode" min-width="150">
                           </el-table-column>
                         </el-table>
                         <span v-else>-</span>
@@ -990,11 +729,7 @@
                     </el-table-column>
                     <el-table-column label="解绑原因" min-width="150">
                       <template slot-scope="scope">
-                        <el-tooltip
-                          v-if="scope.row.reason"
-                          :content="scope.row.reason"
-                          placement="top"
-                        >
+                        <el-tooltip v-if="scope.row.reason" :content="scope.row.reason" placement="top">
                           <span>{{ scope.row.reason }}</span>
                         </el-tooltip>
                         <span v-else>-</span>
@@ -1011,26 +746,12 @@
     </el-dialog>
 
     <!-- 添加条码搜索弹窗 -->
-    <el-dialog
-      title="条码查询"
-      :visible.sync="barcodeSearchVisible"
-      width="70%"
-      :close-on-click-modal="false"
-    >
+    <el-dialog title="条码查询" :visible.sync="barcodeSearchVisible" width="70%" :close-on-click-modal="false">
       <div class="barcode-search-container">
         <!-- 搜索区域 -->
         <div class="search-area">
-          <el-input
-            v-model="searchBarcode"
-            placeholder="请输入条码"
-            clearable
-            @keyup.enter.native="handleBarcodeSearch"
-          >
-            <el-button
-              slot="append"
-              icon="el-icon-search"
-              @click="handleBarcodeSearch"
-            >
+          <el-input v-model="searchBarcode" placeholder="请输入条码" clearable @keyup.enter.native="handleBarcodeSearch">
+            <el-button slot="append" icon="el-icon-search" @click="handleBarcodeSearch">
               搜索
             </el-button>
           </el-input>
@@ -1038,19 +759,12 @@
 
         <!-- 搜索结果表格 -->
         <div class="search-result" v-loading="searchLoading">
-          <el-table
-            v-if="searchResults.length"
-            :data="searchResults"
-            border
-            style="width: 100%"
-            :header-cell-style="{
-              background: '#f5f7fa',
-              color: '#606266',
-              fontWeight: 'bold',
-              textAlign: 'center',
-            }"
-            :cell-style="{ textAlign: 'center' }"
-          >
+          <el-table v-if="searchResults.length" :data="searchResults" border style="width: 100%" :header-cell-style="{
+            background: '#f5f7fa',
+            color: '#606266',
+            fontWeight: 'bold',
+            textAlign: 'center',
+          }" :cell-style="{ textAlign: 'center' }">
             <!-- <el-table-column label="条码类型" width="120">
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.isMainBarcode ? 'primary' : 'success'">
@@ -1058,11 +772,7 @@
                                 </el-tag>
                             </template>
                         </el-table-column> -->
-            <el-table-column
-              label="条码"
-              prop="barcode"
-              min-width="150"
-            ></el-table-column>
+            <el-table-column label="条码" prop="barcode" min-width="150"></el-table-column>
             <el-table-column label="物料信息" min-width="200">
               <template slot-scope="scope">
                 <div>编码：{{ scope.row.materialCode }}</div>
@@ -1079,9 +789,7 @@
             </el-table-column>
             <el-table-column label="完成进度" width="200">
               <template slot-scope="scope">
-                <el-progress
-                  :percentage="scope.row.progress || 0"
-                ></el-progress>
+                <el-progress :percentage="scope.row.progress || 0"></el-progress>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="120" fixed="right">
@@ -1090,12 +798,7 @@
                   查看详情
                 </el-button>
 
-                <el-button
-                  type="text"
-                  style="color: red"
-                  @click="handleInit(scope.row)"
-                  >成品初始化</el-button
-                >
+                <el-button type="text" style="color: red" @click="handleInit(scope.row)">成品初始化</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -1108,18 +811,10 @@
     </el-dialog>
 
     <!-- 导出表格数据选项弹窗 -->
-    <el-dialog
-      title="导出表格数据选项"
-      :visible.sync="exportTableDialogVisible"
-      width="400px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog title="导出表格数据选项" :visible.sync="exportTableDialogVisible" width="400px" :close-on-click-modal="false">
       <el-form :model="exportForm" label-width="0px" class="export-form">
         <el-form-item>
-          <el-radio-group
-            v-model="exportForm.exportOption"
-            class="export-radio-group"
-          >
+          <el-radio-group v-model="exportForm.exportOption" class="export-radio-group">
             <el-radio-button label="current" class="export-radio-button">
               <i class="el-icon-document"></i>
               <span>导出当前页</span>
@@ -1133,29 +828,17 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="exportTableDialogVisible = false">取 消</el-button>
-        <el-button
-          type="primary"
-          @click="confirmTableExport"
-          :loading="exportLoading"
-        >
+        <el-button type="primary" @click="confirmTableExport" :loading="exportLoading">
           确 定
         </el-button>
       </div>
     </el-dialog>
 
     <!-- 导出详情数据选项弹窗 -->
-    <el-dialog
-      title="导出详情数据选项"
-      :visible.sync="exportDetailDialogVisible"
-      width="400px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog title="导出详情数据选项" :visible.sync="exportDetailDialogVisible" width="400px" :close-on-click-modal="false">
       <el-form :model="exportForm" label-width="0px" class="export-form">
         <el-form-item>
-          <el-radio-group
-            v-model="exportForm.exportOption"
-            class="export-radio-group"
-          >
+          <el-radio-group v-model="exportForm.exportOption" class="export-radio-group">
             <el-radio-button label="current" class="export-radio-button">
               <i class="el-icon-document"></i>
               <span>导出当前页</span>
@@ -1169,49 +852,29 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="exportDetailDialogVisible = false">取 消</el-button>
-        <el-button
-          type="primary"
-          @click="confirmExport"
-          :loading="exportLoading"
-        >
+        <el-button type="primary" @click="confirmExport" :loading="exportLoading">
           确 定
         </el-button>
       </div>
     </el-dialog>
 
     <!-- 添加物料替换弹窗 -->
-    <el-dialog
-      title="物料替换"
-      :visible.sync="replaceDialogVisible"
-      append-to-body
-      width="600px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog title="物料替换" :visible.sync="replaceDialogVisible" append-to-body width="600px"
+      :close-on-click-modal="false">
       <div v-if="replaceSelectedNode">
         <div class="replace-info">
-          <el-alert
-            title="请注意：替换物料前必须创建部件替换的维修记录"
-            type="warning"
-            :closable="false"
-            show-icon
-          >
+          <el-alert title="请注意：替换物料前必须创建部件替换的维修记录" type="warning" :closable="false" show-icon>
           </el-alert>
 
           <div class="material-info-box">
             <h4>当前工序：{{ replaceSelectedNode.processName }}</h4>
             <div class="material-list">
               <el-radio-group v-model="replaceSelectedMaterial">
-                <div
-                  v-for="(material, index) in replaceMaterials"
-                  :key="index"
-                  class="material-item"
-                >
+                <div v-for="(material, index) in replaceMaterials" :key="index" class="material-item">
                   <el-radio :label="material.nodeId">
                     <div class="material-detail">
-                      <span
-                        >{{ material.materialCode }} -
-                        {{ material.materialName }}</span
-                      >
+                      <span>{{ material.materialCode }} -
+                        {{ material.materialName }}</span>
                       <span>规格：{{ material.materialSpec }}</span>
                       <span>条码：{{ material.barcode || "未绑定" }}</span>
                     </div>
@@ -1221,23 +884,13 @@
             </div>
           </div>
 
-          <el-form
-            :model="replaceForm"
-            label-width="100px"
-            class="replace-form"
-            @submit.prevent
-          >
+          <el-form :model="replaceForm" label-width="100px" class="replace-form" @submit.prevent>
             <el-form-item label="新物料条码">
-              <el-input
-                v-model="replaceForm.newBarcode"
-                placeholder="请扫描或输入新的物料条码"
-                @keyup.enter.native="validateReplaceBarcode"
-              ></el-input>
+              <el-input v-model="replaceForm.newBarcode" placeholder="请扫描或输入新的物料条码"
+                @keyup.enter.native="validateReplaceBarcode"></el-input>
             </el-form-item>
             <el-form-item v-if="replaceForm.validationMessage">
-              <el-tag
-                :type="replaceForm.validationStatus ? 'success' : 'danger'"
-              >
+              <el-tag :type="replaceForm.validationStatus ? 'success' : 'danger'">
                 {{ replaceForm.validationMessage }}
               </el-tag>
             </el-form-item>
@@ -1246,50 +899,25 @@
       </div>
       <div slot="footer" class="dialog-footer">
         <el-button @click="replaceDialogVisible = false">取 消</el-button>
-        <el-button
-          type="primary"
-          @click="confirmReplaceComponent"
-          :disabled="!replaceForm.validationStatus || replaceLoading"
-          :loading="replaceLoading"
-        >
+        <el-button type="primary" @click="confirmReplaceComponent"
+          :disabled="!replaceForm.validationStatus || replaceLoading" :loading="replaceLoading">
           确认替换
         </el-button>
       </div>
     </el-dialog>
 
-    <el-dialog
-      title="销售订单导出"
-      :visible.sync="saleOrderExportDialogVisible"
-      width="400px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog title="销售订单导出" :visible.sync="saleOrderExportDialogVisible" width="400px" :close-on-click-modal="false">
       <el-form>
         <el-form-item label="销售订单">
-          <zr-select
-            v-model="selectedSaleOrderNo"
-            collection="k3_SAL_SaleOrder"
-            :search-fields="['FBillNo']"
-            label-key="FBillNo"
-            value-key="FBillNo"
-            sub-key="FBillNo"
-            :multiple="false"
-            placeholder="请输入销售单号"
-            clearable
-            style="width: 100%"
-          />
+          <zr-select v-model="selectedSaleOrderNo" collection="k3_SAL_SaleOrder" :search-fields="['FBillNo']"
+            label-key="FBillNo" value-key="FBillNo" sub-key="FBillNo" :multiple="false" placeholder="请输入销售单号" clearable
+            style="width: 100%" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="saleOrderExportDialogVisible = false"
-          >取 消</el-button
-        >
-        <el-button
-          type="primary"
-          :loading="saleOrderExportLoading"
-          @click="confirmSaleOrderExport"
-          :disabled="!selectedSaleOrderNo"
-          >确 定</el-button
-        >
+        <el-button @click="saleOrderExportDialogVisible = false">取 消</el-button>
+        <el-button type="primary" :loading="saleOrderExportLoading" @click="confirmSaleOrderExport"
+          :disabled="!selectedSaleOrderNo">确 定</el-button>
       </div>
     </el-dialog>
   </div>
@@ -1393,6 +1021,12 @@ export default {
       },
       exportLoading: false, // 导出按钮loading状态
       processedMaterialBarcodeData: [], // 添加这个数据属性
+      dialogLoading: false, // 对话框加载状态，独立于列表loading
+      isViewLoading: false, // 防止重复点击
+      materialCodeSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
+      productModelSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
+      snCodeSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
+      modelCodeSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
       replaceDialogVisible: false,
       replaceSelectedNode: null,
       replaceSelectedMaterial: null,
@@ -1416,9 +1050,9 @@ export default {
         formattedTime: this.formatDate(record.operateTime),
         materialList: record.unbindMaterials
           ? record.unbindMaterials.map((m) => ({
-              ...m,
-              displayText: `${m.materialCode} - ${m.materialName}`,
-            }))
+            ...m,
+            displayText: `${m.materialCode} - ${m.materialName}`,
+          }))
           : [],
       }));
     },
@@ -1933,35 +1567,58 @@ export default {
     },
     // 查看详情
     async handleView(row) {
+      // 防抖：如果正在加载，忽略新的点击
+      if (this.isViewLoading) {
+        return;
+      }
+
       try {
-        this.listLoading = true;
+        this.isViewLoading = true;
+        this.dialogLoading = true;
+
+        // 先显示对话框，提升用户体验
+        this.dialogFormVisible = true;
+        this.dataForm = {}; // 先清空，避免显示旧数据
+        this.processedFlowChartData = [];
+        this.processedMaterialBarcodeData = [];
+        this.unbindRecord = [];
+
+        // 使用 populate 一次性获取关联数据，减少查询次数
+        // 注意：productLineId 的 ref 是 "product_line"，但实际模型可能是 "production_line"，所以暂时不 populate
         const result = await getData("material_process_flow", {
           query: { _id: row._id },
+          populate: JSON.stringify([
+            { path: "productionPlanWorkOrderId" },
+            // { path: "productLineId" }, // 模型名称不匹配，暂时移除
+          ]),
         });
 
         if (result.code === 200 && result.data.length > 0) {
           this.dataForm = JSON.parse(JSON.stringify(result.data[0]));
+
+          // 同步处理流程节点数据（快速）
           this.processedFlowChartData = this.processNodes(
             this.dataForm.processNodes
           );
 
-          // 等待物料条码数据处理完成
-          this.processedMaterialBarcodeData =
-            await this.handleProcessedMaterialBarcodeData(this.dataForm);
+          // 异步加载物料条码数据和解绑记录（可以并行执行）
+          const [materialBarcodeData] = await Promise.all([
+            this.handleProcessedMaterialBarcodeData(this.dataForm),
+            this.getUnbindRecords(),
+          ]);
 
-          // 获取解绑记录
-          await this.getUnbindRecords();
-
-          // 最后再显示对话框
-          this.dialogFormVisible = true;
+          this.processedMaterialBarcodeData = materialBarcodeData;
         } else {
           this.$message.error("获取详情失败");
+          this.dialogFormVisible = false;
         }
       } catch (error) {
         console.error("获取详情失败:", error);
         this.$message.error("获取详情失败: " + error.message);
+        this.dialogFormVisible = false;
       } finally {
-        this.listLoading = false;
+        this.dialogLoading = false;
+        this.isViewLoading = false;
       }
     },
 
@@ -2052,12 +1709,27 @@ export default {
         });
       }
       if (this.searchForm.materialCode && this.searchForm.materialCode.trim()) {
-        req.query.$and.push({
-          materialCode: {
-            $regex: this.searchForm.materialCode.trim(),
-            $options: "i",
-          },
-        });
+        const materialCodeInput = this.searchForm.materialCode.trim();
+        if (this.materialCodeSearchMode === "exact") {
+          // 精确查询模式：使用精确匹配，性能最佳，可以使用索引
+          req.query.$and.push({
+            materialCode: materialCodeInput,
+          });
+        } else {
+          // 模糊查询模式：使用模糊匹配（无法使用索引，性能较差）
+          if (materialCodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            materialCode: {
+              $regex: materialCodeInput,
+              $options: "i",
+            },
+          });
+        }
       }
       if (this.searchForm.productionPlanWorkOrderId) {
         req.query.$and.push({
@@ -2065,28 +1737,73 @@ export default {
         });
       }
       if (this.searchForm.productModel && this.searchForm.productModel.trim()) {
-        req.query.$and.push({
-          materialSpec: {
-            $regex: this.searchForm.productModel.trim(),
-            $options: "i",
-          },
-        });
+        const productModelInput = this.searchForm.productModel.trim();
+        if (this.productModelSearchMode === "exact") {
+          // 精确查询模式：使用精确匹配，性能最佳，可以使用索引
+          req.query.$and.push({
+            materialSpec: productModelInput,
+          });
+        } else {
+          // 模糊查询模式：使用模糊匹配（无法使用索引，性能较差）
+          if (productModelInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            materialSpec: {
+              $regex: productModelInput,
+              $options: "i",
+            },
+          });
+        }
       }
       if (this.searchForm.snCode && this.searchForm.snCode.trim()) {
-        req.query.$and.push({
-          snCode: {
-            $regex: this.searchForm.snCode.trim(),
-            $options: "i",
-          },
-        });
+        const snCodeInput = this.searchForm.snCode.trim();
+        if (this.snCodeSearchMode === "exact") {
+          // 精确查询模式：使用精确匹配，性能最佳，可以使用索引
+          req.query.$and.push({
+            snCode: snCodeInput,
+          });
+        } else {
+          // 模糊查询模式：使用模糊匹配（无法使用索引，性能较差）
+          if (snCodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            snCode: {
+              $regex: snCodeInput,
+              $options: "i",
+            },
+          });
+        }
       }
       if (this.searchForm.modelCode && this.searchForm.modelCode.trim()) {
-        req.query.$and.push({
-          modelCode: {
-            $regex: this.searchForm.modelCode.trim(),
-            $options: "i",
-          },
-        });
+        const modelCodeInput = this.searchForm.modelCode.trim();
+        if (this.modelCodeSearchMode === "exact") {
+          // 精确查询模式：使用精确匹配，性能最佳，可以使用索引
+          req.query.$and.push({
+            modelCode: modelCodeInput,
+          });
+        } else {
+          // 模糊查询模式：使用模糊匹配（无法使用索引，性能较差）
+          if (modelCodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            modelCode: {
+              $regex: modelCodeInput,
+              $options: "i",
+            },
+          });
+        }
       }
       if (this.searchForm.businessType) {
         req.query.$and.push({ businessType: this.searchForm.businessType });
@@ -2230,6 +1947,35 @@ export default {
       return req;
     },
 
+    // 切换查询模式的方法
+    toggleMaterialCodeSearchMode() {
+      this.materialCodeSearchMode = this.materialCodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.materialCodeSearchMode === "exact"
+        ? "已切换到精确查询模式（快速，推荐）"
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleProductModelSearchMode() {
+      this.productModelSearchMode = this.productModelSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.productModelSearchMode === "exact"
+        ? "已切换到精确查询模式（快速，推荐）"
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleSnCodeSearchMode() {
+      this.snCodeSearchMode = this.snCodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.snCodeSearchMode === "exact"
+        ? "已切换到精确查询模式（快速，推荐）"
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
+    toggleModelCodeSearchMode() {
+      this.modelCodeSearchMode = this.modelCodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.modelCodeSearchMode === "exact"
+        ? "已切换到精确查询模式（快速，推荐）"
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({ message: tipText, duration: 2000 });
+    },
     // 重置表单
     resetForm() {
       this.$refs.searchForm.resetFields();
@@ -2251,6 +1997,11 @@ export default {
         productionPlanWorkOrderId: "",
         palletCode: "",
       };
+      // 重置所有查询模式为精确查询
+      this.materialCodeSearchMode = "exact";
+      this.productModelSearchMode = "exact";
+      this.snCodeSearchMode = "exact";
+      this.modelCodeSearchMode = "exact";
       this.currentPage = 1;
       this.fetchData();
     },
@@ -2918,9 +2669,8 @@ export default {
 
         // 处理每条数据
         for (let i = 0; i < exportData.length; i++) {
-          progressLoading.text = `正在处理第 ${i + 1}/${
-            exportData.length
-          } 条数据...`;
+          progressLoading.text = `正在处理第 ${i + 1}/${exportData.length
+            } 条数据...`;
           const item = exportData[i];
 
           try {
@@ -2940,9 +2690,8 @@ export default {
               物料名称: item.materialName || "-",
               规格型号: item.materialSpec || "-",
               状态: this.getProcessStatusText(item.status) || "-",
-              所属工序: `${item.processName || ""} ${
-                item.processCode ? `(${item.processCode})` : ""
-              }`,
+              所属工序: `${item.processName || ""} ${item.processCode ? `(${item.processCode})` : ""
+                }`,
               扫码时间: item.scanTime ? this.formatDate(item.scanTime) : "-",
             }));
 
@@ -3065,9 +2814,8 @@ export default {
                 ? item.purchaseInfo.supplierCode
                 : "-",
               状态: this.getProcessStatusText(item.status) || "-",
-              所属工序: `${item.processName || ""} ${
-                item.processCode ? `(${item.processCode})` : ""
-              }`,
+              所属工序: `${item.processName || ""} ${item.processCode ? `(${item.processCode})` : ""
+                }`,
               扫码时间: item.scanTime ? this.formatDate(item.scanTime) : "-",
             }));
 
@@ -3234,82 +2982,127 @@ export default {
         }
       });
 
-      // 添加日志输出
-      console.log("开始处理物料节点");
-
       const materialNodes = dataForm.processNodes.filter(
         (node) => node.nodeType === "MATERIAL" && node.barcode
       );
 
-      const processedNodes = await Promise.all(
-        materialNodes.map(async (node) => {
-          const processInfo = node.parentNodeId
-            ? processMap.get(node.parentNodeId)
-            : null;
-          let purchaseInfo = null;
+      // 优化：批量查询采购订单信息，减少查询次数
+      const relatedBills = new Set();
+      const materialCodeMap = new Map(); // 物料编码 -> 节点列表
 
-          if (node.relatedBill) {
-            console.log("获取采购订单信息:", node.relatedBill);
-            purchaseInfo = await this.getPurchaseOrderInfo(node.relatedBill);
-            console.log("采购订单信息结果:", purchaseInfo);
+      materialNodes.forEach((node) => {
+        if (node.relatedBill) {
+          relatedBills.add(node.relatedBill);
+        }
+        if (node.materialCode) {
+          if (!materialCodeMap.has(node.materialCode)) {
+            materialCodeMap.set(node.materialCode, []);
           }
+          materialCodeMap.get(node.materialCode).push(node);
+        }
+      });
 
-          //第二种获取相关采购订单信息
-          if (purchaseInfo === null) {
-            try {
-              //  通过销售订单号和物料编码查询采购订单
+      // 批量查询所有相关的采购订单
+      const purchaseOrderMap = new Map();
+      if (relatedBills.size > 0) {
+        try {
+          const purchaseOrdersResult = await getData("k3_PUR_PurchaseOrder", {
+            query: { FBillNo: { $in: Array.from(relatedBills) } },
+          });
 
-              const purchaseOrderResult = await getData(
-                "k3_PUR_PurchaseOrder",
+          if (purchaseOrdersResult.code === 200 && purchaseOrdersResult.data) {
+            purchaseOrdersResult.data.forEach((order) => {
+              purchaseOrderMap.set(order.FBillNo, {
+                supplierName:
+                  (order.FSupplierId && order.FSupplierId.Name) || "-",
+                supplierCode:
+                  (order.FSupplierId && order.FSupplierId.Number) || "-",
+              });
+            });
+          }
+        } catch (error) {
+          console.error("批量获取采购订单信息失败:", error);
+        }
+      }
+
+      // 如果还有物料编码需要查询，批量查询（通过销售订单号和物料编码）
+      const saleOrderNo =
+        dataForm.productionPlanWorkOrderId &&
+        dataForm.productionPlanWorkOrderId.saleOrderNo;
+
+      if (saleOrderNo && materialCodeMap.size > 0) {
+        try {
+          const materialCodes = Array.from(materialCodeMap.keys());
+          // 批量查询：一次查询所有物料编码对应的采购订单
+          const purchaseOrderResult = await getData("k3_PUR_PurchaseOrder", {
+            query: {
+              $and: [
                 {
-                  query: {
-                    $and: [
-                      // 匹配物料编码
-                      { "FPOOrderEntry.FMaterialId.Number": node.materialCode },
-                      // 匹配销售订单号
-                      {
-                        "FPOOrderEntry.DEMANDBILLNO":
-                          dataForm.productionPlanWorkOrderId &&
-                          dataForm.productionPlanWorkOrderId.saleOrderNo,
-                      },
-                    ],
-                  },
-                }
-              );
+                  "FPOOrderEntry.FMaterialId.Number": { $in: materialCodes },
+                },
+                { "FPOOrderEntry.DEMANDBILLNO": saleOrderNo },
+              ],
+            },
+          });
 
-              if (
-                purchaseOrderResult.code === 200 &&
-                purchaseOrderResult.data.length > 0
-              ) {
-                const purchaseOrder = purchaseOrderResult.data[0];
-                purchaseInfo = {
-                  supplierName:
-                    (purchaseOrder.FSupplierId &&
-                      purchaseOrder.FSupplierId.Name) ||
-                    "-",
-                  supplierCode:
-                    (purchaseOrder.FSupplierId &&
-                      purchaseOrder.FSupplierId.Number) ||
-                    "-",
-                };
-                console.log(
-                  "通过销售订单关联查询到采购订单供应商信息:",
-                  purchaseInfo
-                );
+          if (
+            purchaseOrderResult.code === 200 &&
+            purchaseOrderResult.data.length > 0
+          ) {
+            // 建立物料编码到采购订单的映射
+            purchaseOrderResult.data.forEach((order) => {
+              // 从订单条目中提取物料编码和供应商信息
+              if (order.FPOOrderEntry && Array.isArray(order.FPOOrderEntry)) {
+                order.FPOOrderEntry.forEach((entry) => {
+                  if (
+                    entry.FMaterialId &&
+                    entry.FMaterialId.Number &&
+                    materialCodes.includes(entry.FMaterialId.Number)
+                  ) {
+                    const materialCode = entry.FMaterialId.Number;
+                    if (!purchaseOrderMap.has(materialCode)) {
+                      purchaseOrderMap.set(materialCode, {
+                        supplierName:
+                          (order.FSupplierId && order.FSupplierId.Name) ||
+                          "-",
+                        supplierCode:
+                          (order.FSupplierId && order.FSupplierId.Number) ||
+                          "-",
+                      });
+                    }
+                  }
+                });
               }
-            } catch (error) {
-              console.error("获取关联采购订单信息失败:", error);
-            }
+            });
           }
+        } catch (error) {
+          console.error("批量获取关联采购订单信息失败:", error);
+        }
+      }
 
-          return {
-            ...node,
-            processName: processInfo ? processInfo.processName : "-",
-            processCode: processInfo ? processInfo.processCode : "",
-            purchaseInfo: purchaseInfo,
-          };
-        })
-      );
+      // 处理节点数据，使用已查询的采购订单信息
+      const processedNodes = materialNodes.map((node) => {
+        const processInfo = node.parentNodeId
+          ? processMap.get(node.parentNodeId)
+          : null;
+
+        let purchaseInfo = null;
+        // 优先使用 relatedBill 查询结果（通过采购订单号）
+        if (node.relatedBill && purchaseOrderMap.has(node.relatedBill)) {
+          purchaseInfo = purchaseOrderMap.get(node.relatedBill);
+        }
+        // 其次使用物料编码查询结果（通过物料编码）
+        else if (node.materialCode && purchaseOrderMap.has(node.materialCode)) {
+          purchaseInfo = purchaseOrderMap.get(node.materialCode);
+        }
+
+        return {
+          ...node,
+          processName: processInfo ? processInfo.processName : "-",
+          processCode: processInfo ? processInfo.processCode : "",
+          purchaseInfo: purchaseInfo,
+        };
+      });
 
       return processedNodes.sort(
         (a, b) => new Date(b.scanTime || 0) - new Date(a.scanTime || 0)
@@ -3591,9 +3384,8 @@ export default {
           });
 
           // 生成文件名
-          const fileName = `销售订单${
-            this.selectedSaleOrderNo
-          }成品流程记录_${new Date().toLocaleDateString()}.xlsx`;
+          const fileName = `销售订单${this.selectedSaleOrderNo
+            }成品流程记录_${new Date().toLocaleDateString()}.xlsx`;
 
           // 下载文件
           FileSaver.saveAs(blob, fileName);
@@ -3649,8 +3441,7 @@ export default {
         });
 
         this.$message.warning(
-          `以下${
-            invalidRecords.length
+          `以下${invalidRecords.length
           }条记录因状态限制将被跳过：${invalidMessages.join("、")}`
         );
       }
@@ -4124,7 +3915,7 @@ export default {
     font-size: 12px;
     color: #606266;
 
-    > div {
+    >div {
       margin-bottom: 3px;
     }
   }
@@ -4431,7 +4222,7 @@ export default {
   }
 
   .inner-table {
-    .el-tag + .el-tag {
+    .el-tag+.el-tag {
       margin-left: 5px;
     }
   }
@@ -4471,7 +4262,7 @@ export default {
         padding: 0;
       }
 
-      .el-tag + .el-tag {
+      .el-tag+.el-tag {
         margin-left: 4px;
       }
     }
@@ -4518,7 +4309,7 @@ export default {
 }
 
 // 添加一些样式
-.el-tag + .el-tag {
+.el-tag+.el-tag {
   margin-left: 4px;
 }
 
@@ -4726,5 +4517,62 @@ export default {
 .no-data {
   color: #c0c4cc;
   font-style: italic;
+}
+
+// 搜索操作按钮区域样式优化
+.search-actions {
+  margin-top: 20px;
+  margin-bottom: 0;
+  
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    
+    .el-divider {
+      margin: 0 5px;
+      height: 20px;
+    }
+  }
+}
+
+// 筛选容器样式优化
+.filter-container {
+  margin-bottom: 20px;
+  
+  :deep(.el-card__header) {
+    padding: 15px 20px;
+    border-bottom: 1px solid #ebeef5;
+    background-color: #fafafa;
+    
+    .clearfix {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      span {
+        font-weight: 600;
+        font-size: 16px;
+        color: #303133;
+      }
+    }
+  }
+  
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+}
+
+// 表单项标签样式优化
+.demo-form-inline {
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #606266;
+  }
+  
+  :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
 }
 </style>

@@ -2,6 +2,10 @@ const ApiLog = require("../model/system/apiLog");
 const jwt = require("jsonwebtoken");
 const config = require("../libs/config");
 
+// 查询型请求（通常噪声大）：默认不记录“成功”的请求日志
+// 仍保留异常/失败状态码的日志，便于排查问题
+const QUERY_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 /**
  * API日志中间件
  * 记录所有API请求和响应
@@ -56,18 +60,20 @@ const apiLogger = (serviceName) => {
 
     if (token && token.length > 0) {
       try {
-        // console.log(`[${serviceName}] 正在验证token...`);
-        // console.log(`[${serviceName}] 使用密钥:`, config.secretOrPrivateKey);
-
-        // 验证token并解析用户信息
-        const decoded = jwt.verify(token, config.secretOrPrivateKey);
-
-        // console.log(`[${serviceName}] Token解析成功:`, decoded);
-
-        userId = decoded._id;
-        userName = decoded.userName;
-        realName = decoded.realName;
-        roleId = decoded.roleId;
+        // 如果前置中间件已经解析过用户信息（例如同一路由上重复挂载了 apiLogger），避免重复验签
+        if (req.userId || req.userName || req.realName || req.roleId) {
+          userId = req.userId ?? null;
+          userName = req.userName ?? null;
+          realName = req.realName ?? null;
+          roleId = req.roleId ?? null;
+        } else {
+          // 验证token并解析用户信息
+          const decoded = jwt.verify(token, config.secretOrPrivateKey);
+          userId = decoded._id;
+          userName = decoded.userName;
+          realName = decoded.realName;
+          roleId = decoded.roleId;
+        }
 
         // 将用户信息附加到req对象，以便后续中间件或路由处理器使用
         req.userId = userId;
@@ -168,8 +174,22 @@ const apiLogger = (serviceName) => {
         const executionTime = endTime - startTime;
 
         // 如果路径包含健康检查或其他不需要记录的路径，可以在这里过滤
-        if (req.path.includes("/health") || req.path.includes("/ping") || 
-            req.path.includes("/InspectionLastData") || req.path.includes("/InspectionData")) {
+        const method = (req.method || "").toUpperCase();
+        const isQueryMethod = QUERY_METHODS.has(method);
+
+        // 过滤健康检查等噪声路径
+        if (
+          req.path.includes("/health") ||
+          req.path.includes("/ping") ||
+          req.path.includes("/InspectionLastData") ||
+          req.path.includes("/InspectionData")
+        ) {
+          return;
+        }
+
+        // 排除记录查询类型请求日志（例如 CRUD 列表/查询 GET）
+        // 但保留失败/异常状态码（>=400）的日志，便于排查
+        if (isQueryMethod && res.statusCode < 400) {
           return;
         }
 

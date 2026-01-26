@@ -24,6 +24,7 @@
     "axios": "0.18.1",
     "babel-polyfill": "^6.26.0",
     "cache-loader": "^4.1.0",
+    "core-js": "^2.6.12",
     "countup.js": "^2.8.0",
     "crypto-js": "^4.2.0",
     "echarts": "^4.6.0",

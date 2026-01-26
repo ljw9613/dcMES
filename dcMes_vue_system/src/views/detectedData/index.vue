@@ -11,9 +11,19 @@
             <el-form-item label="扫描码">
               <el-input
                 v-model="searchForm.scanCode"
-                placeholder="请输入扫描码"
+                :placeholder="scanCodeSearchMode === 'exact' ? '请输入完整扫描码（精确查询）' : '请输入扫描码（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="scanCodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleScanCodeSearchMode"
+                  :title="scanCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ scanCodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -82,6 +92,8 @@
               </el-date-picker>
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="物料编码">
               <el-input
@@ -373,6 +385,7 @@ export default {
         saleOrderNo: "",
         materialFlowStatus: "",
       },
+      scanCodeSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
       tableList: [],
       total: 0,
       currentPage: 1,
@@ -393,6 +406,8 @@ export default {
       exportDialogVisible: false,
       historyExportLoading: false,
       historyExportProgress: 0,
+      exportBatchSize: 500,
+      exportMaxRows: 50000,
     };
   },
   methods: {
@@ -434,6 +449,86 @@ export default {
       return allData;
     },
 
+    /**
+     * 分批拉取 InspectionLastData 用于导出（带 limit + 上限）
+     * 避免一次拉取全量导致超时/内存溢出
+     */
+    async fetchInspectionLastDataForExport(baseReq, opts = {}) {
+      const {
+        progressCallback,
+        maxRows = this.exportMaxRows,
+        batchSize = this.exportBatchSize,
+      } = opts;
+      const populate = JSON.stringify([
+        { path: "machineId", select: "machineName machineCode" },
+        { path: "processId", select: "processName processCode" },
+      ]);
+      let all = [];
+      let skip = 0;
+      const query = baseReq.query || {};
+
+      while (true) {
+        const res = await getData("InspectionLastData", {
+          query,
+          skip,
+          limit: batchSize,
+          populate,
+          sort: JSON.stringify({ _id: -1 }),
+        });
+        const data = res.data || [];
+        if (!data.length) break;
+        all = all.concat(data);
+        const progress = Math.min(90, Math.round((all.length / maxRows) * 90));
+        if (progressCallback) progressCallback(progress);
+        if (data.length < batchSize || all.length >= maxRows) break;
+        skip += batchSize;
+        if (all.length >= maxRows) {
+          all = all.slice(0, maxRows);
+          break;
+        }
+      }
+      return all;
+    },
+
+    /**
+     * 分批拉取 InspectionData（历史）用于导出，带 limit + 上限
+     */
+    async fetchInspectionHistoryForExport(query, opts = {}) {
+      const {
+        progressCallback,
+        maxRows = this.exportMaxRows,
+        batchSize = this.exportBatchSize,
+      } = opts;
+      const populate = JSON.stringify([
+        { path: "machineId", select: "machineName machineCode" },
+        { path: "processId", select: "processName processCode" },
+      ]);
+      let all = [];
+      let skip = 0;
+
+      while (true) {
+        const res = await getData("InspectionData", {
+          query,
+          skip,
+          limit: batchSize,
+          populate,
+          sort: JSON.stringify({ scanCode: 1, updateTime: -1 }),
+        });
+        const data = res.data || [];
+        if (!data.length) break;
+        all = all.concat(data);
+        const progress = Math.min(90, Math.round((all.length / maxRows) * 90));
+        if (progressCallback) progressCallback(progress);
+        if (data.length < batchSize || all.length >= maxRows) break;
+        skip += batchSize;
+        if (all.length >= maxRows) {
+          all = all.slice(0, maxRows);
+          break;
+        }
+      }
+      return all;
+    },
+
     // 新的辅助函数：分批处理 scanCodes 来查询 InspectionLastData
     async fetchInspectionDataAdvanced(baseParams, allScanCodes, options) {
       const {
@@ -443,9 +538,11 @@ export default {
         sort = { _id: -1 },
         scanCodeBatchSize = 200, // 每批 $in 查询中包含的 scanCode 数量
         progressCallback, // 用于导出时的进度回调
+        maxTotal, // 导出模式下的最大条数，避免数据量过大
+        batchLimit = this.exportBatchSize, // 导出时每批 limit
         populate = JSON.stringify([
-          { path: "machineId" },
-          { path: "processId" },
+          { path: "machineId", select: "machineName machineCode" },
+          { path: "processId", select: "processName processCode" },
         ]),
       } = options;
 
@@ -486,18 +583,14 @@ export default {
         }
 
         currentReq.populate = populate;
-        currentReq.sort = sort;
+        currentReq.sort = typeof sort === "string" ? sort : JSON.stringify(sort || { _id: -1 });
 
         if (isPaginated) {
           currentReq.count = true; // 需要计数来累加总数
-          // 为了正确分页，这里我们获取当前 scanCodeBatch 的所有数据
-          // 然后在循环结束后统一排序和分页。这可能导致加载较多数据。
-          const result = await getData("InspectionLastData", { ...currentReq }); // 获取此批次所有数据
+          const result = await getData("InspectionLastData", { ...currentReq });
           if (result.data) {
             collectedData = collectedData.concat(result.data);
           }
-          // 获取当前批次实际数量用于总数累加（如果API直接返回countnum则使用，否则依赖data.length）
-          // 假设getData在没有分页参数时返回所有匹配项，且包含countnum
           const batchCountResult = await getData("InspectionLastData", {
             ...currentReq,
             limit: 1,
@@ -505,15 +598,38 @@ export default {
           });
           totalCountFromBatches += batchCountResult.countnum || 0;
         } else {
-          // 非分页模式 (通常用于导出)
-          currentReq.count = false; // 导出时不需要单独计数，最后汇总长度即可
-          const result = await getData("InspectionLastData", currentReq); // 获取此批次所有数据
-          if (result.data) {
-            collectedData = collectedData.concat(result.data);
+          // 非分页模式 (导出)：每批 limit 分页拉取，并遵守 maxTotal 上限
+          let batchSkip = 0;
+          let batchDone = false;
+          while (!batchDone) {
+            const req = {
+              ...currentReq,
+              query: currentReq.query,
+              skip: batchSkip,
+              limit: batchLimit,
+              count: false,
+            };
+            const result = await getData("InspectionLastData", req);
+            const data = result.data || [];
+            if (data.length) {
+              collectedData = collectedData.concat(data);
+            }
+            const hitMax = typeof maxTotal === "number" && collectedData.length >= maxTotal;
+            if (hitMax) {
+              collectedData = collectedData.slice(0, maxTotal);
+            }
+            const pct = typeof maxTotal === "number"
+              ? Math.min(100, Math.round((collectedData.length / maxTotal) * 100))
+              : Math.round(((i + 1) / numEffectiveBatches) * 100);
+            if (progressCallback) progressCallback(pct);
+            if (data.length < batchLimit || hitMax) {
+              batchDone = true;
+            } else {
+              batchSkip += batchLimit;
+            }
           }
-          if (progressCallback) {
-            // 进度是基于 scanCode 批次的处理进度
-            progressCallback(Math.round(((i + 1) / numEffectiveBatches) * 100));
+          if (typeof maxTotal === "number" && collectedData.length >= maxTotal) {
+            break; // 已达上限，停止后续 scanCode 批次
           }
         }
       }
@@ -581,13 +697,31 @@ export default {
         string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
       // 1. 构建直接查询条件
+      // 根据用户选择的查询模式进行扫描码查询
       if (this.searchForm.scanCode && this.searchForm.scanCode.trim()) {
-        directQueryConditions.query.$and.push({
-          scanCode: {
-            $regex: escapeRegexFunc(this.searchForm.scanCode.trim()),
-            $options: "i",
-          },
-        });
+        const scanCodeInput = this.searchForm.scanCode.trim();
+        
+        if (this.scanCodeSearchMode === "exact") {
+          // 精确查询模式：使用精确匹配，性能最佳，可以使用索引
+          directQueryConditions.query.$and.push({
+            scanCode: scanCodeInput,
+          });
+        } else {
+          // 模糊查询模式
+          if (scanCodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          // 使用模糊匹配（无法使用索引，性能较差）
+          directQueryConditions.query.$and.push({
+            scanCode: {
+              $regex: escapeRegexFunc(scanCodeInput),
+              $options: "i",
+            },
+          });
+        }
       }
       if (this.searchForm.machineId) {
         directQueryConditions.query.$and.push({
@@ -708,6 +842,18 @@ export default {
         scanCodes: resolvedScanCodes,
       };
     },
+    toggleScanCodeSearchMode() {
+      // 切换扫描码查询模式
+      this.scanCodeSearchMode = this.scanCodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const modeText = this.scanCodeSearchMode === "exact" ? "精确查询" : "模糊查询";
+      const tipText = this.scanCodeSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({
+        message: tipText,
+        duration: 2000,
+      });
+    },
     resetForm() {
       this.$refs.searchForm.resetFields();
       this.searchForm = {
@@ -719,6 +865,7 @@ export default {
         saleOrderNo: "",
         materialFlowStatus: "",
       };
+      this.scanCodeSearchMode = "exact"; // 重置为精确查询模式
       this.currentPage = 1;
       this.fetchData();
     },
@@ -763,9 +910,10 @@ export default {
           finalQuery.limit = this.pageSize;
           finalQuery.sort = { _id: -1 };
           finalQuery.count = true;
+          // 优化populate：只选择需要的字段，减少数据传输量
           finalQuery.populate = JSON.stringify([
-            { path: "machineId" },
-            { path: "processId" },
+            { path: "machineId", select: "machineName machineCode" }, // 只选择需要的字段
+            { path: "processId", select: "processName processCode" }, // 只选择需要的字段
           ]);
 
           const result = await getData("InspectionLastData", finalQuery);
@@ -908,8 +1056,8 @@ export default {
             scanCode: scanCode,
           },
           populate: JSON.stringify([
-            { path: "machineId" },
-            { path: "processId" },
+            { path: "machineId", select: "machineName machineCode" },
+            { path: "processId", select: "processName processCode" },
           ]),
           skip: (this.historyCurrentPage - 1) * this.historyPageSize,
           limit: this.historyPageSize,
@@ -978,7 +1126,7 @@ export default {
 
         if (resolvedScanCodes !== null && resolvedScanCodes.length > 0) {
           this.$message.info(
-            `导出操作：正在基于 ${resolvedScanCodes.length} 个条码分批导出检测数据...`
+            `导出操作：正在基于 ${resolvedScanCodes.length} 个条码分批导出检测数据（单批 ${this.exportBatchSize} 条，最多 ${this.exportMaxRows} 条）...`
           );
           allInspectionData = await this.fetchInspectionDataAdvanced(
             baseReqForExport,
@@ -987,22 +1135,24 @@ export default {
               isPaginated: false,
               sort: baseReqForExport.sort || { _id: -1 },
               progressCallback: progressCallbackForInspection,
+              maxTotal: this.exportMaxRows,
+              batchLimit: this.exportBatchSize,
+              scanCodeBatchSize: 100,
             }
           );
         } else if (resolvedScanCodes === null) {
-          // 没有通过物料流筛选条码，直接用 directQuery (如果有内容)
+          // 没有通过物料流筛选条码：分批拉取，带 limit + 上限，避免全量一次拉取
           this.$message.info(
-            `导出操作：正在导出所有符合直接筛选条件的检测数据...`
+            `导出操作：正在分批导出符合筛选条件的数据（单批 ${this.exportBatchSize} 条，最多 ${this.exportMaxRows} 条）...`
           );
-          const finalExportQuery = {
-            ...baseReqForExport,
-            populate: JSON.stringify([
-              { path: "machineId" },
-              { path: "processId" },
-            ]),
-          };
-          const result = await getData("InspectionLastData", finalExportQuery);
-          allInspectionData = result.data || [];
+          allInspectionData = await this.fetchInspectionLastDataForExport(
+            baseReqForExport,
+            {
+              progressCallback: progressCallbackForInspection,
+              maxRows: this.exportMaxRows,
+              batchSize: this.exportBatchSize,
+            }
+          );
           this.exportProgress = Math.round(
             overallProgress + inspectionFetchPercentage * 100
           );
@@ -1026,6 +1176,12 @@ export default {
           return;
         }
 
+        const hitExportCap = allInspectionData.length >= this.exportMaxRows;
+        if (hitExportCap) {
+          this.$message.warning(
+            `数据量过大，已仅导出前 ${this.exportMaxRows} 条。请缩小筛选条件（如时间范围、设备、工序等）以导出全部。`
+          );
+        }
         this.$message.info(
           `共找到 ${allInspectionData.length} 条检测数据，准备格式化并导出...`
         );
@@ -1152,7 +1308,7 @@ export default {
 
         if (resolvedScanCodes !== null && resolvedScanCodes.length > 0) {
           this.$message.info(
-            `按条件筛选导出：正在基于 ${resolvedScanCodes.length} 个条码分批导出检测数据...`
+            `按条件筛选导出：正在基于 ${resolvedScanCodes.length} 个条码分批导出检测数据（单批 ${this.exportBatchSize} 条，最多 ${this.exportMaxRows} 条）...`
           );
           allInspectionData = await this.fetchInspectionDataAdvanced(
             baseReqForExport,
@@ -1161,27 +1317,27 @@ export default {
               isPaginated: false,
               sort: baseReqForExport.sort || { _id: -1 },
               progressCallback: progressCallbackForInspection,
+              maxTotal: this.exportMaxRows,
+              batchLimit: this.exportBatchSize,
+              scanCodeBatchSize: 100,
             }
           );
         } else if (resolvedScanCodes === null) {
-          // 没有通过物料流筛选条码，直接用 directQuery (如果有内容)
           this.$message.info(
-            `按条件筛选导出：正在导出所有符合直接筛选条件的检测数据...`
+            `按条件筛选导出：正在分批导出符合筛选条件的数据（单批 ${this.exportBatchSize} 条，最多 ${this.exportMaxRows} 条）...`
           );
-          const finalExportQuery = {
-            ...baseReqForExport,
-            populate: JSON.stringify([
-              { path: "machineId" },
-              { path: "processId" },
-            ]),
-          };
-          const result = await getData("InspectionLastData", finalExportQuery);
-          allInspectionData = result.data || [];
+          allInspectionData = await this.fetchInspectionLastDataForExport(
+            baseReqForExport,
+            {
+              progressCallback: progressCallbackForInspection,
+              maxRows: this.exportMaxRows,
+              batchSize: this.exportBatchSize,
+            }
+          );
           this.exportProgress = Math.round(
             overallProgress + inspectionFetchPercentage * 100
           );
         } else {
-          // resolvedScanCodes is [], means filters were applied but no barcodes found
           this.$message.warning(
             "按条件筛选导出：未找到符合条件的条码，无法导出。"
           );
@@ -1202,6 +1358,12 @@ export default {
           return;
         }
 
+        const hitExportCap = allInspectionData.length >= this.exportMaxRows;
+        if (hitExportCap) {
+          this.$message.warning(
+            `数据量过大，已仅导出前 ${this.exportMaxRows} 条。请缩小筛选条件以导出全部。`
+          );
+        }
         this.$message.info(
           `按条件筛选导出：共找到 ${allInspectionData.length} 条检测数据，准备格式化并导出...`
         );
@@ -1300,16 +1462,13 @@ export default {
           if (resolvedScanCodes !== null && resolvedScanCodes.length > 0) {
             targetScanCodes = resolvedScanCodes;
           } else {
-            // 获取当前筛选条件下的所有最新检测数据的条码
-            let baseQuery = directQuery.query ? { ...directQuery } : { query: {} };
-            baseQuery.populate = JSON.stringify([
-              { path: "machineId" },
-              { path: "processId" },
-            ]);
-            
+            // 获取当前筛选条件下的最新检测数据的条码：限制条数 + 仅选 scanCode，避免全量拉取
+            const baseQuery = directQuery.query ? { ...directQuery } : { query: {} };
+            baseQuery.limit = 10000;
+            baseQuery.select = JSON.stringify("scanCode");
             const currentDataResult = await getData("InspectionLastData", baseQuery);
             if (currentDataResult.data && currentDataResult.data.length > 0) {
-              targetScanCodes = currentDataResult.data.map(item => item.scanCode);
+              targetScanCodes = currentDataResult.data.map((item) => item.scanCode);
             }
           }
 
@@ -1320,38 +1479,26 @@ export default {
             return;
           }
 
-          this.$message.info(`找到 ${targetScanCodes.length} 个条码，正在获取历史检验数据...`);
+          this.$message.info(
+            `找到 ${targetScanCodes.length} 个条码，正在分批获取历史检验数据（单批 ${this.exportBatchSize} 条，最多 ${this.exportMaxRows} 条）...`
+          );
 
-          // 30%用于获取历史数据
-          let historyFetchPercentage = 0.7;
-          let allHistoryData = [];
-          
-          // 分批获取历史数据以避免查询过大
-          const batchSize = 50; // 每批处理50个条码
-          const batches = Math.ceil(targetScanCodes.length / batchSize);
-          
-          for (let i = 0; i < batches; i++) {
-            const batchScanCodes = targetScanCodes.slice(i * batchSize, (i + 1) * batchSize);
-            
-            const batchResult = await getData("InspectionData", {
-              query: {
-                scanCode: { $in: batchScanCodes }
-              },
-              populate: JSON.stringify([
-                { path: "machineId" },
-                { path: "processId" },
-              ]),
-              sort: { scanCode: 1, updateTime: -1 }, // 按条码分组，时间倒序
-            });
+          const historyFetchPercentage = 0.7;
+          const progressCb = (p) => {
+            this.historyExportProgress = Math.round(
+              overallProgress + (p / 100) * historyFetchPercentage * 100
+            );
+          };
 
-            if (batchResult.data && batchResult.data.length > 0) {
-              allHistoryData = allHistoryData.concat(batchResult.data);
+          const historyQuery = { scanCode: { $in: targetScanCodes } };
+          let allHistoryData = await this.fetchInspectionHistoryForExport(
+            historyQuery,
+            {
+              progressCallback: progressCb,
+              maxRows: this.exportMaxRows,
+              batchSize: this.exportBatchSize,
             }
-
-            // 更新进度
-            const batchProgress = ((i + 1) / batches) * historyFetchPercentage * 100;
-            this.historyExportProgress = Math.round(overallProgress + batchProgress);
-          }
+          );
 
           if (allHistoryData.length === 0) {
             this.$message.warning("未找到符合条件的历史检验数据。");
@@ -1360,7 +1507,15 @@ export default {
             return;
           }
 
-          this.$message.info(`共获取到 ${allHistoryData.length} 条历史检验数据，准备格式化并导出...`);
+          const hitHistoryCap = allHistoryData.length >= this.exportMaxRows;
+          if (hitHistoryCap) {
+            this.$message.warning(
+              `历史数据量过大，已仅导出前 ${this.exportMaxRows} 条。请缩小筛选条件以导出全部。`
+            );
+          }
+          this.$message.info(
+            `共获取到 ${allHistoryData.length} 条历史检验数据，准备格式化并导出...`
+          );
 
           // 格式化数据
           const exportData = allHistoryData.map((item) => [

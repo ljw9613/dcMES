@@ -11,9 +11,19 @@
             <el-form-item label="托盘编号">
               <el-input
                 v-model="searchForm.palletCode"
-                placeholder="请输入托盘编号"
+                :placeholder="palletCodeSearchMode === 'exact' ? '请输入完整托盘编号（精确查询）' : '请输入托盘编号（模糊查询）'"
                 clearable
-              ></el-input>
+              >
+                <el-button
+                  slot="prepend"
+                  :type="palletCodeSearchMode === 'exact' ? 'primary' : ''"
+                  @click="togglePalletCodeSearchMode"
+                  :title="palletCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'"
+                  style="min-width: 60px;"
+                >
+                  {{ palletCodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -1140,6 +1150,7 @@ export default {
       palletInfo: null,
       materialInfo: "",
       scannedBarcodes: [],
+      palletCodeSearchMode: "exact", // 'exact' 精确查询, 'fuzzy' 模糊查询
     };
   },
   computed: {
@@ -1206,13 +1217,28 @@ export default {
       const escapeRegex = (string) => {
         return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       };
-      if (this.searchForm.palletCode) {
-        req.query.$and.push({
-          palletCode: {
-            $regex: escapeRegex(this.searchForm.palletCode),
-            $options: "i",
-          },
-        });
+      if (this.searchForm.palletCode && this.searchForm.palletCode.trim()) {
+        const palletCodeInput = this.searchForm.palletCode.trim();
+        if (this.palletCodeSearchMode === "exact") {
+          // 精确查询模式：使用精确匹配，性能最佳，可以使用索引
+          req.query.$and.push({
+            palletCode: palletCodeInput,
+          });
+        } else {
+          // 模糊查询模式：使用模糊匹配（无法使用索引，性能较差）
+          if (palletCodeInput.length < 3) {
+            this.$message.warning({
+              message: "模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能",
+              duration: 4000,
+            });
+          }
+          req.query.$and.push({
+            palletCode: {
+              $regex: escapeRegex(palletCodeInput),
+              $options: "i",
+            },
+          });
+        }
       }
 
       if (this.searchForm.saleOrderNo) {
@@ -1318,6 +1344,17 @@ export default {
       return req;
     },
 
+    togglePalletCodeSearchMode() {
+      // 切换托盘编号查询模式
+      this.palletCodeSearchMode = this.palletCodeSearchMode === "exact" ? "fuzzy" : "exact";
+      const tipText = this.palletCodeSearchMode === "exact" 
+        ? "已切换到精确查询模式（快速，推荐）" 
+        : "已切换到模糊查询模式（较慢，但更灵活）";
+      this.$message.info({
+        message: tipText,
+        duration: 2000,
+      });
+    },
     resetForm() {
       this.$refs.searchForm.resetFields();
       this.searchForm = {
@@ -1331,6 +1368,7 @@ export default {
         barcode: "",
         inWarehouseStatus: "",
       };
+      this.palletCodeSearchMode = "exact"; // 重置为精确查询模式
       this.currentPage = 1;
       this.fetchData();
     },
