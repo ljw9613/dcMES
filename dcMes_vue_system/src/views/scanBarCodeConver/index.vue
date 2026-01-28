@@ -933,6 +933,11 @@ export default {
 
         const processStep = stepResponse.data[0];
 
+        // 检查 processStep 是否存在
+        if (!processStep) {
+          return;
+        }
+
         // 检查工序是否关联了打印模板
         if (processStep.printTemplateId) {
           // 获取该工序关联的打印模板
@@ -985,6 +990,11 @@ export default {
         }
 
         const processStep = stepResponse.data[0];
+
+        // 检查 processStep 是否存在
+        if (!processStep) {
+          return;
+        }
 
         // 检查工序是否关联了打印模板
         if (processStep.printTemplateId) {
@@ -1139,6 +1149,11 @@ export default {
         }
 
         const processStep = stepResponse.data[0];
+
+        // 检查 processStep 是否存在
+        if (!processStep) {
+          throw new Error("工序数据无效");
+        }
 
         this.processStepData = processStep;
 

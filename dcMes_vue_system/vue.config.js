@@ -26,10 +26,10 @@ module.exports = {
    * Detail: https://cli.vuejs.org/config/#publicpath
    */
   //国内版本
-  // publicPath: "/dcMes/",
-  // outputDir: "../dcMes_server/admin",
-  publicPath: "/dcMesManage/",
-  outputDir: "../dcMes_server/adminManage",
+  publicPath: "/dcMes/",
+  outputDir: "../dcMes_server/admin",
+  // publicPath: "/dcMesManage/",
+  // outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
   // outputDir: "../dcMes_server/adminPzManage",
   // publicPath: "/dcMesCs/",

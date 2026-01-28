@@ -47,7 +47,7 @@ class BarcodeRuleCache {
         host: process.env.REDIS_HOST || "localhost",
         port: process.env.REDIS_PORT || 6379,
         password: process.env.REDIS_PASSWORD || undefined,
-        db: 2, // 使用 DB 3 存储条码规则缓存（独立于队列服务的 DB 2）
+        db: 3, // 使用 DB 3 存储条码规则缓存（独立于队列服务的 DB 2）
 
         // 连接选项
         maxRetriesPerRequest: 3,
@@ -287,9 +287,264 @@ class BarcodeRuleCache {
   }
 }
 
+/**
+ * 【并发安全】关键物料条码分布式锁管理器
+ * 使用 Redis SETNX 实现分布式锁，防止同一关键物料条码被并发绑定到多个主条码
+ * 锁的有效期为3分钟，自动过期释放
+ */
+class KeyMaterialLock {
+  constructor() {
+    this.lockTimeout = 3 * 60; // 3分钟（Redis使用秒为单位）
+    this.keyPrefix = "key_material_lock:"; // 锁键前缀
+    this.redis = null;
+    this.connected = false;
+
+    // 初始化 Redis 连接（复用条码规则缓存的Redis连接配置，但使用不同的键前缀）
+    this.initRedis();
+  }
+
+  /**
+   * 初始化 Redis 连接（使用与条码规则缓存相同的 DB）
+   */
+  initRedis() {
+    try {
+      // 创建独立的 Redis 连接，使用与条码规则缓存相同的 DB
+      this.redis = new Redis({
+        host: process.env.REDIS_HOST || "localhost",
+        port: process.env.REDIS_PORT || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: 5, // 使用与条码规则缓存相同的 DB
+
+        // 连接选项
+        maxRetriesPerRequest: 3,
+        retryDelayOnFailover: 100,
+        enableReadyCheck: false,
+        lazyConnect: false, // 立即连接
+        keepAlive: 30000,
+
+        // 连接池配置
+        family: 4,
+        connectTimeout: 10000,
+        commandTimeout: 5000,
+      });
+
+      // 连接成功事件
+      this.redis.on("connect", () => {
+        console.log("🔗 关键物料锁 Redis 连接已建立");
+      });
+
+      // 连接就绪事件
+      this.redis.on("ready", () => {
+        this.connected = true;
+        console.log("✅ 关键物料锁 Redis 连接就绪");
+      });
+
+      // 连接错误事件（降级处理）
+      this.redis.on("error", (error) => {
+        this.connected = false;
+        console.warn(
+          "⚠️ 关键物料锁 Redis 连接错误，将跳过锁机制:",
+          error.message
+        );
+      });
+
+      // 连接关闭事件
+      this.redis.on("close", () => {
+        this.connected = false;
+        console.log("🔌 关键物料锁 Redis 连接已关闭");
+      });
+
+      // 重连事件
+      this.redis.on("reconnecting", (delay) => {
+        console.log(`🔄 关键物料锁 Redis 正在重连... (${delay}ms)`);
+      });
+    } catch (error) {
+      console.error("❌ 初始化关键物料锁 Redis 失败:", error.message);
+      console.warn("⚠️ 将跳过锁机制作为降级方案");
+      this.redis = null;
+      this.connected = false;
+    }
+  }
+
+  /**
+   * 尝试获取关键物料条码锁
+   * @param {string} barcode - 关键物料条码
+   * @param {string} mainBarcode - 主条码（用于标识锁的持有者）
+   * @returns {Promise<{success: boolean, message?: string}>} 获取锁的结果
+   */
+  async acquireLock(barcode, mainBarcode) {
+    if (!this.connected || !this.redis) {
+      // Redis 不可用时，跳过锁机制（降级处理）
+      console.warn(
+        `⚠️ Redis 不可用，跳过关键物料条码 ${barcode} 的锁机制`
+      );
+      return { success: true, message: "Redis不可用，跳过锁机制" };
+    }
+
+    try {
+      const lockKey = this.keyPrefix + barcode;
+      const lockValue = `${mainBarcode}:${Date.now()}`; // 锁的值包含主条码和时间戳
+
+      // 使用 SETNX 命令尝试获取锁，同时设置过期时间
+      // SET key value NX EX seconds
+      // NX: 只在键不存在时设置
+      // EX: 设置过期时间（秒）
+      const result = await this.redis.set(
+        lockKey,
+        lockValue,
+        "EX",
+        this.lockTimeout,
+        "NX"
+      );
+
+      if (result === "OK") {
+        console.log(
+          `🔒 成功获取关键物料条码锁: ${barcode} (主条码: ${mainBarcode})`
+        );
+        return { success: true };
+      } else {
+        // 锁已被其他请求持有，获取锁的持有者信息
+        const currentLockValue = await this.redis.get(lockKey);
+        const lockInfo = currentLockValue
+          ? currentLockValue.split(":")
+          : ["unknown", "unknown"];
+        const lockHolder = lockInfo[0];
+        const lockTime = lockInfo[1]
+          ? new Date(parseInt(lockInfo[1])).toLocaleString()
+          : "unknown";
+
+        console.warn(
+          `⚠️ 关键物料条码 ${barcode} 已被锁定 (持有者: ${lockHolder}, 锁定时间: ${lockTime})`
+        );
+        return {
+          success: false,
+          message: `关键物料条码 ${barcode} 正在被其他流程使用中，请稍后重试`,
+        };
+      }
+    } catch (error) {
+      console.error(
+        `❌ 获取关键物料条码锁失败: ${barcode}`,
+        error.message
+      );
+      // 发生错误时，为了不阻塞业务流程，返回成功（降级处理）
+      return {
+        success: true,
+        message: "获取锁时发生错误，已降级处理",
+      };
+    }
+  }
+
+  /**
+   * 释放关键物料条码锁
+   * @param {string} barcode - 关键物料条码
+   * @param {string} mainBarcode - 主条码（用于验证锁的持有者）
+   * @returns {Promise<{success: boolean, message?: string}>} 释放锁的结果
+   */
+  async releaseLock(barcode, mainBarcode) {
+    if (!this.connected || !this.redis) {
+      return { success: true };
+    }
+
+    try {
+      const lockKey = this.keyPrefix + barcode;
+      const currentLockValue = await this.redis.get(lockKey);
+
+      // 验证锁的持有者（防止误删其他请求的锁）
+      if (currentLockValue && currentLockValue.startsWith(mainBarcode + ":")) {
+        await this.redis.del(lockKey);
+        console.log(
+          `🔓 成功释放关键物料条码锁: ${barcode} (主条码: ${mainBarcode})`
+        );
+        return { success: true };
+      } else {
+        // 锁已被其他请求持有或已过期
+        console.warn(
+          `⚠️ 无法释放关键物料条码锁: ${barcode} (锁的持有者不匹配或已过期)`
+        );
+        return { success: true, message: "锁已过期或被其他请求持有" };
+      }
+    } catch (error) {
+      console.error(
+        `❌ 释放关键物料条码锁失败: ${barcode}`,
+        error.message
+      );
+      return { success: true }; // 即使释放失败也不影响业务流程
+    }
+  }
+
+  /**
+   * 批量获取多个关键物料条码锁
+   * @param {Array<string>} barcodes - 关键物料条码数组
+   * @param {string} mainBarcode - 主条码
+   * @returns {Promise<{success: boolean, lockedBarcodes: Array<string>, message?: string}>} 获取锁的结果
+   */
+  async acquireLocks(barcodes = [], mainBarcode) {
+    if (!barcodes || barcodes.length === 0) {
+      return { success: true, lockedBarcodes: [] };
+    }
+
+    const lockedBarcodes = [];
+    const failedBarcodes = [];
+
+    for (const barcode of barcodes) {
+      const result = await this.acquireLock(barcode, mainBarcode);
+      if (result.success) {
+        lockedBarcodes.push(barcode);
+      } else {
+        failedBarcodes.push(barcode);
+        // 如果获取锁失败，释放已获取的锁
+        for (const lockedBarcode of lockedBarcodes) {
+          await this.releaseLock(lockedBarcode, mainBarcode);
+        }
+        return {
+          success: false,
+          lockedBarcodes: [],
+          message: result.message || `关键物料条码 ${barcode} 获取锁失败`,
+        };
+      }
+    }
+
+    return { success: true, lockedBarcodes };
+  }
+
+  /**
+   * 批量释放多个关键物料条码锁
+   * @param {Array<string>} barcodes - 关键物料条码数组
+   * @param {string} mainBarcode - 主条码
+   * @returns {Promise<{success: boolean}>} 释放锁的结果
+   */
+  async releaseLocks(barcodes, mainBarcode) {
+    if (!barcodes || barcodes.length === 0) {
+      return { success: true };
+    }
+
+    for (const barcode of barcodes) {
+      await this.releaseLock(barcode, mainBarcode);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * 关闭 Redis 连接
+   */
+  async disconnect() {
+    if (this.redis) {
+      try {
+        await this.redis.disconnect();
+        console.log("👋 关键物料锁 Redis 连接已关闭");
+      } catch (error) {
+        console.error("❌ 关闭 Redis 连接失败:", error.message);
+      }
+    }
+  }
+}
+
 class MaterialProcessFlowService {
   // 初始化条码规则缓存（每个进程独立）
   static barcodeRuleCache = new BarcodeRuleCache();
+  // 初始化关键物料锁管理器（每个进程独立）
+  static keyMaterialLock = new KeyMaterialLock();
 
   /**
    * 【缓存管理】清除条码规则缓存
@@ -489,10 +744,10 @@ class MaterialProcessFlowService {
         throw new Error(`未找到物料编码为 ${materialCode} 的物料信息`);
       }
 
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ mainMaterialId:",
-        mainMaterialId
-      );
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ mainMaterialId:",
+      //   mainMaterialId
+      // );
 
       // 2. 获取物料对应的工艺信息
       const craft = await Craft.findOne({ materialId: mainMaterialId });
@@ -507,10 +762,10 @@ class MaterialProcessFlowService {
         new Set()
       );
 
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ processNodes:",
-        processNodes
-      );
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ processNodes:",
+      //   processNodes
+      // );
 
       // 4. 创建流程记录，只在存在工单ID时添加相关字段
       const flowRecordData = {
@@ -544,10 +799,10 @@ class MaterialProcessFlowService {
         });
       }
 
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ planWorkOrder:",
-        planWorkOrder
-      );
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ planWorkOrder:",
+      //   planWorkOrder
+      // );
 
       //成品工艺必须有产线计划才可以初始化
       if (craft.isProduct && !planWorkOrder) {
@@ -838,6 +1093,9 @@ class MaterialProcessFlowService {
     isFromDevice = false,
     productionPlanWorkOrderId = null
   ) {
+    // 【并发安全】关键物料条码锁数组，用于在错误时释放锁
+    let lockedKeyBarcodes = [];
+    
     try {
       // 1. 验证输入参数
       if (!mainBarcode) {
@@ -989,52 +1247,70 @@ class MaterialProcessFlowService {
       if (barcodesToCheck.length > 0) {
         const batchBarcodesList = batchBarcodes.map((b) => b.barcode);
 
-        // 【性能优化】批量查询所有条码的使用情况（一次查询）
-        // 使用点号语法和 $ 投影，避免 $elemMatch 导致的性能问题
-        // 注意：这种方式会匹配任何满足条件的数组元素，但性能更好
+        // 【关键修复】使用 $elemMatch 明确匹配条件：
+        // 1. 节点类型必须是 MATERIAL（物料节点）
+        // 2. 条码必须匹配
+        // 3. 状态必须是 COMPLETED
+        // 这样可以确保只查询到物料节点，而不是工序节点
         const allUsageFlows = await MaterialProcessFlow.find({
-          "processNodes.barcode": { $in: barcodesToCheck },
-          "processNodes.status": "COMPLETED",
-        }).select("barcode processNodes.$");
+          processNodes: {
+            $elemMatch: {
+              nodeType: "MATERIAL",
+              barcode: { $in: barcodesToCheck },
+              status: "COMPLETED",
+            },
+          },
+        }).select("barcode processNodes");
 
         console.log(
-          "🚀 ~ MaterialProcessFlowService ~ allUsageFlows:",
+          "🚀 ~ MaterialProcessFlowService ~ allUsageFlows count:",
           allUsageFlows.length
         );
 
         // 构建条码使用情况映射
         for (const flow of allUsageFlows) {
           for (const node of flow.processNodes) {
-            // 只处理匹配的条码（虽然用了 $ 投影，但为安全起见仍需要检查）
+            // 【关键修复】严格检查：必须是物料节点，条码匹配，状态已完成
             if (
+              node.nodeType === "MATERIAL" &&
               barcodesToCheck.includes(node.barcode) &&
-              node.status === "COMPLETED"
+              node.status === "COMPLETED" &&
+              node.barcode && // 确保条码不为空
+              node.barcode.trim() !== "" // 确保条码不是空字符串
             ) {
               // 批次条码：记录所有使用情况（不管是否关键物料）
-              // 关键物料条码：只记录 isKeyMaterial 为 true 的使用情况
+              // 关键物料条码：记录所有使用情况（不管 isKeyMaterial 字段的值）
+              // 【关键修复】关键物料条码只要条码匹配就记录，因为关键物料条码只能使用一次
               const isBatchBarcode = batchBarcodesList.includes(node.barcode);
               const isKeyMaterialBarcode = keyMaterialBarcodes.includes(
                 node.barcode
               );
 
               // 对于批次条码，记录所有使用情况
-              // 对于关键物料条码，只记录 isKeyMaterial 为 true 的
-              if (
-                isBatchBarcode ||
-                (isKeyMaterialBarcode && node.isKeyMaterial === true)
-              ) {
+              // 对于关键物料条码，只要条码匹配就记录（不管 isKeyMaterial 字段的值）
+              if (isBatchBarcode || isKeyMaterialBarcode) {
                 if (!usageMap.has(node.barcode)) {
                   usageMap.set(node.barcode, []);
                 }
                 usageMap.get(node.barcode).push({
                   mainBarcode: flow.barcode,
-                  isKeyMaterial: node.isKeyMaterial,
+                  isKeyMaterial: node.isKeyMaterial || isKeyMaterialBarcode, // 如果是关键物料条码，确保标记为关键物料
                   scanTime: node.scanTime,
                 });
               }
             }
           }
         }
+
+        // 调试日志：输出使用情况映射
+        console.log(
+          "🚀 ~ MaterialProcessFlowService ~ usageMap:",
+          Array.from(usageMap.entries()).map(([barcode, usage]) => ({
+            barcode,
+            count: usage.length,
+            mainBarcodes: usage.map((u) => u.mainBarcode),
+          }))
+        );
       }
 
       // 检查批次用量限制
@@ -1051,20 +1327,54 @@ class MaterialProcessFlowService {
         "🚀 ~ MaterialProcessFlowService ~ keyMaterialBarcodes:",
         keyMaterialBarcodes
       );
+
+      // 【并发安全】在检查关键物料之前，先获取分布式锁
+      // 防止同一关键物料条码被并发绑定到多个主条码
+      if (keyMaterialBarcodes.length > 0) {
+        const lockResult = await this.keyMaterialLock.acquireLocks(
+          keyMaterialBarcodes,
+          mainBarcode
+        );
+
+        if (!lockResult.success) {
+          throw new Error(lockResult.message || "关键物料条码正在被其他流程使用中，请稍后重试");
+        }
+
+        lockedKeyBarcodes = lockResult.lockedBarcodes;
+        console.log(
+          `🔒 成功获取 ${lockedKeyBarcodes.length} 个关键物料条码锁:`,
+          lockedKeyBarcodes
+        );
+      }
+
       // 检查关键物料重复使用
+      // 【关键修复】关键物料条码只能绑定在一个主条码中，不允许重复使用
       for (const keyBarcode of keyMaterialBarcodes) {
         const usage = usageMap.get(keyBarcode) || [];
+        // console.log(
+        //   `🚀 ~ MaterialProcessFlowService ~ 关键物料条码 ${keyBarcode} 的使用情况:`,
+        //   usage
+        // );
+        
+        // 【关键修复】关键物料条码只要被使用过（不管是否关键物料标记），都不能再次使用
+        // 过滤出其他主条码的使用情况（排除当前主条码）
         const otherFlows = usage.filter(
-          (u) => u.mainBarcode !== mainBarcode && u.isKeyMaterial
+          (u) => u.mainBarcode !== mainBarcode
         );
-        console.log(
-          "🚀 ~ MaterialProcessFlowService ~ otherFlows:",
-          otherFlows
-        );
+        
+        // console.log(
+        //   `🚀 ~ MaterialProcessFlowService ~ 关键物料条码 ${keyBarcode} 的其他流程使用情况:`,
+        //   otherFlows
+        // );
+        
         if (otherFlows.length > 0) {
           // 获取完整的流程信息用于错误提示
           const flowIds = otherFlows.map((u) => u.mainBarcode);
-          console.log("🚀 ~ MaterialProcessFlowService ~ flowIds:", flowIds);
+          // console.log(
+          //   `🚀 ~ MaterialProcessFlowService ~ 关键物料条码 ${keyBarcode} 已被以下主条码使用:`,
+          //   flowIds
+          // );
+          
           const detailedFlows = await MaterialProcessFlow.find({
             barcode: { $in: flowIds },
           }).select("barcode materialCode materialName");
@@ -1077,7 +1387,7 @@ class MaterialProcessFlowService {
           }));
 
           throw new Error(
-            `关键物料条码 ${keyBarcode} 已被其他流程使用:\n${usageDetails
+            `关键物料条码 ${keyBarcode} 已被其他流程使用，关键物料条码只能绑定在一个主条码中:\n${usageDetails
               .map(
                 (detail) =>
                   `- 主条码: ${detail.mainBarcode}\n  物料: ${
@@ -1103,10 +1413,10 @@ class MaterialProcessFlowService {
             (scan) => scan.materialId.toString() === node.materialId.toString()
           );
 
-          console.log(
-            "🚀 ~ MaterialProcessFlowService ~ materialBarcode:",
-            materialBarcode
-          );
+          // console.log(
+          //   "🚀 ~ MaterialProcessFlowService ~ materialBarcode:",
+          //   materialBarcode
+          // );
 
           // 添加空值检查
           if (!materialBarcode) {
@@ -1219,11 +1529,11 @@ class MaterialProcessFlowService {
         processNode
       );
 
-      console.log("🚀 ~ MaterialProcessFlowService ~ processPosition:", lineId);
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ processPosimaterialIdtion:",
-        flowRecord.materialId
-      );
+      // console.log("🚀 ~ MaterialProcessFlowService ~ processPosition:", lineId);
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ processPosimaterialIdtion:",
+      //   flowRecord.materialId
+      // );
       let planWorkOrder = null;
       //根据产线获取对应的工单
       if (flowRecord.isProduct) {
@@ -1559,6 +1869,18 @@ class MaterialProcessFlowService {
       // 保存更新
       await flowRecord.save();
 
+      // 【并发安全】保存成功后，释放关键物料条码锁
+      if (lockedKeyBarcodes.length > 0) {
+        await this.keyMaterialLock.releaseLocks(
+          lockedKeyBarcodes,
+          mainBarcode
+        );
+        console.log(
+          `🔓 成功释放 ${lockedKeyBarcodes.length} 个关键物料条码锁:`,
+          lockedKeyBarcodes
+        );
+      }
+
       // 检查主物料条码是否已使用
       try {
         await mongoose.model("preProductionBarcode").updateOne(
@@ -1587,6 +1909,23 @@ class MaterialProcessFlowService {
       return flowRecord;
     } catch (error) {
       console.error("扫描批次单据失败:", error);
+      
+      // 【并发安全】发生错误时，也要释放关键物料条码锁
+      if (lockedKeyBarcodes && lockedKeyBarcodes.length > 0) {
+        try {
+          await this.keyMaterialLock.releaseLocks(
+            lockedKeyBarcodes,
+            mainBarcode
+          );
+          console.log(
+            `🔓 错误处理：已释放 ${lockedKeyBarcodes.length} 个关键物料条码锁:`,
+            lockedKeyBarcodes
+          );
+        } catch (releaseError) {
+          console.error("释放关键物料条码锁失败:", releaseError);
+        }
+      }
+      
       throw error;
     }
   }

@@ -158,6 +158,8 @@
         v-if="
           mainMaterialId &&
           processStepId &&
+          processStepData &&
+          processStepData.processType &&
           (processStepData.processType == 'D' ||
             processStepData.processType == 'C')
         "
@@ -1085,6 +1087,11 @@ export default {
         }
 
         const processStep = stepResponse.data[0];
+
+        // 检查 processStep 是否存在
+        if (!processStep) {
+          throw new Error("工序数据无效");
+        }
 
         this.processStepData = processStep;
 
