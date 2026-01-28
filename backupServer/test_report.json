@@ -1,0 +1,103 @@
+{
+  "passed": 14,
+  "failed": 1,
+  "total": 15,
+  "details": [
+    {
+      "name": "Node.js版本检查",
+      "passed": true,
+      "message": "当前版本: v20.18.0, 要求: >= v14",
+      "timestamp": "2025-09-20T03:44:49.771Z"
+    },
+    {
+      "name": "必需模块: node-schedule",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.772Z"
+    },
+    {
+      "name": "必需模块: fs",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.772Z"
+    },
+    {
+      "name": "必需模块: path",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.772Z"
+    },
+    {
+      "name": "必需模块: child_process",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.773Z"
+    },
+    {
+      "name": "必需模块: util",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.773Z"
+    },
+    {
+      "name": "必需模块: os",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.774Z"
+    },
+    {
+      "name": "可选模块: mongodb",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.775Z"
+    },
+    {
+      "name": "可选模块: archiver",
+      "passed": true,
+      "message": "模块可用",
+      "timestamp": "2025-09-20T03:44:49.775Z"
+    },
+    {
+      "name": "MongoDB连接测试",
+      "passed": true,
+      "message": "数据库连接正常",
+      "timestamp": "2025-09-20T03:44:50.275Z"
+    },
+    {
+      "name": "备份目录权限",
+      "passed": true,
+      "message": "目录可写: D:/incrementalBackups",
+      "timestamp": "2025-09-20T03:44:50.277Z"
+    },
+    {
+      "name": "备份管理器文件",
+      "passed": true,
+      "message": "管理器文件存在",
+      "timestamp": "2025-09-20T03:44:50.278Z"
+    },
+    {
+      "name": "备份管理器配置",
+      "passed": false,
+      "message": "Command failed: node \"E:\\backupServer\\backupServer\\incremental_backup_manager.js\" --config\n",
+      "timestamp": "2025-09-20T03:45:20.301Z"
+    },
+    {
+      "name": "时间范围查询",
+      "passed": true,
+      "message": "查询条件生成正常",
+      "timestamp": "2025-09-20T03:45:20.302Z"
+    },
+    {
+      "name": "PM2服务管理",
+      "passed": true,
+      "message": "PM2可用",
+      "timestamp": "2025-09-20T03:45:20.531Z"
+    }
+  ],
+  "timestamp": "2025-09-20T03:45:20.535Z",
+  "system": {
+    "platform": "win32",
+    "nodeVersion": "v20.18.0",
+    "arch": "x64"
+  }
+}

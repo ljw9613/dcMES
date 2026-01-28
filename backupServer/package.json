@@ -1,0 +1,44 @@
+{
+  "name": "dcmes-backup-restore-system",
+  "version": "1.0.0",
+  "description": "德昌MES系统MongoDB增量备份和还原管理器",
+  "main": "incremental_backup_manager.js",
+  "scripts": {
+    "start": "node incremental_backup_manager.js --start",
+    "backup": "node incremental_backup_manager.js --once",
+    "status": "node incremental_backup_manager.js --status",
+    "config": "node incremental_backup_manager.js --config",
+    "restore": "node restore_manager.js --interactive",
+    "list-backups": "node restore_manager.js --list",
+    "example": "node restore_example.js",
+    "restore-help": "node restore_manager.js --help"
+  },
+  "keywords": [
+    "mongodb",
+    "backup",
+    "restore",
+    "incremental",
+    "dcmes",
+    "database",
+    "automation"
+  ],
+  "author": "系统管理员",
+  "license": "MIT",
+  "dependencies": {
+    "node-schedule": "^2.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dcmes/backup-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dcmes/backup-system/issues"
+  },
+  "homepage": "https://github.com/dcmes/backup-system#readme"
+}
