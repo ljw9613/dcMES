@@ -2008,6 +2008,7 @@ class MaterialProcessFlowService {
    * @param {string} reason - 解绑原因
    * @param {boolean} unbindSubsequent - 是否解绑后续工序
    * @param {boolean} fromPalletUnbind - 是否来自托盘解绑
+   * @param {boolean} skipUnbindRecord - 是否不生成解绑工序记录，默认 false（生成）；回滚场景传 true 不生成
    */
   static async unbindProcessComponents(
     mainBarcode,
@@ -2015,7 +2016,8 @@ class MaterialProcessFlowService {
     userId,
     reason,
     unbindSubsequent = false,
-    fromPalletUnbind = false
+    fromPalletUnbind = false,
+    skipUnbindRecord = false
   ) {
     let maxRetries = 3;
     let retryCount = 0;
@@ -2117,10 +2119,10 @@ class MaterialProcessFlowService {
                   );
                 }
               } catch (error) {
-                console.warn(`解绑托盘记录失败: ${error.message}`);
-                // 发生托盘解绑错误，但继续流程，不抛出异常中断整个解绑过程
-                console.error(
-                  `解绑托盘记录失败 ${error.message}，但继续执行工序解绑流程`
+                // 托盘解绑失败时，直接中断工序解绑流程
+                console.error(`解绑托盘记录失败: ${error.message}`);
+                throw new Error(
+                  `托盘解绑失败，工序解绑已终止: ${error.message}`
                 );
               }
             }
@@ -2208,44 +2210,46 @@ class MaterialProcessFlowService {
           materialNodesToUnbind.push(...materialNodes);
         }
 
-        // 修改解绑记录的创建部分
-        for (const processNodeToUnbind of processNodesToUnbind) {
-          // 获取当前工序相关的物料节点
-          const relatedMaterialNodes = flowRecord.processNodes.filter(
-            (node) =>
-              node.parentNodeId === processNodeToUnbind.nodeId &&
-              node.nodeType === "MATERIAL" &&
-              node.status === "COMPLETED"
-          );
+        // 修改解绑记录的创建部分（回滚场景可通过 skipUnbindRecord 跳过，不生成解绑工序记录）
+        if (!skipUnbindRecord) {
+          for (const processNodeToUnbind of processNodesToUnbind) {
+            // 获取当前工序相关的物料节点
+            const relatedMaterialNodes = flowRecord.processNodes.filter(
+              (node) =>
+                node.parentNodeId === processNodeToUnbind.nodeId &&
+                node.nodeType === "MATERIAL" &&
+                node.status === "COMPLETED"
+            );
 
-          // 为每个工序创建独立的解绑记录
-          const unbindRecord = new UnbindRecord({
-            flowRecordId: flowRecord._id,
-            mainBarcode,
-            processStepId: processNodeToUnbind.processStepId,
-            processName: processNodeToUnbind.processName,
-            processCode: processNodeToUnbind.processCode,
-            unbindMaterials: relatedMaterialNodes.map((node) => ({
-              materialId: node.materialId,
-              materialCode: node.materialCode,
-              materialName: node.materialName,
-              originalBarcode: node.barcode || "",
-            })),
-            operatorId: userId,
-            reason,
-            unbindSubsequent:
-              unbindSubsequent &&
-              processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
-            affectedProcesses: [
-              {
-                processStepId: processNodeToUnbind.processStepId,
-                processName: processNodeToUnbind.processName,
-                processCode: processNodeToUnbind.processCode,
-              },
-            ],
-            fromPalletUnbind,
-          });
-          await unbindRecord.save();
+            // 为每个工序创建独立的解绑记录
+            const unbindRecord = new UnbindRecord({
+              flowRecordId: flowRecord._id,
+              mainBarcode,
+              processStepId: processNodeToUnbind.processStepId,
+              processName: processNodeToUnbind.processName,
+              processCode: processNodeToUnbind.processCode,
+              unbindMaterials: relatedMaterialNodes.map((node) => ({
+                materialId: node.materialId,
+                materialCode: node.materialCode,
+                materialName: node.materialName,
+                originalBarcode: node.barcode || "",
+              })),
+              operatorId: userId,
+              reason,
+              unbindSubsequent:
+                unbindSubsequent &&
+                processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
+              affectedProcesses: [
+                {
+                  processStepId: processNodeToUnbind.processStepId,
+                  processName: processNodeToUnbind.processName,
+                  processCode: processNodeToUnbind.processCode,
+                },
+              ],
+              fromPalletUnbind,
+            });
+            await unbindRecord.save();
+          }
         }
 
         // 更新流程节点状态

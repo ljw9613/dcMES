@@ -27,7 +27,7 @@ module.exports = app => {
     family: 4, // 强制使用IPv4
     maxIdleTimeMS: 60000, // 空闲连接60秒后关闭，避免资源浪费
     heartbeatFrequencyMS: 10000, // 心跳检测频率增加，更快检测连接问题
-    waitQueueTimeoutMS: 10000, // 等待队列超时设置
+    waitQueueTimeoutMS: 60000, // 等待队列超时设置
     writeConcern: { w: 1 }, // 写入确认级别，确保数据写入到至少一个节点
     readPreference: 'primaryPreferred' // 优先从主节点读取，保证数据一致性
   };
