@@ -611,6 +611,9 @@ class MaterialPalletizingService {
           throw new Error(`条码 ${barcode} 已出库，不能进行解绑操作`);
         }
 
+        console.log('pallet.boxItems:', pallet.boxItems);
+        console.log('barcode:', barcode);
+        console.log('pallet.boxItems.some((item) => item.boxBarcodes.some((bb) => bb.barcode === barcode)):', pallet.boxItems.some((item) => item.boxBarcodes.some((bb) => bb.barcode === barcode)));
         // 检查条码是否在箱内
         const isInBox = pallet.boxItems.some((item) =>
           item.boxBarcodes.some((bb) => bb.barcode === barcode)
@@ -2287,9 +2290,9 @@ class MaterialPalletizingService {
     } catch (error) {
       console.error("添加条码到托盘失败:", error);
       
-      // 关键修复：如果工序已完成但托盘保存失败，需要回滚工序状态
-      if (processCompleted && error.message.includes("添加失败")) {
-        console.log(`条码 ${mainBarcode} 工序已完成但托盘保存失败，开始回滚工序状态...`);
+      // 关键修复：如果工序已完成但托盘保存失败（含连接池超时等），需要回滚工序状态，避免条码已完工而托盘无记录
+      if (processCompleted) {
+        console.log(`条码 ${mainBarcode} 工序已完成但后续步骤失败（${error.message}），开始回滚工序状态...`);
         let rollbackSuccess = false;
         
         try {
@@ -2300,7 +2303,8 @@ class MaterialPalletizingService {
             userId,
             "托盘入托失败自动回滚",
             false, // 不解绑后续工序
-            false  // 不是来自托盘解绑调用
+            false, // 不是来自托盘解绑调用
+            true   // 回滚场景不生成解绑工序记录
           );
           console.log(`条码 ${mainBarcode} 工序状态回滚成功`);
           rollbackSuccess = true;
@@ -2714,6 +2718,11 @@ class MaterialPalletizingService {
         throw new Error(`工序绑定失败，产品不能入托: ${processError.message}`);
       }
 
+      // 【仅测试用】环境变量 TEST_PALLET_ROLLBACK=1 时，在工序成功后、托盘写入前模拟失败，用于验证回滚机制
+      // if (true) {
+      //   throw new Error('TEST_ROLLBACK: 模拟托盘写入失败');
+      // }
+
       // 步骤6：**工序成功后使用原子操作添加条码到托盘**
       let updateOperation;
       let arrayFilters = [{ 
@@ -2936,9 +2945,9 @@ class MaterialPalletizingService {
     } catch (error) {
       console.error("处理托盘条码失败:", error);
       
-      // 关键修复：如果工序已完成但托盘保存失败，需要回滚工序状态
-      if (processCompleted && error.message.includes("添加失败")) {
-        console.log(`条码 ${mainBarcode} 工序已完成但托盘保存失败，开始回滚工序状态...`);
+      // 关键修复：如果工序已完成但托盘保存失败（含连接池超时等），需要回滚工序状态，避免条码已完工而托盘无记录
+      if (processCompleted) {
+        console.log(`条码 ${mainBarcode} 工序已完成但后续步骤失败（${error.message}），开始回滚工序状态...`);
         let rollbackSuccess = false;
         
         try {
@@ -2949,7 +2958,8 @@ class MaterialPalletizingService {
             userId,
             "托盘入托失败自动回滚",
             false, // 不解绑后续工序
-            false  // 不是来自托盘解绑调用
+            false, // 不是来自托盘解绑调用
+            true   // 回滚场景不生成解绑工序记录
           );
           console.log(`条码 ${mainBarcode} 工序状态回滚成功`);
           rollbackSuccess = true;
