@@ -4002,15 +4002,29 @@ class MaterialProcessFlowService {
           }
 
           // 【关键验证】验证提取的物料编码是否匹配当前物料
-          if (materialCode === material.FNumber) {
+          // 支持条码后缀等价：条码中物料编码末尾 "XD" 与 物料 FNumber 末尾 "D" 视为同物（如 1407123043XD 对应 1407123043D）
+          const normalizedCode =
+            materialCode &&
+            material.FNumber &&
+            materialCode.endsWith("XD") &&
+            material.FNumber.endsWith("D")
+              ? materialCode.slice(0, -2) + "D"
+              : materialCode;
+          const codeMatches =
+            materialCode === material.FNumber ||
+            normalizedCode === material.FNumber;
+
+          if (codeMatches) {
             console.log(
               `✅ 条码验证通过: 规则=${rule.name} (${
                 rule.isProductSpecific ? "产品特定" : "全局规则"
-              }), 提取物料编码=${materialCode}`
+              }), 提取物料编码=${materialCode}${
+                normalizedCode !== materialCode ? ` (规范化=${normalizedCode})` : ""
+              }`
             );
             return {
               isValid: true,
-              materialCode,
+              materialCode: material.FNumber,
               relatedBill,
               snCode,
               modelCode,

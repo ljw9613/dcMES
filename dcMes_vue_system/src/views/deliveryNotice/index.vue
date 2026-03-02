@@ -14,18 +14,30 @@
             <el-form-item label="单据编号">
               <el-input
                 v-model="searchForm.FBillNo"
-                placeholder="请输入单据编号"
+                :placeholder="fBillNoSearchMode === 'exact' ? '请输入完整单据编号（精确）' : '请输入单据编号（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fBillNoSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFBillNoSearchMode"
+                  :title="fBillNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fBillNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <el-form-item label="销售组织">
               <el-input
                 v-model="searchForm.FSaleOrgId.Number"
-                placeholder="请输入销售组织编号"
+                :placeholder="saleOrgSearchMode === 'exact' ? '请输入完整销售组织编号（精确）' : '请输入销售组织编号（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="saleOrgSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleSaleOrgSearchMode"
+                  :title="saleOrgSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ saleOrgSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
@@ -88,18 +100,30 @@
             <el-form-item label="发货组织">
               <el-input
                 v-model="searchForm.FDeliveryOrgID.Number"
-                placeholder="请输入发货组织编号"
+                :placeholder="deliveryOrgSearchMode === 'exact' ? '请输入完整发货组织编号（精确）' : '请输入发货组织编号（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="deliveryOrgSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleDeliveryOrgSearchMode"
+                  :title="deliveryOrgSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ deliveryOrgSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <el-form-item label="客户">
               <el-input
                 v-model="searchForm.FCustomerID.Number"
-                placeholder="请输入客户编号"
+                :placeholder="customerSearchMode === 'exact' ? '请输入完整客户编号（精确）' : '请输入客户编号（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="customerSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleCustomerSearchMode"
+                  :title="customerSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ customerSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="8">
@@ -494,6 +518,10 @@ export default {
         FDocumentStatus: "",
         dateRange: [],
       },
+      fBillNoSearchMode: "exact",
+      saleOrgSearchMode: "exact",
+      deliveryOrgSearchMode: "exact",
+      customerSearchMode: "exact",
       tableList: [],
       total: 0,
       currentPage: 1,
@@ -551,37 +579,50 @@ export default {
         },
       };
 
-      if (this.searchForm.FBillNo) {
-        req.query.$and.push({
-          FBillNo: { $regex: this.searchForm.FBillNo.trim(), $options: "i" },
-        });
+      if (this.searchForm.FBillNo && this.searchForm.FBillNo.trim()) {
+        const v = this.searchForm.FBillNo.trim();
+        if (this.fBillNoSearchMode === "exact") {
+          req.query.$and.push({ FBillNo: v });
+        } else {
+          if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+          req.query.$and.push({ FBillNo: { $regex: v, $options: "i" } });
+        }
       }
 
-      if (this.searchForm.FSaleOrgId.Number) {
-        req.query.$and.push({
-          "FSaleOrgId.Number": {
-            $regex: this.searchForm.FSaleOrgId.Number.trim(),
-            $options: "i",
-          },
-        });
+      if (this.searchForm.FSaleOrgId.Number && this.searchForm.FSaleOrgId.Number.trim()) {
+        const v = this.searchForm.FSaleOrgId.Number.trim();
+        if (this.saleOrgSearchMode === "exact") {
+          req.query.$and.push({ "FSaleOrgId.Number": v });
+        } else {
+          if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+          req.query.$and.push({
+            "FSaleOrgId.Number": { $regex: v, $options: "i" },
+          });
+        }
       }
 
-      if (this.searchForm.FDeliveryOrgID.Number) {
-        req.query.$and.push({
-          "FDeliveryOrgID.Number": {
-            $regex: this.searchForm.FDeliveryOrgID.Number.trim(),
-            $options: "i",
-          },
-        });
+      if (this.searchForm.FDeliveryOrgID.Number && this.searchForm.FDeliveryOrgID.Number.trim()) {
+        const v = this.searchForm.FDeliveryOrgID.Number.trim();
+        if (this.deliveryOrgSearchMode === "exact") {
+          req.query.$and.push({ "FDeliveryOrgID.Number": v });
+        } else {
+          if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+          req.query.$and.push({
+            "FDeliveryOrgID.Number": { $regex: v, $options: "i" },
+          });
+        }
       }
 
-      if (this.searchForm.FCustomerID.Number) {
-        req.query.$and.push({
-          "FCustomerID.Number": {
-            $regex: this.searchForm.FCustomerID.Number.trim(),
-            $options: "i",
-          },
-        });
+      if (this.searchForm.FCustomerID.Number && this.searchForm.FCustomerID.Number.trim()) {
+        const v = this.searchForm.FCustomerID.Number.trim();
+        if (this.customerSearchMode === "exact") {
+          req.query.$and.push({ "FCustomerID.Number": v });
+        } else {
+          if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+          req.query.$and.push({
+            "FCustomerID.Number": { $regex: v, $options: "i" },
+          });
+        }
       }
 
       if (this.searchForm.FDocumentStatus) {
@@ -777,6 +818,23 @@ export default {
       this.fetchData();
     },
 
+    toggleFBillNoSearchMode() {
+      this.fBillNoSearchMode = this.fBillNoSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fBillNoSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleSaleOrgSearchMode() {
+      this.saleOrgSearchMode = this.saleOrgSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.saleOrgSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleDeliveryOrgSearchMode() {
+      this.deliveryOrgSearchMode = this.deliveryOrgSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.deliveryOrgSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleCustomerSearchMode() {
+      this.customerSearchMode = this.customerSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.customerSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+
     resetForm() {
       // 重置表单
       this.$refs.searchForm.resetFields();
@@ -799,6 +857,12 @@ export default {
 
       // 使用Object.assign完全替换对象
       Object.assign(this.searchForm, initialForm);
+
+      this.fBillNoSearchMode = "exact";
+      this.saleOrgSearchMode = "exact";
+      this.deliveryOrgSearchMode = "exact";
+      this.customerSearchMode = "exact";
+      this.currentPage = 1;
 
       // 重新加载数据
       this.fetchData();

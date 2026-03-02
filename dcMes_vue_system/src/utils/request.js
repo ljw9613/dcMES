@@ -30,6 +30,8 @@ const handleJWTError = (message) => {
   
   // 清除localStorage中可能存储的token信息
   localStorage.clear();
+  // 清除sessionStorage中的store，避免下次恢复出旧token
+  try { sessionStorage.removeItem('store'); } catch (e) {}
   
   // 重置Vuex中的token
   store.dispatch("user/resetToken").then(() => {
@@ -50,13 +52,13 @@ service.interceptors.request.use(
     }
     
     // do something before request is sent
-    // 首先尝试从store获取token，如果失败则直接从Cookie获取
-    let token = store.getters.token;
-    
-    // 如果store中没有token，直接从Cookie获取（防止初始化时机问题）
+    // 优先使用 Cookie 中的 token（与登录态一致），避免 store 被 sessionStorage 恢复成旧 token 时带错请求头
+    let token = getToken();
     if (!token) {
-      token = getToken();
-      // console.log('Store中无token，从Cookie获取:', token ? `${token.substring(0, 20)}...` : 'null');
+      token = store.getters.token;
+    }
+    if (token && (!store.getters.token || store.getters.token !== token)) {
+      store.commit('user/SET_TOKEN', token);
     }
     
     // 添加调试信息

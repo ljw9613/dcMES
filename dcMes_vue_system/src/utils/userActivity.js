@@ -12,6 +12,8 @@ import router from '@/router'
 import { Message } from 'element-ui'
 import activityConfig, { getActivityConfig, isActivityMonitorEnabled } from '@/config/activityConfig'
 
+const SESSION_EXPIRED_KEY = 'activity_session_expired'
+
 class UserActivityMonitor {
   constructor() {
     // 从配置文件获取设置
@@ -78,6 +80,14 @@ class UserActivityMonitor {
     // 检查是否启用活动监听
     if (!isActivityMonitorEnabled()) {
       console.log('🚫 [活动监听] 功能已禁用，跳过启动')
+      return false
+    }
+
+    // 刷新后防绕过：若本地已标记会话过期，不再启动计时器并直接弹出强制登录
+    if (localStorage.getItem(SESSION_EXPIRED_KEY)) {
+      console.log('🔒 [活动监听] 检测到已过期标记，跳过启动并强制重新登录')
+      this.isExpired = true
+      this.showForceReloginDialog()
       return false
     }
 
@@ -326,7 +336,9 @@ class UserActivityMonitor {
     
     // 标记为过期（无论监听器是否激活）
     this.isExpired = true
-    
+    // 持久化过期标记，防止用户通过刷新页面绕过强制登录
+    try { localStorage.setItem(SESSION_EXPIRED_KEY, '1') } catch (e) {}
+
     // 显示过期提示
     Message({
       message: this.config.messages.expiredMessage,
@@ -390,8 +402,9 @@ class UserActivityMonitor {
         duration: 3000
       })
       
-      // 清除最后活动时间
+      // 清除最后活动时间与过期标记
       localStorage.removeItem('lastActivityTime')
+      localStorage.removeItem(SESSION_EXPIRED_KEY)
       
       // 清除sessionStorage中的store数据
       sessionStorage.removeItem('store')
@@ -416,6 +429,7 @@ class UserActivityMonitor {
         removeToken()
         removeid()
         localStorage.removeItem('lastActivityTime')
+        localStorage.removeItem(SESSION_EXPIRED_KEY)
         sessionStorage.removeItem('store')
         store.commit('user/RESET_STATE')
         
@@ -466,11 +480,12 @@ class UserActivityMonitor {
       console.log(`📊 [活动监听] 当前时间: ${currentTime}`)
       console.log(`📊 [活动监听] 距离最后活动: ${Math.round(timeSinceLastActivity / 1000 / 60)} 分钟`)
       
-      // 如果超过配置的超时时间，标记为过期
+      // 如果超过配置的超时时间，标记为过期并持久化，防止刷新绕过
       if (timeSinceLastActivity > this.timeout) {
         console.error(`❌ [活动监听] 页面加载时检测到超时，标记会话为过期状态`)
         console.error(`⏰ [活动监听] 超时阈值: ${this.timeout / 1000 / 60} 分钟`)
         this.isExpired = true
+        try { localStorage.setItem(SESSION_EXPIRED_KEY, '1') } catch (e) {}
         this.markExpired()
         return true // 仍然返回true，允许页面加载，但会话已过期
       } else {

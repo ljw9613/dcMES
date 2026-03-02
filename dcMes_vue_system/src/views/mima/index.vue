@@ -36,11 +36,18 @@
 
 <script>
 import { getuserlist, putuserlist } from "@/api/user_list";
+import { getToken } from '@/utils/auth';
 import PasswordDialog from './PasswordDialog.vue'
 
 export default {
   components: {
     PasswordDialog
+  },
+  computed: {
+    uploadHeaders() {
+      const token = getToken();
+      return { 'Authorization': token ? (token.startsWith('Bearer ') ? token : 'Bearer ' + token) : '' };
+    }
   },
   data() {
     let validateNewPassword = (rule, value, callback) => {
@@ -83,9 +90,6 @@ export default {
           { required: true, message: "请确认新密码", trigger: "blur" },
           { validator: validateNewPassword2, trigger: "blur" }
         ]
-      },
-      uploadHeaders: {
-        'Authorization': 'Bearer ' + this.$store.state.user.token
       },
       uploadData: {
         type: 'avatar'

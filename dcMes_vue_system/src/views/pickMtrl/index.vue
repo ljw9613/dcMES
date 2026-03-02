@@ -6,7 +6,14 @@
                 <el-row :gutter="20">
                     <el-col :span="8">
                         <el-form-item label="单据编号">
-                            <el-input v-model="searchForm.FBillNo" placeholder="请输入单据编号" clearable></el-input>
+                            <el-input v-model="searchForm.FBillNo"
+                                :placeholder="fBillNoSearchMode === 'exact' ? '请输入完整单据编号（精确）' : '请输入单据编号（模糊）'" clearable>
+                                <el-button slot="prepend" :type="fBillNoSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFBillNoSearchMode"
+                                    :title="fBillNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fBillNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                     <!-- <el-col :span="8">
@@ -329,6 +336,7 @@ export default {
                 FWorkShopId: '',
                 dateRange: [],
             },
+            fBillNoSearchMode: 'exact',
             tableList: [],
             total: 0,
             currentPage: 1,
@@ -387,8 +395,14 @@ export default {
                 }
             };
 
-            if (this.searchForm.FBillNo) {
-                req.query.$and.push({ FBillNo: { $regex: this.searchForm.FBillNo.trim(), $options: 'i' } });
+            if (this.searchForm.FBillNo && this.searchForm.FBillNo.trim()) {
+                const v = this.searchForm.FBillNo.trim();
+                if (this.fBillNoSearchMode === 'exact') {
+                    req.query.$and.push({ FBillNo: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FBillNo: { $regex: v, $options: 'i' } });
+                }
             }
 
             if (this.searchForm.FPrdOrgId.Number) {
@@ -533,6 +547,26 @@ export default {
 
         baseTableHandleSizeChange(pageSize) {
             this.pageSize = pageSize;
+            this.fetchData();
+        },
+
+        toggleFBillNoSearchMode() {
+            this.fBillNoSearchMode = this.fBillNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fBillNoSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+
+        resetForm() {
+            this.$refs.searchForm.resetFields();
+            this.searchForm = {
+                FBillNo: '',
+                FPrdOrgId: { Number: '' },
+                FStockOrgId: { Number: '' },
+                FDocumentStatus: '',
+                FWorkShopId: '',
+                dateRange: [],
+            };
+            this.fBillNoSearchMode = 'exact';
+            this.currentPage = 1;
             this.fetchData();
         },
 

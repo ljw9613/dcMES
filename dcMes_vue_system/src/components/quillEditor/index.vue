@@ -27,6 +27,7 @@ import "quill/dist/quill.snow.css";
 import "quill/dist/quill.bubble.css";
 import { quillEditor } from "vue-quill-editor";
 import { rich_text_img, rich_text_img_prefix } from "../../utils/global";
+import { getToken } from "@/utils/auth";
 import Quills from "quill";
 // import axios from "axios";
 //调节图片大小
@@ -130,9 +131,14 @@ export default {
       }
     }
   },
+  computed: {
+    headers() {
+      const token = getToken();
+      return { authorization: token ? (token.startsWith('Bearer ') ? token : 'Bearer ' + token) : '' };
+    }
+  },
   data() {
     return {
-      headers: { authorization: "Bearer " + this.$store.getters.token },
       //富文本内容
       content: "",
       //富文本配置

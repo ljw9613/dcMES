@@ -1285,6 +1285,7 @@ router.post("/api/v1/k3/sync_warehouse_ontry", async (req, res) => {
 router.post("/api/v1/warehouse_entry/submit_product", async (req, res) => {
   try {
     const { entryId, productBarcode, userId, entryInfo } = req.body;
+    
 
     // 1. 根据产品条码查询工艺流程
     const processFlow = await MaterialProcessFlow.findOne({

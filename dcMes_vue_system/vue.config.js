@@ -26,8 +26,8 @@ module.exports = {
    * Detail: https://cli.vuejs.org/config/#publicpath
    */
   //国内版本
-  publicPath: "/dcMes/",
-  outputDir: "../dcMes_server/admin",
+  // publicPath: "/dcMes/",
+  // outputDir: "../dcMes_server/admin",
   // publicPath: "/dcMesManage/",
   // outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
@@ -36,13 +36,13 @@ module.exports = {
   // outputDir: "../dcMes_server/adminCs",
   // 越南VN
   // publicPath: "/dcMesVN/",
-  // outputDir: "../dcMes_server/adminVN",
+  // outputDir: "../dcMes_server/adminVN2",
   // publicPath: "/dcMesManageVN/",
-  // outputDir: "../dcMes_server/adminManageVN",
+  // outputDir: "../dcMes_server/adminManageVN2",
   // publicPath: "/dcMesPzManageVN/",
-  // outputDir: "../dcMes_server/adminPzManageVN",
-  // publicPath: "/dcMesVNCN/",
-  // outputDir: "../dcMes_server/adminVNCN",
+  // outputDir: "../dcMes_server/adminPzManageVN2",
+  publicPath: "/dcMesVNCN/",
+  outputDir: "../dcMes_server/adminVNCN2",
   // publicPath: "/dcMesVNCS/",
   // outputDir: "../dcMes_server/adminVNCS",
   // publicPath: "/dcMesVNCNCS/",

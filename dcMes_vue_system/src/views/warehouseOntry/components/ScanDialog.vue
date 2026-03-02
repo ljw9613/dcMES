@@ -88,7 +88,7 @@
                   v-if="entryInfo.whitelistLocked"
                   type="warning"
                   size="mini"
-                  style="margin-left: 5px;"
+                  style="margin-left: 5px"
                 >
                   已锁定
                 </el-tag>
@@ -158,14 +158,16 @@
         </el-row>
 
         <!-- 工单限制提示信息 -->
-        <el-row v-if="entryInfo.currentWorkOrderNo || entryInfo.whitelistLocked">
+        <el-row
+          v-if="entryInfo.currentWorkOrderNo || entryInfo.whitelistLocked"
+        >
           <el-col :span="24">
             <el-alert
               :title="getWorkOrderLimitMessage()"
               type="info"
               :closable="false"
               show-icon
-              style="margin-top: 10px;"
+              style="margin-top: 10px"
             >
             </el-alert>
           </el-col>
@@ -471,14 +473,18 @@ export default {
         await this.$refs.entryForm.validate();
 
         const barcode = this.scanForm.barcode.trim();
-        
+
         // 防重复扫码检查：检查条码是否已在当前出库单中
-        if (this.entryInfo && this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
+        if (
+          this.entryInfo &&
+          this.entryInfo.entryItems &&
+          this.entryInfo.entryItems.length > 0
+        ) {
           // 检查是否存在相同的托盘条码
-          const isDuplicatePallet = this.entryInfo.entryItems.some(item => 
-            item.palletCode === barcode.split("#")[0]
+          const isDuplicatePallet = this.entryInfo.entryItems.some(
+            (item) => item.palletCode === barcode.split("#")[0]
           );
-          
+
           if (isDuplicatePallet) {
             this.$message.warning("该托盘已在当前出库单中，请勿重复扫码");
             this.scanForm.barcode = "";
@@ -494,7 +500,7 @@ export default {
           this.$message.warning("正在处理中，请稍候...");
           return;
         }
-        
+
         this.isScanning = true;
         const loading = this.$loading({
           lock: true,
@@ -515,7 +521,10 @@ export default {
             const response = await scanPalletOn({
               palletCode,
               userId: this.$store.state.user.id,
-              entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
+              entryId:
+                this.entryInfo && this.entryInfo._id
+                  ? this.entryInfo._id
+                  : undefined,
               entryInfo: {
                 ...this.entryInfo,
                 HuoGuiCode: this.entryInfo.HuoGuiCode,
@@ -577,7 +586,7 @@ export default {
                 setTimeout(() => {
                   this.$message.success("该出库单已完成出库");
                   // 通知父组件刷新数据
-                  this.$emit('refresh');
+                  this.$emit("refresh");
                 }, 1000);
                 return;
               }
@@ -586,7 +595,7 @@ export default {
             if (response.code !== 200) {
               this.isScanning = false;
               loading.close();
-              
+
               // 如果托盘已部分出库，提示用户可以整托出库
               if (
                 response.message ===
@@ -606,7 +615,7 @@ export default {
                     if (this.isScanning) {
                       return;
                     }
-                    
+
                     this.isScanning = true;
                     // 添加整托出库的加载状态
                     const entirePalletLoading = this.$loading({
@@ -615,7 +624,7 @@ export default {
                       spinner: "el-icon-loading",
                       background: "rgba(0, 0, 0, 0.7)",
                     });
-                    
+
                     try {
                       // 用户选择整托出库，调用整托出库API
                       const entirePalletResponse = await scanPalletOn({
@@ -625,20 +634,19 @@ export default {
                           ...this.entryInfo,
                           HuoGuiCode: this.entryInfo.HuoGuiCode,
                           FaQIaoNo: this.entryInfo.FaQIaoNo,
-                          workOrderWhitelist: this.entryInfo.workOrderWhitelist.map(
-                            (item) => ({
+                          workOrderWhitelist:
+                            this.entryInfo.workOrderWhitelist.map((item) => ({
                               workOrderNo: item.workOrderNo,
                               workOrderId: item._id,
                               productionOrderNo: item.productionOrderNo,
-                            })
-                          ),
+                            })),
                         },
                         palletFinished: true, // 指示整托出库
                       });
 
                       this.isScanning = false;
                       entirePalletLoading.close();
-                      
+
                       if (entirePalletResponse.code === 200) {
                         this.entryInfo = {
                           ...entirePalletResponse.data,
@@ -688,9 +696,11 @@ export default {
 
             this.isScanning = false;
             loading.close();
-            
+
             this.showSuccessMessage(
-              response.mode === "init" ? "出库单初始化成功" : "托盘扫码出库成功",
+              response.mode === "init"
+                ? "出库单初始化成功"
+                : "托盘扫码出库成功",
               response.mode
             );
 
@@ -714,7 +724,7 @@ export default {
               setTimeout(() => {
                 this.$message.success("该出库单已完成出库");
                 // 通知父组件刷新数据
-                this.$emit('refresh');
+                this.$emit("refresh");
               }, 1000);
               return;
             }
@@ -753,8 +763,9 @@ export default {
         let barcode = this.productScanForm.barcode.trim();
 
         //1001998503000223,010401AG000203,20250329,8
-        if(barcode.includes(",")){
-          const [boxBarcode, materialCode, scanTime, quantity] = barcode.split(",");
+        if (barcode.includes(",")) {
+          const [boxBarcode, materialCode, scanTime, quantity] =
+            barcode.split(",");
           barcode = boxBarcode;
         }
 
@@ -770,20 +781,25 @@ export default {
           }
         }
 
-     
-
         // 防重复扫码检查：检查产品条码是否已在当前出库单中
-        if (this.entryInfo && this.entryInfo.entryItems && this.entryInfo.entryItems.length > 0) {
+        if (
+          this.entryInfo &&
+          this.entryInfo.entryItems &&
+          this.entryInfo.entryItems.length > 0
+        ) {
           // 检查是否存在相同的产品条码
-          const isDuplicateProduct = this.entryInfo.entryItems.some(item => 
-            item.palletBarcodes && item.palletBarcodes.some(pb => pb.barcode === barcode)
+          const isDuplicateProduct = this.entryInfo.entryItems.some(
+            (item) =>
+              item.palletBarcodes &&
+              item.palletBarcodes.some((pb) => pb.barcode === barcode)
           );
-          
+
           if (isDuplicateProduct) {
             this.$message.warning("该产品条码已在当前出库单中，请勿重复扫码");
             this.productScanForm.barcode = "";
             this.$nextTick(() => {
-              this.$refs.productScanInput && this.$refs.productScanInput.focus();
+              this.$refs.productScanInput &&
+                this.$refs.productScanInput.focus();
             });
             return;
           }
@@ -794,7 +810,7 @@ export default {
           this.$message.warning("正在处理中，请稍候...");
           return;
         }
-        
+
         this.isProductScanning = true;
 
         // 检查是否为包装箱条码
@@ -822,7 +838,7 @@ export default {
               if (this.isBoxProcessing) {
                 return;
               }
-              
+
               this.isBoxProcessing = true;
               // 设置加载提示
               const loading = this.$loading({
@@ -859,14 +875,18 @@ export default {
                 // 如果出库单已经初始化（有已出库数量），验证包装箱数量不超过剩余出库数量
                 // 如果出库单未初始化，验证包装箱数量不超过应出库数量
                 if (this.entryInfo.outboundQuantity) {
-                  const outboundQuantity = Number(this.entryInfo.outboundQuantity);
+                  const outboundQuantity = Number(
+                    this.entryInfo.outboundQuantity
+                  );
                   const outNumber = Number(this.entryInfo.outNumber || 0);
-                  
+
                   if (this.entryInfo._id && outNumber > 0) {
                     // 出库单已初始化，验证剩余数量
                     const remainingQuantity = outboundQuantity - outNumber;
                     if (productBarcodes.length > remainingQuantity) {
-                      this.$message.error(`包装箱内产品数量(${productBarcodes.length})超过剩余应出库数量(${remainingQuantity})`);
+                      this.$message.error(
+                        `包装箱内产品数量(${productBarcodes.length})超过剩余应出库数量(${remainingQuantity})`
+                      );
                       this.isBoxProcessing = false;
                       this.isProductScanning = false;
                       loading.close();
@@ -875,7 +895,9 @@ export default {
                   } else {
                     // 出库单未初始化或未开始出库，验证总应出库数量
                     if (productBarcodes.length > outboundQuantity) {
-                      this.$message.error(`包装箱内产品数量(${productBarcodes.length})超过应出库总数量(${outboundQuantity})`);
+                      this.$message.error(
+                        `包装箱内产品数量(${productBarcodes.length})超过应出库总数量(${outboundQuantity})`
+                      );
                       this.isBoxProcessing = false;
                       this.isProductScanning = false;
                       loading.close();
@@ -901,7 +923,10 @@ export default {
                   const response = await submitProductBarcode({
                     productBarcode: productBarcode,
                     userId: this.$store.state.user.id,
-                    entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
+                    entryId:
+                      this.entryInfo && this.entryInfo._id
+                        ? this.entryInfo._id
+                        : undefined,
                     entryInfo: {
                       ...this.entryInfo,
                       HuoGuiCode: this.entryInfo.HuoGuiCode,
@@ -1019,7 +1044,7 @@ export default {
     },
 
     // 处理单个产品条码的方法
-    async processSingleProductBarcode(barcode) {
+    async processSingleProductBarcode(code) {
       try {
         // 添加加载状态
         const loading = this.$loading({
@@ -1028,13 +1053,34 @@ export default {
           spinner: "el-icon-loading",
           background: "rgba(0, 0, 0, 0.7)",
         });
-        
+
         try {
+          //是否为升级条码
+          const preProductionResponse = await getData("preProductionBarcode", {
+            query: {
+              transformedPrintBarcode: code.trim(),
+            },
+            select: {
+              transformedPrintBarcode: 1,
+              printBarcode: 1,
+            },
+            limit: 1,
+          });
+          let barcode = code.trim();
+          if (
+            preProductionResponse.code === 200 &&
+            preProductionResponse.data.length > 0
+          ) {
+            barcode = preProductionResponse.data[0].printBarcode;
+          }
           // 调用产品条码提交接口
           const response = await submitProductBarcode({
             productBarcode: barcode,
             userId: this.$store.state.user.id,
-            entryId: this.entryInfo && this.entryInfo._id ? this.entryInfo._id : undefined,
+            entryId:
+              this.entryInfo && this.entryInfo._id
+                ? this.entryInfo._id
+                : undefined,
             entryInfo: {
               ...this.entryInfo,
               HuoGuiCode: this.entryInfo.HuoGuiCode,
@@ -1115,7 +1161,7 @@ export default {
               setTimeout(() => {
                 this.$message.success("该出库单已完成出库");
                 // 通知父组件刷新数据
-                this.$emit('refresh');
+                this.$emit("refresh");
               }, 1000);
               return;
             }
@@ -1123,7 +1169,7 @@ export default {
 
           this.isProductScanning = false;
           loading.close();
-          
+
           // 清空输入框
           this.productScanForm.barcode = "";
           this.$nextTick(() => {
@@ -1150,8 +1196,6 @@ export default {
         });
       }
     },
-
-
 
     async handleComplete() {
       try {
@@ -1187,12 +1231,12 @@ export default {
       this.scanForm.barcode = "";
       this.productScanForm.barcode = "";
       this.scanRecords = [];
-      
+
       // 重置扫码状态
       this.isScanning = false;
       this.isProductScanning = false;
       this.isBoxProcessing = false;
-      
+
       if (this.$refs.scanForm) {
         this.$refs.scanForm.resetFields();
       }
@@ -1280,19 +1324,26 @@ export default {
       let messages = [];
 
       if (this.entryInfo.currentWorkOrderNo) {
-        messages.push(`当前出库单限制工单：${this.entryInfo.currentWorkOrderNo}`);
+        messages.push(
+          `当前出库单限制工单：${this.entryInfo.currentWorkOrderNo}`
+        );
       }
 
       if (this.entryInfo.whitelistLocked) {
         messages.push("白名单已锁定，无法修改");
       }
 
-      if (this.entryInfo.workOrderWhitelist && this.entryInfo.workOrderWhitelist.length > 0) {
-        const workOrderNos = this.entryInfo.workOrderWhitelist.map(item => item.workOrderNo).join(', ');
+      if (
+        this.entryInfo.workOrderWhitelist &&
+        this.entryInfo.workOrderWhitelist.length > 0
+      ) {
+        const workOrderNos = this.entryInfo.workOrderWhitelist
+          .map((item) => item.workOrderNo)
+          .join(", ");
         messages.push(`白名单工单：${workOrderNos}`);
       }
 
-      return messages.join(' | ');
+      return messages.join(" | ");
     },
 
     /**
@@ -1302,32 +1353,35 @@ export default {
      */
     handleScanError(message, code) {
       // 根据错误类型显示不同的提示
-      if (message.includes('添可订单限制') || message.includes('白名单')) {
+      if (message.includes("添可订单限制") || message.includes("白名单")) {
         this.$message({
-          type: 'warning',
+          type: "warning",
           message: message,
           duration: 5000,
-          showClose: true
+          showClose: true,
         });
-      } else if (message.includes('工单一致性') || message.includes('工单限制')) {
+      } else if (
+        message.includes("工单一致性") ||
+        message.includes("工单限制")
+      ) {
         this.$message({
-          type: 'error',
+          type: "error",
           message: message,
           duration: 6000,
-          showClose: true
+          showClose: true,
         });
-      } else if (message.includes('已锁定')) {
+      } else if (message.includes("已锁定")) {
         this.$message({
-          type: 'info',
+          type: "info",
           message: message,
           duration: 4000,
-          showClose: true
+          showClose: true,
         });
       } else {
         this.$message({
-          type: 'error',
+          type: "error",
           message: message,
-          duration: 3000
+          duration: 3000,
         });
       }
     },
@@ -1338,17 +1392,17 @@ export default {
      * @param {String} mode - 操作模式
      */
     showSuccessMessage(message, mode) {
-      if (mode === 'init') {
+      if (mode === "init") {
         this.$message({
-          type: 'success',
-          message: '出库单初始化成功',
-          duration: 2000
+          type: "success",
+          message: "出库单初始化成功",
+          duration: 2000,
         });
       } else {
         this.$message({
-          type: 'success',
-          message: message || '操作成功',
-          duration: 2000
+          type: "success",
+          message: message || "操作成功",
+          duration: 2000,
         });
       }
     },

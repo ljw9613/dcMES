@@ -13,6 +13,7 @@
 <script>
 import userActivityMonitor from '@/utils/userActivity'
 import '@/utils/productionActivityTest'
+import { getToken, getid } from '@/utils/auth'
 
 export default {
   name: 'App',
@@ -20,11 +21,20 @@ export default {
   created () {
     // 在页面加载时读取sessionStorage
     console.log(this.$store.state.user.token)
-    if (sessionStorage.getItem('store')&&this.$store.state.user.token) {
+    if (sessionStorage.getItem('store') && this.$store.state.user.token) {
       console.log("页面重新刷新")
       console.log(this.$store.state)
       console.log(this.$store.getters)
       this.$store.replaceState(Object.assign({}, this.$store.state, JSON.parse(sessionStorage.getItem('store'))))
+      // 关键：以 Cookie 中的 token 为准，避免 sessionStorage 里缓存的旧 token 覆盖新登录的 token
+      const cookieToken = getToken()
+      const cookieId = getid()
+      if (cookieToken) {
+        this.$store.commit('user/SET_TOKEN', cookieToken)
+      }
+      if (cookieId) {
+        this.$store.commit('user/SET_ID', cookieId)
+      }
       
       // 如果用户已登录，检查活动超时并启动监听
       if (this.$store.getters.token) {

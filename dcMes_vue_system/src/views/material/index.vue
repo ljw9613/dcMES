@@ -18,27 +18,45 @@
             <el-form-item label="物料编码">
               <el-input
                 v-model="searchForm.FNumber"
-                placeholder="请输入物料编码"
+                :placeholder="fNumberSearchMode === 'exact' ? '请输入完整物料编码（精确）' : '请输入物料编码（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fNumberSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFNumberSearchMode"
+                  :title="fNumberSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fNumberSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="物料名称">
               <el-input
                 v-model="searchForm.FName"
-                placeholder="请输入物料名称"
+                :placeholder="fNameSearchMode === 'exact' ? '请输入完整物料名称（精确）' : '请输入物料名称（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fNameSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFNameSearchMode"
+                  :title="fNameSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fNameSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="规格型号">
               <el-input
                 v-model="searchForm.FSpecification"
-                placeholder="请输入规格型号"
+                :placeholder="fSpecificationSearchMode === 'exact' ? '请输入完整规格型号（精确）' : '请输入规格型号（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fSpecificationSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFSpecificationSearchMode"
+                  :title="fSpecificationSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fSpecificationSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -65,27 +83,45 @@
             <el-form-item label="旧物料编码">
               <el-input
                 v-model="searchForm.FOldNumber"
-                placeholder="请输入旧物料编码"
+                :placeholder="fOldNumberSearchMode === 'exact' ? '请输入完整旧物料编码（精确）' : '请输入旧物料编码（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fOldNumberSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFOldNumberSearchMode"
+                  :title="fOldNumberSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fOldNumberSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="基本单位">
               <el-input
                 v-model="searchForm.FBaseUnitId_FName"
-                placeholder="请输入基本单位"
+                :placeholder="fBaseUnitSearchMode === 'exact' ? '请输入完整基本单位（精确）' : '请输入基本单位（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fBaseUnitSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFBaseUnitSearchMode"
+                  :title="fBaseUnitSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fBaseUnitSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="仓库">
               <el-input
                 v-model="searchForm.FStockId_FName"
-                placeholder="请输入仓库"
+                :placeholder="fStockIdSearchMode === 'exact' ? '请输入完整仓库（精确）' : '请输入仓库（模糊）'"
                 clearable
-              ></el-input>
+              >
+                <el-button slot="prepend" :type="fStockIdSearchMode === 'exact' ? 'primary' : ''"
+                  @click="toggleFStockIdSearchMode"
+                  :title="fStockIdSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  {{ fStockIdSearchMode === 'exact' ? '精确' : '模糊' }}
+                </el-button>
+              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -660,12 +696,19 @@ export default {
         FForbidStatus: "",
         FOldNumber: "",
         FBaseUnitId_FNumber: "",
+        FBaseUnitId_FName: "",
         FStockId_FName: "",
         F_TFQJ_CheckBox: "",
         FNameEn: "",
         FCreateOrgId: "",
         FUseOrgId_FName: "",
       },
+      fNumberSearchMode: "exact",
+      fNameSearchMode: "exact",
+      fSpecificationSearchMode: "exact",
+      fOldNumberSearchMode: "exact",
+      fBaseUnitSearchMode: "exact",
+      fStockIdSearchMode: "exact",
       tableList: [],
       total: 0,
       currentPage: 1,
@@ -783,36 +826,64 @@ export default {
 
       // 遍历 searchForm 中的所有字段
       Object.entries(this.searchForm).forEach(([key, value]) => {
-        if (value) {
-          // 只处理有值的字段
+        const v = typeof value === "string" ? value.trim() : value;
+        if (v) {
           switch (key) {
-            // 使用模糊查询的字段
             case "FNumber":
+              if (this.fNumberSearchMode === "exact") {
+                req.query.$and.push({ [key]: v });
+              } else {
+                if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+                req.query.$and.push({ [key]: { $regex: v, $options: "i" } });
+              }
+              break;
             case "FName":
-            case "FOldNumber":
-            case "FNameEn":
-              req.query.$and.push({ [key]: { $regex: value, $options: "i" } });
+              if (this.fNameSearchMode === "exact") {
+                req.query.$and.push({ [key]: v });
+              } else {
+                if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+                req.query.$and.push({ [key]: { $regex: v, $options: "i" } });
+              }
               break;
-
-            // 特殊处理规格型号，使其可以处理包含空格的查询
             case "FSpecification":
-              // 移除正则表达式特殊字符，确保查询安全
-              const sanitizedValue = value.replace(
-                /[.*+?^${}()|[\]\\]/g,
-                "\\$&"
-              );
-              // 将字符串中的空格替换为 \s*，允许任意空白字符匹配
-              const regexPattern = sanitizedValue.replace(/\s+/g, "\\s+");
-              req.query.$and.push({
-                [key]: { $regex: regexPattern, $options: "i" },
-              });
+              if (this.fSpecificationSearchMode === "exact") {
+                req.query.$and.push({ [key]: v });
+              } else {
+                if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+                const sanitizedValue = v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const regexPattern = sanitizedValue.replace(/\s+/g, "\\s+");
+                req.query.$and.push({ [key]: { $regex: regexPattern, $options: "i" } });
+              }
               break;
-
-            // 精确匹配的字段
+            case "FOldNumber":
+              if (this.fOldNumberSearchMode === "exact") {
+                req.query.$and.push({ [key]: v });
+              } else {
+                if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+                req.query.$and.push({ [key]: { $regex: v, $options: "i" } });
+              }
+              break;
+            case "FNameEn":
+              req.query.$and.push({ [key]: { $regex: v, $options: "i" } });
+              break;
+            case "FBaseUnitId_FName":
+              if (this.fBaseUnitSearchMode === "exact") {
+                req.query.$and.push({ [key]: v });
+              } else {
+                if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+                req.query.$and.push({ [key]: { $regex: v, $options: "i" } });
+              }
+              break;
+            case "FStockId_FName":
+              if (this.fStockIdSearchMode === "exact") {
+                req.query.$and.push({ [key]: v });
+              } else {
+                if (v.length < 3) this.$message.warning({ message: "模糊查询建议输入至少3个字符", duration: 4000 });
+                req.query.$and.push({ [key]: { $regex: v, $options: "i" } });
+              }
+              break;
             case "FDocumentStatus":
             case "FForbidStatus":
-            case "FBaseUnitId_FName":
-            case "FStockId_FName":
             case "F_TFQJ_CheckBox":
             case "FBOMCATEGORY":
             case "FBOMUSE":
@@ -831,6 +902,31 @@ export default {
       return req;
     },
 
+    toggleFNumberSearchMode() {
+      this.fNumberSearchMode = this.fNumberSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fNumberSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleFNameSearchMode() {
+      this.fNameSearchMode = this.fNameSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fNameSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleFSpecificationSearchMode() {
+      this.fSpecificationSearchMode = this.fSpecificationSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fSpecificationSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleFOldNumberSearchMode() {
+      this.fOldNumberSearchMode = this.fOldNumberSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fOldNumberSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleFBaseUnitSearchMode() {
+      this.fBaseUnitSearchMode = this.fBaseUnitSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fBaseUnitSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+    toggleFStockIdSearchMode() {
+      this.fStockIdSearchMode = this.fStockIdSearchMode === "exact" ? "fuzzy" : "exact";
+      this.$message.info({ message: this.fStockIdSearchMode === "exact" ? "已切换到精确查询（快速）" : "已切换到模糊查询（较慢）", duration: 2000 });
+    },
+
     // 重置表单
     resetForm() {
       // 重置表单字段
@@ -845,6 +941,7 @@ export default {
         FForbidStatus: "", // 禁用状态
         FOldNumber: "", // 旧物料编码
         FBaseUnitId_FNumber: "", // 基本单位
+        FBaseUnitId_FName: "", // 基本单位名称
         FStockId_FName: "", // 仓库
         F_TFQJ_CheckBox: "", // 是否长新物料
         FNameEn: "", // 英文名称
@@ -855,6 +952,13 @@ export default {
         FBOMUSE: "", // BOM用途
         FErpClsID: "", // 物料属性
       };
+
+      this.fNumberSearchMode = "exact";
+      this.fNameSearchMode = "exact";
+      this.fSpecificationSearchMode = "exact";
+      this.fOldNumberSearchMode = "exact";
+      this.fBaseUnitSearchMode = "exact";
+      this.fStockIdSearchMode = "exact";
 
       // 重置高级搜索的显示状态
       this.showAdvanced = false;

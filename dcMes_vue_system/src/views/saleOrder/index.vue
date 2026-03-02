@@ -17,7 +17,14 @@
                 <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="订单编号">
-                            <el-input v-model="searchForm.FBillNo" placeholder="请输入订单编号" clearable></el-input>
+                            <el-input v-model="searchForm.FBillNo"
+                                :placeholder="fBillNoSearchMode === 'exact' ? '请输入完整订单编号（精确查询）' : '请输入订单编号（模糊查询）'" clearable>
+                                <el-button slot="prepend" :type="fBillNoSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFBillNoSearchMode"
+                                    :title="fBillNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fBillNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
 
@@ -391,6 +398,7 @@ export default {
             pageSize: 10,
             listLoading: true,
             showAdvanced: false,
+            fBillNoSearchMode: 'exact', // 'exact' 精确查询, 'fuzzy' 模糊查询
             dialogFormVisible: false,
             dialogStatus: '',
             selection: [],
@@ -599,7 +607,18 @@ export default {
                     switch (key) {
                         case 'FBillNo':
                             if (value.trim()) {
-                                req.query.$and.push({ [key]: { $regex: value.trim(), $options: 'i' } });
+                                const searchValue = value.trim();
+                                if (this.fBillNoSearchMode === 'exact') {
+                                    req.query.$and.push({ [key]: searchValue });
+                                } else {
+                                    if (searchValue.length < 3) {
+                                        this.$message.warning({
+                                            message: '模糊查询建议输入至少3个字符，否则查询范围过大可能影响性能',
+                                            duration: 4000
+                                        });
+                                    }
+                                    req.query.$and.push({ [key]: { $regex: searchValue, $options: 'i' } });
+                                }
                             }
                             break;
                         case 'FCustId_FName':
@@ -733,6 +752,15 @@ export default {
             return propertyMap[status] || status;
         },
 
+        // 切换订单编号查询模式
+        toggleFBillNoSearchMode() {
+            this.fBillNoSearchMode = this.fBillNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            const tipText = this.fBillNoSearchMode === 'exact'
+                ? '已切换到精确查询模式（快速，推荐）'
+                : '已切换到模糊查询模式（较慢，但更灵活）';
+            this.$message.info({ message: tipText, duration: 2000 });
+        },
+
         // 重置表单
         resetForm() {
             this.$refs.searchForm.resetFields();
@@ -751,6 +779,7 @@ export default {
                 F_TFQJ_khpo: '',
                 F_TFQJ_Text1: '',
             };
+            this.fBillNoSearchMode = 'exact';
             this.currentPage = 1;
             this.fetchData();
         },

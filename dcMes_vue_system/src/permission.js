@@ -69,12 +69,11 @@ router.beforeEach((to, from, next) => {
         store.dispatch('user/getInfo').then(() => {
           isRelogin.show = false
           
-          // 用户信息获取成功后，启动活动监听器
+          // 先检查页面加载时是否已过期，再启动活动监听（避免 start() 把过期状态重置）
           if (isActivityMonitorEnabled()) {
-            console.log('🔄 [权限路由] 用户信息获取成功，启动活动监听器')
-            userActivityMonitor.start()
-            // 检查页面加载时的活动状态
+            console.log('🔄 [权限路由] 用户信息获取成功，检查活动状态并启动监听器')
             userActivityMonitor.checkActivityOnLoad()
+            userActivityMonitor.start()
           }
           
           store.dispatch('GenerateRoutes').then(async accessRoutes => {
@@ -108,10 +107,9 @@ router.beforeEach((to, from, next) => {
       } else { // 动态路由已加载
         // 如果动态路由已加载但活动监听器未启动，则启动它
         if (isActivityMonitorEnabled() && !userActivityMonitor.isActive) {
-          console.log('🔄 [权限路由] 动态路由已存在，启动活动监听器')
-          userActivityMonitor.start()
-          // 检查页面加载时的活动状态
+          console.log('🔄 [权限路由] 动态路由已存在，检查活动状态并启动监听器')
           userActivityMonitor.checkActivityOnLoad()
+          userActivityMonitor.start()
         }
         
         // 检查目标路由是否存在于已加载的路由中

@@ -13,12 +13,26 @@
                 <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="单据编号">
-                            <el-input v-model="searchForm.FBillNo" placeholder="请输入单据编号" clearable></el-input>
+                            <el-input v-model="searchForm.FBillNo"
+                                :placeholder="fBillNoSearchMode === 'exact' ? '请输入完整单据编号（精确）' : '请输入单据编号（模糊）'" clearable>
+                                <el-button slot="prepend" :type="fBillNoSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFBillNoSearchMode"
+                                    :title="fBillNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fBillNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="销售单号">
-                            <el-input v-model="searchForm.FSaleOrderNo" placeholder="请输入销售单号" clearable></el-input>
+                            <el-input v-model="searchForm.FSaleOrderNo"
+                                :placeholder="fSaleOrderNoSearchMode === 'exact' ? '请输入完整销售单号（精确）' : '请输入销售单号（模糊）'" clearable>
+                                <el-button slot="prepend" :type="fSaleOrderNoSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFSaleOrderNoSearchMode"
+                                    :title="fSaleOrderNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fSaleOrderNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -33,7 +47,14 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="物料编码">
-                            <el-input v-model="searchForm.FMaterialId_FNumber" placeholder="请输入物料编码" clearable></el-input>
+                            <el-input v-model="searchForm.FMaterialId_FNumber"
+                                :placeholder="fMaterialCodeSearchMode === 'exact' ? '请输入完整物料编码（精确）' : '请输入物料编码（模糊）'" clearable>
+                                <el-button slot="prepend" :type="fMaterialCodeSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFMaterialCodeSearchMode"
+                                    :title="fMaterialCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fMaterialCodeSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -41,12 +62,26 @@
                 <el-row :gutter="20">
                     <el-col :span="6">
                         <el-form-item label="物料名称">
-                            <el-input v-model="searchForm.FMaterialName" placeholder="请输入物料名称" clearable></el-input>
+                            <el-input v-model="searchForm.FMaterialName"
+                                :placeholder="fMaterialNameSearchMode === 'exact' ? '请输入完整物料名称（精确）' : '请输入物料名称（模糊）'" clearable>
+                                <el-button slot="prepend" :type="fMaterialNameSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFMaterialNameSearchMode"
+                                    :title="fMaterialNameSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fMaterialNameSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label="生产车间">
-                            <el-input v-model="searchForm.FWorkShopID_FName" placeholder="请输入生产车间" clearable></el-input>
+                            <el-input v-model="searchForm.FWorkShopID_FName"
+                                :placeholder="fWorkShopSearchMode === 'exact' ? '请输入完整生产车间（精确）' : '请输入生产车间（模糊）'" clearable>
+                                <el-button slot="prepend" :type="fWorkShopSearchMode === 'exact' ? 'primary' : ''"
+                                    @click="toggleFWorkShopSearchMode"
+                                    :title="fWorkShopSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                    {{ fWorkShopSearchMode === 'exact' ? '精确' : '模糊' }}
+                                </el-button>
+                            </el-input>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
@@ -248,6 +283,11 @@ export default {
                 FProductType: '',
                 dateRange: []
             },
+            fBillNoSearchMode: 'exact',
+            fSaleOrderNoSearchMode: 'exact',
+            fMaterialCodeSearchMode: 'exact',
+            fMaterialNameSearchMode: 'exact',
+            fWorkShopSearchMode: 'exact',
             tableList: [],
             total: 0,
             currentPage: 1,
@@ -312,23 +352,53 @@ export default {
             };
 
             // 基础字段查询
-            if (this.searchForm.FBillNo) {
-                req.query.$and.push({ FBillNo: { $regex: this.searchForm.FBillNo, $options: 'i' } });
+            if (this.searchForm.FBillNo && this.searchForm.FBillNo.trim()) {
+                const v = this.searchForm.FBillNo.trim();
+                if (this.fBillNoSearchMode === 'exact') {
+                    req.query.$and.push({ FBillNo: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FBillNo: { $regex: v, $options: 'i' } });
+                }
             }
-            if (this.searchForm.FSaleOrderNo) {
-                req.query.$and.push({ FSaleOrderNo: { $regex: this.searchForm.FSaleOrderNo, $options: 'i' } });
+            if (this.searchForm.FSaleOrderNo && this.searchForm.FSaleOrderNo.trim()) {
+                const v = this.searchForm.FSaleOrderNo.trim();
+                if (this.fSaleOrderNoSearchMode === 'exact') {
+                    req.query.$and.push({ FSaleOrderNo: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FSaleOrderNo: { $regex: v, $options: 'i' } });
+                }
             }
             if (this.searchForm.FDocumentStatus) {
                 req.query.$and.push({ FDocumentStatus: this.searchForm.FDocumentStatus });
             }
-            if (this.searchForm.FMaterialId_FNumber) {
-                req.query.$and.push({ FMaterialId_FNumber: { $regex: this.searchForm.FMaterialId_FNumber, $options: 'i' } });
+            if (this.searchForm.FMaterialId_FNumber && this.searchForm.FMaterialId_FNumber.trim()) {
+                const v = this.searchForm.FMaterialId_FNumber.trim();
+                if (this.fMaterialCodeSearchMode === 'exact') {
+                    req.query.$and.push({ FMaterialId_FNumber: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FMaterialId_FNumber: { $regex: v, $options: 'i' } });
+                }
             }
-            if (this.searchForm.FMaterialName) {
-                req.query.$and.push({ FMaterialName: { $regex: this.searchForm.FMaterialName, $options: 'i' } });
+            if (this.searchForm.FMaterialName && this.searchForm.FMaterialName.trim()) {
+                const v = this.searchForm.FMaterialName.trim();
+                if (this.fMaterialNameSearchMode === 'exact') {
+                    req.query.$and.push({ FMaterialName: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FMaterialName: { $regex: v, $options: 'i' } });
+                }
             }
-            if (this.searchForm.FWorkShopID_FName) {
-                req.query.$and.push({ FWorkShopID_FName: { $regex: this.searchForm.FWorkShopID_FName, $options: 'i' } });
+            if (this.searchForm.FWorkShopID_FName && this.searchForm.FWorkShopID_FName.trim()) {
+                const v = this.searchForm.FWorkShopID_FName.trim();
+                if (this.fWorkShopSearchMode === 'exact') {
+                    req.query.$and.push({ FWorkShopID_FName: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FWorkShopID_FName: { $regex: v, $options: 'i' } });
+                }
             }
             if (this.searchForm.FProductType) {
                 req.query.$and.push({ FProductType: this.searchForm.FProductType });
@@ -361,6 +431,27 @@ export default {
             return req;
         },
 
+        toggleFBillNoSearchMode() {
+            this.fBillNoSearchMode = this.fBillNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fBillNoSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        toggleFSaleOrderNoSearchMode() {
+            this.fSaleOrderNoSearchMode = this.fSaleOrderNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fSaleOrderNoSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        toggleFMaterialCodeSearchMode() {
+            this.fMaterialCodeSearchMode = this.fMaterialCodeSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fMaterialCodeSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        toggleFMaterialNameSearchMode() {
+            this.fMaterialNameSearchMode = this.fMaterialNameSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fMaterialNameSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        toggleFWorkShopSearchMode() {
+            this.fWorkShopSearchMode = this.fWorkShopSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fWorkShopSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+
         // 重置表单
         resetForm() {
             this.$refs.searchForm.resetFields();
@@ -374,6 +465,11 @@ export default {
                 FProductType: '',
                 dateRange: []
             };
+            this.fBillNoSearchMode = 'exact';
+            this.fSaleOrderNoSearchMode = 'exact';
+            this.fMaterialCodeSearchMode = 'exact';
+            this.fMaterialNameSearchMode = 'exact';
+            this.fWorkShopSearchMode = 'exact';
             this.currentPage = 1;
             this.fetchData();
         },

@@ -4,15 +4,36 @@
         <div class="screen1">
             <el-form :model="searchForm" ref="searchForm" class="screen_content_first">
                 <el-form-item label="订单编号">
-                    <el-input v-model="searchForm.FBillNo" placeholder="请输入订单编号" clearable></el-input>
+                    <el-input v-model="searchForm.FBillNo"
+                        :placeholder="fBillNoSearchMode === 'exact' ? '请输入完整订单编号（精确）' : '请输入订单编号（模糊）'" clearable>
+                        <el-button slot="prepend" :type="fBillNoSearchMode === 'exact' ? 'primary' : ''"
+                            @click="toggleFBillNoSearchMode"
+                            :title="fBillNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                            {{ fBillNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                        </el-button>
+                    </el-input>
                 </el-form-item>
 
                 <el-form-item label="销售订单号">
-                    <el-input v-model="searchForm.DEMANDBILLNO" placeholder="请输入销售订单号" clearable></el-input>
+                    <el-input v-model="searchForm.DEMANDBILLNO"
+                        :placeholder="demandBillNoSearchMode === 'exact' ? '请输入完整销售订单号（精确）' : '请输入销售订单号（模糊）'" clearable>
+                        <el-button slot="prepend" :type="demandBillNoSearchMode === 'exact' ? 'primary' : ''"
+                            @click="toggleDemandBillNoSearchMode"
+                            :title="demandBillNoSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                            {{ demandBillNoSearchMode === 'exact' ? '精确' : '模糊' }}
+                        </el-button>
+                    </el-input>
                 </el-form-item>
 
                 <el-form-item label="供应商编号">
-                    <el-input v-model="searchForm.FSupplierId.Number" placeholder="请输入供应商编号" clearable></el-input>
+                    <el-input v-model="searchForm.FSupplierId.Number"
+                        :placeholder="supplierSearchMode === 'exact' ? '请输入完整供应商编号（精确）' : '请输入供应商编号（模糊）'" clearable>
+                        <el-button slot="prepend" :type="supplierSearchMode === 'exact' ? 'primary' : ''"
+                            @click="toggleSupplierSearchMode"
+                            :title="supplierSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                            {{ supplierSearchMode === 'exact' ? '精确' : '模糊' }}
+                        </el-button>
+                    </el-input>
                 </el-form-item>
 
                 <el-form-item label="单据状态">
@@ -34,8 +55,14 @@
                 <!-- 高级搜索部分 -->
                 <div v-if="showAdvanced" class="screen_content_second">
                     <el-form-item label="采购组织">
-                        <el-input v-model="searchForm.FPurchaseOrgId.Number" placeholder="请输入采购组织编号"
-                            clearable></el-input>
+                        <el-input v-model="searchForm.FPurchaseOrgId.Number"
+                            :placeholder="purchaseOrgSearchMode === 'exact' ? '请输入完整采购组织编号（精确）' : '请输入采购组织编号（模糊）'" clearable>
+                            <el-button slot="prepend" :type="purchaseOrgSearchMode === 'exact' ? 'primary' : ''"
+                                @click="togglePurchaseOrgSearchMode"
+                                :title="purchaseOrgSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                                {{ purchaseOrgSearchMode === 'exact' ? '精确' : '模糊' }}
+                            </el-button>
+                        </el-input>
                     </el-form-item>
 
                     <el-form-item label="采购员">
@@ -320,6 +347,10 @@ export default {
                 FPurchaserId: '',
                 dateRange: [],
             },
+            fBillNoSearchMode: 'exact',
+            demandBillNoSearchMode: 'exact',
+            supplierSearchMode: 'exact',
+            purchaseOrgSearchMode: 'exact',
             tableList: [],
             total: 0,
             currentPage: 1,
@@ -531,25 +562,46 @@ export default {
                 }
             };
 
-            if (this.searchForm.FBillNo) {
-                req.query.$and.push({ FBillNo: { $regex: this.searchForm.FBillNo.trim(), $options: 'i' } });
+            if (this.searchForm.FBillNo && this.searchForm.FBillNo.trim()) {
+                const v = this.searchForm.FBillNo.trim();
+                if (this.fBillNoSearchMode === 'exact') {
+                    req.query.$and.push({ FBillNo: v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ FBillNo: { $regex: v, $options: 'i' } });
+                }
             }
 
-            if (this.searchForm.DEMANDBILLNO) {
-                req.query.$and.push({
-                    'FPOOrderEntry.DEMANDBILLNO': {
-                        $regex: this.searchForm.DEMANDBILLNO.trim(),
-                        $options: 'i'
-                    }
-                });
+            if (this.searchForm.DEMANDBILLNO && this.searchForm.DEMANDBILLNO.trim()) {
+                const v = this.searchForm.DEMANDBILLNO.trim();
+                if (this.demandBillNoSearchMode === 'exact') {
+                    req.query.$and.push({ 'FPOOrderEntry.DEMANDBILLNO': v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({
+                        'FPOOrderEntry.DEMANDBILLNO': { $regex: v, $options: 'i' }
+                    });
+                }
             }
 
-            if (this.searchForm.FSupplierId.Number) {
-                req.query.$and.push({ 'FSupplierId.Number': { $regex: this.searchForm.FSupplierId.Number.trim(), $options: 'i' } });
+            if (this.searchForm.FSupplierId.Number && this.searchForm.FSupplierId.Number.trim()) {
+                const v = this.searchForm.FSupplierId.Number.trim();
+                if (this.supplierSearchMode === 'exact') {
+                    req.query.$and.push({ 'FSupplierId.Number': v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ 'FSupplierId.Number': { $regex: v, $options: 'i' } });
+                }
             }
 
-            if (this.searchForm.FPurchaseOrgId.Number) {
-                req.query.$and.push({ 'FPurchaseOrgId.Number': { $regex: this.searchForm.FPurchaseOrgId.Number.trim(), $options: 'i' } });
+            if (this.searchForm.FPurchaseOrgId.Number && this.searchForm.FPurchaseOrgId.Number.trim()) {
+                const v = this.searchForm.FPurchaseOrgId.Number.trim();
+                if (this.purchaseOrgSearchMode === 'exact') {
+                    req.query.$and.push({ 'FPurchaseOrgId.Number': v });
+                } else {
+                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
+                    req.query.$and.push({ 'FPurchaseOrgId.Number': { $regex: v, $options: 'i' } });
+                }
             }
 
             if (this.searchForm.FDocumentStatus) {
@@ -629,6 +681,23 @@ export default {
             return propertyMap[status] || status;
         },
 
+        toggleFBillNoSearchMode() {
+            this.fBillNoSearchMode = this.fBillNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.fBillNoSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        toggleDemandBillNoSearchMode() {
+            this.demandBillNoSearchMode = this.demandBillNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.demandBillNoSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        toggleSupplierSearchMode() {
+            this.supplierSearchMode = this.supplierSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.supplierSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+        togglePurchaseOrgSearchMode() {
+            this.purchaseOrgSearchMode = this.purchaseOrgSearchMode === 'exact' ? 'fuzzy' : 'exact';
+            this.$message.info({ message: this.purchaseOrgSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
+        },
+
         // 重置表单
         resetForm() {
             this.$refs.searchForm.resetFields();
@@ -646,6 +715,10 @@ export default {
                 FPurchaserId: '',
                 dateRange: [],
             };
+            this.fBillNoSearchMode = 'exact';
+            this.demandBillNoSearchMode = 'exact';
+            this.supplierSearchMode = 'exact';
+            this.purchaseOrgSearchMode = 'exact';
             this.currentPage = 1;
             this.fetchData();
         },

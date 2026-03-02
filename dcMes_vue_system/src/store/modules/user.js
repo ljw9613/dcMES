@@ -93,6 +93,8 @@ const actions = {
               commit("SET_SERVE", "user.serve");
               setToken(token);
               setid(user._id);
+              try { sessionStorage.removeItem('store'); } catch (e) { /* 清除旧会话缓存，避免刷新后恢复旧 token */ }
+              try { localStorage.removeItem('activity_session_expired'); } catch (e) { /* 清除会话过期标记，与 userActivity 的 SESSION_EXPIRED_KEY 一致 */ }
               
               // 登录成功后启动用户活动监听
               userActivityMonitor.start();
@@ -122,6 +124,8 @@ const actions = {
               commit("SET_SERVE", "user.serve");
               setToken(token);
               setid(user._id);
+              try { sessionStorage.removeItem('store'); } catch (e) { /* 清除旧会话缓存，避免刷新后恢复旧 token */ }
+              try { localStorage.removeItem('activity_session_expired'); } catch (e) { /* 清除会话过期标记，与 userActivity 的 SESSION_EXPIRED_KEY 一致 */ }
               
               // 登录成功后启动用户活动监听
               userActivityMonitor.start();
@@ -208,6 +212,7 @@ const actions = {
           
           removeToken(); // must remove  token  first
           removeid(); // must remove  token  first
+          try { sessionStorage.removeItem('store'); } catch (e) { /* 与 resetToken 一致，避免刷新恢复旧会话 */ }
           resetRouter();
           store.commit("SET_ROUTES", []);
           store.commit("SET_SIDEBAR_ROUTERS", []);
@@ -238,6 +243,7 @@ const actions = {
       
       removeToken(); // must remove  token  first
       removeid();
+      try { sessionStorage.removeItem('store'); } catch (e) { /* 避免下次恢复旧 token */ }
       
       // 清除所有标签页视图数据
       store.dispatch("tagsView/delAllViews");
