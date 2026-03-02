@@ -23,7 +23,7 @@
                 :placeholder="materialCodeSearchMode === 'exact' ? '请输入完整物料编码（精确查询）' : '请输入物料编码（模糊查询）'" clearable>
                 <el-button slot="prepend" :type="materialCodeSearchMode === 'exact' ? 'primary' : ''"
                   @click="toggleMaterialCodeSearchMode"
-                  :title="materialCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
+                  :title="materialCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（比较慢）'" style="min-width: 60px;">
                   {{ materialCodeSearchMode === 'exact' ? '精确' : '模糊' }}
                 </el-button>
               </el-input>
