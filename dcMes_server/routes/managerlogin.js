@@ -107,8 +107,17 @@ router.post('/api/v1/user/login', async (req, res, next) => {
                         expiresIn: "30 days"
                     }
                 );
-                
-                console.log('Generated token:', token.substring(0, 20) + '...');
+
+                // 【调试】登录时打印新 token 的过期时间，便于与后续请求对比
+                const decodedNew = jwt.decode(token);
+                const serverNow = Math.floor(Date.now() / 1000);
+                if (decodedNew && decodedNew.exp) {
+                    console.log('[Token调试] 登录-下发token', 'userName:', userData.userName, '| exp(秒):', decodedNew.exp, '| 过期时间:', new Date(decodedNew.exp * 1000).toISOString());
+                    console.log('[userAuth] 登录成功生成Token: 前20字符=', token.substring(0, 20) + '..., exp=', decodedNew.exp, '(', new Date(decodedNew.exp * 1000).toISOString(), '), 服务器当前=', serverNow, '(', new Date().toISOString(), ')');
+                } else {
+                    console.log('[Token调试] 登录-下发token', 'userName:', userData.userName, '| 无exp');
+                    console.log('[userAuth] 登录成功生成Token:', token.substring(0, 20) + '...');
+                }
                 
                 res.json({
                     code: 200,

@@ -5,7 +5,8 @@ import {
   removeid,
   removeToken,
   setid,
-  setToken
+  setToken,
+  clearAllAuthAndCache
 } from "@/utils/auth";
 import { resetRouter } from "@/router";
 import { jsencrypt } from "@/utils/jsencrypt";
@@ -37,11 +38,11 @@ const state = getDefaultState();
 const mutations = {
   RESET_STATE: state => {
     const newState = getDefaultState();
-    console.log('重置用户状态 - 新Token:', newState.token ? `${newState.token.substring(0, 20)}...` : 'null');
+    console.log('[Token调试] Store RESET_STATE - 新Token:', newState.token ? `${newState.token.substring(0, 20)}...` : 'null');
     Object.assign(state, newState);
   },
   SET_TOKEN: (state, token) => {
-    console.log('设置Token到State:', token ? `${token.substring(0, 20)}...` : 'null');
+    console.log('[Token调试] Store SET_TOKEN:', token ? `${token.substring(0, 20)}...` : 'null');
     state.token = token;
   },
   SET_ID: (state, id) => {
@@ -207,12 +208,8 @@ const actions = {
     return new Promise((resolve, reject) => {
       logout(state.token)
         .then(() => {
-          // 停止用户活动监听
           userActivityMonitor.stop();
-          
-          removeToken(); // must remove  token  first
-          removeid(); // must remove  token  first
-          try { sessionStorage.removeItem('store'); } catch (e) { /* 与 resetToken 一致，避免刷新恢复旧会话 */ }
+          clearAllAuthAndCache();
           resetRouter();
           store.commit("SET_ROUTES", []);
           store.commit("SET_SIDEBAR_ROUTERS", []);
@@ -227,6 +224,14 @@ const actions = {
           resolve();
         })
         .catch(error => {
+          // 即使退出接口失败（如网络错误），也清空本地缓存并重置状态，避免多标签/缓存残留
+          userActivityMonitor.stop();
+          clearAllAuthAndCache();
+          resetRouter();
+          store.commit("SET_ROUTES", []);
+          store.commit("SET_SIDEBAR_ROUTERS", []);
+          store.dispatch("tagsView/delAllViews").catch(() => {});
+          commit("RESET_STATE");
           reject(error);
         });
     });
@@ -237,14 +242,8 @@ const actions = {
     return new Promise(resolve => {
       console.log('resetToken被调用')
       console.trace('resetToken调用堆栈:')
-      
-      // 停止用户活动监听
       userActivityMonitor.stop();
-      
-      removeToken(); // must remove  token  first
-      removeid();
-      try { sessionStorage.removeItem('store'); } catch (e) { /* 避免下次恢复旧 token */ }
-      
+      clearAllAuthAndCache();
       // 清除所有标签页视图数据
       store.dispatch("tagsView/delAllViews");
       console.log("resetToken: 清除所有标签页视图数据");

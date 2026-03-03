@@ -42,6 +42,9 @@ router.post('/api/v1/user/login', async (req, res, next) => {
                         expiresIn: "1 days"
                     }
                 );
+                const decoded = jwt.decode(token);
+                const expSec = decoded && decoded.exp ? decoded.exp : null;
+                console.log('[Token调试] 登录-下发token', 'userName:', user.userName, '| exp(秒):', expSec, '| 过期时间:', expSec ? new Date(expSec * 1000).toISOString() : '');
                 console.log(token)
                 res.json({
                     code: 200,
@@ -71,6 +74,9 @@ router.post('/api/v1/user/login', async (req, res, next) => {
 
 //管理后台获得登录信息
 router.post('/api/v1/user/info', async (reqs, res, next) => {
+    const authHeader = reqs.headers.authorization || '';
+    const hasToken = !!(authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader);
+    console.log('[Token调试] user/info 请求', 'body.id:', reqs.body && reqs.body.id, '| 有Authorization:', hasToken);
     console.log(reqs.body)
     var user = await user_login.findOne({
         _id: reqs.body.id

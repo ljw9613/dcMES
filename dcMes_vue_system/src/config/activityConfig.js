@@ -13,10 +13,10 @@ const activityConfig = {
   enabled: true,
   
   // 会话超时时间（毫秒）- 15分钟
-  sessionTimeout: 1 * 60 * 1000,
+  sessionTimeout: 15 * 60 * 1000,
   
   // 警告时间（毫秒）- 14分钟
-  warningTime: 0.5 * 60 * 1000,
+  warningTime: 14 * 60 * 1000,
 
   // 监听的事件类型
   monitorEvents: [

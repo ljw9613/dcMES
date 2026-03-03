@@ -18,6 +18,8 @@ import App from "./App";
 import store from "./store";
 import router from "./router";
 import i18n from "@/lang"; // 导入国际化配置
+import { clearAllAuthAndCache, AUTH_CLEARED_KEY } from "@/utils/auth";
+import userActivityMonitor from "@/utils/userActivity";
 import moment from "moment";
 import VideoPlayer from "vue-video-player";
 import "vue-video-player/src/custom-theme.css";
@@ -138,6 +140,20 @@ if (process.env.NODE_ENV === 'development') {
 Vue.prototype.$checkPermission = permission.checkPermission
 // 注册全局指令
 Vue.use(directives)
+
+// 多标签页同步：当某一标签页退出登录或会话过期清空缓存时，其它标签页也清空本地状态并跳转登录
+window.addEventListener("storage", (e) => {
+  if (e.key !== AUTH_CLEARED_KEY) return;
+  try {
+    userActivityMonitor.stop();
+    clearAllAuthAndCache({ notifyOtherTabs: false });
+    store.commit("user/RESET_STATE");
+    store.dispatch("tagsView/delAllViews").catch(() => {});
+    router.push("/login").catch(() => {});
+  } catch (err) {
+    console.error("[多标签同步] 处理 auth_cleared 时出错:", err);
+  }
+});
 
 new Vue({
   el: "#app",

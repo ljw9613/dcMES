@@ -60,6 +60,17 @@ const apiLogger = (serviceName) => {
 
     if (token && token.length > 0) {
       try {
+        // 【调试】不解密仅解码，查看 token 内的过期时间与当前服务器时间
+        const decodedOnly = jwt.decode(token);
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (decodedOnly && typeof decodedOnly.exp === 'number') {
+          const expDate = new Date(decodedOnly.exp * 1000);
+          const iatDate = decodedOnly.iat ? new Date(decodedOnly.iat * 1000) : null;
+          console.log(`[${serviceName}] Token调试: path=${req.method} ${req.path}, token前20字符=${token.substring(0, 20)}..., iat=${decodedOnly.iat}(${iatDate ? iatDate.toISOString() : 'N/A'}), exp=${decodedOnly.exp}(${expDate.toISOString()}), 服务器当前=${nowSec}(${new Date().toISOString()}), 是否已过期=${decodedOnly.exp < nowSec}`);
+        } else {
+          console.log(`[${serviceName}] Token调试: path=${req.method} ${req.path}, decode无exp/iat`, decodedOnly ? Object.keys(decodedOnly) : 'decode为null');
+        }
+
         // 如果前置中间件已经解析过用户信息（例如同一路由上重复挂载了 apiLogger），避免重复验签
         if (req.userId || req.userName || req.realName || req.roleId) {
           userId = req.userId ?? null;
@@ -81,7 +92,13 @@ const apiLogger = (serviceName) => {
         req.realName = realName;
         req.roleId = roleId;
       } catch (err) {
-        console.error(`[${serviceName}] Token验证失败:`, err.message);
+        // 【调试】验证失败时再次解码，确认请求里带的是哪个 token（过期时间等）
+        const decodedOnFail = jwt.decode(token);
+        const nowSec = Math.floor(Date.now() / 1000);
+        console.error(`[${serviceName}] Token验证失败:`, err.message, `path=${req.method} ${req.path}`);
+        if (decodedOnFail && typeof decodedOnFail.exp === 'number') {
+          console.error(`[${serviceName}] 失败时Token内容: exp=${decodedOnFail.exp}(${new Date(decodedOnFail.exp * 1000).toISOString()}), 服务器当前=${nowSec}(${new Date().toISOString()}), token前20字符=${token.substring(0, 20)}...`);
+        }
 
         // 如果不是登录或公开路由，则返回401错误
         if (!isLoginRoute && !isPublicRoute && !isDeviceRoute) {

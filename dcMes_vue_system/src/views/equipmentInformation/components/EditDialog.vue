@@ -594,6 +594,10 @@ export default {
             }
 
             const formData = { ...this.form };
+            // 产线非必填：空字符串会导致后端 ObjectId 校验失败，不传该字段
+            if (formData.lineId === "" || formData.lineId == null) {
+              delete formData.lineId;
+            }
             this.$emit("submit", formData);
             this.handleClose();
           } catch (error) {

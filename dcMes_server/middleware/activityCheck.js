@@ -38,6 +38,7 @@ const activityCheck = () => {
       : authHeader;
     
     if (!token) {
+      console.warn('[Token调试] 活动检查-401 缺少token', req.method, req.path);
       return res.status(401).json({
         code: 401,
         message: "缺少认证token",
@@ -49,7 +50,10 @@ const activityCheck = () => {
       // 验证并解析token
       const decoded = jwt.verify(token, config.secretOrPrivateKey);
       const now = Date.now();
-      
+      const expSec = decoded.exp;
+      const expMs = expSec ? expSec * 1000 : null;
+      const isExpired = expMs ? now > expMs : false;
+      console.log('[Token调试] 活动检查-验证通过', req.path, '| 用户:', decoded.userName || decoded._id, '| exp(秒):', expSec, '| 当前(秒):', Math.floor(now / 1000), '| 已过期:', isExpired);
       console.log(`活动检查 - 用户: ${decoded.userName}, 路径: ${req.path}`);
       
       // 检查token中是否包含活动时间信息
@@ -90,7 +94,9 @@ const activityCheck = () => {
       const newToken = jwt.sign(updatedPayload, config.secretOrPrivateKey, {
         expiresIn: "30 days"
       });
-      
+      const newDecoded = jwt.decode(newToken);
+      const newExp = newDecoded && newDecoded.exp ? newDecoded.exp : null;
+      console.log('[Token调试] 活动检查-下发X-New-Token', req.path, '| 新token exp(秒):', newExp, '| 过期时间:', newExp ? new Date(newExp * 1000).toISOString() : '');
       // 在响应头中返回新token
       res.setHeader('X-New-Token', newToken);
       
@@ -104,6 +110,7 @@ const activityCheck = () => {
       next();
       
     } catch (err) {
+      console.error('[Token调试] 活动检查-401 JWT验证失败', req.method, req.path, '| err.name:', err.name, '| err.message:', err.message);
       console.error('活动检查中间件错误:', err.message);
       
       return res.status(401).json({

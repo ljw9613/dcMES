@@ -2,10 +2,10 @@ import axios from "axios";
 import { Message } from "element-ui";
 import store from "@/store";
 import router from '@/router';
-import Cookies from 'js-cookie';
-import { getToken, setToken } from '@/utils/auth'; // 导入getToken和setToken函数
+import { getToken, setToken, clearAllAuthAndCache, isTokenExpired, removeToken, decodeTokenPayload } from '@/utils/auth';
 import userActivityMonitor from '@/utils/userActivity';
 import { isActivityMonitorEnabled, getActivityConfig } from '@/config/activityConfig';
+
 // create an axios instance
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
@@ -15,27 +15,19 @@ const service = axios.create({
 // 是否显示重新登录
 export let isRelogin = { show: false };
 
-// JWT验证失败时的处理函数
+// 上次从响应头 x-new-token 更新 token 的时间戳，用于避免「刚刷新 token 后下一请求仍被判为过期」的竞态
+let lastTokenRefreshTime = 0;
+const TOKEN_REFRESH_GRACE_MS = 3000;
+
+// JWT验证失败时的处理函数（退出/超时重登时统一清空浏览器缓存）
 const handleJWTError = (message) => {
   Message({
     message: message || 'Token验证失败，请重新登录',
     type: 'error',
     duration: 5 * 1000
   });
-  
-  // 清除所有cookie缓存
-  Object.keys(Cookies.get()).forEach(cookieName => {
-    Cookies.remove(cookieName);
-  });
-  
-  // 清除localStorage中可能存储的token信息
-  localStorage.clear();
-  // 清除sessionStorage中的store，避免下次恢复出旧token
-  try { sessionStorage.removeItem('store'); } catch (e) {}
-  
-  // 重置Vuex中的token
+  clearAllAuthAndCache();
   store.dispatch("user/resetToken").then(() => {
-    // 重定向到登录页面
     router.push('/login');
   });
 };
@@ -53,12 +45,40 @@ service.interceptors.request.use(
     
     // do something before request is sent
     // 优先使用 Cookie 中的 token（与登录态一致），避免 store 被 sessionStorage 恢复成旧 token 时带错请求头
-    let token = getToken();
+    const cookieToken = getToken();
+    let token = cookieToken;
     if (!token) {
       token = store.getters.token;
     }
+    // [Token调试] 请求发出前：token 来源与是否过期
+    const tokenSource = cookieToken ? 'Cookie' : (store.getters.token ? 'Store' : '无');
+    if (token) {
+      const payload = decodeTokenPayload(token);
+      const exp = payload && typeof payload.exp === 'number' ? payload.exp : null;
+      const nowSec = Math.floor(Date.now() / 1000);
+      const expired = isTokenExpired(token);
+      console.log('[Token调试] 请求拦截', config.url || config.baseURL, '| token来源:', tokenSource, '| exp:', exp, '| 当前时间(秒):', nowSec, '| 已过期:', expired);
+    } else {
+      console.log('[Token调试] 请求拦截', config.url || config.baseURL, '| token来源:', tokenSource, '| 无token');
+    }
     if (token && (!store.getters.token || store.getters.token !== token)) {
       store.commit('user/SET_TOKEN', token);
+    }
+
+    // 若当前 token 已过期：若刚在 grace 时间内通过 x-new-token 刷新过，仍带当前 token 发请求由服务端校验，避免「刚刷新后下一请求误判过期」的竞态
+    if (token && isTokenExpired(token)) {
+      const now = Date.now();
+      const withinGrace = (now - lastTokenRefreshTime) < TOKEN_REFRESH_GRACE_MS;
+      console.warn('[Token调试] Token已过期分支', config.url || config.baseURL, '| 距上次刷新(ms):', now - lastTokenRefreshTime, '| 在宽限期内:', withinGrace);
+      if (withinGrace) {
+        console.log('[request] Token 刚刷新，在宽限期内继续带 token 请求', config.url);
+      } else {
+        console.warn('[request] 检测到 Token 已过期，清除并跳转登录', config.url);
+        removeToken();
+        store.commit('user/SET_TOKEN', '');
+        handleJWTError('Token已过期，请重新登录');
+        return Promise.reject(new Error('Token已过期，请重新登录'));
+      }
     }
     
     // 添加调试信息
@@ -119,12 +139,24 @@ service.interceptors.response.use(
     console.log("http请求数据");
     console.log(res);
 
-    // 检查响应头中是否有新的token
-    const newToken = response.headers['x-new-token'];
-    if (newToken) {
-      console.log('收到服务器更新的token，正在更新本地token');
-      store.commit('user/SET_TOKEN', newToken);
-      setToken(newToken);
+    // 检查响应头中是否有新的 token（仅当新 token 未过期时才覆盖本地，避免被服务端错误地写成已过期的 token 导致下一请求被判过期）
+    const rawNewToken = response.headers['x-new-token'];
+    if (rawNewToken) {
+      const newToken = typeof rawNewToken === 'string'
+        ? rawNewToken.replace(/^Bearer\s+/i, '').trim()
+        : rawNewToken;
+      const newPayload = newToken ? decodeTokenPayload(newToken) : null;
+      const newExp = newPayload && typeof newPayload.exp === 'number' ? newPayload.exp : null;
+      const newExpired = newToken ? isTokenExpired(newToken) : true;
+      console.log('[Token调试] 响应x-new-token', response.config.url || response.config.baseURL, '| 新token长度:', (newToken && newToken.length) || 0, '| 新token exp:', newExp, '| 新token已过期:', newExpired);
+      if (newToken && !newExpired) {
+        console.log('收到服务器更新的token，正在更新本地token');
+        store.commit('user/SET_TOKEN', newToken);
+        setToken(newToken);
+        lastTokenRefreshTime = Date.now();
+      } else if (newToken) {
+        console.warn('[request] 忽略已过期的 x-new-token，保留当前 token');
+      }
     }
 
     // 检查活动警告
@@ -178,7 +210,8 @@ service.interceptors.response.use(
       
       // 处理401未授权错误（token无效或过期）
       if (status === 401) {
-        // 后端不再进行时间校验，所有401都视为真正的token无效
+        const reqUrl = error.config && (error.config.url || error.config.baseURL);
+        console.warn('[Token调试] 响应401', reqUrl, '| message:', (data && data.message) || data);
         console.log('检测到401错误，token无效，清除所有数据');
         handleJWTError(data.message || 'Token已过期或无效，请重新登录');
         return Promise.reject(error);

@@ -263,9 +263,11 @@ export default {
             };
 
             const response = await this.$store.dispatch('user/login', loginData);
-            // 登录成功，清除锁定状态
+            // 登录成功，清除锁定状态；用 replace 并支持 redirect，避免登录后点菜单无法跳转
             this.clearAccountLock();
-            this.$router.push('/');
+            const target = this.redirect || '/';
+            const nav = this.$router.replace(target);
+            if (nav && typeof nav.catch === 'function') nav.catch(() => {});
           } catch (error) {
             console.error('登录失败:', error);
             
@@ -313,7 +315,9 @@ export default {
         };
 
         const response = await this.$store.dispatch('user/login', loginData);
-        this.$router.push('/');
+        const target = this.redirect || '/';
+        const nav = this.$router.replace(target);
+        if (nav && typeof nav.catch === 'function') nav.catch(() => {});
       } finally {
         this.qrcodeLoading = false;
         this.loginForm.encryptedId = '';

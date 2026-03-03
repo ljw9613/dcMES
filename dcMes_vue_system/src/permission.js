@@ -1,3 +1,4 @@
+import Vue from 'vue'
 import router from './router'
 import store from './store'
 import {
@@ -34,10 +35,12 @@ router.beforeEach((to, from, next) => {
   
   // 获取Cookie中的token
   const cookieToken = getToken()
-  
+  console.log('[Token调试] 路由守卫', to.path, '| Cookie有token:', !!cookieToken, '| Store有token:', !!store.getters.token, '| addRoutes长度:', (store.getters.addRoutes && store.getters.addRoutes.length) || 0)
+
   if (cookieToken) {
     // 确保store中的token与Cookie保持同步
     if (!store.getters.token || store.getters.token !== cookieToken) {
+      console.log('[Token调试] 权限-同步token到store', to.path)
       console.log('同步token状态到store:', cookieToken ? `${cookieToken.substring(0, 20)}...` : 'null')
       store.commit('user/SET_TOKEN', cookieToken)
       
@@ -58,12 +61,10 @@ router.beforeEach((to, from, next) => {
       NProgress.done()
     } else {
       const hasGetRouters = store.getters.addRoutes
-      // console.log('hasGetRouters: ', hasGetRouters); // 可以保留或移除日志
-      //是否已经获取用户信息
-      // const hasGetUserInfo = store.getters.name // 如果未使用，可以移除
-      // console.log('hasGetUserInfo: ', hasGetUserInfo); // 可以保留或移除日志
+      const routesLen = (hasGetRouters && hasGetRouters.length) || 0
+      console.log('[Token调试] 权限-分支', to.path, '| 动态路由已加载:', routesLen > 0, '| 条数:', routesLen)
       if (hasGetRouters.length == 0) { // 动态路由未加载
-        // console.log('无数据，进行获取');
+        console.log('[Token调试] 权限-拉取getInfo', to.path)
         isRelogin.show = true
         // 判断当前用户是否已拉取完user_info信息
         store.dispatch('user/getInfo').then(() => {
@@ -78,14 +79,15 @@ router.beforeEach((to, from, next) => {
           
           store.dispatch('GenerateRoutes').then(async accessRoutes => {
             // 根据roles权限生成可访问的路由表
-            // console.log('accessRoutes: ',accessRoutes);
             if (accessRoutes.length > 0) {
               router.addRoutes(accessRoutes) // 动态添加可访问路由表
-              // console.log('router: ', router);
-              next({
-                ...to,
-                replace: true
-              }) // hack方法 确保addRoutes已完成,会再次进入beforeEach
+              // 等路由注册完成后再 next，避免登录后点菜单无法跳转
+              Vue.nextTick(() => {
+                next({
+                  ...to,
+                  replace: true
+                })
+              })
             } else {
               // 没有生成可访问的动态路由
               if (to.path === '/' || whiteList.indexOf(to.path) !== -1) {
@@ -97,6 +99,7 @@ router.beforeEach((to, from, next) => {
             }
           })
         }).catch(err => {
+          console.warn('[Token调试] 权限-getInfo失败', to.path, err && err.message)
           store.dispatch('user/logout').then(() => {
             Message.error(err)
             next({
@@ -105,6 +108,7 @@ router.beforeEach((to, from, next) => {
           })
         })
       } else { // 动态路由已加载
+        console.log('[Token调试] 权限-动态路由已存在，直接next', to.path, '| to.matched.length:', to.matched.length)
         // 如果动态路由已加载但活动监听器未启动，则启动它
         if (isActivityMonitorEnabled() && !userActivityMonitor.isActive) {
           console.log('🔄 [权限路由] 动态路由已存在，检查活动状态并启动监听器')
