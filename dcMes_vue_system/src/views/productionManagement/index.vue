@@ -48,12 +48,7 @@
                     <el-col :span="6">
                         <el-form-item label="物料编码">
                             <el-input v-model="searchForm.FMaterialId_FNumber"
-                                :placeholder="fMaterialCodeSearchMode === 'exact' ? '请输入完整物料编码（精确）' : '请输入物料编码（模糊）'" clearable>
-                                <el-button slot="prepend" :type="fMaterialCodeSearchMode === 'exact' ? 'primary' : ''"
-                                    @click="toggleFMaterialCodeSearchMode"
-                                    :title="fMaterialCodeSearchMode === 'exact' ? '当前：精确查询（快速）' : '当前：模糊查询（较慢）'" style="min-width: 60px;">
-                                    {{ fMaterialCodeSearchMode === 'exact' ? '精确' : '模糊' }}
-                                </el-button>
+                                placeholder="请输入完整物料编码" clearable>
                             </el-input>
                         </el-form-item>
                     </el-col>
@@ -285,7 +280,6 @@ export default {
             },
             fBillNoSearchMode: 'exact',
             fSaleOrderNoSearchMode: 'exact',
-            fMaterialCodeSearchMode: 'exact',
             fMaterialNameSearchMode: 'exact',
             fWorkShopSearchMode: 'exact',
             tableList: [],
@@ -374,13 +368,7 @@ export default {
                 req.query.$and.push({ FDocumentStatus: this.searchForm.FDocumentStatus });
             }
             if (this.searchForm.FMaterialId_FNumber && this.searchForm.FMaterialId_FNumber.trim()) {
-                const v = this.searchForm.FMaterialId_FNumber.trim();
-                if (this.fMaterialCodeSearchMode === 'exact') {
-                    req.query.$and.push({ FMaterialId_FNumber: v });
-                } else {
-                    if (v.length < 3) this.$message.warning({ message: '模糊查询建议输入至少3个字符', duration: 4000 });
-                    req.query.$and.push({ FMaterialId_FNumber: { $regex: v, $options: 'i' } });
-                }
+                req.query.$and.push({ FMaterialId_FNumber: this.searchForm.FMaterialId_FNumber.trim() });
             }
             if (this.searchForm.FMaterialName && this.searchForm.FMaterialName.trim()) {
                 const v = this.searchForm.FMaterialName.trim();
@@ -439,10 +427,6 @@ export default {
             this.fSaleOrderNoSearchMode = this.fSaleOrderNoSearchMode === 'exact' ? 'fuzzy' : 'exact';
             this.$message.info({ message: this.fSaleOrderNoSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
         },
-        toggleFMaterialCodeSearchMode() {
-            this.fMaterialCodeSearchMode = this.fMaterialCodeSearchMode === 'exact' ? 'fuzzy' : 'exact';
-            this.$message.info({ message: this.fMaterialCodeSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
-        },
         toggleFMaterialNameSearchMode() {
             this.fMaterialNameSearchMode = this.fMaterialNameSearchMode === 'exact' ? 'fuzzy' : 'exact';
             this.$message.info({ message: this.fMaterialNameSearchMode === 'exact' ? '已切换到精确查询（快速）' : '已切换到模糊查询（较慢）', duration: 2000 });
@@ -467,7 +451,6 @@ export default {
             };
             this.fBillNoSearchMode = 'exact';
             this.fSaleOrderNoSearchMode = 'exact';
-            this.fMaterialCodeSearchMode = 'exact';
             this.fMaterialNameSearchMode = 'exact';
             this.fWorkShopSearchMode = 'exact';
             this.currentPage = 1;

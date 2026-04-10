@@ -16,4 +16,7 @@ const dictDataSchema = new mongoose.Schema({
     remark: {type: String, default: ''}, // 备注
 });
 
+// 按字典类型查询索引，避免 COLLSCAN（日志中 dictType 查询 4176ms）
+dictDataSchema.index({ dictType: 1 }, { background: true, name: "idx_dictType" });
+
 module.exports = mongoose.model("dictData", dictDataSchema);

@@ -29,6 +29,9 @@ var user_loginSchema = new mongoose.Schema({
     updateAt: { type: Date, default: Date.now }, // 更新时间
 });
 
+// 按用户名查询索引，避免登录时 COLLSCAN
+user_loginSchema.index({ userName: 1 }, { background: true, name: "idx_userName" });
+
 // 添加pre-save中间件，自动更新updateAt字段
 user_loginSchema.pre('save', function(next) {
   // 只在文档被修改时更新updateAt字段

@@ -86,10 +86,19 @@ const productionPlanWorkOrderSchema = new mongoose.Schema({
 productionPlanWorkOrderSchema.index({ workOrderNo: 1 }, { unique: true });
 productionPlanWorkOrderSchema.index({ saleOrderNo: 1 });
 productionPlanWorkOrderSchema.index({ productionOrderNo: 1 });
+// ObjectId 引用查询（关联生产订单）
+productionPlanWorkOrderSchema.index({ productionOrderId: 1 });
 productionPlanWorkOrderSchema.index({ status: 1 });
 productionPlanWorkOrderSchema.index({ createAt: -1 });
-productionPlanWorkOrderSchema.index({ createBy: 1 }); // 添加创建人索引
-productionPlanWorkOrderSchema.index({ updateBy: 1 }); // 添加更新人索引
+productionPlanWorkOrderSchema.index({ createBy: 1 });
+productionPlanWorkOrderSchema.index({ updateBy: 1 });
+// 列表排序：按计划开始时间排序，结合状态过滤
+productionPlanWorkOrderSchema.index({ planStartTime: -1 });
+productionPlanWorkOrderSchema.index({ status: 1, planStartTime: -1 });
+productionPlanWorkOrderSchema.index(
+  { productionLineId: 1, status: 1 },
+  { background: true, name: "idx_productionLineId_status" }
+);
 
 // 安全的模型导出，避免重复编译错误
 module.exports = mongoose.models.production_plan_work_order || mongoose.model(

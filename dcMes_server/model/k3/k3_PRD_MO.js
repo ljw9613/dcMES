@@ -1,7 +1,9 @@
 var mongoose = require("mongoose");
 
+// 注意：FID 曾设为 unique，若库中已有重复 FID（如 483880）会导致建索引失败。
+// 若有重复，请先清理后再在库中执行：db.k3_prd_mos.createIndex({ FID: 1 }, { unique: true })
 var productionOrderSchema = new mongoose.Schema({
-    FID: { type: Number, required: true, unique: true }, // 实体主键
+    FID: { type: Number, required: true }, // 实体主键（有重复时暂不建唯一索引）
     FBillNo: { type: String }, // 单据编号
     FDocumentStatus: { type: String }, // 单据状态
     FSaleOrderId: { type: String }, // 销售订单ID
@@ -84,7 +86,8 @@ var productionOrderSchema = new mongoose.Schema({
     lastSyncTime: { type: Date, default: Date.now }, // 最后同步时间
 });
 
-// 创建索引：按照单据日期降序
+// 创建索引：按照单据日期降序；FID 不在此建 unique，避免历史重复数据导致启动报错
 productionOrderSchema.index({ FDate: -1 });
+productionOrderSchema.index({ FID: 1 }); // 普通索引，便于按 FID 查询
 
 module.exports = mongoose.model("k3_PRD_MO", productionOrderSchema);

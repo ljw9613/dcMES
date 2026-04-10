@@ -314,6 +314,30 @@ class IncrementalBackupManager {
   }
 
   /**
+   * 按集合名解析时间字段（与库表实际字段一致，避免 COLLSCAN）
+   * 映射表以模型定义为准，未在此映射的集合使用策略默认值或 createdAt 兜底。
+   * @param {string} collection - 集合名
+   * @param {string} [defaultTimeField='createdAt'] - 策略默认时间字段
+   * @returns {string} - 该集合应使用的时间字段名
+   */
+  getTimeFieldForCollection(collection, defaultTimeField = 'createdAt') {
+    const fieldMap = {
+      // createAt 系列（模型字段 createAt: Date）
+      material_process_flows:   'createAt',
+      warehouse_entries:        'createAt',
+      material_palletizings:    'createAt',
+      // createTime 系列（模型字段 createTime: Date）
+      inspection_last_data:     'createTime',
+      inspection_data:          'createTime',
+      collect_data:             'createTime',
+      // timestamp 系列（apiLog / systemLog 模型字段 timestamp: Date）
+      api_logs:                 'timestamp',
+      system_log:               'timestamp'
+    };
+    return fieldMap[collection] || defaultTimeField || 'createdAt';
+  }
+
+  /**
    * 构建时间范围查询条件
    * @param {string} timeField - 时间字段名
    * @param {Object} timeRange - 时间范围配置
@@ -335,6 +359,16 @@ class IncrementalBackupManager {
         today.setHours(0, 0, 0, 0);
         startTime = new Date(today);
         endTime = new Date(today);
+        endTime.setHours(23, 59, 59, 999);
+        break;
+
+      case 'yesterday':
+        // 前一天完整数据（适合凌晨执行的备份任务）
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        startTime = new Date(yesterday);
+        endTime = new Date(yesterday);
         endTime.setHours(23, 59, 59, 999);
         break;
 
@@ -494,8 +528,9 @@ class IncrementalBackupManager {
         throw new Error('MongoDB备份工具不可用');
       }
 
-      // 执行备份（带重试机制）
-      const result = await this.executeBackupWithRetry(collection, outputPath, strategy.timeField, timeRange, strategyName);
+      // 执行备份（带重试机制）：按集合使用正确时间字段，避免 createdAt 导致 COLLSCAN
+      const timeField = this.getTimeFieldForCollection(collection, strategy.timeField);
+      const result = await this.executeBackupWithRetry(collection, outputPath, timeField, timeRange, strategyName);
       
       // 更新统计
       this.state.statistics.totalBackups++;
@@ -1088,6 +1123,9 @@ class IncrementalBackupManager {
         switch (timeRange.type) {
           case 'today':
             rangeDescription = '当天数据';
+            break;
+          case 'yesterday':
+            rangeDescription = '前一天完整数据（适合凌晨任务）';
             break;
           case 'full':
             rangeDescription = '全表数据（无时间限制）';

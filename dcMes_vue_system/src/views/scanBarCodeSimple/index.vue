@@ -20,27 +20,15 @@
 
         <!-- 操作按钮 -->
         <div class="operation-buttons">
-          <el-button
-
-            type="text"
-            size="small"
-            @click="handleClearScan">
+          <el-button type="text" size="small" @click="handleClearScan">
             <i class="el-icon-delete"></i>请扫描条码
           </el-button>
 
-          <el-button
-
-            type="text"
-            size="small"
-            @click="handleTemplateSelect">
+          <el-button type="text" size="small" @click="handleTemplateSelect">
             <i class="el-icon-document"></i> 选择打印模板-模板预览-取消
           </el-button>
 
-          <el-button
-
-            type="text"
-            size="small"
-            @click="handleSilentPrint">
+          <el-button type="text" size="small" @click="handleSilentPrint">
             <i class="el-icon-printer"></i> 静默打印
           </el-button>
         </div>
@@ -78,6 +66,7 @@
 
 <script>
 import hirInput from "@/components/hirInput";
+import { getData, addData, updateData, removeData } from "@/api/data";
 export default {
   name: "scanBarCodeSimple",
   components: {
@@ -98,7 +87,7 @@ export default {
   },
   methods: {
     // 处理扫描
-    handleScan() {
+    async handleScan() {
       if (!this.scanInput) return;
 
       // 检查打印模板
@@ -107,6 +96,21 @@ export default {
         this.focusInput();
         this.$message.warning("请先选择打印模板");
         return;
+      }
+
+      // 检查条码是否是自制条码，如果是则转换
+      const response = await getData("material_process_flow", {
+        query: { barcode: this.scanInput },
+      });
+      if (
+        response.data &&
+        response.data.length > 0 &&
+        response.data[0].diyCode
+      ) {
+        let diyCode = response.data[0].diyCode;
+        if (diyCode.includes("DCZZ-")) {
+          this.scanInput = diyCode;
+        }
       }
 
       // 记录扫描结果
@@ -157,7 +161,7 @@ export default {
 
     // 准备打印数据
     preparePrintData(record) {
-      console.log(record,'record');
+      console.log(record, "record");
       this.printData = {
         printBarcode: record.code,
       };
@@ -202,7 +206,7 @@ export default {
         this.$refs.hirInput.handlePrints2();
         this.$message.success("已发送打印指令");
       });
-    }
+    },
   },
 };
 </script>
@@ -254,7 +258,7 @@ export default {
 }
 
 .operation-buttons .el-button {
-  color: #409EFF;
+  color: #409eff;
   font-size: 13px;
 }
 

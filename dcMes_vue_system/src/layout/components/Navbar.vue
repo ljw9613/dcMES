@@ -7,6 +7,9 @@
     <div class="right-menu">
       <div class="nametitle">{{ $t('navbar.welcome') }}，{{ name }}</div>
 
+      <!-- 扫码配置 -->
+      <floating-scan-config class="scan-config-container" />
+
       <!-- 版本号显示 -->
       <div class="version-container" @click="showVersionInfo">
         <i class="el-icon-info"></i>
@@ -55,12 +58,14 @@
 import { mapGetters } from 'vuex'
 import Breadcrumb from '@/components/Breadcrumb'
 import Hamburger from '@/components/Hamburger'
+import FloatingScanConfig from '@/components/FloatingScanConfig/index.vue'
 import { getVersion, getVersionInfo, getVersionColor } from '@/config/version'
 
 export default {
   components: {
     Breadcrumb,
-    Hamburger
+    Hamburger,
+    FloatingScanConfig
   },
   computed: {
     ...mapGetters([

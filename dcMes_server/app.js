@@ -35,14 +35,21 @@ let dbConnect = require("./db")();
 const { QueueService } = require("./services/queueService");
 const mongoose = require("mongoose");
 
+// PM2 负载均衡下，所有实例都注册队列消费者（Bull 通过 Redis 任务锁保证不重复处理）
+// 但根据实例总数动态降低每实例的并发数，避免连接池被打满
+// 例如总期望并发=6，2个实例时每实例并发=3，4个实例时每实例并发=1
+const pm2InstanceId = process.env.NODE_APP_INSTANCE ?? 'standalone';
+const totalInstances = parseInt(process.env.PM2_INSTANCES || '1', 10);
+
+console.log(`📦 当前实例 (PM2 instance: ${pm2InstanceId})，总实例数: ${totalInstances}，开始初始化队列消费者...`);
+
 // 监听数据库连接完成事件，然后启动队列服务
 mongoose.connection.once("open", async () => {
   console.log("📦 数据库连接完成，开始初始化工单更新队列服务...");
   
-  // 稍微延迟以确保所有模型都已加载
   setTimeout(async () => {
     try {
-      await QueueService.initializeProcessor();
+      await QueueService.initializeProcessor(totalInstances);
       console.log("✅ 队列服务初始化成功");
     } catch (error) {
       console.error("❌ 队列服务初始化失败:", error);
@@ -56,7 +63,7 @@ if (mongoose.connection.readyState === 1) {
   console.log("📦 数据库已连接，初始化工单更新队列服务...");
   setTimeout(async () => {
     try {
-      await QueueService.initializeProcessor();
+      await QueueService.initializeProcessor(totalInstances);
       console.log("✅ 队列服务初始化成功");
     } catch (error) {
       console.error("❌ 队列服务初始化失败:", error);
@@ -135,6 +142,7 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 // app.use("/", indexRouter);
 // url 已  /users 开头的，都会走到 usersRouter 中去
 app.use("/", require("./routes/upload"));
+app.use("/", require("./routes/tripletDataApi"));
 app.use("/", require("./routes/CRADROUTER.js"));
 app.use("/", require("./routes/managerlogin.js"));
 app.use("/", require("./routes/data"));

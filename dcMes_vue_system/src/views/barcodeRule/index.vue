@@ -408,6 +408,7 @@
                 <el-form :model="materialForm" ref="materialForm" label-width="100px">
                     <el-form-item label="物料选择" prop="productId">
                         <zr-select v-model="materialForm.productId" collection="k3_BD_MATERIAL"
+                            :min-search-length="2"
                             :search-fields="['FNumber', 'FName']" label-key="FNumber" sub-key="_id" :multiple="false"
                             placeholder="请输入物料编码/名称搜索">
                             <template #option="{ item }">

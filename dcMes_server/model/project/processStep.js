@@ -38,6 +38,14 @@ var processStepSchema = new mongoose.Schema({
     updateAt: { type: Date, default: Date.now } // 更新时间
 });
 
+// 按设备查询索引，避免 $or: [machineId, machineIds] 导致 COLLSCAN（日志中扫 1567 条常达 59–69s）
+processStepSchema.index({ machineId: 1 }, { background: true, name: "idx_machineId" });
+processStepSchema.index({ machineIds: 1 }, { background: true, name: "idx_machineIds" });
+processStepSchema.index(
+  { craftId: 1, isMES: 1, sort: 1 },
+  { background: true, name: "idx_craftId_isMES_sort" }
+);
+
 // 添加pre-save中间件，自动更新updateAt字段
 processStepSchema.pre('save', function(next) {
   // 只在文档被修改时更新updateAt字段

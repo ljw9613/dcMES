@@ -182,6 +182,7 @@
       :visible.sync="showPopup"
       :type="popupType"
       :duration="1500"
+      :manual-confirm="errorDisplayMode === 'manual'"
     />
   </div>
 </template>
@@ -191,7 +192,6 @@ import { checkBarcodeCompletion } from "@/api/materialProcessFlowService";
 import StatusPopup from "@/components/StatusPopup/index.vue";
 import { playAudio, preloadAudioFiles } from "@/utils/audioI18n.js";
 import { getData } from "@/api/data";
-
 export default {
   name: "ScanBarCodeCheck",
   components: {
@@ -210,6 +210,12 @@ export default {
   },
 
   computed: {
+    soundEnabled() {
+      return this.$store.state.scanConfig.soundEnabled;
+    },
+    errorDisplayMode() {
+      return this.$store.state.scanConfig.errorDisplayMode;
+    },
     getBadgeClass() {
       if (!this.scanResult) return "";
       return this.scanResult.isCompleted
@@ -219,6 +225,13 @@ export default {
   },
 
   methods: {
+    /** 根据「提示音」开关决定是否播放 */
+    playSound(key) {
+      if (!this.soundEnabled && key === "smcg") {
+        return;
+      }
+      playAudio(key);
+    },
     // 自动聚焦输入框
     focusInput() {
       this.$nextTick(() => {
@@ -325,14 +338,14 @@ export default {
             );
             this.showPopup = true;
             this.popupType = "ok";
-            playAudio("lcywc");
+            this.playSound("lcywc");
           } else {
             this.$message.warning(
               this.$t("scanBarCodeCheck.messages.flowNotComplete")
             );
             this.showPopup = true;
             this.popupType = "ng";
-            playAudio("lcyw");
+            this.playSound("lcyw");
           }
         } else {
           this.errorMessage =
@@ -341,14 +354,14 @@ export default {
           this.$message.error(this.errorMessage);
           this.showPopup = true;
           this.popupType = "ng";
-          playAudio("tmyw");
+          this.playSound("tmyw");
         }
       } catch (error) {
         this.errorMessage = this.$t("scanBarCodeCheck.messages.systemError");
         this.$message.error(this.errorMessage);
         this.showPopup = true;
         this.popupType = "ng";
-        playAudio("tmyw");
+        this.playSound("tmyw");
         console.error("Barcode query error:", error);
       } finally {
         this.isLoading = false;

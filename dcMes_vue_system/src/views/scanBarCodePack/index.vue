@@ -41,6 +41,7 @@
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :disabled="!!mainMaterialId && !!processStepId"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
@@ -111,6 +112,7 @@
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
                 v-model="formData.productLine"
+                :min-search-length="0"
                 collection="production_line"
                 :search-fields="['lineCode', 'lineName']"
                 label-key="lineName"
@@ -393,6 +395,7 @@
       :text="errorMessage"
       :error-code="errorCode"
       :duration="5000"
+      :manual-confirm="errorDisplayMode === 'manual'"
     />
     <tsc-printer
       ref="tscPrinter"
@@ -430,7 +433,6 @@ import TscPrinter from "@/components/tscInput";
 import StatusPopup from "@/components/StatusPopup/index.vue";
 import { getAllProcessSteps } from "@/api/materialProcessFlowService";
 import hirInput from "@/components/hirInput"; // 导入hir-input组件
-
 export default {
   name: "scanBarCodePack",
   components: {
@@ -533,6 +535,12 @@ export default {
     };
   },
   computed: {
+    soundEnabled() {
+      return this.$store.state.scanConfig.soundEnabled;
+    },
+    errorDisplayMode() {
+      return this.$store.state.scanConfig.errorDisplayMode;
+    },
     mainMaterialId: {
       get() {
         return localStorage.getItem("mainMaterialId") || "";
@@ -673,6 +681,14 @@ export default {
       },
       deep: true, // 深度监听对象的变化
     },
+    // 弹窗关闭后自动将焦点归还到扫码输入框
+    showPopup(val) {
+      if (!val) {
+        this.$nextTick(() => {
+          this.$refs.scanInput && this.$refs.scanInput.focus();
+        });
+      }
+    },
 
     // 新增：监听物料和产线组合变化
     materialLineKey: {
@@ -687,6 +703,13 @@ export default {
   },
 
   methods: {
+    /** 根据「提示音」开关决定是否播放 */
+    playSound(key) {
+      if (!this.soundEnabled && key === "smcg") {
+        return;
+      }
+      playAudio(key);
+    },
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
@@ -1544,8 +1567,8 @@ export default {
         console.error("处理主条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        this.errorMessage = error;
-        playAudio("tmyw");
+        this.errorMessage = error.message || String(error);
+        this.playSound("tmyw");
         throw error;
       }
     },
@@ -1579,7 +1602,7 @@ export default {
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio("tmyw");
+        this.playSound("tmyw");
         throw error;
       }
     },
@@ -1681,7 +1704,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放错误提示音
+            this.playSound("tmyw"); // 延迟播放错误提示音
           }, 300);
           this.$notify({
             title: this.$t("scanBarCodePack.messages.barcodeValidationFailed"),
@@ -1722,7 +1745,7 @@ export default {
             );
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("dwx");
+            this.playSound("dwx");
             return;
           }
           if (
@@ -1737,7 +1760,7 @@ export default {
               );
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio("tmyw");
+              this.playSound("tmyw");
               return;
             }
             this.unifiedScanInput = "";
@@ -1750,7 +1773,7 @@ export default {
             );
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("wxsb");
+            this.playSound("wxsb");
             return;
           }
         }
@@ -1788,7 +1811,7 @@ export default {
                   this.errorMessage = `请按顺序使用主物料条码，应使用条码: ${expectedBarcode}`;
                   this.popupType = "ng";
                   this.showPopup = true;
-                  playAudio("tmyw");
+                  this.playSound("tmyw");
                   return;
                 }
               }
@@ -1805,7 +1828,7 @@ export default {
 
           await this.handleMainBarcode(cleanValue);
 
-          playAudio("smcg");
+          this.playSound("smcg");
           this.$notify({
             title: "主物料扫描成功",
             dangerouslyUseHTMLString: true,
@@ -1880,14 +1903,6 @@ export default {
                     // this.showPopup = true;
 
                     if (material.isPackingBox) {
-                      await updateData("packBarcode", {
-                        query: {
-                          printBarcode: cleanValue,
-                        },
-                        update: {
-                          status: "USED",
-                        },
-                      });
                       setTimeout(() => {
                         this.initializePackingBarcode(); // 初始化装箱条码
                       }, 1000);
@@ -1919,16 +1934,8 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    playAudio("pcwlxz");
+                    this.playSound("pcwlxz");
                     if (material.isPackingBox) {
-                      await updateData("packBarcode", {
-                        query: {
-                          printBarcode: cleanValue,
-                        },
-                        update: {
-                          status: "USED",
-                        },
-                      });
                       setTimeout(() => {
                         this.initializePackingBarcode(); // 初始化装箱条码
                       }, 1000);
@@ -1941,10 +1948,15 @@ export default {
               this.$set(this.scanForm.barcodes, material._id, cleanValue);
               this.$set(this.validateStatus, material._id, true);
 
+              // 包装箱：若扫入条码在 packBarcode 表中存在，与 fallback 一致绑定 this.packingBarcode，便于更换箱子
+              if (material.isPackingBox) {
+                await this.tryBindPackingBarcodeFromScan(cleanValue);
+              }
+
               // 处理子物料条码
               await this.handleSubBarcode(material._id, materialCode);
 
-              playAudio("smcg");
+              this.playSound("smcg");
               this.$notify({
                 title: "子物料扫描成功",
                 dangerouslyUseHTMLString: true,
@@ -1984,7 +1996,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放错误提示音
+            this.playSound("tmyw"); // 延迟播放错误提示音
           }, 300);
           this.unifiedScanInput = "";
           this.$refs.scanInput.focus();
@@ -2055,7 +2067,7 @@ export default {
       } catch (error) {
         console.error("扫描处理失败:", error);
         setTimeout(() => {
-          playAudio("tmyw"); // 延迟播放错误提示音
+          this.playSound("tmyw"); // 延迟播放错误提示音
         }, 1000);
         this.$notify({
           title: "扫描失败",
@@ -2259,13 +2271,39 @@ export default {
                 material.batchQuantity &&
                 newUsage >= material.batchQuantity
               ) {
+                const subBatchBarcode = this.scanForm.barcodes[material._id];
+
                 localStorage.removeItem(cacheKey);
                 localStorage.removeItem(usageKey);
                 this.$set(this.scanForm.barcodes, material._id, "");
                 this.$set(this.validateStatus, material._id, false);
 
-                // 查询是否有包装箱
-                if (this.packingBarcode) {
+                // 仅在装箱批次达到使用上限（本次提交后 newUsage 已满）时标记已使用，不在扫码拦截处提前标记
+                if (material.isPackingBox && subBatchBarcode) {
+                  try {
+                    await updateData("packBarcode", {
+                      query: {
+                        $or: [
+                          { printBarcode: subBatchBarcode },
+                          { barcode: subBatchBarcode },
+                        ],
+                      },
+                      update: { status: "USED" },
+                    });
+                  } catch (e) {
+                    console.warn("更新装箱条码为已使用失败:", e);
+                  }
+                }
+
+                const packingReady =
+                  this.packingBarcode &&
+                  typeof this.packingBarcode === "object" &&
+                  (this.packingBarcode._id ||
+                    this.packingBarcode.printBarcode ||
+                    this.packingBarcode.barcode);
+
+                // 查询是否有包装箱（排除空对象 / 错误初始值）
+                if (packingReady) {
                   console.log(this.packingBarcode, "this.packingBarcode");
                   // 查询批次物料相关的主条码
                   const mainBarcode = await getData("material_process_flow", {
@@ -2296,11 +2334,11 @@ export default {
                       "preProductionBarcode",
                       {
                         query: {
-                          materialNumber: item.barcode,
-                          lineNum: this.lineNum, // 添加产线编码条件
-                          status: "PENDING", // 只查询待使用的条码
+                          printBarcode: item.barcode,
                         },
-                        sort: { serialNumber: 1 }, // 按序号正序排序，获取最早的未使用条码
+                        sort: {
+                          _id: -1,
+                        },
                         limit: 1,
                       }
                     );
@@ -2444,6 +2482,11 @@ export default {
                     this.packingBarcode = {};
                     this.initializePackingBarcode();
                   }, 2000);
+                } else if (material.isPackingBox) {
+                  this.packingBarcode = {};
+                  setTimeout(() => {
+                    this.initializePackingBarcode();
+                  }, 300);
                 }
               }
             }
@@ -2452,7 +2495,7 @@ export default {
           this.showPopup = true;
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
-            playAudio("bdcg");
+            this.playSound("bdcg");
           }, 1000);
         }
 
@@ -2468,7 +2511,7 @@ export default {
           this.$message.warning(error.message);
           this.errorMessage = error.message;
           setTimeout(() => {
-            playAudio("pcwlxz");
+            this.playSound("pcwlxz");
             this.popupType = "ng";
             this.showPopup = true;
             // 播放批次物料条码已达到使用次数限制提示音
@@ -2494,14 +2537,14 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("cfbd"); // 延迟播放
+            this.playSound("cfbd"); // 延迟播放
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("cxwgd"); // 延迟播放
+            this.playSound("cxwgd"); // 延迟播放
           }, 1000);
         } else {
           // 【关键修复】检测条码规则不匹配错误，自动刷新规则缓存
@@ -2636,7 +2679,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放
+            this.playSound("tmyw"); // 延迟播放
           }, 1000);
         }
       } finally {
@@ -2940,6 +2983,37 @@ export default {
       } catch (error) {
         console.error("查询批次使用记录失败:", error);
         return 0;
+      }
+    },
+
+    // 扫入的条码若在 packBarcode 中有记录，绑定为当前装箱条码（与 fallback 赋值一致，支持手动更换包装箱）
+    async tryBindPackingBarcodeFromScan(cleanValue) {
+      if (!cleanValue || !this.boxMaterial || !this.boxMaterial.materialCode) {
+        return;
+      }
+      try {
+        const packRes = await getData("packBarcode", {
+          query: {
+            $or: [{ printBarcode: cleanValue }, { barcode: cleanValue }],
+            materialNumber: this.boxMaterial.materialCode,
+          },
+          limit: 1,
+        });
+        if (!packRes.data || !packRes.data.length) {
+          return;
+        }
+        const row = packRes.data[0];
+        const oldId =
+          this.packingBarcode &&
+          typeof this.packingBarcode === "object" &&
+          this.packingBarcode._id;
+        if (oldId && row._id && String(oldId) !== String(row._id)) {
+          await this.unlockCurrentBarcode();
+        }
+        this.packingBarcode = row;
+        this.saveLockInfo();
+      } catch (e) {
+        console.warn("从 packBarcode 绑定当前装箱条码失败:", e);
       }
     },
 
@@ -3952,18 +4026,12 @@ export default {
                 );
                 this.popupType = "ng";
                 this.showPopup = true;
-                playAudio("pcwlxz");
+                this.playSound("pcwlxz");
                 localStorage.removeItem(cacheKey);
                 localStorage.removeItem(usageKey);
                 this.$set(this.scanForm.barcodes, material._id, "");
                 this.$set(this.validateStatus, material._id, false);
                 if (material.isPackingBox) {
-                  await updateData("packBarcode", {
-                    query: { printBarcode: cachedBarcode },
-                    update: {
-                      status: "USED",
-                    },
-                  });
                   setTimeout(() => {
                     this.initializePackingBarcode(); // 初始化装箱条码
                   }, 1000);
@@ -3976,6 +4044,9 @@ export default {
               this.$set(this.scanForm.barcodes, material._id, cachedBarcode);
               this.$set(this.validateStatus, material._id, true);
               this.$set(this.batchUsageCount, material._id, count);
+              if (material.isPackingBox) {
+                await this.tryBindPackingBarcodeFromScan(cachedBarcode);
+              }
             } catch (error) {
               // 校验过程出错，清除缓存
               console.error(`批次物料条码 ${cachedBarcode} 校验失败:`, error);

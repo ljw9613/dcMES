@@ -43,6 +43,7 @@ const barcodeSegmentRuleMaterial = require("../model/project/barcodeSegmentRuleM
 const preProductionBarcode = require("../model/project/preProductionBarcode");
 const udiSamplingInspectionFlow = require("../model/project/udiSamplingInspectionFlow");
 const packBarcode = require("../model/project/packBarcode");
+const tripletData = require("../model/project/tripletData");
 
 //wms模型
 const warehouseEntry = require("../model/warehouse/warehouseEntry");
@@ -129,6 +130,7 @@ ADDROUTER(router, "materialBarcodeBatch", materialBarcodeBatch);
 ADDROUTER(router, "barcodeSegmentRuleMaterial", barcodeSegmentRuleMaterial);
 ADDROUTER(router, "preProductionBarcode", preProductionBarcode);
 ADDROUTER(router, "packBarcode", packBarcode);
+ADDROUTER(router, "triplet_data", tripletData);
 ADDROUTER(router, "workOrderQuantityLog", workOrderQuantityLog);
 
 ADDROUTER(router, "productDiNum", productDiNum);

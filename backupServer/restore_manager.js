@@ -35,6 +35,8 @@ const path = require('path');
 const util = require('util');
 const os = require('os');
 const readline = require('readline');
+const zlib = require('zlib');
+const { pipeline } = require('stream/promises');
 
 // 导入配置文件
 const config = require('./config');
@@ -77,6 +79,7 @@ class RestoreManager {
     this.isWindows = os.platform() === 'win32';
     this.mongorestorePath = null;
     this.mongodumpPath = null;
+    this._checkToolsPromise = null;
 
     // 初始化
     this.init();
@@ -87,7 +90,17 @@ class RestoreManager {
    */
   init() {
     this.ensureLogDirectory();
-    this.checkTools();
+  }
+
+  /**
+   * 确保 MongoDB 工具已检测（在 run 入口调用，避免构造函数里异步竞态）
+   */
+  async ensureToolsChecked() {
+    if (this._checkToolsPromise) {
+      return this._checkToolsPromise;
+    }
+    this._checkToolsPromise = this.checkTools();
+    return this._checkToolsPromise;
   }
 
   /**
@@ -359,6 +372,132 @@ class RestoreManager {
   }
 
   /**
+   * 是否为 incremental_backup_manager 生成的「集合名_backup_时间戳.gz」（gzip 单文件 BSON，非 archive）
+   */
+  isIncrementalGzipBsonBackup(fileName) {
+    return /^.+_backup_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.gz$/.test(fileName);
+  }
+
+  /**
+   * 解析 incremental gzip BSON 备份文件名
+   * @returns {{ collection: string, timestamp: string } | null}
+   */
+  parseIncrementalGzipBackupName(fileName) {
+    const m = fileName.match(/^(.+)_backup_(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})\.gz$/);
+    if (!m) return null;
+    return { collection: m[1], timestamp: m[2] };
+  }
+
+  /**
+   * 构建针对标准 dump 目录（含 db 子目录与 .bson）的 mongorestore 命令
+   */
+  buildMongorestoreDumpDirCommand(dumpDir, options = {}) {
+    const { host, port, username, password, authDatabase } = this.config;
+    const mongorestoreCmd = this.mongorestorePath.includes(' ') ? `"${this.mongorestorePath}"` : this.mongorestorePath;
+
+    let command = mongorestoreCmd;
+    command += ` --host ${host}:${port}`;
+    command += ` --username ${username}`;
+    command += ` --password "${password}"`;
+    command += ` --authenticationDatabase ${authDatabase}`;
+
+    if (this.restoreConfig.restoreMode === 'replace') {
+      command += ` --drop`;
+    } else if (this.restoreConfig.restoreMode === 'merge-upsert') {
+      command += ` --upsert`;
+    }
+
+    if (options.dryRun || this.restoreConfig.dryRun) {
+      command += ` --dryRun`;
+    }
+
+    if (options.collection) {
+      command += ` --collection ${options.collection}`;
+    }
+
+    command += ` --verbose`;
+    command += ` "${dumpDir}"`;
+
+    return command;
+  }
+
+  /**
+   * 将 incremental gzip BSON 解压到临时 dump 目录并执行 mongorestore
+   */
+  async restoreIncrementalGzipBsonBackup(filePath, options = {}) {
+    const fileName = path.basename(filePath);
+    const parsed = this.parseIncrementalGzipBackupName(fileName);
+    if (!parsed) {
+      return { success: false, error: '无法解析增量 gzip BSON 备份文件名' };
+    }
+
+    const { collection } = parsed;
+    const targetDb = this.restoreConfig.targetDatabase;
+    const verification = await this.verifyBackupFile(filePath);
+    if (!verification.valid) {
+      return { success: false, error: verification.error || '备份文件验证失败' };
+    }
+
+    let safetyBackup = null;
+    if (this.restoreConfig.createSafetyBackup && !options.skipSafetyBackup) {
+      safetyBackup = await this.createSafetyBackup([collection]);
+    }
+
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mes-restore-'));
+    const dumpDir = path.join(tmpRoot, 'dump');
+    const dbDir = path.join(dumpDir, targetDb);
+    const bsonPath = path.join(dbDir, `${collection}.bson`);
+
+    try {
+      fs.mkdirSync(dbDir, { recursive: true });
+      await pipeline(
+        fs.createReadStream(filePath),
+        zlib.createGunzip(),
+        fs.createWriteStream(bsonPath)
+      );
+
+      const command = this.buildMongorestoreDumpDirCommand(dumpDir, options);
+      this.log('执行增量 gzip BSON 还原命令:', command);
+
+      if (this.restoreConfig.dryRun) {
+        this.log('试运行模式，不会实际执行还原操作');
+        return { success: true, dryRun: true, collection, safetyBackup };
+      }
+
+      const startTime = Date.now();
+      const { stdout, stderr } = await execAsync(command);
+      const duration = Date.now() - startTime;
+
+      if (stderr && !stderr.includes('done')) {
+        this.log('还原过程中的警告:', stderr);
+      }
+
+      if (this.restoreConfig.verifyAfterRestore) {
+        await this.verifyRestoreResult(collection);
+      }
+
+      this.log(`增量 gzip BSON 还原成功: ${fileName}, 耗时: ${(duration / 1000).toFixed(2)}秒`);
+
+      return {
+        success: true,
+        filePath,
+        collection,
+        duration,
+        safetyBackup
+      };
+    } catch (error) {
+      this.logError('增量 gzip BSON 还原失败', error);
+      return { success: false, error: error.message };
+    } finally {
+      try {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
+  /**
    * 列出可用的备份文件
    */
   listBackupFiles() {
@@ -417,9 +556,29 @@ class RestoreManager {
         throw new Error('备份文件为空');
       }
 
+      const baseName = path.basename(filePath);
+      // incremental_backup_manager：gzip 单 BSON，无法用 --archive 做 dryRun
+      if (this.isIncrementalGzipBsonBackup(baseName)) {
+        const fd = fs.openSync(filePath, 'r');
+        const magic = Buffer.alloc(2);
+        fs.readSync(fd, magic, 0, 2, 0);
+        fs.closeSync(fd);
+        if (magic[0] !== 0x1f || magic[1] !== 0x8b) {
+          throw new Error('不是有效的 gzip 文件');
+        }
+        if (!this.parseIncrementalGzipBackupName(baseName)) {
+          throw new Error('无法解析备份文件名中的集合名');
+        }
+        this.log('备份文件验证成功 (增量 gzip BSON):', {
+          size: this.formatFileSize(stats.size),
+          modifiedTime: stats.mtime
+        });
+        return { valid: true, size: stats.size, modifiedTime: stats.mtime };
+      }
+
       // 如果是归档文件，尝试列出内容
       const command = this.buildMongorestoreCommand(filePath, { dryRun: true });
-      const { stdout, stderr } = await execAsync(command);
+      await execAsync(command);
 
       this.log('备份文件验证成功:', {
         size: this.formatFileSize(stats.size),
@@ -556,6 +715,13 @@ class RestoreManager {
    * 还原单个备份文件
    */
   async restoreBackupFile(filePath, options = {}) {
+    filePath = path.resolve(filePath);
+    const baseName = path.basename(filePath);
+
+    if (this.isIncrementalGzipBsonBackup(baseName)) {
+      return this.restoreIncrementalGzipBsonBackup(filePath, options);
+    }
+
     this.log('开始还原备份文件:', filePath);
     
     try {
@@ -1046,6 +1212,8 @@ class RestoreManager {
    */
   async run(args = []) {
     try {
+      await this.ensureToolsChecked();
+
       const options = this.parseCommandLineArgs(args);
 
       switch (options.command) {

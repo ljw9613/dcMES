@@ -829,6 +829,7 @@
               <zr-select
                 v-model="materialForm.materialId"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FNumber"
                 sub-key="FMATERIALID"

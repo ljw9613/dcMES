@@ -1,7 +1,11 @@
 <template>
   <transition name="fade">
-    <div v-if="visible" class="status-popup-overlay" @click="handleClose">
-      <div class="status-popup" :class="type">
+    <div
+      v-if="visible"
+      class="status-popup-overlay"
+      @click="handleOverlayClick"
+    >
+      <div class="status-popup" :class="type" @click.stop>
         <!-- 背景动画效果 -->
         <div class="bg-animation"></div>
         <div class="bg-grid"></div>
@@ -23,6 +27,14 @@
         <!-- 错误编码 -->
         <div v-if="type != 'ok' && matchedErrorCode" class="error-code">
           {{ matchedErrorCode }}
+        </div>
+        <!-- 手动确认模式：右上角悬浮关闭按钮（只在非 OK 状态显示） -->
+        <div
+          v-if="manualConfirm && type !== 'ok'"
+          class="status-close-btn"
+          @click.stop="handleClose"
+        >
+          关闭
         </div>
       </div>
     </div>
@@ -58,113 +70,118 @@ export default {
       type: Number,
       default: 5000,
     },
+    /** 手动确认模式：为 true 时不自动关闭，需用户点击确定或遮罩关闭 */
+    manualConfirm: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       matchedErrorCode: "",
       // 错误消息键名到错误码的映射
       errorCodeMap: {
-        "diCodeNotExists": "LINE-A-001",
-        "diCodeNoMaterial": "LINE-A-002",
-        "diCodeMaterialMismatch": "LINE-A-003",
-        "barcodeRuleMismatch": "LINE-A-004",
-        "mainBarcodeNotFound": "LINE-B-001",
-        "processNodeNotFound": "LINE-B-002",
-        "processNodeCompleted": "LINE-B-003",
-        "repairRecordExists": "LINE-B-004",
-        "repairResultFailed": "LINE-B-005",
-        "barcodeVoided": "LINE-B-006",
-        "barcodeMaterialMismatch": "LINE-B-007",
-        "duplicateBarcode": "LINE-B-008",
-        "prerequisiteIncomplete": "LINE-C-001",
-        "quantityMismatch": "LINE-C-002",
-        "duplicateScan": "LINE-C-003",
-        "materialNotRequired": "LINE-C-004",
-        "batchLimitReached": "LINE-D-001",
-        "subMaterialNotFound": "LINE-D-002",
-        "subMaterialIncomplete": "LINE-D-003",
-        "keyMaterialDuplicate": "LINE-E-001",
-        "usedByOtherProcess": "LINE-E-002",
-        "keyMaterialMainRequired": "LINE-E-003",
-        "workOrderNotFound": "LINE-F-001",
-        "workOrderQuantityReached": "LINE-F-002",
-        "missingParameters": "LINE-G-001",
-        "materialCodeNotFound": "LINE-G-002",
-        "craftInfoNotFound": "LINE-G-003",
-        "barcodeParameterEmpty": "LINE-G-004",
-        "productionPlanNotFound": "LINE-F-003",
-        "validWorkOrderNotFound": "LINE-F-004",
-        "productBarcodeNotBound": "LINE-F-005",
-        "workOrderMismatch": "LINE-F-006",
-        "updateWorkOrderFailed": "LINE-F-007",
-        "barcodeMaterialNotMatch": "LINE-H-001",
-        "equipmentInfoNotFound": "LINE-H-002",
-        "processInfoNotFound": "LINE-H-003",
-        "craftInfoNotFound2": "LINE-H-004",
-        "materialInfoNotFound": "LINE-H-005",
-        "materialNodeNotFound": "LINE-I-001",
-        "originalBarcodeMismatch": "LINE-I-002",
-        "repairRecordNotFound": "LINE-I-003",
-        "newBarcodeType": "LINE-I-004",
-        "newBarcodeIncomplete": "LINE-I-005",
-        "newBarcodeValidationFailed": "LINE-I-006",
-        "processDataValidationFailed": "LINE-J-001",
-        "createProcessRecordFailed": "LINE-J-002",
-        "scanRequestFailed": "LINE-J-003",
-        "fixBarcodeDataFailed": "LINE-J-004",
-        "rfidBarcodeNotFound": "LINE-K-001",
+        diCodeNotExists: "LINE-A-001",
+        diCodeNoMaterial: "LINE-A-002",
+        diCodeMaterialMismatch: "LINE-A-003",
+        barcodeRuleMismatch: "LINE-A-004",
+        mainBarcodeNotFound: "LINE-B-001",
+        processNodeNotFound: "LINE-B-002",
+        processNodeCompleted: "LINE-B-003",
+        repairRecordExists: "LINE-B-004",
+        repairResultFailed: "LINE-B-005",
+        barcodeVoided: "LINE-B-006",
+        barcodeMaterialMismatch: "LINE-B-007",
+        duplicateBarcode: "LINE-B-008",
+        prerequisiteIncomplete: "LINE-C-001",
+        quantityMismatch: "LINE-C-002",
+        duplicateScan: "LINE-C-003",
+        materialNotRequired: "LINE-C-004",
+        batchLimitReached: "LINE-D-001",
+        subMaterialNotFound: "LINE-D-002",
+        subMaterialIncomplete: "LINE-D-003",
+        keyMaterialDuplicate: "LINE-E-001",
+        usedByOtherProcess: "LINE-E-002",
+        keyMaterialMainRequired: "LINE-E-003",
+        workOrderNotFound: "LINE-F-001",
+        workOrderQuantityReached: "LINE-F-002",
+        missingParameters: "LINE-G-001",
+        materialCodeNotFound: "LINE-G-002",
+        craftInfoNotFound: "LINE-G-003",
+        barcodeParameterEmpty: "LINE-G-004",
+        productionPlanNotFound: "LINE-F-003",
+        validWorkOrderNotFound: "LINE-F-004",
+        productBarcodeNotBound: "LINE-F-005",
+        workOrderMismatch: "LINE-F-006",
+        updateWorkOrderFailed: "LINE-F-007",
+        barcodeMaterialNotMatch: "LINE-H-001",
+        equipmentInfoNotFound: "LINE-H-002",
+        processInfoNotFound: "LINE-H-003",
+        craftInfoNotFound2: "LINE-H-004",
+        materialInfoNotFound: "LINE-H-005",
+        materialNodeNotFound: "LINE-I-001",
+        originalBarcodeMismatch: "LINE-I-002",
+        repairRecordNotFound: "LINE-I-003",
+        newBarcodeType: "LINE-I-004",
+        newBarcodeIncomplete: "LINE-I-005",
+        newBarcodeValidationFailed: "LINE-I-006",
+        processDataValidationFailed: "LINE-J-001",
+        createProcessRecordFailed: "LINE-J-002",
+        scanRequestFailed: "LINE-J-003",
+        fixBarcodeDataFailed: "LINE-J-004",
+        rfidBarcodeNotFound: "LINE-K-001",
       },
       // 中文错误消息到键名的映射（用于向后兼容）
       chineseErrorMap: {
-        "该DI编码不存在本系统": "diCodeNotExists",
-        "该DI编码未关联有效物料": "diCodeNoMaterial",
-        "该DI编码对应的物料与当前工序不匹配": "diCodeMaterialMismatch",
-        "该条码不符合任何已配置的规则或物料不匹配": "barcodeRuleMismatch",
-        "未找到对应的主条码流程记录": "mainBarcodeNotFound",
-        "未找到对应的工序节点": "processNodeNotFound",
-        "工序节点已完成或处于异常状态": "processNodeCompleted",
-        "该条码存在未完成的维修记录": "repairRecordExists",
+        该DI编码不存在本系统: "diCodeNotExists",
+        该DI编码未关联有效物料: "diCodeNoMaterial",
+        该DI编码对应的物料与当前工序不匹配: "diCodeMaterialMismatch",
+        该条码不符合任何已配置的规则或物料不匹配: "barcodeRuleMismatch",
+        未找到对应的主条码流程记录: "mainBarcodeNotFound",
+        未找到对应的工序节点: "processNodeNotFound",
+        工序节点已完成或处于异常状态: "processNodeCompleted",
+        该条码存在未完成的维修记录: "repairRecordExists",
         "该条码已完成维修,但维修结果为不合格": "repairResultFailed",
-        "该条码已作废": "barcodeVoided",
-        "条码不匹配主物料": "barcodeMaterialMismatch",
-        "重复扫码": "duplicateBarcode",
-        "存在未完成的前置工序": "prerequisiteIncomplete",
-        "扫码数量与要求不符": "quantityMismatch",
-        "存在重复扫描的条码": "duplicateScan",
-        "物料不属于当前工序要求扫描的物料": "materialNotRequired",
-        "批次物料条码已达到使用次数限制": "batchLimitReached",
-        "未找到条码为的子物料流程记录": "subMaterialNotFound",
-        "该物料条码的子物料工序未完成": "subMaterialIncomplete",
-        "关键物料重复使用错误": "keyMaterialDuplicate",
-        "已被其他流程使用": "usedByOtherProcess",
-        "关键物料必须先扫描主条码": "keyMaterialMainRequired",
-        "未查询到生产工单": "workOrderNotFound",
-        "工单已达到计划数量": "workOrderQuantityReached",
-        "缺少必要参数": "missingParameters",
-        "未找到物料编码为": "materialCodeNotFound",
-        "未找到物料对应的工艺信息": "craftInfoNotFound",
-        "条码参数不能为空": "barcodeParameterEmpty",
-        "成品工艺未查询到产线计划": "productionPlanNotFound",
-        "未找到有效的产线工单": "validWorkOrderNotFound",
-        "产品条码未绑定工单": "productBarcodeNotBound",
-        "当前产线工单与产品条码工单不一致": "workOrderMismatch",
-        "更新工单投入量失败": "updateWorkOrderFailed",
-        "条码与物料不匹配": "barcodeMaterialNotMatch",
-        "未找到对应的设备信息": "equipmentInfoNotFound",
-        "未找到对应的工序信息": "processInfoNotFound",
-        "未找到对应的工艺信息": "craftInfoNotFound2",
-        "未找到对应的物料信息": "materialInfoNotFound",
-        "未找到指定的物料节点或物料节点不属于指定工序": "materialNodeNotFound",
-        "原物料条码不匹配": "originalBarcodeMismatch",
-        "未找到对应的部件替换维修记录": "repairRecordNotFound",
-        "新条码物料类型": "newBarcodeType",
-        "新条码的流程未完成": "newBarcodeIncomplete",
-        "新条码验证失败": "newBarcodeValidationFailed",
-        "验证流程数据失败": "processDataValidationFailed",
-        "创建工艺流程记录失败": "createProcessRecordFailed",
-        "处理扫码请求失败": "scanRequestFailed",
-        "修复条码物料异常数据失败": "fixBarcodeDataFailed",
-        "未找到该RFID标签对应的条码": "rfidBarcodeNotFound",
+        该条码已作废: "barcodeVoided",
+        条码不匹配主物料: "barcodeMaterialMismatch",
+        重复扫码: "duplicateBarcode",
+        存在未完成的前置工序: "prerequisiteIncomplete",
+        扫码数量与要求不符: "quantityMismatch",
+        存在重复扫描的条码: "duplicateScan",
+        物料不属于当前工序要求扫描的物料: "materialNotRequired",
+        批次物料条码已达到使用次数限制: "batchLimitReached",
+        未找到条码为的子物料流程记录: "subMaterialNotFound",
+        该物料条码的子物料工序未完成: "subMaterialIncomplete",
+        关键物料重复使用错误: "keyMaterialDuplicate",
+        已被其他流程使用: "usedByOtherProcess",
+        关键物料必须先扫描主条码: "keyMaterialMainRequired",
+        未查询到生产工单: "workOrderNotFound",
+        工单已达到计划数量: "workOrderQuantityReached",
+        缺少必要参数: "missingParameters",
+        未找到物料编码为: "materialCodeNotFound",
+        未找到物料对应的工艺信息: "craftInfoNotFound",
+        条码参数不能为空: "barcodeParameterEmpty",
+        成品工艺未查询到产线计划: "productionPlanNotFound",
+        未找到有效的产线工单: "validWorkOrderNotFound",
+        产品条码未绑定工单: "productBarcodeNotBound",
+        当前产线工单与产品条码工单不一致: "workOrderMismatch",
+        更新工单投入量失败: "updateWorkOrderFailed",
+        条码与物料不匹配: "barcodeMaterialNotMatch",
+        未找到对应的设备信息: "equipmentInfoNotFound",
+        未找到对应的工序信息: "processInfoNotFound",
+        未找到对应的工艺信息: "craftInfoNotFound2",
+        未找到对应的物料信息: "materialInfoNotFound",
+        未找到指定的物料节点或物料节点不属于指定工序: "materialNodeNotFound",
+        原物料条码不匹配: "originalBarcodeMismatch",
+        未找到对应的部件替换维修记录: "repairRecordNotFound",
+        新条码物料类型: "newBarcodeType",
+        新条码的流程未完成: "newBarcodeIncomplete",
+        新条码验证失败: "newBarcodeValidationFailed",
+        验证流程数据失败: "processDataValidationFailed",
+        创建工艺流程记录失败: "createProcessRecordFailed",
+        处理扫码请求失败: "scanRequestFailed",
+        修复条码物料异常数据失败: "fixBarcodeDataFailed",
+        未找到该RFID标签对应的条码: "rfidBarcodeNotFound",
       },
     };
   },
@@ -174,25 +191,31 @@ export default {
     },
     // 获取国际化的错误消息
     localizedText() {
+      const safeText = typeof this.text === "string" ? this.text : (this.text && this.text.message) ? this.text.message : String(this.text || "");
       if (this.type === "ok") {
-        return this.text;
+        return safeText;
       }
 
       // 尝试从错误消息映射中获取键名
-      const errorKey = this.getErrorKey(this.text);
+      const errorKey = this.getErrorKey(safeText);
       if (errorKey) {
         return this.$t(`statusPopup.errorMessages.${errorKey}`);
       }
 
       // 如果没有找到对应的键名，返回原始文本
-      return this.text;
+      return safeText;
     },
   },
   watch: {
     visible(val) {
       if (val) {
-        const displayDuration = this.type === 'ok' ? 1500 : this.duration;
-        this.startTimer(displayDuration);
+        if (this.type === "ok") {
+          // 成功弹窗始终自动关闭
+          this.startTimer(1500);
+        } else if (!this.manualConfirm) {
+          // 失败弹窗：仅在自动模式下才自动关闭
+          this.startTimer(this.duration);
+        }
       }
       if (val && this.type === "ng") {
         this.matchErrorCode();
@@ -209,15 +232,18 @@ export default {
     getErrorKey(errorMessage) {
       if (!errorMessage) return null;
 
+      // 确保是字符串，防止传入 Error 对象导致 includes 调用失败
+      const msg = typeof errorMessage === "string" ? errorMessage : (errorMessage.message || String(errorMessage));
+
       // 首先检查是否是中文错误消息
-      const chineseKey = this.chineseErrorMap[errorMessage];
+      const chineseKey = this.chineseErrorMap[msg];
       if (chineseKey) {
         return chineseKey;
       }
 
       // 检查是否包含中文错误消息的部分匹配
       for (const [chineseMsg, key] of Object.entries(this.chineseErrorMap)) {
-        if (errorMessage.includes(chineseMsg)) {
+        if (msg.includes(chineseMsg)) {
           return key;
         }
       }
@@ -259,6 +285,9 @@ export default {
     handleClose() {
       this.$emit("update:visible", false);
       this.matchedErrorCode = ""; // 关闭时清空错误编码
+    },
+    handleOverlayClick() {
+      this.handleClose();
     },
   },
   beforeDestroy() {
@@ -342,6 +371,35 @@ export default {
   color: #f56c6c;
   margin-top: 10px;
   font-weight: bold;
+}
+
+.status-close-btn {
+  /* 悬浮关闭按钮：固定在弹窗右上角 */
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #edf903;
+  cursor: pointer;
+  z-index: 2;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.status-close-btn i {
+  /* 放大图标尺寸，提升识别度 */
+  font-size: 20px;
+}
+
+.status-close-btn:hover {
+  /* 悬浮时略微放大并提高背景亮度，增强可点击感 */
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.08);
 }
 
 /* 背景网格效果 */

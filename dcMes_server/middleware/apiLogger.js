@@ -5,6 +5,81 @@ const config = require("../libs/config");
 // 查询型请求（通常噪声大）：默认不记录“成功”的请求日志
 // 仍保留异常/失败状态码的日志，便于排查问题
 const QUERY_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const SLOW_REQUEST_MS = 1000;
+const API_LOG_CONTEXT = Symbol("apiLoggerContext");
+const HIGH_FREQUENCY_SUCCESS_SKIP_PATHS = [
+  "/initialize-machine-barcode",
+  "/machine-scan-components",
+  "/get-laser-print-barcode",
+  "/confirm-laser-barcode-used",
+  "/check-barcode-prerequisites",
+];
+
+function shouldSkipLogPath(path = "") {
+  return (
+    path.includes("/health") ||
+    path.includes("/ping") ||
+    path.includes("/InspectionLastData") ||
+    path.includes("/InspectionData")
+  );
+}
+
+function shouldSkipSuccessfulPath(path = "") {
+  return HIGH_FREQUENCY_SUCCESS_SKIP_PATHS.some((item) => path.includes(item));
+}
+
+function buildEndpoint(req) {
+  const fullUrl = req.originalUrl || req.url || "";
+  return fullUrl.length > 500
+    ? fullUrl.substring(0, 500) + "...[截断]"
+    : fullUrl;
+}
+
+function buildResponseSnippet(responseBody) {
+  if (responseBody === null || responseBody === undefined) {
+    return null;
+  }
+
+  try {
+    const raw =
+      typeof responseBody === "string"
+        ? responseBody
+        : JSON.stringify(responseBody);
+    return raw.length > 500 ? raw.substring(0, 500) + "...[截断]" : raw;
+  } catch (_) {
+    return "[序列化失败]";
+  }
+}
+
+function shouldPersistApiLog({
+  path,
+  method,
+  statusCode,
+  success,
+  executionTime,
+}) {
+  if (statusCode >= 400 || success === false) {
+    return true;
+  }
+
+  // 成功的写操作请求全部保留，便于追踪关键数据变更
+  if (["POST", "PUT", "DELETE"].includes((method || "").toUpperCase())) {
+    return true;
+  }
+
+  // 成功的高频设备接口直接跳过，继续降低主库日志写入压力
+  if (shouldSkipSuccessfulPath(path)) {
+    return false;
+  }
+
+  // 成功的查询型请求默认不记录
+  if (QUERY_METHODS.has((method || "").toUpperCase())) {
+    return false;
+  }
+
+  // 其他成功请求仅记录慢请求
+  return executionTime >= SLOW_REQUEST_MS;
+}
 
 /**
  * API日志中间件
@@ -12,16 +87,24 @@ const QUERY_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
  */
 const apiLogger = (serviceName) => {
   return async (req, res, next) => {
-    // 保存原始的res.json方法
-    const originalJson = res.json;
-    const startTime = Date.now();
-    let responseBody = null;
-
-    // 覆盖res.json方法以捕获响应内容
-    res.json = function (data) {
-      responseBody = data;
-      return originalJson.call(this, data);
+    const logContext = req[API_LOG_CONTEXT] || {
+      startTime: Date.now(),
+      responseBody: null,
+      serviceNames: new Set(),
+      finishHookAttached: false,
+      responseWrapped: false,
     };
+    req[API_LOG_CONTEXT] = logContext;
+    logContext.serviceNames.add(serviceName);
+
+    if (!logContext.responseWrapped) {
+      const originalJson = res.json.bind(res);
+      res.json = function (data) {
+        logContext.responseBody = data;
+        return originalJson(data);
+      };
+      logContext.responseWrapped = true;
+    }
 
     // 从请求头中获取用户token并解析用户ID
     let userId = null;
@@ -60,17 +143,6 @@ const apiLogger = (serviceName) => {
 
     if (token && token.length > 0) {
       try {
-        // 【调试】不解密仅解码，查看 token 内的过期时间与当前服务器时间
-        const decodedOnly = jwt.decode(token);
-        const nowSec = Math.floor(Date.now() / 1000);
-        if (decodedOnly && typeof decodedOnly.exp === 'number') {
-          const expDate = new Date(decodedOnly.exp * 1000);
-          const iatDate = decodedOnly.iat ? new Date(decodedOnly.iat * 1000) : null;
-          console.log(`[${serviceName}] Token调试: path=${req.method} ${req.path}, token前20字符=${token.substring(0, 20)}..., iat=${decodedOnly.iat}(${iatDate ? iatDate.toISOString() : 'N/A'}), exp=${decodedOnly.exp}(${expDate.toISOString()}), 服务器当前=${nowSec}(${new Date().toISOString()}), 是否已过期=${decodedOnly.exp < nowSec}`);
-        } else {
-          console.log(`[${serviceName}] Token调试: path=${req.method} ${req.path}, decode无exp/iat`, decodedOnly ? Object.keys(decodedOnly) : 'decode为null');
-        }
-
         // 如果前置中间件已经解析过用户信息（例如同一路由上重复挂载了 apiLogger），避免重复验签
         if (req.userId || req.userName || req.realName || req.roleId) {
           userId = req.userId ?? null;
@@ -92,38 +164,21 @@ const apiLogger = (serviceName) => {
         req.realName = realName;
         req.roleId = roleId;
       } catch (err) {
-        // 【调试】验证失败时再次解码，确认请求里带的是哪个 token（过期时间等）
-        const decodedOnFail = jwt.decode(token);
-        const nowSec = Math.floor(Date.now() / 1000);
-        console.error(`[${serviceName}] Token验证失败:`, err.message, `path=${req.method} ${req.path}`);
-        if (decodedOnFail && typeof decodedOnFail.exp === 'number') {
-          console.error(`[${serviceName}] 失败时Token内容: exp=${decodedOnFail.exp}(${new Date(decodedOnFail.exp * 1000).toISOString()}), 服务器当前=${nowSec}(${new Date().toISOString()}), token前20字符=${token.substring(0, 20)}...`);
-        }
-
         // 如果不是登录或公开路由，则返回401错误
         if (!isLoginRoute && !isPublicRoute && !isDeviceRoute) {
           // 记录验证失败日志
           try {
-            // 处理 endpoint，防止过长的 URL 导致索引失败
-            const fullUrl = req.originalUrl || req.url;
-            const endpoint = fullUrl.length > 500 ? fullUrl.substring(0, 500) + '...[截断]' : fullUrl;
-
             const logEntry = new ApiLog({
-              endpoint: endpoint,
+              endpoint: buildEndpoint(req),
               method: req.method,
               serviceName: serviceName,
               requestParams: req.params,
               requestQuery: req.query,
-              requestBody: req.body,
               responseStatus: 401,
-              responseBody: {
-                success: false,
-                message: "Token验证失败，请重新登录",
-                code: 401,
-              },
+              responseSnippet: '{"success":false,"message":"Token验证失败，请重新登录","code":401}',
               success: false,
-              executionTime: Date.now() - startTime,
-              errorMessage: err.message,
+              executionTime: Date.now() - logContext.startTime,
+              errorMessage: err.message && err.message.length > 1000 ? err.message.substring(0, 1000) : err.message,
               userIp: req.ip || req.connection.remoteAddress,
               timestamp: new Date(),
             });
@@ -142,30 +197,18 @@ const apiLogger = (serviceName) => {
         }
       }
     } else if (!isLoginRoute && !isPublicRoute && !isDeviceRoute) {
-      // 如果非公开路由且没有提供token，返回401错误
-      console.error(`[${serviceName}] 未提供Token`);
-
       // 记录未提供Token的日志
       try {
-        // 处理 endpoint，防止过长的 URL 导致索引失败
-        const fullUrl = req.originalUrl || req.url;
-        const endpoint = fullUrl.length > 500 ? fullUrl.substring(0, 500) + '...[截断]' : fullUrl;
-
         const logEntry = new ApiLog({
-          endpoint: endpoint,
+          endpoint: buildEndpoint(req),
           method: req.method,
           serviceName: serviceName,
           requestParams: req.params,
           requestQuery: req.query,
-          requestBody: req.body,
           responseStatus: 401,
-          responseBody: {
-            success: false,
-            message: "未提供授权Token，请登录",
-            code: 401,
-          },
+          responseSnippet: '{"success":false,"message":"未提供授权Token，请登录","code":401}',
           success: false,
-          executionTime: Date.now() - startTime,
+          executionTime: Date.now() - logContext.startTime,
           errorMessage: "未提供授权Token",
           userIp: req.ip || req.connection.remoteAddress,
           timestamp: new Date(),
@@ -185,94 +228,94 @@ const apiLogger = (serviceName) => {
     }
 
     // 请求处理完成后记录日志
-    res.on("finish", async () => {
-      try {
-        const endTime = Date.now();
-        const executionTime = endTime - startTime;
+    if (!logContext.finishHookAttached) {
+      logContext.finishHookAttached = true;
+      res.on("finish", async () => {
+        try {
+          const executionTime = Date.now() - logContext.startTime;
+          const responseBody = logContext.responseBody;
+          const success = res.statusCode < 400 && responseBody?.success !== false;
 
-        // 如果路径包含健康检查或其他不需要记录的路径，可以在这里过滤
-        const method = (req.method || "").toUpperCase();
-        const isQueryMethod = QUERY_METHODS.has(method);
-
-        // 过滤健康检查等噪声路径
-        if (
-          req.path.includes("/health") ||
-          req.path.includes("/ping") ||
-          req.path.includes("/InspectionLastData") ||
-          req.path.includes("/InspectionData")
-        ) {
-          return;
-        }
-
-        // 排除记录查询类型请求日志（例如 CRUD 列表/查询 GET）
-        // 但保留失败/异常状态码（>=400）的日志，便于排查
-        if (isQueryMethod && res.statusCode < 400) {
-          return;
-        }
-
-        // 特殊处理登录接口 - 从响应体中获取用户信息
-        let logUserId = userId;
-        let logUserName = userName;
-        let logRealName = realName;
-        let logRoleId = roleId;
-
-        if (req.path.includes("/user/login") && responseBody?.code === 200 && responseBody?.user) {
-          // 登录成功时，从响应中获取用户信息
-          logUserId = responseBody.user._id;
-          logUserName = responseBody.user.userName;
-          logRealName = responseBody.user.realName || responseBody.user.userName;
-          logRoleId = responseBody.user.role ? responseBody.user.role._id : null;
-        } else if (req.path.includes("/user/info") && !userId && req.body?.id) {
-          // 用户信息接口，如果token解析失败但请求体中有用户ID，尝试从请求体获取
-          try {
-            const user_login = require("../model/system/user_login");
-            const user = await user_login.findOne({ _id: req.body.id }).populate('role');
-            if (user) {
-              logUserId = user._id;
-              logUserName = user.userName;
-              logRealName = user.realName || user.userName;
-              logRoleId = user.role ? user.role._id : null;
-            }
-          } catch (userLookupErr) {
-            console.error(`[${serviceName}] 从请求体查找用户信息失败:`, userLookupErr);
+          if (shouldSkipLogPath(req.path)) {
+            return;
           }
+
+          if (
+            !shouldPersistApiLog({
+              path: req.path,
+              method: req.method,
+              statusCode: res.statusCode,
+              success,
+              executionTime,
+            })
+          ) {
+            return;
+          }
+
+          // 特殊处理登录接口 - 从响应体中获取用户信息
+          let logUserId = userId;
+          let logUserName = userName;
+          let logRealName = realName;
+          let logRoleId = roleId;
+
+          if (
+            req.path.includes("/user/login") &&
+            responseBody?.code === 200 &&
+            responseBody?.user
+          ) {
+            logUserId = responseBody.user._id;
+            logUserName = responseBody.user.userName;
+            logRealName = responseBody.user.realName || responseBody.user.userName;
+            logRoleId = responseBody.user.role ? responseBody.user.role._id : null;
+          } else if (req.path.includes("/user/info") && !userId && req.body?.id) {
+            try {
+              const user_login = require("../model/system/user_login");
+              const user = await user_login.findOne({ _id: req.body.id }).populate("role");
+              if (user) {
+                logUserId = user._id;
+                logUserName = user.userName;
+                logRealName = user.realName || user.userName;
+                logRoleId = user.role ? user.role._id : null;
+              }
+            } catch (userLookupErr) {
+              console.error(`[${serviceName}] 从请求体查找用户信息失败:`, userLookupErr);
+            }
+          }
+
+          const rawErrorMsg =
+            responseBody?.message && !success ? responseBody.message : null;
+          const errorMessage =
+            rawErrorMsg && rawErrorMsg.length > 1000
+              ? rawErrorMsg.substring(0, 1000) + "...[截断]"
+              : rawErrorMsg;
+
+          const logEntry = new ApiLog({
+            endpoint: buildEndpoint(req),
+            method: req.method,
+            serviceName: Array.from(logContext.serviceNames).join("|"),
+            requestParams: req.params,
+            requestQuery: req.query,
+            responseStatus: res.statusCode,
+            responseSnippet: buildResponseSnippet(responseBody),
+            success: success,
+            executionTime: executionTime,
+            errorMessage: errorMessage,
+            userId: logUserId,
+            userName: logUserName,
+            realName: logRealName,
+            roleId: logRoleId,
+            userIp: req.ip || req.connection.remoteAddress,
+            timestamp: new Date(),
+          });
+
+          logEntry.save().catch((error) => {
+            console.error(`[${serviceName}] 记录API日志时出错:`, error);
+          });
+        } catch (error) {
+          console.error(`[${serviceName}] 记录API日志时出错:`, error);
         }
-
-        // 处理 endpoint，防止过长的 URL 导致索引失败
-        // 截断到最大 500 字符，因为 MongoDB 索引键有大小限制（约 1024 字节）
-        const fullUrl = req.originalUrl || req.url;
-        const endpoint = fullUrl.length > 500 ? fullUrl.substring(0, 500) + '...[截断]' : fullUrl;
-
-        // 创建日志记录
-        const logEntry = new ApiLog({
-          endpoint: endpoint,
-          method: req.method,
-          serviceName: serviceName,
-          requestParams: req.params,
-          requestQuery: req.query,
-          requestBody: req.body,
-          responseStatus: res.statusCode,
-          responseBody: responseBody,
-          success: res.statusCode < 400 && responseBody?.success !== false,
-          executionTime: executionTime,
-          errorMessage:
-            responseBody?.message && !responseBody?.success
-              ? responseBody.message
-              : null,
-          userId: logUserId,
-          userName: logUserName,
-          realName: logRealName,
-          roleId: logRoleId,
-          userIp: req.ip || req.connection.remoteAddress,
-          timestamp: new Date(),
-        });
-
-        // 异步保存日志，不阻塞响应
-        await logEntry.save();
-      } catch (error) {
-        console.error(`[${serviceName}] 记录API日志时出错:`, error);
-      }
-    });
+      });
+    }
 
     next();
   };

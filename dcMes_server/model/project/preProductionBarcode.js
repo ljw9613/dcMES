@@ -80,6 +80,8 @@ preProductionBarcodeSchema.index({ transformedPrintBarcode: 1 });
 preProductionBarcodeSchema.index({ materialNumber: 1 });
 preProductionBarcodeSchema.index({ status: 1 });
 preProductionBarcodeSchema.index({ createAt: -1 });
+// 列表常用：按创建时间+序号排序，避免大 skip 时内存排序超 32MB 报错
+preProductionBarcodeSchema.index({ createAt: -1, serialNumber: -1 });
 
 // 添加新的索引
 preProductionBarcodeSchema.index({ lineNum: 1 });

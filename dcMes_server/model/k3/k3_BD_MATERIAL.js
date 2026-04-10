@@ -75,8 +75,17 @@ var materialSchema = new mongoose.Schema({
     lastSyncTime: { type: Date, default: Date.now }, // 最后同步时间
 });
 
-// 添加索引
-materialSchema.index({ FMATERIALID: 1 }); // 按照物料ID建立索引
-materialSchema.index({ FNumber: 1 }); // 按照物料编码建立索引
+// 单字段索引：精确查询 / 前缀正则可走索引
+materialSchema.index({ FMATERIALID: 1 }, { unique: true });
+materialSchema.index({ FNumber: 1 });
+materialSchema.index({ FName: 1 });
+// 复合索引：列表查询常见过滤组合（禁用状态 + 编码/名称排序）
+materialSchema.index({ FForbidStatus: 1, FNumber: 1 });
+materialSchema.index({ FForbidStatus: 1, FName: 1 });
+// 全文搜索索引：支持 $text 搜索 FNumber / FName，避免 filter:{} 全集合扫描
+materialSchema.index(
+  { FNumber: "text", FName: "text", FNameEn: "text" },
+  { name: "material_text_search", default_language: "none" }
+);
 
 module.exports = mongoose.model("k3_BD_MATERIAL", materialSchema);

@@ -15,4 +15,7 @@ const productDiNum = new mongoose.Schema(
   }
 );
 
+// 按 DI 码 + 产品查询索引，避免 COLLSCAN（日志中扫 318 条达 63s）
+productDiNum.index({ diNum: 1, productId: 1 }, { background: true, name: "idx_diNum_productId" });
+
 module.exports = mongoose.model("productDiNum", productDiNum);

@@ -31,4 +31,13 @@ var processMaterialsSchema = new mongoose.Schema({
   updateAt: { type: Date, default: Date.now }, // 更新时间
 });
 
+processMaterialsSchema.index(
+  { processStepId: 1 },
+  { background: true, name: "idx_processStepId" }
+);
+processMaterialsSchema.index(
+  { materialId: 1 },
+  { background: true, name: "idx_materialId" }
+);
+
 module.exports = mongoose.model("processMaterials", processMaterialsSchema);

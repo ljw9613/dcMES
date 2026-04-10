@@ -14,9 +14,6 @@ const config = require("../libs/config");
  */
 const activityCheck = () => {
   return (req, res, next) => {
-    // 15分钟 = 15 * 60 * 1000 毫秒
-    const ACTIVITY_TIMEOUT = 2 * 60 * 1000;
-    
     // 检查请求路径是否为登录路由或不需要验证的路由
     const isLoginRoute = req.path.includes("/login") || req.path.includes("/auth");
     const isPublicRoute = req.path.includes("/public") || 
@@ -25,9 +22,12 @@ const activityCheck = () => {
     const isDeviceRoute = req.path.includes("/machine-scan-components") ||
                          req.path.includes("/initialize-machine-barcode") ||
                          req.path.includes("/confirm-laser-barcode-used");
+    // 追觅割草机车间对外三元组接口：免 JWT，安全依赖网络/专线隔离（勿对公网暴露）
+    const isTripletPublicApi =
+      req.method === "POST" && req.path === "/api/v1/tripletData";
     
     // 如果是不需要检查的路由，直接跳过
-    if (isLoginRoute || isPublicRoute || isDeviceRoute) {
+    if (isLoginRoute || isPublicRoute || isDeviceRoute || isTripletPublicApi) {
       return next();
     }
     
@@ -50,11 +50,6 @@ const activityCheck = () => {
       // 验证并解析token
       const decoded = jwt.verify(token, config.secretOrPrivateKey);
       const now = Date.now();
-      const expSec = decoded.exp;
-      const expMs = expSec ? expSec * 1000 : null;
-      const isExpired = expMs ? now > expMs : false;
-      console.log('[Token调试] 活动检查-验证通过', req.path, '| 用户:', decoded.userName || decoded._id, '| exp(秒):', expSec, '| 当前(秒):', Math.floor(now / 1000), '| 已过期:', isExpired);
-      console.log(`活动检查 - 用户: ${decoded.userName}, 路径: ${req.path}`);
       
       // 检查token中是否包含活动时间信息
       if (!decoded.lastActivityTime && !decoded.loginTime) {
@@ -68,18 +63,7 @@ const activityCheck = () => {
       // const timeSinceLastActivity = now - lastActivity;
       
       // 后端不再进行时间校验，避免前后端时间不同步问题
-      console.log(`用户 ${decoded.userName} 请求通过，不进行后端时间校验`);
-      
-      // 后端不再检查超时，由前端完全控制会话过期
-      // if (timeSinceLastActivity > ACTIVITY_TIMEOUT) {
-      //   // 时间校验逻辑已移除
-      // }
-      
-      // 后端不再发送警告，由前端控制
-      // if (timeSinceLastActivity > WARNING_TIME) {
-      //   // 警告逻辑已移除
-      // }
-      
+
       // 更新用户活动时间（生成新token）
       // 移除JWT标准字段，只保留自定义字段
       const { exp, iat, ...customPayload } = decoded;
@@ -87,16 +71,12 @@ const activityCheck = () => {
         ...customPayload,
         lastActivityTime: now
       };
-      
-      console.log(`为用户 ${decoded.userName} 生成新token，活动时间: ${new Date(now).toLocaleString()}`);
+
       
       // 生成新的token
       const newToken = jwt.sign(updatedPayload, config.secretOrPrivateKey, {
         expiresIn: "30 days"
       });
-      const newDecoded = jwt.decode(newToken);
-      const newExp = newDecoded && newDecoded.exp ? newDecoded.exp : null;
-      console.log('[Token调试] 活动检查-下发X-New-Token', req.path, '| 新token exp(秒):', newExp, '| 过期时间:', newExp ? new Date(newExp * 1000).toISOString() : '');
       // 在响应头中返回新token
       res.setHeader('X-New-Token', newToken);
       
@@ -110,8 +90,7 @@ const activityCheck = () => {
       next();
       
     } catch (err) {
-      console.error('[Token调试] 活动检查-401 JWT验证失败', req.method, req.path, '| err.name:', err.name, '| err.message:', err.message);
-      console.error('活动检查中间件错误:', err.message);
+      console.warn('[activityCheck] JWT验证失败', req.method, req.path, '| err.name:', err.name, '| err.message:', err.message);
       
       return res.status(401).json({
         code: 401,

@@ -47,7 +47,7 @@ class BarcodeRuleCache {
         host: process.env.REDIS_HOST || "localhost",
         port: process.env.REDIS_PORT || 6379,
         password: process.env.REDIS_PASSWORD || undefined,
-        db: 2, // 使用 DB 3 存储条码规则缓存（独立于队列服务的 DB 2）
+        db: 3, // 使用 DB 3 存储条码规则缓存（独立于队列服务的 DB 2）
 
         // 连接选项
         maxRetriesPerRequest: 3,
@@ -78,7 +78,7 @@ class BarcodeRuleCache {
         this.connected = false;
         console.warn(
           "⚠️ 条码规则缓存 Redis 连接错误，将使用内存缓存:",
-          error.message
+          error.message,
         );
       });
 
@@ -256,20 +256,23 @@ class BarcodeRuleCache {
    */
   startAutoCleanup() {
     // Redis 会自动清理过期键，这里只是定期记录统计信息
-    setInterval(async () => {
-      if (this.connected) {
-        try {
-          const stats = await this.getStats();
-          if (stats.expired > 0) {
-            console.log(
-              `🧹 Redis 自动过期清理: ${stats.expired} 项 (总计: ${stats.total})`
-            );
+    setInterval(
+      async () => {
+        if (this.connected) {
+          try {
+            const stats = await this.getStats();
+            if (stats.expired > 0) {
+              console.log(
+                `🧹 Redis 自动过期清理: ${stats.expired} 项 (总计: ${stats.total})`,
+              );
+            }
+          } catch (error) {
+            // 忽略错误
           }
-        } catch (error) {
-          // 忽略错误
         }
-      }
-    }, 10 * 60 * 1000); // 每10分钟记录一次
+      },
+      10 * 60 * 1000,
+    ); // 每10分钟记录一次
   }
 
   /**
@@ -287,9 +290,265 @@ class BarcodeRuleCache {
   }
 }
 
+/**
+ * 【并发安全】关键物料条码分布式锁管理器
+ * 使用 Redis SETNX 实现分布式锁，防止同一关键物料条码被并发绑定到多个主条码
+ * 锁的有效期为3分钟，自动过期释放
+ */
+class KeyMaterialLock {
+  constructor() {
+    this.lockTimeout = 3 * 60; // 3分钟（Redis使用秒为单位）
+    this.keyPrefix = "key_material_lock:"; // 锁键前缀
+    this.redis = null;
+    this.connected = false;
+
+    // 初始化 Redis 连接（复用条码规则缓存的Redis连接配置，但使用不同的键前缀）
+    this.initRedis();
+  }
+
+  /**
+   * 初始化 Redis 连接（使用与条码规则缓存相同的 DB）
+   */
+  initRedis() {
+    try {
+      // 创建独立的 Redis 连接，使用与条码规则缓存相同的 DB
+      this.redis = new Redis({
+        host: process.env.REDIS_HOST || "localhost",
+        port: process.env.REDIS_PORT || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: 5, // 使用与条码规则缓存相同的 DB
+
+        // 连接选项
+        maxRetriesPerRequest: 3,
+        retryDelayOnFailover: 100,
+        enableReadyCheck: false,
+        lazyConnect: false, // 立即连接
+        keepAlive: 30000,
+
+        // 连接池配置
+        family: 4,
+        connectTimeout: 10000,
+        commandTimeout: 5000,
+      });
+
+      // 连接成功事件
+      this.redis.on("connect", () => {
+        console.log("🔗 关键物料锁 Redis 连接已建立");
+      });
+
+      // 连接就绪事件
+      this.redis.on("ready", () => {
+        this.connected = true;
+        console.log("✅ 关键物料锁 Redis 连接就绪");
+      });
+
+      // 连接错误事件（降级处理）
+      this.redis.on("error", (error) => {
+        this.connected = false;
+        console.warn(
+          "⚠️ 关键物料锁 Redis 连接错误，将跳过锁机制:",
+          error.message,
+        );
+      });
+
+      // 连接关闭事件
+      this.redis.on("close", () => {
+        this.connected = false;
+        console.log("🔌 关键物料锁 Redis 连接已关闭");
+      });
+
+      // 重连事件
+      this.redis.on("reconnecting", (delay) => {
+        console.log(`🔄 关键物料锁 Redis 正在重连... (${delay}ms)`);
+      });
+    } catch (error) {
+      console.error("❌ 初始化关键物料锁 Redis 失败:", error.message);
+      console.warn("⚠️ 将跳过锁机制作为降级方案");
+      this.redis = null;
+      this.connected = false;
+    }
+  }
+
+  /**
+   * 尝试获取关键物料条码锁
+   * @param {string} barcode - 关键物料条码
+   * @param {string} mainBarcode - 主条码（用于标识锁的持有者）
+   * @returns {Promise<{success: boolean, message?: string}>} 获取锁的结果
+   */
+  async acquireLock(barcode, mainBarcode) {
+    if (!this.connected || !this.redis) {
+      // Redis 不可用时，跳过锁机制（降级处理）
+      console.warn(`⚠️ Redis 不可用，跳过关键物料条码 ${barcode} 的锁机制`);
+      return { success: true, message: "Redis不可用，跳过锁机制" };
+    }
+
+    try {
+      const lockKey = this.keyPrefix + barcode;
+      const lockValue = `${mainBarcode}:${Date.now()}`; // 锁的值包含主条码和时间戳
+
+      // 使用 SETNX 命令尝试获取锁，同时设置过期时间
+      // SET key value NX EX seconds
+      // NX: 只在键不存在时设置
+      // EX: 设置过期时间（秒）
+      const result = await this.redis.set(
+        lockKey,
+        lockValue,
+        "EX",
+        this.lockTimeout,
+        "NX",
+      );
+
+      if (result === "OK") {
+        console.log(
+          `🔒 成功获取关键物料条码锁: ${barcode} (主条码: ${mainBarcode})`,
+        );
+        return { success: true };
+      } else {
+        // 锁已被其他请求持有，获取锁的持有者信息
+        const currentLockValue = await this.redis.get(lockKey);
+        const lockInfo = currentLockValue
+          ? currentLockValue.split(":")
+          : ["unknown", "unknown"];
+        const lockHolder = lockInfo[0];
+        const lockTime = lockInfo[1]
+          ? new Date(parseInt(lockInfo[1])).toLocaleString()
+          : "unknown";
+
+        console.warn(
+          `⚠️ 关键物料条码 ${barcode} 已被锁定 (持有者: ${lockHolder}, 锁定时间: ${lockTime})`,
+        );
+        return {
+          success: false,
+          message: `关键物料条码 ${barcode} 正在被其他流程使用中，请稍后重试`,
+        };
+      }
+    } catch (error) {
+      console.error(`❌ 获取关键物料条码锁失败: ${barcode}`, error.message);
+      // 发生错误时，为了不阻塞业务流程，返回成功（降级处理）
+      return {
+        success: true,
+        message: "获取锁时发生错误，已降级处理",
+      };
+    }
+  }
+
+  /**
+   * 释放关键物料条码锁
+   * @param {string} barcode - 关键物料条码
+   * @param {string} mainBarcode - 主条码（用于验证锁的持有者）
+   * @returns {Promise<{success: boolean, message?: string}>} 释放锁的结果
+   */
+  async releaseLock(barcode, mainBarcode) {
+    if (!this.connected || !this.redis) {
+      return { success: true };
+    }
+
+    try {
+      const lockKey = this.keyPrefix + barcode;
+      const currentLockValue = await this.redis.get(lockKey);
+
+      // 验证锁的持有者（防止误删其他请求的锁）
+      if (currentLockValue && currentLockValue.startsWith(mainBarcode + ":")) {
+        await this.redis.del(lockKey);
+        console.log(
+          `🔓 成功释放关键物料条码锁: ${barcode} (主条码: ${mainBarcode})`,
+        );
+        return { success: true };
+      } else {
+        // 锁已被其他请求持有或已过期
+        console.warn(
+          `⚠️ 无法释放关键物料条码锁: ${barcode} (锁的持有者不匹配或已过期)`,
+        );
+        return { success: true, message: "锁已过期或被其他请求持有" };
+      }
+    } catch (error) {
+      console.error(`❌ 释放关键物料条码锁失败: ${barcode}`, error.message);
+      return { success: true }; // 即使释放失败也不影响业务流程
+    }
+  }
+
+  /**
+   * 批量获取多个关键物料条码锁
+   * @param {Array<string>} barcodes - 关键物料条码数组
+   * @param {string} mainBarcode - 主条码
+   * @returns {Promise<{success: boolean, lockedBarcodes: Array<string>, message?: string}>} 获取锁的结果
+   */
+  async acquireLocks(barcodes = [], mainBarcode) {
+    if (!barcodes || barcodes.length === 0) {
+      return { success: true, lockedBarcodes: [] };
+    }
+
+    const lockedBarcodes = [];
+    const failedBarcodes = [];
+
+    for (const barcode of barcodes) {
+      const result = await this.acquireLock(barcode, mainBarcode);
+      if (result.success) {
+        lockedBarcodes.push(barcode);
+      } else {
+        failedBarcodes.push(barcode);
+        // 如果获取锁失败，释放已获取的锁
+        for (const lockedBarcode of lockedBarcodes) {
+          await this.releaseLock(lockedBarcode, mainBarcode);
+        }
+        return {
+          success: false,
+          lockedBarcodes: [],
+          message: result.message || `关键物料条码 ${barcode} 获取锁失败`,
+        };
+      }
+    }
+
+    return { success: true, lockedBarcodes };
+  }
+
+  /**
+   * 批量释放多个关键物料条码锁
+   * @param {Array<string>} barcodes - 关键物料条码数组
+   * @param {string} mainBarcode - 主条码
+   * @returns {Promise<{success: boolean}>} 释放锁的结果
+   */
+  async releaseLocks(barcodes, mainBarcode) {
+    if (!barcodes || barcodes.length === 0) {
+      return { success: true };
+    }
+
+    for (const barcode of barcodes) {
+      await this.releaseLock(barcode, mainBarcode);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * 关闭 Redis 连接
+   */
+  async disconnect() {
+    if (this.redis) {
+      try {
+        await this.redis.disconnect();
+        console.log("👋 关键物料锁 Redis 连接已关闭");
+      } catch (error) {
+        console.error("❌ 关闭 Redis 连接失败:", error.message);
+      }
+    }
+  }
+}
+
 class MaterialProcessFlowService {
   // 初始化条码规则缓存（每个进程独立）
   static barcodeRuleCache = new BarcodeRuleCache();
+  // 初始化关键物料锁管理器（每个进程独立）
+  static keyMaterialLock = new KeyMaterialLock();
+
+  static logPerfMetrics(operationName, mainBarcode, metrics = {}) {
+    const orderedMetrics = Object.entries(metrics)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => `${key}=${value}`);
+    console.log(
+      `[perf][${operationName}] barcode=${mainBarcode} ${orderedMetrics.join(" ")}`,
+    );
+  }
 
   /**
    * 【缓存管理】清除条码规则缓存
@@ -480,7 +739,7 @@ class MaterialProcessFlowService {
     productLineId,
     productLineName,
     isFromDevice = false,
-    productionPlanWorkOrderId = null
+    productionPlanWorkOrderId = null,
   ) {
     try {
       // 1. 获取物料信息
@@ -489,10 +748,10 @@ class MaterialProcessFlowService {
         throw new Error(`未找到物料编码为 ${materialCode} 的物料信息`);
       }
 
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ mainMaterialId:",
-        mainMaterialId
-      );
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ mainMaterialId:",
+      //   mainMaterialId
+      // );
 
       // 2. 获取物料对应的工艺信息
       const craft = await Craft.findOne({ materialId: mainMaterialId });
@@ -504,13 +763,13 @@ class MaterialProcessFlowService {
       const processNodes = await this.buildProcessNodes(
         material._id,
         craft,
-        new Set()
+        new Set(),
       );
 
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ processNodes:",
-        processNodes
-      );
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ processNodes:",
+      //   processNodes
+      // );
 
       // 4. 创建流程记录，只在存在工单ID时添加相关字段
       const flowRecordData = {
@@ -544,10 +803,10 @@ class MaterialProcessFlowService {
         });
       }
 
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ planWorkOrder:",
-        planWorkOrder
-      );
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ planWorkOrder:",
+      //   planWorkOrder
+      // );
 
       //成品工艺必须有产线计划才可以初始化
       if (craft.isProduct && !planWorkOrder) {
@@ -581,7 +840,7 @@ class MaterialProcessFlowService {
   static async buildProcessNodes(
     materialId,
     craft,
-    processedMaterials = new Set()
+    processedMaterials = new Set(),
   ) {
     try {
       // 检查材料是否已处理过（检测循环依赖）
@@ -641,7 +900,7 @@ class MaterialProcessFlowService {
           _id: { $in: allMaterialIds },
         });
         const materialMap = new Map(
-          allMaterials.map((m) => [m._id.toString(), m])
+          allMaterials.map((m) => [m._id.toString(), m]),
         );
 
         // 【性能优化】批量查询所有子物料的工艺信息
@@ -649,7 +908,7 @@ class MaterialProcessFlowService {
           materialId: { $in: allMaterialIds },
         });
         const craftMap = new Map(
-          allCrafts.map((c) => [c.materialId.toString(), c])
+          allCrafts.map((c) => [c.materialId.toString(), c]),
         );
 
         // 初始化实际生产顺序计数器
@@ -684,7 +943,7 @@ class MaterialProcessFlowService {
           // 处理工序物料节点
           for (const processMaterial of processMaterials) {
             const material = materialMap.get(
-              processMaterial.materialId.toString()
+              processMaterial.materialId.toString(),
             );
             if (!material) continue;
 
@@ -721,7 +980,7 @@ class MaterialProcessFlowService {
               const subNodes = await this.buildProcessNodes(
                 material._id,
                 subCraft,
-                processedMaterials // 传入已处理的物料集合
+                processedMaterials, // 传入已处理的物料集合
               );
               // 调整子节点的层级和父节点
               subNodes.forEach((node) => {
@@ -757,7 +1016,7 @@ class MaterialProcessFlowService {
 
     // 获取当前节点的父物料节点
     const parentMaterialNode = processNodes.find(
-      (node) => node.nodeId === currentNode.parentNodeId
+      (node) => node.nodeId === currentNode.parentNodeId,
     );
     if (!parentMaterialNode) return { isValid: true, unfinishedSteps: [] };
 
@@ -766,13 +1025,13 @@ class MaterialProcessFlowService {
       .filter(
         (node) =>
           node.nodeType === "PROCESS_STEP" &&
-          node.parentNodeId === parentMaterialNode.nodeId
+          node.parentNodeId === parentMaterialNode.nodeId,
       )
       .sort((a, b) => a.processSort - b.processSort);
 
     // 找到当前工序的索引
     const currentIndex = levelProcessSteps.findIndex(
-      (step) => step.nodeId === currentNode.nodeId
+      (step) => step.nodeId === currentNode.nodeId,
     );
 
     // 检查当前工序之前的所有工序完成状态
@@ -806,7 +1065,7 @@ class MaterialProcessFlowService {
 
     while (currentParentId) {
       const parentNode = processNodes.find(
-        (node) => node.nodeId === currentParentId
+        (node) => node.nodeId === currentParentId,
       );
       if (!parentNode) break;
 
@@ -836,8 +1095,14 @@ class MaterialProcessFlowService {
     userId,
     lineId,
     isFromDevice = false,
-    productionPlanWorkOrderId = null
+    productionPlanWorkOrderId = null,
   ) {
+    // 【并发安全】关键物料条码锁数组，用于在错误时释放锁
+    let lockedKeyBarcodes = [];
+    const perfMetrics = {
+      startedAt: Date.now(),
+    };
+
     try {
       // 1. 验证输入参数
       if (!mainBarcode) {
@@ -886,7 +1151,7 @@ class MaterialProcessFlowService {
         (node) =>
           node.processStepId &&
           node.processStepId.toString() === processStepId.toString() &&
-          node.nodeType === "PROCESS_STEP"
+          node.nodeType === "PROCESS_STEP",
       );
 
       // console.log("🚀 ~ MaterialProcessFlowService ~ processNode:", processNode);
@@ -903,12 +1168,12 @@ class MaterialProcessFlowService {
       // 检查前置工序完成状态
       const checkResult = this.checkPreviousProcessSteps(
         flowRecord.processNodes,
-        processNode
+        processNode,
       );
 
       console.log(
         "🚀 ~ MaterialProcessFlowService ~ checkResult:",
-        checkResult
+        checkResult,
       );
 
       if (!checkResult.isValid) {
@@ -916,7 +1181,7 @@ class MaterialProcessFlowService {
           .map((step) => `${step.processName}(${step.processCode})`)
           .join("、");
         throw new Error(
-          `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
+          `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`,
         );
       }
 
@@ -925,19 +1190,19 @@ class MaterialProcessFlowService {
         (node) =>
           node.parentNodeId === processNode.nodeId &&
           node.nodeType === "MATERIAL" &&
-          node.requireScan
+          node.requireScan,
       );
 
       // 验证扫码数量是否匹配
       if (componentScans.length !== materialNodes.length) {
         throw new Error(
-          `扫码数量与要求不符，需要扫描 ${materialNodes.length} 个物料，实际扫描 ${componentScans.length} 个`
+          `扫码数量与要求不符，需要扫描 ${materialNodes.length} 个物料，实际扫描 ${componentScans.length} 个`,
         );
       }
 
       // 检查条码是否有重复
       const uniqueBarcodes = new Set(
-        componentScans.map((scan) => scan.barcode)
+        componentScans.map((scan) => scan.barcode),
       );
       if (uniqueBarcodes.size !== componentScans.length) {
         throw new Error("存在重复扫描的条码");
@@ -953,7 +1218,7 @@ class MaterialProcessFlowService {
       // 分类收集需要检查的条码
       for (const scan of componentScans) {
         const matchingNode = materialNodes.find(
-          (node) => node.materialId.toString() === scan.materialId.toString()
+          (node) => node.materialId.toString() === scan.materialId.toString(),
         );
 
         if (matchingNode) {
@@ -979,92 +1244,143 @@ class MaterialProcessFlowService {
 
       console.log(
         "🚀 ~ MaterialProcessFlowService ~ barcodesToCheck:",
-        barcodesToCheck
+        barcodesToCheck,
       );
 
       // 构建使用情况映射
       const usageMap = new Map();
 
+      const usageCheckStartedAt = Date.now();
+
       // 统一查询有数量限制的批次条码和关键物料条码的使用情况
       if (barcodesToCheck.length > 0) {
         const batchBarcodesList = batchBarcodes.map((b) => b.barcode);
 
-        // 【性能优化】批量查询所有条码的使用情况（一次查询）
-        // 使用点号语法和 $ 投影，避免 $elemMatch 导致的性能问题
-        // 注意：这种方式会匹配任何满足条件的数组元素，但性能更好
-        const allUsageFlows = await MaterialProcessFlow.find({
-          "processNodes.barcode": { $in: barcodesToCheck },
-          "processNodes.status": "COMPLETED",
-        }).select("barcode processNodes.$");
+        // 【性能优化】使用 aggregate 替代 find+select("processNodes")：
+        // 原方案：把所有匹配文档的完整 processNodes 数组（60-75KB/条）全量传给 Node.js，再在 JS 里过滤
+        // 新方案：$unwind + $match 在数据库侧完成过滤，只返回匹配节点的 3 个字段，网络传输量减少 99%
+        const batchBarcodesSet = new Set(batchBarcodesList);
+        const keyMaterialBarcodesSet = new Set(keyMaterialBarcodes);
 
-        console.log(
-          "🚀 ~ MaterialProcessFlowService ~ allUsageFlows:",
-          allUsageFlows.length
-        );
+        const matchedNodes = await MaterialProcessFlow.aggregate([
+          // Stage1：文档级过滤，利用 processNodes.barcode 索引快速筛选候选文档
+          {
+            $match: {
+              processNodes: {
+                $elemMatch: {
+                  nodeType: "MATERIAL",
+                  barcode: { $in: barcodesToCheck },
+                  status: "COMPLETED",
+                },
+              },
+            },
+          },
+          // Stage2：展开数组，每个节点变成独立的行
+          { $unwind: "$processNodes" },
+          // Stage3：节点级过滤，只保留真正匹配的节点（barcode $in 已保证非空）
+          {
+            $match: {
+              "processNodes.nodeType": "MATERIAL",
+              "processNodes.barcode": { $in: barcodesToCheck },
+              "processNodes.status": "COMPLETED",
+            },
+          },
+          // Stage4：只返回业务所需的 3 个字段，不传输整个 processNodes 数组
+          {
+            $project: {
+              _id: 0,
+              mainBarcode: "$barcode",
+              nodeBarcode: "$processNodes.barcode",
+              isKeyMaterial: "$processNodes.isKeyMaterial",
+              scanTime: "$processNodes.scanTime",
+            },
+          },
+        ]);
 
-        // 构建条码使用情况映射
-        for (const flow of allUsageFlows) {
-          for (const node of flow.processNodes) {
-            // 只处理匹配的条码（虽然用了 $ 投影，但为安全起见仍需要检查）
-            if (
-              barcodesToCheck.includes(node.barcode) &&
-              node.status === "COMPLETED"
-            ) {
-              // 批次条码：记录所有使用情况（不管是否关键物料）
-              // 关键物料条码：只记录 isKeyMaterial 为 true 的使用情况
-              const isBatchBarcode = batchBarcodesList.includes(node.barcode);
-              const isKeyMaterialBarcode = keyMaterialBarcodes.includes(
-                node.barcode
-              );
+        // 构建条码使用情况映射（逻辑与原来完全一致）
+        for (const item of matchedNodes) {
+          const isBatchBarcode = batchBarcodesSet.has(item.nodeBarcode);
+          const isKeyMaterialBarcode = keyMaterialBarcodesSet.has(item.nodeBarcode);
 
-              // 对于批次条码，记录所有使用情况
-              // 对于关键物料条码，只记录 isKeyMaterial 为 true 的
-              if (
-                isBatchBarcode ||
-                (isKeyMaterialBarcode && node.isKeyMaterial === true)
-              ) {
-                if (!usageMap.has(node.barcode)) {
-                  usageMap.set(node.barcode, []);
-                }
-                usageMap.get(node.barcode).push({
-                  mainBarcode: flow.barcode,
-                  isKeyMaterial: node.isKeyMaterial,
-                  scanTime: node.scanTime,
-                });
-              }
+          if (isBatchBarcode || isKeyMaterialBarcode) {
+            if (!usageMap.has(item.nodeBarcode)) {
+              usageMap.set(item.nodeBarcode, []);
             }
+            usageMap.get(item.nodeBarcode).push({
+              mainBarcode: item.mainBarcode,
+              isKeyMaterial: item.isKeyMaterial || isKeyMaterialBarcode,
+              scanTime: item.scanTime,
+            });
           }
         }
+
+        console.log(`[scanProcessComponents] 物料用量查询完成，匹配节点数: ${matchedNodes.length}, usageMap条目数: ${usageMap.size}`);
       }
+      perfMetrics.usageCheckMs = Date.now() - usageCheckStartedAt;
 
       // 检查批次用量限制
       for (const batchInfo of batchBarcodes) {
         const usage = usageMap.get(batchInfo.barcode) || [];
         if (usage.length >= batchInfo.limit) {
           throw new Error(
-            `批次物料条码 ${batchInfo.barcode} 已达到使用次数限制(${batchInfo.limit}次)`
+            `批次物料条码 ${batchInfo.barcode} 已达到使用次数限制(${batchInfo.limit}次)`,
           );
         }
       }
 
       console.log(
         "🚀 ~ MaterialProcessFlowService ~ keyMaterialBarcodes:",
-        keyMaterialBarcodes
+        keyMaterialBarcodes,
       );
+
+      // 【并发安全】在检查关键物料之前，先获取分布式锁
+      // 防止同一关键物料条码被并发绑定到多个主条码
+      if (keyMaterialBarcodes.length > 0) {
+        const lockResult = await this.keyMaterialLock.acquireLocks(
+          keyMaterialBarcodes,
+          mainBarcode,
+        );
+
+        if (!lockResult.success) {
+          throw new Error(
+            lockResult.message ||
+              "关键物料条码正在被其他流程使用中，请稍后重试",
+          );
+        }
+
+        lockedKeyBarcodes = lockResult.lockedBarcodes;
+        console.log(
+          `🔒 成功获取 ${lockedKeyBarcodes.length} 个关键物料条码锁:`,
+          lockedKeyBarcodes,
+        );
+      }
+
       // 检查关键物料重复使用
+      // 【关键修复】关键物料条码只能绑定在一个主条码中，不允许重复使用
       for (const keyBarcode of keyMaterialBarcodes) {
         const usage = usageMap.get(keyBarcode) || [];
-        const otherFlows = usage.filter(
-          (u) => u.mainBarcode !== mainBarcode && u.isKeyMaterial
-        );
-        console.log(
-          "🚀 ~ MaterialProcessFlowService ~ otherFlows:",
-          otherFlows
-        );
+        // console.log(
+        //   `🚀 ~ MaterialProcessFlowService ~ 关键物料条码 ${keyBarcode} 的使用情况:`,
+        //   usage
+        // );
+
+        // 【关键修复】关键物料条码只要被使用过（不管是否关键物料标记），都不能再次使用
+        // 过滤出其他主条码的使用情况（排除当前主条码）
+        const otherFlows = usage.filter((u) => u.mainBarcode !== mainBarcode);
+
+        // console.log(
+        //   `🚀 ~ MaterialProcessFlowService ~ 关键物料条码 ${keyBarcode} 的其他流程使用情况:`,
+        //   otherFlows
+        // );
+
         if (otherFlows.length > 0) {
           // 获取完整的流程信息用于错误提示
           const flowIds = otherFlows.map((u) => u.mainBarcode);
-          console.log("🚀 ~ MaterialProcessFlowService ~ flowIds:", flowIds);
+          // console.log(
+          //   `🚀 ~ MaterialProcessFlowService ~ 关键物料条码 ${keyBarcode} 已被以下主条码使用:`,
+          //   flowIds
+          // );
+
           const detailedFlows = await MaterialProcessFlow.find({
             barcode: { $in: flowIds },
           }).select("barcode materialCode materialName");
@@ -1077,36 +1393,39 @@ class MaterialProcessFlowService {
           }));
 
           throw new Error(
-            `关键物料条码 ${keyBarcode} 已被其他流程使用:\n${usageDetails
+            `关键物料条码 ${keyBarcode} 已被其他流程使用，关键物料条码只能绑定在一个主条码中:\n${usageDetails
               .map(
                 (detail) =>
                   `- 主条码: ${detail.mainBarcode}\n  物料: ${
                     detail.materialName
                   }(${
                     detail.materialCode
-                  })\n  使用时间: ${detail.scanTime?.toLocaleString()}`
+                  })\n  使用时间: ${detail.scanTime?.toLocaleString()}`,
               )
-              .join("\n")}`
+              .join("\n")}`,
           );
         }
       }
 
+      const compatibilityCheckStartedAt = Date.now();
+
       //检查该工序下的物料下是否对应绑定parentNodeId的工序、该工序下是否有需要扫码的物料,且该工序下的物料扫码是否完成
       for (const node of materialNodes) {
         const processNode = flowRecord.processNodes.find(
-          (n) => n.parentNodeId === node.nodeId && n.nodeType === "PROCESS_STEP"
+          (n) =>
+            n.parentNodeId === node.nodeId && n.nodeType === "PROCESS_STEP",
         );
         //该物料下有子绑定工序
         if (processNode) {
           //找出当前物料对应的物料条码
           const materialBarcode = componentScans.find(
-            (scan) => scan.materialId.toString() === node.materialId.toString()
+            (scan) => scan.materialId.toString() === node.materialId.toString(),
           );
 
-          console.log(
-            "🚀 ~ MaterialProcessFlowService ~ materialBarcode:",
-            materialBarcode
-          );
+          // console.log(
+          //   "🚀 ~ MaterialProcessFlowService ~ materialBarcode:",
+          //   materialBarcode
+          // );
 
           // 添加空值检查
           if (!materialBarcode) {
@@ -1120,13 +1439,13 @@ class MaterialProcessFlowService {
           // 添加空值检查
           if (!subFlowRecord) {
             throw new Error(
-              `未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`
+              `未找到条码为 ${materialBarcode.barcode} 的子物料流程记录`,
             );
           }
 
           if (subFlowRecord.status !== "COMPLETED") {
             throw new Error(
-              `该${materialBarcode.barcode}物料条码的子物料工序未完成`
+              `该${materialBarcode.barcode}物料条码的子物料工序未完成`,
             );
           }
 
@@ -1134,7 +1453,7 @@ class MaterialProcessFlowService {
           const compatibilityResult = this.validateProcessNodesCompatibility(
             flowRecord.processNodes,
             subFlowRecord.processNodes,
-            node
+            node,
           );
 
           if (!compatibilityResult.isValid) {
@@ -1153,10 +1472,10 @@ class MaterialProcessFlowService {
               compatibilityResult.subProcesses
             ) {
               errorMessage += `\n\n主物料要求的工序：${compatibilityResult.mainProcesses.join(
-                "、"
+                "、",
               )}`;
               errorMessage += `\n子物料当前的工序：${compatibilityResult.subProcesses.join(
-                "、"
+                "、",
               )}`;
             }
 
@@ -1171,15 +1490,17 @@ class MaterialProcessFlowService {
           await this.matchAndUpdateNodesRecursively(
             flowRecord.processNodes,
             subFlowRecord.processNodes,
-            userId
+            userId,
           );
         }
       }
+      perfMetrics.compatibilityCheckMs =
+        Date.now() - compatibilityCheckStartedAt;
 
       // 验证每个扫描的物料ID是否匹配
       for (const scan of componentScans) {
         const matchingNode = materialNodes.find(
-          (node) => node.materialId.toString() === scan.materialId.toString()
+          (node) => node.materialId.toString() === scan.materialId.toString(),
         );
         if (!matchingNode) {
           const invalidMaterial = await Material.findById(scan.materialId);
@@ -1205,7 +1526,7 @@ class MaterialProcessFlowService {
                 updateBy: userId,
                 updateAt: new Date(),
               },
-            }
+            },
           );
         } catch (error) {
           console.warn(`更新条码批次使用状态失败: ${scan.barcode}`, error);
@@ -1216,14 +1537,14 @@ class MaterialProcessFlowService {
       // 在更新节点状态之前，检查是否为首道或末道工序
       const processPosition = this.checkProcessPosition(
         flowRecord.processNodes,
-        processNode
+        processNode,
       );
 
-      console.log("🚀 ~ MaterialProcessFlowService ~ processPosition:", lineId);
-      console.log(
-        "🚀 ~ MaterialProcessFlowService ~ processPosimaterialIdtion:",
-        flowRecord.materialId
-      );
+      // console.log("🚀 ~ MaterialProcessFlowService ~ processPosition:", lineId);
+      // console.log(
+      //   "🚀 ~ MaterialProcessFlowService ~ processPosimaterialIdtion:",
+      //   flowRecord.materialId
+      // );
       let planWorkOrder = null;
       //根据产线获取对应的工单
       if (flowRecord.isProduct) {
@@ -1291,17 +1612,31 @@ class MaterialProcessFlowService {
       if (planWorkOrder) {
         if (processPosition.isFirst) {
           try {
-            await this.updateWorkOrderQuantity(planWorkOrder._id, "input", 1, {
-              relatedBarcode: mainBarcode,
-              barcodeOperation: "SCAN_PROCESS",
-              operatorId: userId,
-              processStepId: processStepId,
-              processName: processNode.processName,
-              processCode: processNode.processCode,
-              reason: "扫描工序组件首道工序投入",
-              source: isFromDevice ? "DEVICE" : "WEB",
-              isAutomatic: true,
-            });
+            const inputUpdateResult = await this.updateWorkOrderQuantity(
+              planWorkOrder._id,
+              "input",
+              1,
+              {
+                relatedBarcode: mainBarcode,
+                barcodeOperation: "SCAN_PROCESS",
+                operatorId: userId,
+                processStepId: processStepId,
+                processName: processNode.processName,
+                processCode: processNode.processCode,
+                reason: "扫描工序组件首道工序投入",
+                source: isFromDevice ? "DEVICE" : "WEB",
+                isAutomatic: true,
+              },
+            );
+
+            // 关键：工单服务返回失败时不要静默继续，避免“流程完成但工单数量未更新”
+            if (!inputUpdateResult || inputUpdateResult.success !== true) {
+              throw new Error(
+                inputUpdateResult?.error ||
+                  inputUpdateResult?.message ||
+                  "更新工单投入量失败",
+              );
+            }
           } catch (error) {
             // 这里可以选择继续执行或者其他处理方式
             throw new Error("更新工单投入量失败");
@@ -1328,7 +1663,7 @@ class MaterialProcessFlowService {
             if (node.requireScan) {
               const matchingScan = componentScans.find(
                 (scan) =>
-                  scan.materialId.toString() === node.materialId.toString()
+                  scan.materialId.toString() === node.materialId.toString(),
               );
               if (matchingScan) {
                 // 获取物料信息
@@ -1337,14 +1672,14 @@ class MaterialProcessFlowService {
                 // 使用validateBarcodeWithMaterial方法验证条码并获取relatedBill
                 const validationResult = await this.validateBarcodeWithMaterial(
                   matchingScan.barcode,
-                  material
+                  material,
                 );
 
                 // 【关键修复】检查条码验证结果
                 if (!validationResult.isValid) {
                   throw new Error(
                     validationResult.error ||
-                      `条码 ${matchingScan.barcode} 验证失败，不符合物料 ${material.FNumber}(${material.FName}) 的条码规则`
+                      `条码 ${matchingScan.barcode} 验证失败，不符合物料 ${material.FNumber}(${material.FName}) 的条码规则`,
                   );
                 }
 
@@ -1378,7 +1713,7 @@ class MaterialProcessFlowService {
             };
           }
           return baseNode;
-        })
+        }),
       );
 
       // 如果是首个操作，更新整体流程的开始时间和状态
@@ -1396,14 +1731,14 @@ class MaterialProcessFlowService {
       // 检查是否所有必要节点都已完成
       if (flowRecord.progress === 100) {
         const allRequiredCompleted = this.checkAllRequiredNodesCompleted(
-          flowRecord.processNodes
+          flowRecord.processNodes,
         );
         if (allRequiredCompleted) {
           flowRecord.status = "COMPLETED";
           flowRecord.endTime = new Date();
           // 更新根节点状态
           const rootNode = flowRecord.processNodes.find(
-            (node) => node.level === 0 && node.nodeType === "MATERIAL"
+            (node) => node.level === 0 && node.nodeType === "MATERIAL",
           );
           if (rootNode) {
             rootNode.status = "COMPLETED";
@@ -1454,14 +1789,14 @@ class MaterialProcessFlowService {
           } else {
             // 最后一次是增加记录，且没有后续的解绑记录，跳过重复统计
             console.log(
-              `条码 ${mainBarcode} 已完成产出统计且未被解绑，跳过重复统计`
+              `条码 ${mainBarcode} 已完成产出统计且未被解绑，跳过重复统计`,
             );
             shouldUpdateOutput = false;
           }
 
           if (shouldUpdateOutput) {
             try {
-              await this.updateWorkOrderQuantity(
+              const outputUpdateResult = await this.updateWorkOrderQuantity(
                 planWorkOrder._id,
                 "output",
                 1,
@@ -1475,8 +1810,17 @@ class MaterialProcessFlowService {
                   reason: "扫描工序组件末道工序产出",
                   source: "WEB",
                   isAutomatic: true,
-                }
+                },
               );
+
+              // 关键：工单服务返回失败时给出明确告警，避免静默漏记
+              if (!outputUpdateResult || outputUpdateResult.success !== true) {
+                throw new Error(
+                  outputUpdateResult?.error ||
+                    outputUpdateResult?.message ||
+                    "更新工单产出量失败",
+                );
+              }
 
               if (lastUnbindRecord) {
                 console.log(`条码 ${mainBarcode} 解绑后重新生产完成，产出量+1`);
@@ -1484,7 +1828,10 @@ class MaterialProcessFlowService {
                 console.log(`条码 ${mainBarcode} 首次完成生产，产出量+1`);
               }
             } catch (error) {
-              console.warn("更新工单产出量失败:", error.message);
+              console.warn(
+                "更新工单产出量失败:",
+                error && error.message ? error.message : error,
+              );
               // 这里可以选择继续执行或者其他处理方式
             }
           }
@@ -1503,7 +1850,7 @@ class MaterialProcessFlowService {
           if (material) {
             const mainValidation = await this.validateBarcodeWithMaterial(
               flowRecord.barcode,
-              material
+              material,
             );
             if (mainValidation.isValid) {
               if (mainValidation.snCode) {
@@ -1530,8 +1877,21 @@ class MaterialProcessFlowService {
         }
       }
 
+      const persistStartedAt = Date.now();
+
       // 保存更新
       await flowRecord.save();
+      perfMetrics.persistMs = Date.now() - persistStartedAt;
+      perfMetrics.persistMode = "save";
+
+      // 【并发安全】保存成功后，释放关键物料条码锁
+      if (lockedKeyBarcodes.length > 0) {
+        await this.keyMaterialLock.releaseLocks(lockedKeyBarcodes, mainBarcode);
+        console.log(
+          `🔓 成功释放 ${lockedKeyBarcodes.length} 个关键物料条码锁:`,
+          lockedKeyBarcodes,
+        );
+      }
 
       // 检查主物料条码是否已使用
       try {
@@ -1546,7 +1906,7 @@ class MaterialProcessFlowService {
               usedBy: userId,
               usedAt: new Date(),
             },
-          }
+          },
         );
       } catch (error) {
         console.warn(`更新条码批次使用状态失败: ${mainBarcode}`, error);
@@ -1558,9 +1918,33 @@ class MaterialProcessFlowService {
       // 在完成扫描组件后，添加以下代码来更新流程状态
       await this.fixFlowProgress(mainBarcode);
 
+      perfMetrics.totalMs = Date.now() - perfMetrics.startedAt;
+      this.logPerfMetrics("scanProcessComponents_copy", mainBarcode, perfMetrics);
+
       return flowRecord;
     } catch (error) {
       console.error("扫描批次单据失败:", error);
+
+      // 【并发安全】发生错误时，也要释放关键物料条码锁
+      if (lockedKeyBarcodes && lockedKeyBarcodes.length > 0) {
+        try {
+          await this.keyMaterialLock.releaseLocks(
+            lockedKeyBarcodes,
+            mainBarcode,
+          );
+          console.log(
+            `🔓 错误处理：已释放 ${lockedKeyBarcodes.length} 个关键物料条码锁:`,
+            lockedKeyBarcodes,
+          );
+        } catch (releaseError) {
+          console.error("释放关键物料条码锁失败:", releaseError);
+        }
+      }
+
+      perfMetrics.totalMs = Date.now() - perfMetrics.startedAt;
+      perfMetrics.error = error?.message;
+      this.logPerfMetrics("scanProcessComponents_copy", mainBarcode, perfMetrics);
+
       throw error;
     }
   }
@@ -1569,7 +1953,7 @@ class MaterialProcessFlowService {
   static async matchAndUpdateNodesRecursively(
     targetNodes,
     sourceNodes,
-    userId
+    userId,
   ) {
     // 1. 首先匹配相同materialId的物料节点
     for (const sourceNode of sourceNodes) {
@@ -1578,7 +1962,7 @@ class MaterialProcessFlowService {
           (node) =>
             node.materialId &&
             node.materialCode === sourceNode.materialCode &&
-            node.materialId.toString() === sourceNode.materialId.toString()
+            node.materialId.toString() === sourceNode.materialId.toString(),
         );
 
         // 对找到的每个匹配节点进行更新
@@ -1610,7 +1994,7 @@ class MaterialProcessFlowService {
             node.processStepId &&
             node.processCode === sourceNode.processCode &&
             node.processStepId.toString() ===
-              sourceNode.processStepId.toString()
+              sourceNode.processStepId.toString(),
         );
 
         for (const targetNode of matchingNodes) {
@@ -1643,6 +2027,7 @@ class MaterialProcessFlowService {
    * @param {string} reason - 解绑原因
    * @param {boolean} unbindSubsequent - 是否解绑后续工序
    * @param {boolean} fromPalletUnbind - 是否来自托盘解绑
+   * @param {boolean} skipUnbindRecord - 是否不生成解绑工序记录，默认 false（生成）；回滚场景传 true 不生成
    */
   static async unbindProcessComponents(
     mainBarcode,
@@ -1650,7 +2035,8 @@ class MaterialProcessFlowService {
     userId,
     reason,
     unbindSubsequent = false,
-    fromPalletUnbind = false
+    fromPalletUnbind = false,
+    skipUnbindRecord = false,
   ) {
     let maxRetries = 3;
     let retryCount = 0;
@@ -1658,7 +2044,7 @@ class MaterialProcessFlowService {
     while (retryCount < maxRetries) {
       try {
         console.log(
-          `开始解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}, fromPalletUnbind: ${fromPalletUnbind}, 重试次数: ${retryCount}`
+          `开始解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}, fromPalletUnbind: ${fromPalletUnbind}, 重试次数: ${retryCount}`,
         );
         // 查找主条码对应的流程记录
         const flowRecord = await MaterialProcessFlow.findOne({
@@ -1673,7 +2059,7 @@ class MaterialProcessFlowService {
           (node) =>
             node.processStepId &&
             node.processStepId.toString() === processStepId.toString() &&
-            node.nodeType === "PROCESS_STEP"
+            node.nodeType === "PROCESS_STEP",
         );
         if (!processNode) {
           throw new Error("未找到对应的工序节点");
@@ -1687,7 +2073,7 @@ class MaterialProcessFlowService {
         // 获取需要解绑的工序节点列表
         const processNodesToUnbind = [];
         const parentMaterialNode = flowRecord.processNodes.find(
-          (node) => node.nodeId === processNode.parentNodeId
+          (node) => node.nodeId === processNode.parentNodeId,
         );
 
         if (parentMaterialNode) {
@@ -1696,13 +2082,13 @@ class MaterialProcessFlowService {
             .filter(
               (node) =>
                 node.nodeType === "PROCESS_STEP" &&
-                node.parentNodeId === parentMaterialNode.nodeId
+                node.parentNodeId === parentMaterialNode.nodeId,
             )
             .sort((a, b) => a.processSort - b.processSort);
 
           // 找到当前工序的索引
           const currentIndex = levelProcessSteps.findIndex(
-            (step) => step.nodeId === processNode.nodeId
+            (step) => step.nodeId === processNode.nodeId,
           );
 
           if (unbindSubsequent) {
@@ -1710,7 +2096,7 @@ class MaterialProcessFlowService {
             processNodesToUnbind.push(
               ...levelProcessSteps
                 .slice(currentIndex)
-                .filter((node) => node.status === "COMPLETED")
+                .filter((node) => node.status === "COMPLETED"),
             );
           } else {
             // 否则只解绑当前工序
@@ -1745,17 +2131,17 @@ class MaterialProcessFlowService {
                     mainBarcode,
                     userId,
                     reason || "工序解绑引起的托盘解绑",
-                    true // 这里明确传递true，表示来自工序解绑
+                    true, // 这里明确传递true，表示来自工序解绑
                   );
                   console.log(
-                    `已从托盘 ${palletRecord.palletCode} 解绑条码 ${mainBarcode}`
+                    `已从托盘 ${palletRecord.palletCode} 解绑条码 ${mainBarcode}`,
                   );
                 }
               } catch (error) {
-                console.warn(`解绑托盘记录失败: ${error.message}`);
-                // 发生托盘解绑错误，但继续流程，不抛出异常中断整个解绑过程
-                console.error(
-                  `解绑托盘记录失败 ${error.message}，但继续执行工序解绑流程`
+                // 托盘解绑失败时，直接中断工序解绑流程
+                console.error(`解绑托盘记录失败: ${error.message}`);
+                throw new Error(
+                  `托盘解绑失败，工序解绑已终止: ${error.message}`,
                 );
               }
             }
@@ -1766,7 +2152,7 @@ class MaterialProcessFlowService {
         for (const processNodeToUnbind of processNodesToUnbind) {
           const processPosition = this.checkProcessPosition(
             flowRecord.processNodes,
-            processNodeToUnbind
+            processNodeToUnbind,
           );
           if (processPosition.isFirst) {
             hasFirstProcess = true;
@@ -1795,7 +2181,7 @@ class MaterialProcessFlowService {
                 reason: `解绑工序减少投入量: ${reason}`,
                 remark: unbindSubsequent ? "解绑后续工序" : "解绑单个工序",
                 isAutomatic: true,
-              }
+              },
             );
             console.log(`工单${flowRecord.productionPlanWorkOrderId}投入量-1`);
           } catch (error) {
@@ -1823,7 +2209,7 @@ class MaterialProcessFlowService {
                 reason: `解绑完成产品减少产出量: ${reason}`,
                 remark: unbindSubsequent ? "解绑后续工序" : "解绑单个工序",
                 isAutomatic: true,
-              }
+              },
             );
             console.log(`工单${flowRecord.productionPlanWorkOrderId}产出量-1`);
           } catch (error) {
@@ -1838,49 +2224,51 @@ class MaterialProcessFlowService {
             (node) =>
               node.parentNodeId === processNodeToUnbind.nodeId &&
               node.nodeType === "MATERIAL" &&
-              node.status === "COMPLETED"
+              node.status === "COMPLETED",
           );
           materialNodesToUnbind.push(...materialNodes);
         }
 
-        // 修改解绑记录的创建部分
-        for (const processNodeToUnbind of processNodesToUnbind) {
-          // 获取当前工序相关的物料节点
-          const relatedMaterialNodes = flowRecord.processNodes.filter(
-            (node) =>
-              node.parentNodeId === processNodeToUnbind.nodeId &&
-              node.nodeType === "MATERIAL" &&
-              node.status === "COMPLETED"
-          );
+        // 修改解绑记录的创建部分（回滚场景可通过 skipUnbindRecord 跳过，不生成解绑工序记录）
+        if (!skipUnbindRecord) {
+          for (const processNodeToUnbind of processNodesToUnbind) {
+            // 获取当前工序相关的物料节点
+            const relatedMaterialNodes = flowRecord.processNodes.filter(
+              (node) =>
+                node.parentNodeId === processNodeToUnbind.nodeId &&
+                node.nodeType === "MATERIAL" &&
+                node.status === "COMPLETED",
+            );
 
-          // 为每个工序创建独立的解绑记录
-          const unbindRecord = new UnbindRecord({
-            flowRecordId: flowRecord._id,
-            mainBarcode,
-            processStepId: processNodeToUnbind.processStepId,
-            processName: processNodeToUnbind.processName,
-            processCode: processNodeToUnbind.processCode,
-            unbindMaterials: relatedMaterialNodes.map((node) => ({
-              materialId: node.materialId,
-              materialCode: node.materialCode,
-              materialName: node.materialName,
-              originalBarcode: node.barcode || "",
-            })),
-            operatorId: userId,
-            reason,
-            unbindSubsequent:
-              unbindSubsequent &&
-              processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
-            affectedProcesses: [
-              {
-                processStepId: processNodeToUnbind.processStepId,
-                processName: processNodeToUnbind.processName,
-                processCode: processNodeToUnbind.processCode,
-              },
-            ],
-            fromPalletUnbind,
-          });
-          await unbindRecord.save();
+            // 为每个工序创建独立的解绑记录
+            const unbindRecord = new UnbindRecord({
+              flowRecordId: flowRecord._id,
+              mainBarcode,
+              processStepId: processNodeToUnbind.processStepId,
+              processName: processNodeToUnbind.processName,
+              processCode: processNodeToUnbind.processCode,
+              unbindMaterials: relatedMaterialNodes.map((node) => ({
+                materialId: node.materialId,
+                materialCode: node.materialCode,
+                materialName: node.materialName,
+                originalBarcode: node.barcode || "",
+              })),
+              operatorId: userId,
+              reason,
+              unbindSubsequent:
+                unbindSubsequent &&
+                processNodeToUnbind.nodeId === processNode.nodeId, // 只在触发解绑的工序记录上标记
+              affectedProcesses: [
+                {
+                  processStepId: processNodeToUnbind.processStepId,
+                  processName: processNodeToUnbind.processName,
+                  processCode: processNodeToUnbind.processCode,
+                },
+              ],
+              fromPalletUnbind,
+            });
+            await unbindRecord.save();
+          }
         }
 
         // 更新流程节点状态
@@ -1915,7 +2303,7 @@ class MaterialProcessFlowService {
             // 处理物料节点的子节点
             const childNodeIds = this.getAllChildNodes(
               flowRecord.processNodes,
-              materialNode.nodeId
+              materialNode.nodeId,
             );
             if (childNodeIds.includes(node.nodeId)) {
               return {
@@ -1935,7 +2323,7 @@ class MaterialProcessFlowService {
 
         // 清理孤立的已完成节点
         const cleanOrphanNodesResult = this.cleanOrphanCompletedNodes(
-          flowRecord.processNodes
+          flowRecord.processNodes,
         );
         if (cleanOrphanNodesResult.cleanedCount > 0) {
           flowRecord.processNodes = cleanOrphanNodesResult.processNodes;
@@ -1943,8 +2331,8 @@ class MaterialProcessFlowService {
             `删除了 ${
               cleanOrphanNodesResult.cleanedCount
             } 个孤立的已完成节点: ${cleanOrphanNodesResult.cleanedNodeIds.join(
-              ", "
-            )}`
+              ", ",
+            )}`,
           );
 
           // 记录删除的节点详细信息
@@ -1961,9 +2349,9 @@ class MaterialProcessFlowService {
                       node.materialCode || node.processName || "Unknown"
                     } (Level:${node.level})${
                       node.isChildOfOrphan ? " [子节点]" : ""
-                    }`
+                    }`,
                 )
-                .join(", ")
+                .join(", "),
             );
           }
         }
@@ -1973,15 +2361,16 @@ class MaterialProcessFlowService {
           (node) =>
             node.level !== 0 &&
             (node.nodeType === "PROCESS_STEP" ||
-              (node.nodeType === "MATERIAL" && node.requireScan === true))
+              (node.nodeType === "MATERIAL" && node.requireScan === true)),
         );
         const completedRequiredNodes = requiredNodesForProgress.filter(
-          (node) => node.status === "COMPLETED"
+          (node) => node.status === "COMPLETED",
         ).length;
         flowRecord.progress =
           requiredNodesForProgress.length > 0
             ? Math.floor(
-                (completedRequiredNodes / requiredNodesForProgress.length) * 100
+                (completedRequiredNodes / requiredNodesForProgress.length) *
+                  100,
               )
             : 0;
 
@@ -1991,7 +2380,7 @@ class MaterialProcessFlowService {
           flowRecord.endTime = null;
           // 重置根节点状态
           const materialNode = flowRecord.processNodes.find(
-            (node) => node.nodeType === "MATERIAL" && node.level === 0
+            (node) => node.nodeType === "MATERIAL" && node.level === 0,
           );
           if (materialNode) {
             materialNode.status = "PENDING";
@@ -2005,7 +2394,7 @@ class MaterialProcessFlowService {
             (n) =>
               n.nodeType === "PROCESS_STEP" &&
               n.level === 1 &&
-              n.status === "COMPLETED"
+              n.status === "COMPLETED",
           );
           if (
             !hasFirstProcess &&
@@ -2026,16 +2415,16 @@ class MaterialProcessFlowService {
                 reason: `解绑后首工序投入回退: ${reason || "解绑"}`,
                 remark: unbindSubsequent ? "解绑后续工序" : "解绑单个工序",
                 isAutomatic: true,
-              }
+              },
             );
             console.log(
-              `检测到首工序已全部回退，工单${flowRecord.productionPlanWorkOrderId}投入量-1`
+              `检测到首工序已全部回退，工单${flowRecord.productionPlanWorkOrderId}投入量-1`,
             );
           }
         } catch (errAdjust) {
           console.warn(
             "解绑后投入量补扣失败:",
-            errAdjust?.message || errAdjust
+            errAdjust?.message || errAdjust,
           );
         }
 
@@ -2043,7 +2432,7 @@ class MaterialProcessFlowService {
         try {
           await flowRecord.save();
           console.log(
-            `完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`
+            `完成解绑工序组件: ${mainBarcode}, 工序ID: ${processStepId}`,
           );
           // 统一修复解绑后的进度与状态，确保必扫节点为0时进度回到0
           try {
@@ -2276,7 +2665,7 @@ class MaterialProcessFlowService {
 
     // 【性能优化】过滤节点 - O(n)
     const updatedNodes = processNodes.filter(
-      (node) => !nodesToDelete.has(node.nodeId)
+      (node) => !nodesToDelete.has(node.nodeId),
     );
 
     return {
@@ -2310,7 +2699,7 @@ class MaterialProcessFlowService {
       const newProcessNodes = await this.buildProcessNodes(
         flowRecord.materialId,
         craft,
-        new Set()
+        new Set(),
       );
 
       // 4. 合并新旧节点时，需要特别处理未完成节点的情况
@@ -2332,7 +2721,7 @@ class MaterialProcessFlowService {
                 flowRecord.processNodes,
                 newProcessNodes,
                 oldNode,
-                node
+                node,
               )
             );
           }
@@ -2344,7 +2733,7 @@ class MaterialProcessFlowService {
                 flowRecord.processNodes,
                 newProcessNodes,
                 oldNode,
-                node
+                node,
               )
             );
           }
@@ -2445,7 +2834,7 @@ class MaterialProcessFlowService {
       (node) =>
         node.level !== 0 &&
         (node.nodeType === "PROCESS_STEP" ||
-          (node.nodeType === "MATERIAL" && node.requireScan))
+          (node.nodeType === "MATERIAL" && node.requireScan)),
     );
 
     return (
@@ -2464,7 +2853,7 @@ class MaterialProcessFlowService {
   static async getAllProcessSteps(
     materialId,
     level = 0,
-    processedMaterials = new Set()
+    processedMaterials = new Set(),
   ) {
     try {
       // 防止循环引用
@@ -2508,7 +2897,7 @@ class MaterialProcessFlowService {
           const childSteps = await this.getAllProcessSteps(
             material.materialId,
             level + 1,
-            processedMaterials
+            processedMaterials,
           );
           result.push(...childSteps);
         }
@@ -2538,8 +2927,11 @@ class MaterialProcessFlowService {
     componentScans,
     userId,
     lineId,
-    fromRepairStation = false
+    fromRepairStation = false,
   ) {
+    const perfMetrics = {
+      startedAt: Date.now(),
+    };
     try {
       // 查找主条码对应的流程记录
       const flowRecord = await MaterialProcessFlow.findOne({
@@ -2554,7 +2946,7 @@ class MaterialProcessFlowService {
         (node) =>
           node.processStepId &&
           node.processStepId.toString() === processStepId.toString() &&
-          node.nodeType === "PROCESS_STEP"
+          node.nodeType === "PROCESS_STEP",
       );
 
       if (!processNode) {
@@ -2569,7 +2961,7 @@ class MaterialProcessFlowService {
       //TODO 检查前置工序完成状态
       const checkResult = this.checkPreviousProcessSteps(
         flowRecord.processNodes,
-        processNode
+        processNode,
       );
 
       if (!checkResult.isValid) {
@@ -2577,7 +2969,7 @@ class MaterialProcessFlowService {
           .map((step) => `${step.processName}(${step.processCode})`)
           .join("、");
         throw new Error(
-          `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`
+          `存在未完成的前置工序: ${unfinishedList}，请先完成前置工序`,
         );
       }
 
@@ -2586,7 +2978,7 @@ class MaterialProcessFlowService {
         (node) =>
           node.parentNodeId === processNode.nodeId &&
           node.nodeType === "MATERIAL" &&
-          node.requireScan
+          node.requireScan,
       );
 
       // 如果有需要扫码的物料，必须提供componentScans
@@ -2595,7 +2987,7 @@ class MaterialProcessFlowService {
         (!componentScans || componentScans.length === 0)
       ) {
         throw new Error(
-          `该工序需要扫描${materialNodes.length}个物料，但未提供扫码信息`
+          `该工序需要扫描${materialNodes.length}个物料，但未提供扫码信息`,
         );
       }
 
@@ -2603,13 +2995,13 @@ class MaterialProcessFlowService {
       if (componentScans && componentScans.length > 0) {
         if (componentScans.length !== materialNodes.length) {
           throw new Error(
-            `扫码数量与要求不符，需要扫描 ${materialNodes.length} 个物料，实际扫描 ${componentScans.length} 个`
+            `扫码数量与要求不符，需要扫描 ${materialNodes.length} 个物料，实际扫描 ${componentScans.length} 个`,
           );
         }
 
         // 检查条码是否有重复
         const uniqueBarcodes = new Set(
-          componentScans.map((scan) => scan.barcode)
+          componentScans.map((scan) => scan.barcode),
         );
         if (uniqueBarcodes.size !== componentScans.length) {
           throw new Error("存在重复扫描的条码");
@@ -2619,7 +3011,7 @@ class MaterialProcessFlowService {
         // 1. 验证所有提供的materialId都在当前工序的扫描要求中
         for (const scan of componentScans) {
           const matchingNode = materialNodes.find(
-            (node) => node.materialId.toString() === scan.materialId.toString()
+            (node) => node.materialId.toString() === scan.materialId.toString(),
           );
           if (!matchingNode) {
             // 获取当前工序要求的物料信息用于错误提示
@@ -2628,7 +3020,7 @@ class MaterialProcessFlowService {
               .join("、");
             throw new Error(
               `提供的物料ID ${scan.materialId} 不在当前工序"${processNode.processName}"的扫描要求中。\n` +
-                `当前工序要求扫描的物料：${requiredMaterials}`
+                `当前工序要求扫描的物料：${requiredMaterials}`,
             );
           }
         }
@@ -2636,87 +3028,129 @@ class MaterialProcessFlowService {
         // 2. 验证所有要求扫描的物料都有对应的扫描记录
         for (const node of materialNodes) {
           const matchingScan = componentScans.find(
-            (scan) => scan.materialId.toString() === node.materialId.toString()
+            (scan) => scan.materialId.toString() === node.materialId.toString(),
           );
           if (!matchingScan) {
             throw new Error(
-              `缺少物料 ${node.materialCode}(${node.materialName}) 的扫描信息，该物料在工序"${processNode.processName}"中是必须扫描的`
+              `缺少物料 ${node.materialCode}(${node.materialName}) 的扫描信息，该物料在工序"${processNode.processName}"中是必须扫描的`,
             );
           }
         }
 
-        // 添加关键物料条码重复使用和批次用量检查
+        // 批量收集需要校验的条码，避免在循环内逐条查库
+        const batchScansToCheck = [];    // { barcode, limit }
+        const keyMaterialBarcodesToCheck = []; // barcode[]
+
         for (const scan of componentScans) {
           const matchingNode = materialNodes.find(
-            (node) => node.materialId.toString() === scan.materialId.toString()
+            (node) => node.materialId.toString() === scan.materialId.toString(),
           );
+          if (!matchingNode) continue;
 
-          if (matchingNode) {
-            // 检查批次用量限制
-            if (matchingNode.isBatch && matchingNode.batchQuantity > 0) {
-              const batchUsageFlows = await MaterialProcessFlow.find({
+          if (matchingNode.isBatch && matchingNode.batchQuantity > 0) {
+            batchScansToCheck.push({ barcode: scan.barcode, limit: matchingNode.batchQuantity });
+          }
+          if (matchingNode.isKeyMaterial) {
+            keyMaterialBarcodesToCheck.push(scan.barcode);
+          }
+        }
+
+        const usageCheckStartedAt = Date.now();
+
+        // ── 批次用量检查：countDocuments 取代 find / aggregate ─────────────────
+        // ⚠️  批次条码（如料盘批次号）可能被成千上万条产品记录共用。
+        //     aggregate + $unwind 虽然不向 Node.js 传输文档，但 MongoDB 服务端
+        //     仍需把命中的所有大文档展开到工作内存，依然会造成严重的内存压力。
+        //
+        // countDocuments() 走多键索引（processNodes.barcode 的 multikey index）
+        // 直接在索引 B-tree 上计数，不加载任何文档内容，是唯一正确的做法。
+        //
+        // 每个批次条码各发一次 countDocuments，用 Promise.all 并发执行：
+        //   - N 通常很小（一次扫码最多几个批次物料）
+        //   - 每次查询走索引，耗时可控
+        //   - 彻底避免加载庞大文档
+        if (batchScansToCheck.length > 0) {
+          await Promise.all(
+            batchScansToCheck.map(async ({ barcode, limit }) => {
+              const usageCount = await MaterialProcessFlow.countDocuments({
                 processNodes: {
-                  $elemMatch: {
-                    barcode: scan.barcode,
-                    status: "COMPLETED",
-                  },
+                  $elemMatch: { barcode, status: "COMPLETED" },
                 },
               });
-
-              const usageCount = batchUsageFlows.length;
-              if (usageCount >= matchingNode.batchQuantity) {
+              if (usageCount >= limit) {
                 throw new Error(
-                  `批次物料条码 ${scan.barcode} 已达到使用次数限制(${matchingNode.batchQuantity}次)`
+                  `批次物料条码 ${barcode} 已达到使用次数限制(${limit}次)`,
                 );
               }
-            }
+            }),
+          );
+        }
 
-            // 关键物料检查
-            if (matchingNode.isKeyMaterial) {
-              const existingFlows = await MaterialProcessFlow.find({
+        // ── 关键物料检查：1次 aggregate 取代 N次 find ──────────────────────────
+        // 原方案：每个 scan 调一次 find()，拉全文档，再在 JS 里遍历 processNodes 取 scanTime
+        // 新方案：一次 aggregate，DB 侧 $unwind 后直接投影 scanTime，不传输整个数组
+        if (keyMaterialBarcodesToCheck.length > 0) {
+          const keyUsageItems = await MaterialProcessFlow.aggregate([
+            {
+              $match: {
                 processNodes: {
                   $elemMatch: {
-                    barcode: scan.barcode,
+                    barcode: { $in: keyMaterialBarcodesToCheck },
                     isKeyMaterial: true,
                     status: "COMPLETED",
                   },
                 },
-              });
+              },
+            },
+            { $unwind: "$processNodes" },
+            {
+              $match: {
+                "processNodes.barcode": { $in: keyMaterialBarcodesToCheck },
+                "processNodes.isKeyMaterial": true,
+                "processNodes.status": "COMPLETED",
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                mainBarcode: "$barcode",
+                materialCode: 1,
+                materialName: 1,
+                nodeBarcode: "$processNodes.barcode",
+                scanTime: "$processNodes.scanTime",
+              },
+            },
+          ]);
 
-              if (existingFlows.length > 0) {
-                const otherFlows = existingFlows.filter(
-                  (flow) => flow.barcode !== mainBarcode
-                );
+          // 按节点条码分组，过滤掉当前主条码（当前流程自身不算重复使用）
+          const keyUsageMap = new Map();
+          for (const item of keyUsageItems) {
+            if (item.mainBarcode === mainBarcode) continue;
+            if (!keyUsageMap.has(item.nodeBarcode)) {
+              keyUsageMap.set(item.nodeBarcode, []);
+            }
+            keyUsageMap.get(item.nodeBarcode).push(item);
+          }
 
-                if (otherFlows.length > 0) {
-                  const usageDetails = otherFlows.map((flow) => ({
-                    mainBarcode: flow.barcode,
-                    materialCode: flow.materialCode,
-                    materialName: flow.materialName,
-                    scanTime: flow.processNodes.find(
-                      (n) => n.barcode === scan.barcode
-                    )?.scanTime,
-                  }));
-
-                  throw new Error(
-                    `关键物料条码 ${
-                      scan.barcode
-                    } 已被其他流程使用:\n${usageDetails
-                      .map(
-                        (detail) =>
-                          `- 主条码: ${detail.mainBarcode}\n  物料: ${
-                            detail.materialName
-                          }(${
-                            detail.materialCode
-                          })\n  使用时间: ${detail.scanTime?.toLocaleString()}`
-                      )
-                      .join("\n")}`
-                  );
-                }
-              }
+          for (const barcode of keyMaterialBarcodesToCheck) {
+            const usages = keyUsageMap.get(barcode) || [];
+            if (usages.length > 0) {
+              throw new Error(
+                `关键物料条码 ${barcode} 已被其他流程使用:\n${usages
+                  .map(
+                    (detail) =>
+                      `- 主条码: ${detail.mainBarcode}\n  物料: ${
+                        detail.materialName
+                      }(${
+                        detail.materialCode
+                      })\n  使用时间: ${detail.scanTime?.toLocaleString()}`,
+                  )
+                  .join("\n")}`,
+              );
             }
           }
         }
+        perfMetrics.usageCheckMs = Date.now() - usageCheckStartedAt;
 
         // 更新物料节点信息
         flowRecord.processNodes = await Promise.all(
@@ -2737,7 +3171,7 @@ class MaterialProcessFlowService {
               if (node.requireScan) {
                 const matchingScan = componentScans.find(
                   (scan) =>
-                    scan.materialId.toString() === node.materialId.toString()
+                    scan.materialId.toString() === node.materialId.toString(),
                 );
                 if (matchingScan) {
                   // 获取物料信息
@@ -2747,14 +3181,14 @@ class MaterialProcessFlowService {
                   const validationResult =
                     await this.validateBarcodeWithMaterial(
                       matchingScan.barcode,
-                      material
+                      material,
                     );
 
                   // 【关键修复】检查条码验证结果
                   if (!validationResult.isValid) {
                     throw new Error(
                       validationResult.error ||
-                        `条码 ${matchingScan.barcode} 验证失败，不符合物料 ${material.FNumber}(${material.FName}) 的条码规则`
+                        `条码 ${matchingScan.barcode} 验证失败，不符合物料 ${material.FNumber}(${material.FName}) 的条码规则`,
                     );
                   }
 
@@ -2788,7 +3222,7 @@ class MaterialProcessFlowService {
               };
             }
             return baseNode;
-          })
+          }),
         );
 
         // 更新 materialBarcodeBatch 表
@@ -2805,7 +3239,7 @@ class MaterialProcessFlowService {
                   updateBy: userId,
                   updateAt: new Date(),
                 },
-              }
+              },
             );
           } catch (error) {
             console.warn(`更新条码批次使用状态失败: ${scan.barcode}`, error);
@@ -2816,7 +3250,7 @@ class MaterialProcessFlowService {
       // 在更新节点状态之前，检查是否为首道或末道工序
       const processPosition = this.checkProcessPosition(
         flowRecord.processNodes,
-        processNode
+        processNode,
       );
 
       //根据条件获取对应的工单
@@ -2880,17 +3314,31 @@ class MaterialProcessFlowService {
           }
 
           try {
-            await this.updateWorkOrderQuantity(planWorkOrder._id, "input", 1, {
-              relatedBarcode: mainBarcode,
-              barcodeOperation: "SCAN_PROCESS",
-              operatorId: userId,
-              processStepId: processStepId,
-              processName: processNode.processName,
-              processCode: processNode.processCode,
-              reason: "扫描工序组件首道工序投入",
-              source: "WEB",
-              isAutomatic: true,
-            });
+            const inputUpdateResult = await this.updateWorkOrderQuantity(
+              planWorkOrder._id,
+              "input",
+              1,
+              {
+                relatedBarcode: mainBarcode,
+                barcodeOperation: "SCAN_PROCESS",
+                operatorId: userId,
+                processStepId: processStepId,
+                processName: processNode.processName,
+                processCode: processNode.processCode,
+                reason: "扫描工序组件首道工序投入",
+                source: "WEB",
+                isAutomatic: true,
+              },
+            );
+
+            // 关键：工单服务返回失败时不要静默继续，避免“流程完成但工单数量未更新”
+            if (!inputUpdateResult || inputUpdateResult.success !== true) {
+              throw new Error(
+                inputUpdateResult?.error ||
+                  inputUpdateResult?.message ||
+                  "更新工单投入量失败",
+              );
+            }
           } catch (error) {
             // 这里可以选择继续执行或者其他处理方式
             throw new Error("更新工单投入量失败");
@@ -2916,11 +3364,11 @@ class MaterialProcessFlowService {
         (node) =>
           node.level !== 0 &&
           (node.nodeType === "PROCESS_STEP" ||
-            (node.nodeType === "MATERIAL" && node.requireScan))
+            (node.nodeType === "MATERIAL" && node.requireScan)),
       );
 
       const completedNodes = requiredNodes.filter(
-        (node) => node.status === "COMPLETED"
+        (node) => node.status === "COMPLETED",
       );
 
       flowRecord.progress =
@@ -2931,13 +3379,13 @@ class MaterialProcessFlowService {
       // 检查是否所有节点都已完成
       if (flowRecord.progress === 100) {
         const allRequiredCompleted = this.checkAllRequiredNodesCompleted(
-          flowRecord.processNodes
+          flowRecord.processNodes,
         );
         if (allRequiredCompleted) {
           flowRecord.status = "COMPLETED";
           flowRecord.endTime = new Date();
           const materialNode = flowRecord.processNodes.find(
-            (node) => node.nodeType === "MATERIAL" && node.level === 0
+            (node) => node.nodeType === "MATERIAL" && node.level === 0,
           );
           if (materialNode) {
             materialNode.status = "COMPLETED";
@@ -2996,14 +3444,14 @@ class MaterialProcessFlowService {
           } else {
             // 最后一次是增加记录，且没有后续的解绑记录，跳过重复统计
             console.log(
-              `条码 ${mainBarcode} 已完成产出统计且未被解绑，跳过重复统计`
+              `条码 ${mainBarcode} 已完成产出统计且未被解绑，跳过重复统计`,
             );
             shouldUpdateOutput = false;
           }
 
           if (shouldUpdateOutput) {
             try {
-              await this.updateWorkOrderQuantity(
+              const outputUpdateResult = await this.updateWorkOrderQuantity(
                 planWorkOrder._id,
                 "output",
                 1,
@@ -3017,8 +3465,17 @@ class MaterialProcessFlowService {
                   reason: "扫描工序组件末道工序产出",
                   source: "WEB",
                   isAutomatic: true,
-                }
+                },
               );
+
+              // 关键：工单服务返回失败时给出明确告警，避免静默漏记
+              if (!outputUpdateResult || outputUpdateResult.success !== true) {
+                throw new Error(
+                  outputUpdateResult?.error ||
+                    outputUpdateResult?.message ||
+                    "更新工单产出量失败",
+                );
+              }
 
               if (lastUnbindRecord) {
                 console.log(`条码 ${mainBarcode} 解绑后重新生产完成，产出量+1`);
@@ -3026,22 +3483,35 @@ class MaterialProcessFlowService {
                 console.log(`条码 ${mainBarcode} 首次完成生产，产出量+1`);
               }
             } catch (error) {
-              console.warn("更新工单产出量失败:", error.message);
+              console.warn(
+                "更新工单产出量失败:",
+                error && error.message ? error.message : error,
+              );
               // 这里可以选择继续执行或者其他处理方式
             }
           }
         }
       }
 
+      const persistStartedAt = Date.now();
+
       // 保存更新
       await flowRecord.save();
+      perfMetrics.persistMs = Date.now() - persistStartedAt;
+      perfMetrics.persistMode = "save";
 
       // 在完成扫描组件后，添加以下代码来更新流程状态
       await this.fixFlowProgress(mainBarcode);
 
+      perfMetrics.totalMs = Date.now() - perfMetrics.startedAt;
+      this.logPerfMetrics("scanBatchDocument_copy", mainBarcode, perfMetrics);
+
       return flowRecord;
     } catch (error) {
       console.error("扫描批次单据失败:", error);
+      perfMetrics.totalMs = Date.now() - perfMetrics.startedAt;
+      perfMetrics.error = error?.message;
+      this.logPerfMetrics("scanBatchDocument_copy", mainBarcode, perfMetrics);
       throw error;
     }
   }
@@ -3069,7 +3539,7 @@ class MaterialProcessFlowService {
     workOrderId,
     type,
     quantity = 1,
-    logContext = {}
+    logContext = {},
   ) {
     try {
       if (!workOrderId) {
@@ -3089,7 +3559,7 @@ class MaterialProcessFlowService {
         workOrderId,
         type,
         quantity,
-        logContext
+        logContext,
       );
 
       if (result.success) {
@@ -3108,7 +3578,7 @@ class MaterialProcessFlowService {
       } else {
         console.error(
           `❌ 工单${workOrderId}更新任务加入队列失败:`,
-          result.error
+          result.error,
         );
 
         // 如果是服务不可用，尝试降级到本地队列处理
@@ -3121,12 +3591,12 @@ class MaterialProcessFlowService {
             workOrderId,
             type,
             quantity,
-            logContext
+            logContext,
           );
 
           if (queueResult.success) {
             console.log(
-              `✅ 工单${workOrderId}更新任务已加入本地队列: ${queueResult.jobId}`
+              `✅ 工单${workOrderId}更新任务已加入本地队列: ${queueResult.jobId}`,
             );
             return {
               success: true,
@@ -3155,7 +3625,7 @@ class MaterialProcessFlowService {
     } catch (error) {
       console.error(
         `更新工单${type === "input" ? "投入" : "产出"}数量失败:`,
-        error
+        error,
       );
       return {
         success: false,
@@ -3179,7 +3649,7 @@ class MaterialProcessFlowService {
     workOrderId,
     type,
     quantity = 1,
-    logContext = {}
+    logContext = {},
   ) {
     try {
       if (!workOrderId) {
@@ -3214,7 +3684,7 @@ class MaterialProcessFlowService {
           console.log(
             `工单(ID: ${workOrderId})${
               type === "input" ? "投入" : "产出"
-            }量不足，最多扣减到0（当前量：${beforeQuantity}，请求扣减：${requestedDecrease}，实际扣减：${-quantity}）`
+            }量不足，最多扣减到0（当前量：${beforeQuantity}，请求扣减：${requestedDecrease}，实际扣减：${-quantity}）`,
           );
         }
       }
@@ -3245,7 +3715,7 @@ class MaterialProcessFlowService {
         if (totalTargetQuantity > 0) {
           const newProgress = Math.min(
             100,
-            Math.floor((newOutputQuantity / totalTargetQuantity) * 100)
+            Math.floor((newOutputQuantity / totalTargetQuantity) * 100),
           );
           updateData.$set.progress = newProgress;
         }
@@ -3254,7 +3724,7 @@ class MaterialProcessFlowService {
         if (quantity < 0 && beforeWorkOrder.status === "COMPLETED") {
           updateData.$set.status = "PAUSED";
           console.log(
-            `工单(ID: ${workOrderId})因quantity为负数(${quantity})且原状态为已完成，被设置为暂停状态`
+            `工单(ID: ${workOrderId})因quantity为负数(${quantity})且原状态为已完成，被设置为暂停状态`,
           );
         }
         // 检查是否应该完成工单（使用else if避免状态冲突）
@@ -3292,7 +3762,7 @@ class MaterialProcessFlowService {
         beforeStatus !== "COMPLETED"
       ) {
         console.log(
-          `工单(ID: ${workOrderId})已完成 - 产出量: ${workOrder.outputQuantity}, 计划数量: ${workOrder.planProductionQuantity}`
+          `工单(ID: ${workOrderId})已完成 - 产出量: ${workOrder.outputQuantity}, 计划数量: ${workOrder.planProductionQuantity}`,
         );
         await this.completeAllRelatedWorkOrders(workOrder._id);
       }
@@ -3376,7 +3846,7 @@ class MaterialProcessFlowService {
     } catch (error) {
       console.error(
         `更新工单${type === "input" ? "投入" : "产出"}数量失败:`,
-        error
+        error,
       );
       throw error; // 抛出错误让队列处理重试逻辑
     }
@@ -3396,7 +3866,7 @@ class MaterialProcessFlowService {
 
     // 找到当前工序在level 1工序中的位置
     const currentIndex = level1ProcessSteps.findIndex(
-      (step) => step.nodeId === currentNode.nodeId
+      (step) => step.nodeId === currentNode.nodeId,
     );
 
     // 如果当前工序不是level 1工序，返回false
@@ -3458,7 +3928,7 @@ class MaterialProcessFlowService {
                 ...item.barcodeRule.toObject(),
                 priority: item.barcodeRule.priority || 0,
                 isProductSpecific: true,
-              }))
+              })),
           );
         }
 
@@ -3469,7 +3939,7 @@ class MaterialProcessFlowService {
               ...rule.toObject(),
               priority: -1, // 设置最低优先级
               isProductSpecific: false,
-            }))
+            })),
           );
         }
 
@@ -3506,12 +3976,12 @@ class MaterialProcessFlowService {
             case "substring":
               const subValue = currentValue.substring(
                 validationRule.params.start,
-                validationRule.params.end
+                validationRule.params.end,
               );
               console.log("subValue===", subValue);
               console.log(
                 "validationRule.params.expectedValue===",
-                validationRule.params.expectedValue
+                validationRule.params.expectedValue,
               );
               if (subValue !== validationRule.params.expectedValue) {
                 isValid = false;
@@ -3556,7 +4026,7 @@ class MaterialProcessFlowService {
                 case "substring":
                   extractValue = extractValue.substring(
                     step.params.start,
-                    step.params.end
+                    step.params.end,
                   );
                   break;
 
@@ -3586,7 +4056,7 @@ class MaterialProcessFlowService {
                 // 如果提取到DI，需要验证并获取对应的物料编码
                 const diResult = await this.validateDICode(
                   extractValue,
-                  material
+                  material,
                 );
                 if (diResult.isValid) {
                   materialCode = diResult.materialCode;
@@ -3607,15 +4077,31 @@ class MaterialProcessFlowService {
           }
 
           // 【关键验证】验证提取的物料编码是否匹配当前物料
-          if (materialCode === material.FNumber) {
+          // 支持条码后缀等价：条码中物料编码末尾 "XD" 与 物料 FNumber 末尾 "D" 视为同物（如 1407123043XD 对应 1407123043D）
+          const normalizedCode =
+            materialCode &&
+            material.FNumber &&
+            materialCode.endsWith("XD") &&
+            material.FNumber.endsWith("D")
+              ? materialCode.slice(0, -2) + "D"
+              : materialCode;
+          const codeMatches =
+            materialCode === material.FNumber ||
+            normalizedCode === material.FNumber;
+
+          if (codeMatches) {
             console.log(
               `✅ 条码验证通过: 规则=${rule.name} (${
                 rule.isProductSpecific ? "产品特定" : "全局规则"
-              }), 提取物料编码=${materialCode}`
+              }), 提取物料编码=${materialCode}${
+                normalizedCode !== materialCode
+                  ? ` (规范化=${normalizedCode})`
+                  : ""
+              }`,
             );
             return {
               isValid: true,
-              materialCode,
+              materialCode: material.FNumber,
               relatedBill,
               snCode,
               modelCode,
@@ -3625,7 +4111,7 @@ class MaterialProcessFlowService {
           } else {
             // 提取的物料编码不匹配当前物料，继续尝试下一个规则
             console.log(
-              `❌ 规则 ${rule.name} 提取的物料编码 ${materialCode} 不匹配目标物料 ${material.FNumber}，继续尝试下一个规则`
+              `❌ 规则 ${rule.name} 提取的物料编码 ${materialCode} 不匹配目标物料 ${material.FNumber}，继续尝试下一个规则`,
             );
           }
         }
@@ -3675,7 +4161,7 @@ class MaterialProcessFlowService {
 
       // 查找匹配的物料编码
       const matchedMaterialCode = possibleMaterialCodes.find((code) =>
-        allMaterialCodes.includes(code)
+        allMaterialCodes.includes(code),
       );
 
       if (!matchedMaterialCode) {
@@ -3696,7 +4182,16 @@ class MaterialProcessFlowService {
   static async initializeMachineBarcode(barcode, machineIp) {
     try {
       // 1. 先查找是否存在条码记录
-      const existingFlow = await MaterialProcessFlow.findOne({ barcode });
+      let existingFlow;
+      if (barcode.includes("DCZZ-")) {
+        existingFlow = await MaterialProcessFlow.findOne({
+          diyCode: barcode,
+        });
+      } else {
+        existingFlow = await MaterialProcessFlow.findOne({
+          barcode: barcode,
+        });
+      }
       if (existingFlow) {
         return existingFlow;
       }
@@ -3714,7 +4209,7 @@ class MaterialProcessFlowService {
       }
 
       const craft = await Craft.findById(processStep.craftId).populate(
-        "materialId"
+        "materialId",
       );
       if (!craft) {
         throw new Error("未找到对应的工艺信息");
@@ -3729,7 +4224,7 @@ class MaterialProcessFlowService {
       // 5. 验证条码与物料的匹配关系
       const validationResult = await this.validateBarcodeWithMaterial(
         barcode,
-        material
+        material,
       );
       if (!validationResult.isValid) {
         throw new Error(validationResult.error || "条码与物料不匹配");
@@ -3741,7 +4236,7 @@ class MaterialProcessFlowService {
         material.FNumber,
         barcode,
         machine.lineId,
-        machine.lineName
+        machine.lineName,
       );
 
       return flowRecord;
@@ -3763,7 +4258,7 @@ class MaterialProcessFlowService {
     materialId,
     craft,
     processedMaterials = new Set(),
-    level = 0
+    level = 0,
   ) {
     try {
       // 检查材料是否已处理过（防止循环依赖）
@@ -3839,7 +4334,7 @@ class MaterialProcessFlowService {
             // 处理工序物料
             for (const processMaterial of processMaterials) {
               const subMaterial = await Material.findById(
-                processMaterial.materialId
+                processMaterial.materialId,
               );
               if (!subMaterial) continue;
 
@@ -3853,7 +4348,7 @@ class MaterialProcessFlowService {
                 subMaterial._id,
                 subCraft,
                 processedMaterials,
-                level + 1
+                level + 1,
               );
 
               const materialNode = {
@@ -3902,7 +4397,7 @@ class MaterialProcessFlowService {
       const flattenBOM = (
         node,
         parentProcess = null,
-        parentMaterial = null
+        parentMaterial = null,
       ) => {
         // 添加工序信息
         node.processSteps.forEach((process) => {
@@ -3991,11 +4486,11 @@ class MaterialProcessFlowService {
         (node) =>
           node.level !== 0 && // 排除根节点
           (node.nodeType === "PROCESS_STEP" ||
-            (node.nodeType === "MATERIAL" && node.requireScan === true))
+            (node.nodeType === "MATERIAL" && node.requireScan === true)),
       );
 
       const completedNodes = requiredNodes.filter(
-        (node) => node.status === "COMPLETED"
+        (node) => node.status === "COMPLETED",
       );
 
       // 检查是否所有必要节点都已完成
@@ -4014,7 +4509,7 @@ class MaterialProcessFlowService {
 
         // 更新根节点状态
         const rootNode = flowRecord.processNodes.find(
-          (node) => node.level === 0 && node.nodeType === "MATERIAL"
+          (node) => node.level === 0 && node.nodeType === "MATERIAL",
         );
         if (rootNode) {
           rootNode.status = "COMPLETED";
@@ -4026,7 +4521,7 @@ class MaterialProcessFlowService {
 
         // 重置根节点状态
         const rootNode = flowRecord.processNodes.find(
-          (node) => node.level === 0 && node.nodeType === "MATERIAL"
+          (node) => node.level === 0 && node.nodeType === "MATERIAL",
         );
         if (rootNode) {
           rootNode.status = "PENDING";
@@ -4040,7 +4535,7 @@ class MaterialProcessFlowService {
       const endTime = new Date();
       const processingTime = endTime - startTime;
       console.log(
-        `条码 ${barcode} 的流程进度修复完成，处理耗时: ${processingTime}ms`
+        `条码 ${barcode} 的流程进度修复完成，处理耗时: ${processingTime}ms`,
       );
       console.log(`- 总节点数: ${requiredNodes.length}`);
       console.log(`- 已完成节点: ${completedNodes.length}`);
@@ -4101,7 +4596,7 @@ class MaterialProcessFlowService {
             if (flowRecord.barcode && flowRecord.materialId) {
               const mainValidation = await this.validateBarcodeWithMaterial(
                 flowRecord.barcode,
-                flowRecord.materialId
+                flowRecord.materialId,
               );
 
               if (mainValidation.relatedBill !== flowRecord.relatedBill) {
@@ -4127,7 +4622,7 @@ class MaterialProcessFlowService {
                 if (material) {
                   const validation = await this.validateBarcodeWithMaterial(
                     node.barcode,
-                    material
+                    material,
                   );
 
                   if (validation.relatedBill !== node.relatedBill) {
@@ -4195,19 +4690,19 @@ class MaterialProcessFlowService {
         processedCount++;
         console.log(`\n正在处理第 ${processedCount}/${flows.length} 条记录`);
         console.log(
-          `主条码: ${flow.barcode}, 物料: ${flow.materialId?.FName}(${flow.materialId?.FNumber})`
+          `主条码: ${flow.barcode}, 物料: ${flow.materialId?.FName}(${flow.materialId?.FNumber})`,
         );
 
         // 验证主条码
         console.log("验证主条码...");
         const mainBarcodeValidation = await this.validateBarcodeWithMaterial(
           flow.barcode,
-          flow.materialId
+          flow.materialId,
         );
 
         if (!mainBarcodeValidation.isValid) {
           console.log(
-            `❌ 主条码验证失败: ${mainBarcodeValidation.error || "未知错误"}`
+            `❌ 主条码验证失败: ${mainBarcodeValidation.error || "未知错误"}`,
           );
         } else {
           console.log("✅ 主条码验证通过");
@@ -4218,32 +4713,32 @@ class MaterialProcessFlowService {
         // 检查每个工序节点的组件
         if (flow.processNodes && flow.processNodes.length > 0) {
           console.log(
-            `\n开始验证工序节点组件, 共 ${flow.processNodes.length} 个节点`
+            `\n开始验证工序节点组件, 共 ${flow.processNodes.length} 个节点`,
           );
 
           for (const node of flow.processNodes) {
             if (node.nodeType === "MATERIAL" && node.barcode) {
               console.log(
-                `\n验证物料节点: ${node.materialName}(${node.materialCode})`
+                `\n验证物料节点: ${node.materialName}(${node.materialCode})`,
               );
               console.log(`条码: ${node.barcode}`);
 
               // 获取组件物料信息
               const componentMaterial = await Material.findById(
-                node.materialId
+                node.materialId,
               );
               if (componentMaterial) {
                 const componentValidation =
                   await this.validateBarcodeWithMaterial(
                     node.barcode,
-                    componentMaterial
+                    componentMaterial,
                   );
 
                 if (!componentValidation.isValid) {
                   console.log(
                     `❌ 组件条码验证失败: ${
                       componentValidation.error || "未知错误"
-                    }`
+                    }`,
                   );
                   invalidComponents.push({
                     barcode: node.barcode,
@@ -4316,12 +4811,12 @@ class MaterialProcessFlowService {
       // 2. 在主流程记录中找到对应该组件的节点
       const componentNodes = mainFlowRecord.processNodes.filter(
         (node) =>
-          node.nodeType === "MATERIAL" && node.barcode === componentBarcode
+          node.nodeType === "MATERIAL" && node.barcode === componentBarcode,
       );
 
       if (componentNodes.length === 0) {
         throw new Error(
-          `在主条码 ${mainBarcode} 中未找到子条码 ${componentBarcode} 对应的节点`
+          `在主条码 ${mainBarcode} 中未找到子条码 ${componentBarcode} 对应的节点`,
         );
       }
 
@@ -4329,14 +4824,14 @@ class MaterialProcessFlowService {
 
       // 3. 获取子条码流程记录中的工序节点
       const componentProcessNodes = componentFlowRecord.processNodes.filter(
-        (node) => node.nodeType === "PROCESS_STEP"
+        (node) => node.nodeType === "PROCESS_STEP",
       );
 
       // 4. 在主流程记录中找到所有关联到这个物料节点的工序节点
       const childProcessNodesInMain = mainFlowRecord.processNodes.filter(
         (node) =>
           node.nodeType === "PROCESS_STEP" &&
-          node.parentNodeId === componentNode.nodeId
+          node.parentNodeId === componentNode.nodeId,
       );
 
       // 存储需要更新的节点ID
@@ -4348,7 +4843,7 @@ class MaterialProcessFlowService {
         const matchingProcess = componentProcessNodes.find(
           (p) =>
             p.processCode === childProcess.processCode ||
-            p.processName === childProcess.processName
+            p.processName === childProcess.processName,
         );
 
         if (matchingProcess) {
@@ -4379,13 +4874,13 @@ class MaterialProcessFlowService {
           ) {
             // 获取该节点的所有子节点
             const childNodes = allNodes.filter(
-              (n) => n.parentNodeId === node.nodeId
+              (n) => n.parentNodeId === node.nodeId,
             );
 
             if (childNodes.length > 0) {
               // 检查所有子节点是否都已完成
               const allChildrenCompleted = childNodes.every(
-                (child) => child.status === "COMPLETED"
+                (child) => child.status === "COMPLETED",
               );
 
               // 如果所有子节点都已完成，但当前节点不是完成状态，则更新它
@@ -4402,7 +4897,7 @@ class MaterialProcessFlowService {
 
       // 【性能优化】使用统一的进度计算方法
       mainFlowRecord.progress = this.calculateFlowProgress(
-        mainFlowRecord.processNodes
+        mainFlowRecord.processNodes,
       );
 
       // 8. 如果所有工序都完成，则更新整体状态
@@ -4451,7 +4946,7 @@ class MaterialProcessFlowService {
           node.nodeType === "MATERIAL" &&
           node.status === "COMPLETED" &&
           node.barcode &&
-          node.barcode.length > 0
+          node.barcode.length > 0,
       );
 
       if (completedMaterialNodes.length === 0) {
@@ -4470,19 +4965,19 @@ class MaterialProcessFlowService {
         const childProcessNodes = mainFlowRecord.processNodes.filter(
           (node) =>
             node.parentNodeId === materialNode.nodeId &&
-            node.nodeType === "PROCESS_STEP"
+            node.nodeType === "PROCESS_STEP",
         );
 
         // 如果物料已完成但有子工序未完成，则标记为异常
         const hasInconsistentStatus = childProcessNodes.some(
-          (node) => node.status !== "COMPLETED"
+          (node) => node.status !== "COMPLETED",
         );
 
         if (hasInconsistentStatus) {
           inconsistentComponents.push({
             materialNode,
             childProcessNodes: childProcessNodes.filter(
-              (node) => node.status !== "COMPLETED"
+              (node) => node.status !== "COMPLETED",
             ),
           });
         }
@@ -4516,7 +5011,7 @@ class MaterialProcessFlowService {
             materialName: item.materialNode.materialName,
             materialCode: item.materialNode.materialCode,
             pendingProcesses: item.childProcessNodes.map(
-              (node) => node.processName
+              (node) => node.processName,
             ),
           });
         }
@@ -4554,7 +5049,7 @@ class MaterialProcessFlowService {
    */
   static async completeAllRelatedWorkOrders(
     workOrderId,
-    processedIds = new Set()
+    processedIds = new Set(),
   ) {
     // 防止重复处理和循环引用
     if (processedIds.has(workOrderId.toString())) {
@@ -4563,16 +5058,15 @@ class MaterialProcessFlowService {
     processedIds.add(workOrderId.toString());
 
     const ProductionPlanWorkOrder = mongoose.model(
-      "production_plan_work_order"
+      "production_plan_work_order",
     );
 
     // 1. 查找当前工单的原工单(如果存在)
-    const currentWorkOrder = await ProductionPlanWorkOrder.findById(
-      workOrderId
-    );
+    const currentWorkOrder =
+      await ProductionPlanWorkOrder.findById(workOrderId);
     if (currentWorkOrder && currentWorkOrder.originalWorkOrderId) {
       const originalWorkOrder = await ProductionPlanWorkOrder.findById(
-        currentWorkOrder.originalWorkOrderId
+        currentWorkOrder.originalWorkOrderId,
       );
 
       if (originalWorkOrder && originalWorkOrder.status !== "COMPLETED") {
@@ -4585,7 +5079,7 @@ class MaterialProcessFlowService {
         // 递归查找原工单的相关联工单
         await this.completeAllRelatedWorkOrders(
           originalWorkOrder._id,
-          processedIds
+          processedIds,
         );
       }
     }
@@ -4628,17 +5122,17 @@ class MaterialProcessFlowService {
         (node) =>
           node.level !== 0 && // 排除根节点
           (node.nodeType === "PROCESS_STEP" ||
-            (node.nodeType === "MATERIAL" && node.requireScan === true))
+            (node.nodeType === "MATERIAL" && node.requireScan === true)),
       );
 
       // 获取已完成节点
       const completedNodes = requiredNodes.filter(
-        (node) => node.status === "COMPLETED"
+        (node) => node.status === "COMPLETED",
       );
 
       // 获取未完成节点
       const pendingNodes = requiredNodes.filter(
-        (node) => node.status !== "COMPLETED"
+        (node) => node.status !== "COMPLETED",
       );
 
       // 检查是否所有必要节点都已完成
@@ -4689,7 +5183,7 @@ class MaterialProcessFlowService {
     materialNodeId,
     originalBarcode,
     newBarcode,
-    userId
+    userId,
   ) {
     try {
       console.log("=== 开始物料替换 ===");
@@ -4722,17 +5216,17 @@ class MaterialProcessFlowService {
 
       // 3. 查找工序节点和物料节点
       const processNode = mainFlowRecord.processNodes.find(
-        (node) => node.nodeId === processNodeId
+        (node) => node.nodeId === processNodeId,
       );
       if (!processNode || processNode.nodeType !== "PROCESS_STEP") {
         throw new Error("未找到指定的工序节点");
       }
       console.log(
-        `工序节点信息: ID=${processNode.nodeId}, 名称=${processNode.processName}, ProcessStepId=${processNode.processStepId}`
+        `工序节点信息: ID=${processNode.nodeId}, 名称=${processNode.processName}, ProcessStepId=${processNode.processStepId}`,
       );
 
       const materialNode = mainFlowRecord.processNodes.find(
-        (node) => node.nodeId === materialNodeId
+        (node) => node.nodeId === materialNodeId,
       );
       if (
         !materialNode ||
@@ -4742,7 +5236,7 @@ class MaterialProcessFlowService {
         throw new Error("未找到指定的物料节点或物料节点不属于指定工序");
       }
       console.log(
-        `物料节点信息: ID=${materialNode.nodeId}, 物料=${materialNode.materialName}, 条码=${materialNode.barcode}`
+        `物料节点信息: ID=${materialNode.nodeId}, 物料=${materialNode.materialName}, 条码=${materialNode.barcode}`,
       );
 
       // 验证原条码是否匹配
@@ -4776,13 +5270,13 @@ class MaterialProcessFlowService {
       if (newBarcodeRecord) {
         console.log(`新条码 ${newBarcode} 有流程记录: ${newBarcodeRecord._id}`);
         console.log(
-          `新条码物料类型: ${newBarcodeRecord.materialCode}, 需匹配类型: ${materialNode.materialCode}`
+          `新条码物料类型: ${newBarcodeRecord.materialCode}, 需匹配类型: ${materialNode.materialCode}`,
         );
 
         // 物料编码必须匹配
         if (newBarcodeRecord.materialCode !== materialNode.materialCode) {
           throw new Error(
-            `新条码物料类型(${newBarcodeRecord.materialCode})与要替换的物料类型(${materialNode.materialCode})不匹配`
+            `新条码物料类型(${newBarcodeRecord.materialCode})与要替换的物料类型(${materialNode.materialCode})不匹配`,
           );
         }
 
@@ -4794,18 +5288,18 @@ class MaterialProcessFlowService {
 
         // 检查新条码是否有子物料工序节点
         hasSubProcesses = newBarcodeRecord.processNodes.some(
-          (node) => node.level > 0 && node.nodeType === "PROCESS_STEP"
+          (node) => node.level > 0 && node.nodeType === "PROCESS_STEP",
         );
 
         // 增加检查：检查新条码的子物料工序是否全部完成
         if (hasSubProcesses) {
           console.log("检查新条码子物料工序完成状态...");
           const subProcessNodes = newBarcodeRecord.processNodes.filter(
-            (node) => node.nodeType === "PROCESS_STEP" && node.level > 0
+            (node) => node.nodeType === "PROCESS_STEP" && node.level > 0,
           );
 
           const incompleteProcesses = subProcessNodes.filter(
-            (node) => node.status !== "COMPLETED"
+            (node) => node.status !== "COMPLETED",
           );
 
           if (incompleteProcesses.length > 0) {
@@ -4813,7 +5307,7 @@ class MaterialProcessFlowService {
               .map((p) => p.processName)
               .join(", ");
             throw new Error(
-              `新条码的子工序未全部完成，未完成工序: ${incompleteNames}`
+              `新条码的子工序未全部完成，未完成工序: ${incompleteNames}`,
             );
           }
           console.log("新条码所有子工序均已完成");
@@ -4827,7 +5321,7 @@ class MaterialProcessFlowService {
 
         if (!material) {
           throw new Error(
-            `未找到物料编码为 ${materialNode.materialCode} 的物料信息`
+            `未找到物料编码为 ${materialNode.materialCode} 的物料信息`,
           );
         }
         console.log(`找到物料信息: ${material.FName}`);
@@ -4835,24 +5329,24 @@ class MaterialProcessFlowService {
         // 验证新条码是否符合物料规则
         const validationResult = await this.validateBarcodeWithMaterial(
           newBarcode,
-          material
+          material,
         );
 
         if (!validationResult.isValid) {
           throw new Error(
-            `新条码验证失败: ${validationResult.error || "不符合条码规则"}`
+            `新条码验证失败: ${validationResult.error || "不符合条码规则"}`,
           );
         }
 
         console.log(
-          `条码验证通过，规则: ${validationResult.ruleName || "未知规则"}`
+          `条码验证通过，规则: ${validationResult.ruleName || "未知规则"}`,
         );
       }
 
       // 检查批次物料使用次数
       if (materialNode.isBatch && materialNode.batchQuantity > 0) {
         console.log(
-          `检测到批次物料，批次用量限制: ${materialNode.batchQuantity}次`
+          `检测到批次物料，批次用量限制: ${materialNode.batchQuantity}次`,
         );
         // 查找所有使用该批次条码的记录
         const batchUsageFlows = await MaterialProcessFlow.find({
@@ -4871,7 +5365,7 @@ class MaterialProcessFlowService {
         // 如果使用次数已达到或超过批次用量限制，抛出错误
         if (usageCount >= materialNode.batchQuantity) {
           throw new Error(
-            `批次物料条码 ${newBarcode} 已达到使用次数限制(${materialNode.batchQuantity}次)`
+            `批次物料条码 ${newBarcode} 已达到使用次数限制(${materialNode.batchQuantity}次)`,
           );
         }
       }
@@ -4879,7 +5373,7 @@ class MaterialProcessFlowService {
       // 添加关键物料校验
       if (materialNode.isKeyMaterial) {
         console.log(
-          `检测到关键物料，校验新条码 ${newBarcode} 是否已被其他流程使用...`
+          `检测到关键物料，校验新条码 ${newBarcode} 是否已被其他流程使用...`,
         );
         // 检查该条码是否已被其他流程使用
         const existingFlows = await MaterialProcessFlow.find({
@@ -4895,7 +5389,7 @@ class MaterialProcessFlowService {
         if (existingFlows.length > 0) {
           // 排除当前流程记录
           const otherFlows = existingFlows.filter(
-            (flow) => flow.barcode !== mainBarcode
+            (flow) => flow.barcode !== mainBarcode,
           );
 
           if (otherFlows.length > 0) {
@@ -4916,9 +5410,9 @@ class MaterialProcessFlowService {
                       detail.materialName
                     }(${
                       detail.materialCode
-                    })\n  使用时间: ${detail.scanTime?.toLocaleString()}`
+                    })\n  使用时间: ${detail.scanTime?.toLocaleString()}`,
                 )
-                .join("\n")}`
+                .join("\n")}`,
             );
           }
         }
@@ -4930,7 +5424,7 @@ class MaterialProcessFlowService {
       const allChildNodes = [];
       const findChildNodes = (nodeId) => {
         const directChildren = mainFlowRecord.processNodes.filter(
-          (node) => node.parentNodeId === nodeId
+          (node) => node.parentNodeId === nodeId,
         );
         allChildNodes.push(...directChildren);
         // 递归查找孙子节点
@@ -4947,7 +5441,7 @@ class MaterialProcessFlowService {
             node.nodeType === "PROCESS_STEP"
               ? `工序=${node.processName}, ProcessStepId=${node.processStepId}`
               : `物料=${node.materialName}, 条码=${node.barcode || "无"}`
-          }`
+          }`,
         );
       });
 
@@ -4957,7 +5451,7 @@ class MaterialProcessFlowService {
 
       // 7.1 更新物料节点的条码
       console.log(
-        `更新物料节点条码: 从 ${materialNode.barcode} 到 ${newBarcode}`
+        `更新物料节点条码: 从 ${materialNode.barcode} 到 ${newBarcode}`,
       );
       materialNode.barcode = newBarcode;
       materialNode.scanTime = new Date();
@@ -4976,17 +5470,17 @@ class MaterialProcessFlowService {
       if (newBarcodeRecord && newBarcodeRecord.processNodes.length > 0) {
         console.log(`新条码 ${newBarcode} 有流程记录，将使用其工序状态信息`);
         console.log(
-          `新条码流程记录共有 ${newBarcodeRecord.processNodes.length} 个节点`
+          `新条码流程记录共有 ${newBarcodeRecord.processNodes.length} 个节点`,
         );
 
         // 找到新条码流程中的根物料节点
         const newRootMaterial = newBarcodeRecord.processNodes.find(
-          (node) => node.level === 0 && node.nodeType === "MATERIAL"
+          (node) => node.level === 0 && node.nodeType === "MATERIAL",
         );
 
         if (newRootMaterial) {
           console.log(
-            `找到新条码的根物料节点: ${newRootMaterial.materialName}`
+            `找到新条码的根物料节点: ${newRootMaterial.materialName}`,
           );
 
           // 更高级的替换逻辑：
@@ -4995,7 +5489,7 @@ class MaterialProcessFlowService {
           await this.matchAndUpdateNodesRecursively(
             mainFlowRecord.processNodes,
             newBarcodeRecord.processNodes,
-            userId
+            userId,
           );
 
           // 2. 仍然使用现有的节点映射方法作为补充，确保节点状态完全更新
@@ -5035,7 +5529,7 @@ class MaterialProcessFlowService {
                   newNode.nodeType === "PROCESS_STEP"
                     ? newNode.processName
                     : newNode.materialName
-                }`
+                }`,
               );
 
               // 更新节点状态和信息
@@ -5071,7 +5565,7 @@ class MaterialProcessFlowService {
                   childNode.nodeType === "PROCESS_STEP"
                     ? childNode.processName
                     : childNode.materialName
-                }`
+                }`,
               );
               childNode.status = "COMPLETED";
               childNode.endTime = new Date();
@@ -5128,20 +5622,20 @@ class MaterialProcessFlowService {
 
       // 【性能优化】使用统一的进度计算方法
       mainFlowRecord.progress = this.calculateFlowProgress(
-        mainFlowRecord.processNodes
+        mainFlowRecord.processNodes,
       );
 
       // 检查是否所有必要节点都已完成
       if (mainFlowRecord.progress === 100) {
         const allRequiredCompleted = this.checkAllRequiredNodesCompleted(
-          mainFlowRecord.processNodes
+          mainFlowRecord.processNodes,
         );
         if (allRequiredCompleted) {
           mainFlowRecord.status = "COMPLETED";
           mainFlowRecord.endTime = new Date();
           // 更新根节点状态
           const rootNode = mainFlowRecord.processNodes.find(
-            (node) => node.level === 0 && node.nodeType === "MATERIAL"
+            (node) => node.level === 0 && node.nodeType === "MATERIAL",
           );
           if (rootNode) {
             rootNode.status = "COMPLETED";
@@ -5194,7 +5688,7 @@ class MaterialProcessFlowService {
     reason = "产品条码初始化",
     remark = "",
     ipAddress = "",
-    userAgent = ""
+    userAgent = "",
   ) {
     let logData = null;
 
@@ -5223,10 +5717,10 @@ class MaterialProcessFlowService {
         (node) =>
           node.level !== 0 && // 排除根节点
           (node.nodeType === "PROCESS_STEP" ||
-            (node.nodeType === "MATERIAL" && node.requireScan === true))
+            (node.nodeType === "MATERIAL" && node.requireScan === true)),
       );
       const completedNodes = requiredNodes.filter(
-        (node) => node.status === "COMPLETED"
+        (node) => node.status === "COMPLETED",
       );
 
       // 获取工单信息
@@ -5303,7 +5797,7 @@ class MaterialProcessFlowService {
               userAgent: userAgent,
               source: "WEB",
               isAutomatic: false,
-            }
+            },
           );
           logData.workOrderAdjustment.outputQuantityAdjusted = true;
           logData.workOrderAdjustment.outputAdjustmentAmount = -1;
@@ -5325,7 +5819,7 @@ class MaterialProcessFlowService {
               userAgent: userAgent,
               source: "WEB",
               isAutomatic: false,
-            }
+            },
           );
           logData.workOrderAdjustment.inputQuantityAdjusted = true;
           logData.workOrderAdjustment.inputAdjustmentAmount = -1;
@@ -5341,7 +5835,7 @@ class MaterialProcessFlowService {
 
       // 7. 记录操作日志到控制台
       console.log(
-        `用户 ${userId} 初始化产品 ${barcode} (${materialCode} - ${materialName})`
+        `用户 ${userId} 初始化产品 ${barcode} (${materialCode} - ${materialName})`,
       );
 
       return {
@@ -5387,15 +5881,15 @@ class MaterialProcessFlowService {
   static validateProcessNodesCompatibility(
     mainProcessNodes,
     subProcessNodes,
-    bindingMaterialNode
+    bindingMaterialNode,
   ) {
     console.log(
-      `开始验证物料 ${bindingMaterialNode.materialCode} 的工序节点兼容性`
+      `开始验证物料 ${bindingMaterialNode.materialCode} 的工序节点兼容性`,
     );
 
     // 1. 首先检查物料节点是否匹配
     const subMaterialNode = subProcessNodes.find(
-      (node) => node.nodeType === "MATERIAL" && node.level === 0
+      (node) => node.nodeType === "MATERIAL" && node.level === 0,
     );
 
     if (!subMaterialNode) {
@@ -5429,7 +5923,7 @@ class MaterialProcessFlowService {
     // 2. 构建主物料中该绑定物料节点的完整子树结构
     const getChildNodesRecursively = (nodes, parentNodeId) => {
       const directChildren = nodes.filter(
-        (node) => node.parentNodeId === parentNodeId
+        (node) => node.parentNodeId === parentNodeId,
       );
       const result = [];
 
@@ -5446,7 +5940,7 @@ class MaterialProcessFlowService {
     // 获取主物料中该绑定物料节点下的所有子节点（递归）
     const mainSubNodes = getChildNodesRecursively(
       mainProcessNodes,
-      bindingMaterialNode.nodeId
+      bindingMaterialNode.nodeId,
     );
 
     // 获取子物料中的所有非根节点（level > 0）
@@ -5467,7 +5961,7 @@ class MaterialProcessFlowService {
     const buildNodeTree = (nodes, rootNodeId, baseLevel = 0) => {
       const tree = [];
       const directChildren = nodes.filter(
-        (node) => node.parentNodeId === rootNodeId
+        (node) => node.parentNodeId === rootNodeId,
       );
 
       for (const child of directChildren) {
@@ -5486,14 +5980,14 @@ class MaterialProcessFlowService {
     const mainSubTree = buildNodeTree(
       mainProcessNodes,
       bindingMaterialNode.nodeId,
-      bindingMaterialNode.level
+      bindingMaterialNode.level,
     );
 
     // 构建子物料树（从根物料节点开始）
     const subMaterialTree = buildNodeTree(
       subProcessNodes,
       subMaterialNode.nodeId,
-      0
+      0,
     );
 
     console.log(`主物料子树根节点数量: ${mainSubTree.length}`);
@@ -5515,7 +6009,7 @@ class MaterialProcessFlowService {
                 n.nodeType === "PROCESS_STEP" ? n.processName : n.materialName
               }(${
                 n.nodeType === "PROCESS_STEP" ? n.processCode : n.materialCode
-              })`
+              })`,
           ),
           subNodes: subTree.map(
             (n) =>
@@ -5523,7 +6017,7 @@ class MaterialProcessFlowService {
                 n.nodeType === "PROCESS_STEP" ? n.processName : n.materialName
               }(${
                 n.nodeType === "PROCESS_STEP" ? n.processCode : n.materialCode
-              })`
+              })`,
           ),
         });
         return errors;
@@ -5576,7 +6070,7 @@ class MaterialProcessFlowService {
           const childErrors = compareTreeNodes(
             mainNode.children,
             subNode.children,
-            currentPath
+            currentPath,
           );
           errors.push(...childErrors);
         } else if (mainNode.children?.length !== subNode.children?.length) {
@@ -5672,12 +6166,12 @@ class MaterialProcessFlowService {
       });
       if (!craft) {
         throw new Error(
-          `未找到物料 ${existingFlowRecord.materialCode} 对应的工艺信息`
+          `未找到物料 ${existingFlowRecord.materialCode} 对应的工艺信息`,
         );
       }
 
       console.log(
-        `找到工艺信息: ${craft.craftName}, 版本: ${craft.craftVersion}`
+        `找到工艺信息: ${craft.craftName}, 版本: ${craft.craftVersion}`,
       );
 
       // 3. 模拟生成一个新的完整流程结构（参考createFlowByMaterialCode）
@@ -5685,7 +6179,7 @@ class MaterialProcessFlowService {
       const newProcessNodes = await this.buildProcessNodes(
         existingFlowRecord.materialId,
         craft,
-        new Set()
+        new Set(),
       );
 
       console.log(`生成新节点数量: ${newProcessNodes.length}`);
@@ -5711,7 +6205,7 @@ class MaterialProcessFlowService {
       });
 
       console.log(
-        `现有节点映射表构建完成，共 ${existingNodeMap.size} 种类型节点`
+        `现有节点映射表构建完成，共 ${existingNodeMap.size} 种类型节点`,
       );
 
       // 6. 智能合并节点（保留完成状态，更新结构）
@@ -5835,7 +6329,7 @@ class MaterialProcessFlowService {
       const updatedFlowRecord = await MaterialProcessFlow.findOne({ barcode });
 
       console.log(
-        `高级更新完成，最终节点数量: ${updatedFlowRecord.processNodes.length}`
+        `高级更新完成，最终节点数量: ${updatedFlowRecord.processNodes.length}`,
       );
       console.log(`最终进度: ${updatedFlowRecord.progress}%`);
       console.log(`最终状态: ${updatedFlowRecord.status}`);
@@ -5874,11 +6368,11 @@ class MaterialProcessFlowService {
           node.nodeType === "MATERIAL" &&
           node.barcode &&
           node.barcode.length > 0 &&
-          node.level > 0 // 排除根节点
+          node.level > 0, // 排除根节点
       );
 
       console.log(
-        `发现 ${materialNodesWithBarcode.length} 个有条码的子物料节点`
+        `发现 ${materialNodesWithBarcode.length} 个有条码的子物料节点`,
       );
 
       // 并行更新所有子物料流程记录
@@ -5897,17 +6391,17 @@ class MaterialProcessFlowService {
               console.log(`子物料流程更新完成: ${materialNode.barcode}`);
             } else {
               console.log(
-                `子物料 ${materialNode.barcode} 没有对应的流程记录，跳过更新`
+                `子物料 ${materialNode.barcode} 没有对应的流程记录，跳过更新`,
               );
             }
           } catch (error) {
             console.warn(
               `更新子物料流程失败 ${materialNode.barcode}:`,
-              error.message
+              error.message,
             );
             // 子物料更新失败不影响主流程
           }
-        }
+        },
       );
 
       // 等待所有子物料更新完成
@@ -5929,7 +6423,7 @@ class MaterialProcessFlowService {
   static async batchUpdateFlowNodesAdvanced(
     barcodes,
     userId = "SYSTEM",
-    options = {}
+    options = {},
   ) {
     try {
       const {
@@ -5954,8 +6448,8 @@ class MaterialProcessFlowService {
         if (logProgress) {
           console.log(
             `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(
-              barcodes.length / batchSize
-            )}, 条码: ${batch.join(", ")}`
+              barcodes.length / batchSize,
+            )}, 条码: ${batch.join(", ")}`,
           );
         }
 
@@ -5999,7 +6493,7 @@ class MaterialProcessFlowService {
       results.duration = results.endTime - results.startTime;
 
       console.log(
-        `批量更新完成，成功: ${results.success.length}, 失败: ${results.failed.length}, 耗时: ${results.duration}ms`
+        `批量更新完成，成功: ${results.success.length}, 失败: ${results.failed.length}, 耗时: ${results.duration}ms`,
       );
 
       return results;
@@ -6174,7 +6668,7 @@ class MaterialProcessFlowService {
         .sort({ createdAt: -1 });
 
       console.log(
-        `找到 ${affectedRecords.length} 个受物料 ${materialId} 工艺变更影响的条码`
+        `找到 ${affectedRecords.length} 个受物料 ${materialId} 工艺变更影响的条码`,
       );
 
       return affectedRecords.map((record) => ({
@@ -6210,7 +6704,7 @@ class MaterialProcessFlowService {
       });
       if (!craft) {
         throw new Error(
-          `未找到物料 ${existingFlowRecord.materialCode} 对应的工艺信息`
+          `未找到物料 ${existingFlowRecord.materialCode} 对应的工艺信息`,
         );
       }
 
@@ -6218,13 +6712,13 @@ class MaterialProcessFlowService {
       const newProcessNodes = await this.buildProcessNodes(
         existingFlowRecord.materialId,
         craft,
-        new Set()
+        new Set(),
       );
 
       // 4. 比较差异
       const comparison = this.compareProcessNodes(
         existingFlowRecord.processNodes,
-        newProcessNodes
+        newProcessNodes,
       );
 
       // 5. 分析影响
@@ -6254,7 +6748,7 @@ class MaterialProcessFlowService {
         recommendations: this.generateUpdateRecommendations(
           existingFlowRecord,
           comparison,
-          analysis
+          analysis,
         ),
       };
     } catch (error) {
@@ -6271,7 +6765,7 @@ class MaterialProcessFlowService {
    */
   static assessUpdateRisk(flowRecord, comparison) {
     const completedNodes = flowRecord.processNodes.filter(
-      (node) => node.status === "COMPLETED"
+      (node) => node.status === "COMPLETED",
     );
     const hasCompletedNodes = completedNodes.length > 0;
     const hasRemovedNodes = comparison.summary.removed > 0;

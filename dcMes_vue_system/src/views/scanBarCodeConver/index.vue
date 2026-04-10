@@ -43,6 +43,7 @@
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :disabled="!!mainMaterialId && !!processStepId"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
@@ -117,6 +118,7 @@
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
                 v-model="formData.productLine"
+                :min-search-length="0"
                 collection="production_line"
                 :search-fields="['lineCode', 'lineName']"
                 label-key="lineName"
@@ -379,9 +381,10 @@
     <status-popup
       :visible.sync="showPopup"
       :type="popupType"
-      :errorMessage="errorMessage"
+      :text="errorMessage"
       :errorCode="errorCode"
       :duration="5000"
+      :manual-confirm="errorDisplayMode === 'manual'"
     />
   </div>
 </template>
@@ -490,6 +493,12 @@ export default {
     };
   },
   computed: {
+    soundEnabled() {
+      return this.$store.state.scanConfig.soundEnabled;
+    },
+    errorDisplayMode() {
+      return this.$store.state.scanConfig.errorDisplayMode;
+    },
     mainMaterialId: {
       get() {
         return localStorage.getItem("mainMaterialId") || "";
@@ -621,9 +630,24 @@ export default {
       },
       deep: true, // 深度监听对象的变化
     },
+    // 弹窗关闭后自动将焦点归还到扫码输入框
+    showPopup(val) {
+      if (!val) {
+        this.$nextTick(() => {
+          this.$refs.scanInput && this.$refs.scanInput.focus();
+        });
+      }
+    },
   },
 
   methods: {
+    /** 根据「提示音」开关决定是否播放 */
+    playSound(key) {
+      if (!this.soundEnabled && key === "smcg") {
+        return;
+      }
+      playAudio(key);
+    },
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
@@ -1550,10 +1574,10 @@ export default {
         }
       } catch (error) {
         console.error("处理主条码失败:", error);
-        this.errorMessage = error;
+        this.errorMessage = error.message || String(error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio("tmyw");
+        this.playSound("tmyw");
         throw error;
       }
     },
@@ -1584,11 +1608,11 @@ export default {
           this.$t("scanBarCodeConver.messages.scanSuccessful")
         );
       } catch (error) {
-        this.errorMessage = error;
+        this.errorMessage = error.message || String(error);
         console.error("处理子物料条码失败:", error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio("tmyw");
+        this.playSound("tmyw");
         throw error;
       }
     },
@@ -1687,7 +1711,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw");
+            this.playSound("tmyw");
           }, 300);
           this.$notify({
             title: this.$t(
@@ -1706,6 +1730,7 @@ export default {
         }
 
         const materialCode = isValidResult.materialCode;
+        let matched = false;
 
         const repairRecord = await getData("product_repair", {
           query: { barcode: cleanValue },
@@ -1720,7 +1745,7 @@ export default {
             this.errorMessage = "该条码存在未完成的维修记录";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("dwx");
+            this.playSound("dwx");
             return;
           }
           if (
@@ -1733,7 +1758,7 @@ export default {
               this.$message.error("该条码已完成报废处理");
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio("tmyw");
+              this.playSound("tmyw");
               return;
             }
             this.unifiedScanInput = "";
@@ -1742,7 +1767,7 @@ export default {
             this.errorMessage = "该条码已完成维修,但维修结果为不合格";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("wxsb");
+            this.playSound("wxsb");
             return;
           }
         }
@@ -1777,7 +1802,7 @@ export default {
                   this.errorMessage = "该条码已作废";
                   this.popupType = "ng";
                   this.showPopup = true;
-                  playAudio("tmyw");
+                  this.playSound("tmyw");
                   return;
                 }
               }
@@ -1836,21 +1861,9 @@ export default {
             }
           }
 
-          // 自动填充所有子物料条码
-          this.processMaterials.forEach((material) => {
-            if (material.scanOperation) {
-              this.$set(
-                this.scanForm.barcodes,
-                material._id,
-                transformedBarcode
-              );
-              this.$set(this.validateStatus, material._id, true);
-            }
-          });
-
-          playAudio("smcg");
+          this.playSound("smcg");
           this.$notify({
-            title: "扫描成功",
+            title: "主物料扫描成功",
             dangerouslyUseHTMLString: true,
             message: `
                                 <div style="line-height: 1.5">
@@ -1870,28 +1883,177 @@ export default {
             duration: 3000,
             position: "top-right",
           });
+          matched = true;
+        }
 
-          // 检查是否已经在提交中，避免重复提交
+        // 检查子物料
+        if (!matched) {
+          // 需要先扫描主条码
+          if (!this.scanForm.mainBarcode || !this.validateStatus.mainBarcode) {
+            this.$message.error("请先扫描主条码");
+            this.errorMessage = "请先扫描主条码";
+            this.popupType = "ng";
+            this.showPopup = true;
+            this.playSound("smztm");
+            this.unifiedScanInput = "";
+            this.$refs.scanInput.focus();
+            return;
+          }
+
+          for (const material of this.processMaterials) {
+            if (material.materialCode === materialCode) {
+              // 如果是批次物料
+              if (material.isBatch) {
+                const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
+                const usageKey = `${cacheKey}_usage`;
+                const cachedBarcode = localStorage.getItem(cacheKey);
+
+                if (cachedBarcode !== cleanValue) {
+                  const count = await this.queryBatchUsageCount(
+                    cleanValue,
+                    material._id
+                  );
+                  if (
+                    material.batchQuantity &&
+                    count >= material.batchQuantity &&
+                    material.batchQuantity > 0
+                  ) {
+                    this.$message.warning(
+                      `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
+                    );
+                    this.playSound("pcwlxz");
+                    this.errorMessage = "批次物料条码已达到使用次数限制";
+                    this.popupType = "ng";
+                    this.showPopup = true;
+                    return;
+                  }
+                  localStorage.setItem(cacheKey, cleanValue);
+                  localStorage.setItem(usageKey, count.toString());
+                  this.$set(this.batchUsageCount, material._id, count);
+                } else {
+                  const currentUsage = parseInt(
+                    localStorage.getItem(usageKey) || "0"
+                  );
+                  if (
+                    material.batchQuantity &&
+                    currentUsage >= material.batchQuantity &&
+                    material.batchQuantity > 0
+                  ) {
+                    localStorage.removeItem(cacheKey);
+                    localStorage.removeItem(usageKey);
+                    this.$set(this.scanForm.barcodes, material._id, "");
+                    this.$set(this.validateStatus, material._id, false);
+                    this.$message.warning(
+                      `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
+                    );
+                    this.playSound("pcwlxz");
+                    return;
+                  }
+                }
+              }
+
+              this.$set(this.scanForm.barcodes, material._id, cleanValue);
+              this.$set(this.validateStatus, material._id, true);
+
+              await this.handleSubBarcode(material._id, materialCode);
+
+              this.playSound("smcg");
+              this.$notify({
+                title: "子物料扫描成功",
+                dangerouslyUseHTMLString: true,
+                message: `
+                                <div style="line-height: 1.5">
+                                    <div>物料名称: ${material.materialName}</div>
+                                    <div>物料编码: ${material.materialCode}</div>
+                                    <div>条码: ${cleanValue}</div>
+                                </div>
+                            `,
+                type: "success",
+                duration: 3000,
+                position: "top-right",
+              });
+              matched = true;
+              break;
+            }
+          }
+        }
+
+        if (!matched) {
+          this.$message.error("条码不匹配");
+          this.errorMessage = "该条码不符合任何已配置的规则或物料不匹配";
+          this.popupType = "ng";
+          this.showPopup = true;
+          setTimeout(() => {
+            this.playSound("tmyw");
+          }, 300);
+          this.unifiedScanInput = "";
+          this.$refs.scanInput.focus();
+          return;
+        }
+
+        // 检查是否所有需要扫描的条码都已扫描
+        const allScanned = Object.values(this.validateStatus).every(
+          (status) => {
+            const material = this.processMaterials.find(
+              (m) => this.validateStatus[m._id] === status && !m.scanOperation
+            );
+            return material ? true : status === true;
+          }
+        );
+
+        if (allScanned) {
           if (this.isSubmitting) {
             console.warn("已经在提交中，跳过自动提交");
             return;
           }
 
-          // 所有条码都已扫描完成，自动提交
+          this.$notify({
+            title: "扫描完成",
+            dangerouslyUseHTMLString: true,
+            message: `
+                                <div style="line-height: 1.5">
+                                    <div>所有物料已扫描完成</div>
+                                    <div style="color: #67C23A">正在发送确认提交...</div>
+                                </div>
+                            `,
+            type: "success",
+            duration: 3000,
+            position: "top-right",
+          });
+
           await this.handleConfirm();
         } else {
-          this.$message.error("条码不匹配主物料");
-          this.errorMessage = "条码不匹配主物料";
-          this.popupType = "ng";
-          this.showPopup = true;
-          setTimeout(() => {
-            playAudio("tmyw");
-          }, 300);
+          const remainingMaterials = this.processMaterials
+            .filter(
+              (material) =>
+                !this.validateStatus[material._id] && material.scanOperation
+            )
+            .map(
+              (material) =>
+                `${material.materialName}(${material.materialCode})`
+            )
+            .join("\n");
+
+          if (remainingMaterials) {
+            this.$notify({
+              title: "继续扫描",
+              dangerouslyUseHTMLString: true,
+              message: `
+                                <div style="line-height: 1.5">
+                                    <div>请继续扫描以下物料：</div>
+                                    <div style="color: #E6A23C; white-space: pre-line">${remainingMaterials}</div>
+                                </div>
+                            `,
+              type: "info",
+              duration: 3000,
+              position: "top-right",
+            });
+          }
         }
       } catch (error) {
         console.error("扫描处理失败:", error);
         setTimeout(() => {
-          playAudio("tmyw");
+          this.playSound("tmyw");
         }, 1000);
         this.$notify({
           title: "扫描失败",
@@ -2240,7 +2402,7 @@ export default {
           });
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
-            playAudio("bdcg");
+            this.playSound("bdcg");
           }, 1000);
         }
 
@@ -2255,7 +2417,7 @@ export default {
         if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
           setTimeout(() => {
-            playAudio("pcwlxz");
+            this.playSound("pcwlxz");
             this.errorMessage = "批次物料条码已达到使用次数限制";
             this.popupType = "ng";
             this.showPopup = true;
@@ -2282,21 +2444,21 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("cfbd"); // 延迟播放
+            this.playSound("cfbd"); // 延迟播放
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("cxwgd"); // 延迟播放
+            this.playSound("cxwgd"); // 延迟播放
           }, 1000);
         } else {
           this.$message.error("确认失败:" + error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放
+            this.playSound("tmyw"); // 延迟播放
           }, 1000);
         }
       } finally {
@@ -2626,7 +2788,7 @@ export default {
               this.errorMessage = "批次条码使用次数已达到上限";
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio("pcwlxz"); // 播放批次物料条码已达到使用次数限制提示音
+              this.playSound("pcwlxz"); // 播放批次物料条码已达到使用次数限制提示音
               localStorage.removeItem(cacheKey);
               this.$set(this.scanForm.barcodes, material._id, "");
               this.$set(this.validateStatus, material._id, false);

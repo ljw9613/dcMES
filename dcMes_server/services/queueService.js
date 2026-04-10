@@ -557,7 +557,7 @@ class QueueService {
   /**
    * 初始化队列处理器
    */
-  static async initializeProcessor() {
+  static async initializeProcessor(totalInstances = 1) {
     console.log('🚀 初始化队列处理器...');
     
     // 首先测试Redis连接
@@ -572,10 +572,10 @@ class QueueService {
     console.log('✅ Redis连接正常，继续初始化队列处理器...');
 
     // 初始化工单数量更新处理器
-    this.initializeWorkOrderProcessor();
+    this.initializeWorkOrderProcessor(totalInstances);
     
     // 初始化托盘处理器
-    this.initializePalletProcessor();
+    this.initializePalletProcessor(totalInstances);
 
     // 设置事件监听器
     this.setupEventListeners();
@@ -583,13 +583,15 @@ class QueueService {
 
   /**
    * 初始化工单处理器
+   * @param {number} totalInstances - PM2 实例总数，用于计算每实例并发数
    */
-  static initializeWorkOrderProcessor() {
-    console.log('🔧 初始化工单数量更新处理器...');
+  static initializeWorkOrderProcessor(totalInstances = 1) {
+    // 工单队列全局期望并发数为 6，按实例数均分，每实例最少保留 1
+    // 所有实例都注册消费者，Bull 通过 Redis 任务锁保证同一任务不会被多个实例重复处理
+    const concurrency = Math.max(1, Math.floor(6 / totalInstances));
+    console.log(`🔧 初始化工单数量更新处理器（并发数: ${concurrency}，总实例数: ${totalInstances}）...`);
     
-    // 大幅增加并发数以支持多工单并发处理
-    // 从1增加到5，可以同时处理5个不同工单的任务
-    workOrderQueue.process('update-quantity', 5, async (job) => {
+    workOrderQueue.process('update-quantity', concurrency, async (job) => {
       const startTime = Date.now();
       const workerId = `worker_${process.pid}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       const { workOrderId, type, quantity, logContext, requestId } = job.data;
@@ -706,13 +708,14 @@ class QueueService {
 
   /**
    * 初始化托盘处理器
+   * @param {number} totalInstances - PM2 实例总数，用于计算每实例并发数
    */
-  static initializePalletProcessor() {
-    console.log('🔧 初始化托盘处理器...');
+  static initializePalletProcessor(totalInstances = 1) {
+    // 托盘队列全局期望并发数为 6，按实例数均分，每实例最少保留 1
+    const concurrency = Math.max(1, Math.floor(6 / totalInstances));
+    console.log(`🔧 初始化托盘处理器（并发数: ${concurrency}，总实例数: ${totalInstances}）...`);
     
-    // 大幅增加并发数以支持多托盘并发处理
-    // 从2增加到10，可以同时处理10个不同托盘的任务
-    palletQueue.process('handle-pallet-barcode', 10, async (job) => {
+    palletQueue.process('handle-pallet-barcode', concurrency, async (job) => {
       const startTime = Date.now();
       const workerId = `worker_${process.pid}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       const {

@@ -85,4 +85,7 @@ var machineSchema = new mongoose.Schema(
   }
 );
 
+// 按设备 IP 查询索引，避免 COLLSCAN 导致假死（日志中 machineIp 查询常达 50s+）
+machineSchema.index({ machineIp: 1 }, { background: true, name: "idx_machineIp" });
+
 module.exports = mongoose.model("machine", machineSchema);

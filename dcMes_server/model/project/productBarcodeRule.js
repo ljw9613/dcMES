@@ -15,4 +15,9 @@ const productBarcodeRule = new mongoose.Schema(
   }
 );
 
+// 按条码规则查询时用于关联匹配，避免 COLLSCAN
+productBarcodeRule.index({ barcodeRule: 1 });
+// 按产品物料查询
+productBarcodeRule.index({ productId: 1 });
+
 module.exports = mongoose.model("productBarcodeRule", productBarcodeRule);

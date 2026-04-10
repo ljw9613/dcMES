@@ -39,6 +39,7 @@
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :disabled="!!mainMaterialId && !!processStepId"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
@@ -109,6 +110,7 @@
                 v-if="!mainMaterialId"
                 :disabled="!!mainMaterialId && !!processStepId"
                 v-model="formData.productLine"
+                :min-search-length="0"
                 collection="production_line"
                 :search-fields="['lineCode', 'lineName']"
                 label-key="lineName"
@@ -243,7 +245,12 @@
                 <input
                   type="text"
                   v-model="unifiedScanInput"
-                  :disabled="isSubmitting"
+                  :disabled="
+                    isSubmitting ||
+                    (errorDisplayMode === 'manual' &&
+                      showPopup &&
+                      popupType === 'ng')
+                  "
                   :placeholder="
                     $t('scanBarCode.barcodeScanning.scanPlaceholder')
                   "
@@ -428,6 +435,7 @@
       :text="errorMessage"
       :error-code="errorCode"
       :duration="5000"
+      :manual-confirm="errorDisplayMode === 'manual'"
     />
     <tsc-printer
       ref="tscPrinter"
@@ -544,9 +552,19 @@ export default {
 
       // 添加防重复提交标志位
       isSubmitting: false,
+
+      // 悬浮配置（与 FloatingScanConfig 同步，来自 localStorage）
+      // soundEnabled: true,
+      // errorDisplayMode: "auto", // 'auto' 自动关闭 | 'manual' 手动确认
     };
   },
   computed: {
+    soundEnabled() {
+      return this.$store.state.scanConfig.soundEnabled;
+    },
+    errorDisplayMode() {
+      return this.$store.state.scanConfig.errorDisplayMode;
+    },
     mainMaterialId: {
       get() {
         return localStorage.getItem("mainMaterialId") || "";
@@ -654,9 +672,24 @@ export default {
       },
       deep: true, // 深度监听对象的变化
     },
+    // 弹窗关闭后自动将焦点归还到扫码输入框
+    showPopup(val) {
+      if (!val) {
+        this.$nextTick(() => {
+          this.$refs.scanInput && this.$refs.scanInput.focus();
+        });
+      }
+    },
   },
 
   methods: {
+    /** 根据「提示音」开关决定是否播放；供其他扫码页复用同一逻辑 */
+    playSound(key) {
+      if (!this.soundEnabled && key === 'smcg') {
+        return;
+      }
+      playAudio(key);
+    },
     handleAutoInitChange(value) {
       this.autoInit = value;
       this.autoInitMode = value; // 保存到本地存储
@@ -1483,10 +1516,10 @@ export default {
         }
       } catch (error) {
         console.error("处理主条码失败:", error);
-        this.errorMessage = error;
+        this.errorMessage = error.message || String(error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio("tmyw");
+        this.playSound("tmyw");
         throw error;
       }
     },
@@ -1516,10 +1549,10 @@ export default {
         this.$message.success("扫码成功");
       } catch (error) {
         console.error("处理子物料条码失败:", error);
-        this.errorMessage = error;
+        this.errorMessage = error.message || String(error);
         this.popupType = "ng";
         this.showPopup = true;
-        playAudio("tmyw");
+        this.playSound("tmyw");
         throw error;
       }
     },
@@ -1618,7 +1651,7 @@ export default {
         //       this.errorMessage = this.$t('scanBarCode.messages.materialExpired');
         //       this.popupType = "ng";
         //       this.showPopup = true;
-        //       playAudio("dwx");
+        //       this.playSound("dwx");
         //       return;
         //     }
         //   }
@@ -1642,7 +1675,7 @@ export default {
         //       this.errorMessage = this.$t('scanBarCode.messages.materialExpired');
         //       this.popupType = "ng";
         //       this.showPopup = true;
-        //       playAudio("dwx");
+        //       this.playSound("dwx");
         //       return;
         //     }
         //   }
@@ -1666,7 +1699,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放错误提示音
+            this.playSound("tmyw"); // 延迟播放错误提示音
           }, 300);
           this.$notify({
             title: this.$t("scanBarCode.messages.barcodeValidationFailed"),
@@ -1704,7 +1737,7 @@ export default {
             this.errorMessage = "该条码存在未完成的维修记录";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("dwx");
+            this.playSound("dwx");
             return;
           }
           if (
@@ -1718,7 +1751,7 @@ export default {
               this.errorMessage = "该条码已完成报废处理";
               this.popupType = "ng";
               this.showPopup = true;
-              playAudio("tmyw");
+              this.playSound("tmyw");
               return;
             }
             this.unifiedScanInput = "";
@@ -1727,7 +1760,7 @@ export default {
             this.errorMessage = "该条码已完成维修,但维修结果为不合格";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("wxsb");
+            this.playSound("wxsb");
             return;
           }
         }
@@ -1782,7 +1815,7 @@ export default {
                   this.errorMessage = "该条码已作废";
                   this.popupType = "ng";
                   this.showPopup = true;
-                  playAudio("tmyw");
+                  this.playSound("tmyw");
                   return;
                 }
 
@@ -1794,7 +1827,7 @@ export default {
                   this.errorMessage = "该条码已暂停使用";
                   this.popupType = "ng";
                   this.showPopup = true;
-                  playAudio("tmyw");
+                  this.playSound("tmyw");
                   return;
                 }
 
@@ -1843,7 +1876,7 @@ export default {
 
           await this.handleMainBarcode(cleanValue);
 
-          playAudio("smcg");
+          this.playSound("smcg");
           this.$notify({
             title: this.$t("scanBarCode.messages.mainMaterialScanSuccess"),
             dangerouslyUseHTMLString: true,
@@ -1871,7 +1904,7 @@ export default {
             this.errorMessage = "关键物料必须先扫描主条码";
             this.popupType = "ng";
             this.showPopup = true;
-            playAudio("smztm");
+            this.playSound("smztm");
             return;
           }
         }
@@ -1928,7 +1961,7 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    playAudio("pcwlxz");
+                    this.playSound("pcwlxz");
                     this.errorMessage = "批次物料条码已达到使用次数限制";
                     this.popupType = "ng";
                     this.showPopup = true;
@@ -1958,7 +1991,7 @@ export default {
                     this.$message.warning(
                       `批次物料条码 ${cleanValue} 已达到使用次数限制 ${material.batchQuantity}次`
                     );
-                    playAudio("pcwlxz");
+                    this.playSound("pcwlxz");
 
                     return;
                   }
@@ -1971,7 +2004,7 @@ export default {
               // 处理子物料条码
               await this.handleSubBarcode(material._id, materialCode);
 
-              playAudio("smcg");
+              this.playSound("smcg");
               this.$notify({
                 title: "子物料扫描成功",
                 dangerouslyUseHTMLString: true,
@@ -2007,7 +2040,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放错误提示音
+            this.playSound("tmyw"); // 延迟播放错误提示音
           }, 300);
           this.unifiedScanInput = "";
           this.$refs.scanInput.focus();
@@ -2078,7 +2111,7 @@ export default {
       } catch (error) {
         console.error("扫描处理失败:", error);
         setTimeout(() => {
-          playAudio("tmyw"); // 延迟播放错误提示音
+          this.playSound("tmyw"); // 延迟播放错误提示音
         }, 1000);
         this.$notify({
           title: "扫描失败",
@@ -2306,7 +2339,7 @@ export default {
           }
           // 在播放bdcg的地方添加成功弹窗
           setTimeout(() => {
-            playAudio("bdcg");
+            this.playSound("bdcg");
           }, 1000);
         }
 
@@ -2369,7 +2402,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw");
+            this.playSound("tmyw");
           }, 1000);
           // 初始化批次物料缓存并进行条码校验
           if (this.processMaterials && this.processMaterials.length > 0) {
@@ -2475,7 +2508,7 @@ export default {
         } else if (error.message.includes("批次物料条码")) {
           this.$message.warning(error.message);
           setTimeout(() => {
-            playAudio("pcwlxz");
+            this.playSound("pcwlxz");
             this.popupType = "ng";
             this.showPopup = true;
             // 播放批次物料条码已达到使用次数限制提示音
@@ -2501,7 +2534,7 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("cfbd"); // 延迟播放
+            this.playSound("cfbd"); // 延迟播放
           }, 1000);
         } else if (error.message == "未查询到生产工单") {
           this.$message.error(error.message);
@@ -2509,14 +2542,14 @@ export default {
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("cxwgd"); // 延迟播放
+            this.playSound("cxwgd"); // 延迟播放
           }, 1000);
         } else {
           this.$message.error("确认失败:" + error.message);
           this.popupType = "ng";
           this.showPopup = true;
           setTimeout(() => {
-            playAudio("tmyw"); // 延迟播放
+            this.playSound("tmyw"); // 延迟播放
           }, 1000);
         }
       } finally {

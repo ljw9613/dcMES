@@ -101,6 +101,41 @@ const AUTH_RELATED_KEYS = [
 ]
 
 /**
+ * 退出登录后应该保留的 localStorage key（用户偏好设置与设备状态，与账号无关）
+ * 这些 key 不随退出登录/Token 失效而重置
+ */
+const PERSIST_ACROSS_AUTH_KEYS = [
+  'scan_float_config',                          // 扫码悬浮配置：提示音开关、错误提示模式
+  // 扫码页面工序设置（设备级配置，换班操作员无需重新配置）
+  'mainMaterialId',                             // 当前产品型号 ID
+  'processStepId',                              // 当前工序 ID
+  'materialName',                               // 产品物料名称
+  'processName',                                // 工序名称
+  'workProductionPlanWorkOrderId',              // 当前工单 ID
+  'workProductionPlanWorkOrderNo',              // 当前工单号
+  'productLineId',                              // 产线 ID
+  'productLineName',                            // 产线名称
+  'lineNum',                                    // 产线号（scanBarCode 专用）
+  'autoInit',                                   // 自动初始化开关
+  'autoPrint',                                  // 自动打印开关
+  'scanMode',                                   // 扫码模式（scanBarCodeBatchNew 专用）
+  'clearBatchCacheOnSubmit',                    // 提交后清除批次缓存开关
+  'printTemplate_scanBarCodeBatch',             // 批次扫码打印模版
+  'lastWorkProductionPlanWorkOrderId',          // 上次工单 ID（scanBarCode）
+  'lastWorkProductionPlanWorkOrderId_batch',    // 上次工单 ID（scanBarCodeBatch）
+  'lastWorkProductionPlanWorkOrderId_batchNew', // 上次工单 ID（scanBarCodeBatchNew）
+]
+
+/**
+ * 退出登录后应保留的 localStorage key 前缀（动态 key，按前缀批量保留）
+ * 批次物料缓存与产品数量配置属于设备生产状态，换班操作员应继续沿用
+ */
+const PERSIST_ACROSS_AUTH_KEY_PREFIXES = [
+  'batch_',     // 批次物料条码缓存：batch_${mainMaterialId}_${processStepId}_${materialId}
+  'batchSize_', // 每批产品数量配置：batchSize_${mainMaterialId}_${processStepId}
+]
+
+/**
  * 退出登录 / 超时重新登录时统一清空浏览器相关缓存，避免多标签或持久化导致旧 token 被使用
  * 调用场景：用户主动退出、Token 失效(401)、会话超时强制重新登录
  * @param {Object} [options]
@@ -126,8 +161,33 @@ export function clearAllAuthAndCache(options = {}) {
   try {
     sessionStorage.clear()
   } catch (e) { /* ignore */ }
+
+  // 清空 localStorage 前先保存需要跨登录持久化的配置（固定 key + 前缀匹配的动态 key）
+  const preserved = {}
+  try {
+    // 保留固定 key
+    PERSIST_ACROSS_AUTH_KEYS.forEach(key => {
+      const val = localStorage.getItem(key)
+      if (val !== null) preserved[key] = val
+    })
+    // 保留前缀匹配的动态 key（批次物料缓存、产品数量等）
+    Object.keys(localStorage).forEach(key => {
+      if (PERSIST_ACROSS_AUTH_KEY_PREFIXES.some(prefix => key.startsWith(prefix))) {
+        const val = localStorage.getItem(key)
+        if (val !== null) preserved[key] = val
+      }
+    })
+  } catch (e) { /* ignore */ }
+
   try {
     localStorage.clear()
+  } catch (e) { /* ignore */ }
+
+  // 恢复保留的配置
+  try {
+    Object.keys(preserved).forEach(key => {
+      localStorage.setItem(key, preserved[key])
+    })
   } catch (e) { /* ignore */ }
 
   // 通知其它标签页：本标签已退出/过期，请同步清空并跳转登录（仅当前标签主动退出时写入）
@@ -137,5 +197,5 @@ export function clearAllAuthAndCache(options = {}) {
     } catch (e) { /* ignore */ }
   }
 
-  console.log('已清空登录与会话相关缓存（Cookie / localStorage / sessionStorage）')
+  console.log('已清空登录与会话相关缓存（Cookie / localStorage / sessionStorage），设备生产配置与批次缓存已保留')
 }

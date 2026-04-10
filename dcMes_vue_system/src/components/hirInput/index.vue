@@ -3,7 +3,9 @@
         <!-- 修改模板选择器,增加查询参数 -->
         <zr-select v-model="selectedTemplate" collection="printTemplate" :search-fields="['templateName']"
             :query-params="templateQueryParams" label-key="templateName" sub-key="FCustId" :multiple="false"
-            :placeholder="placeholder" @select="handleTemplateChange">
+            :placeholder="placeholder" @select="handleTemplateChange"
+            :min-search-length="0"
+            >
             <template #option="{ item }">
                 <div class="item-option">
                     <div class="item-info">

@@ -113,6 +113,7 @@
             <el-form-item label="物料信息">
               <zr-select
                 v-model="searchForm.selectedMaterial"
+                :min-search-length="2"
                 collection="k3_BD_MATERIAL"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"

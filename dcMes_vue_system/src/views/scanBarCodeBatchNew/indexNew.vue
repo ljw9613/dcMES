@@ -33,6 +33,7 @@
                 v-if="!mainMaterialId"
                 v-model="formData.productModel"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :disabled="!!mainMaterialId && !!processStepId"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"

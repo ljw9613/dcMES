@@ -14,6 +14,7 @@ import user from './modules/user'
 import tagsView from './modules/tagsView'
 import permission from './modules/permission'
 import language from './modules/language'
+import scanConfig from './modules/scanConfig'
 
 Vue.use(Vuex)
 
@@ -25,7 +26,8 @@ const store = new Vuex.Store({
     user,
     tagsView,
     permission,
-    language
+    language,
+    scanConfig
   },
   getters
 })

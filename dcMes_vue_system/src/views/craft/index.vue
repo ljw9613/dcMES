@@ -114,11 +114,14 @@
               <zr-select
                 v-model="searchForm.selectedMaterial"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
                 sub-key="FMATERIALID"
                 :multiple="false"
-                placeholder="请输入物料编码/名称搜索"
+                placeholder="请输入至少2个字符搜索物料"
+                :lazy-load="true"
+                :debounce-time="400"
                 @select="handleSearchMaterialChange"
                 clearable
                 style="width: 100%"
@@ -360,6 +363,7 @@
               <zr-select
                 v-model="craftForm.materialId"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
                 sub-key="FMATERIALID"
@@ -806,17 +810,18 @@
       </el-form>
 
       <!-- 工序列表 -->
-      <div class="screen1" v-if="processForm.processType !== 'G'">
+      <div class="screen1">
         <div class="screen_content_first">
-          <i class="el-icon-tickets">物料管理列表</i>
+          <i class="el-icon-tickets">
+            {{ processForm.processType === 'G' ? '子物料管理列表' : '物料管理列表' }}
+          </i>
           <el-button type="primary" @click="handleAddMaterial"
-            >新增物料</el-button
+            >新增{{ processForm.processType === 'G' ? '子物料' : '物料' }}</el-button
           >
         </div>
       </div>
 
       <base-table
-        v-if="processForm.processType !== 'G'"
         ref="materialTable"
         :tableData="materialTableData.tableList"
         :currentPage="materialTableData.currentPage"
@@ -977,6 +982,7 @@
               <zr-select
                 v-model="materialForm.materialId"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
                 sub-key="FMATERIALID"
@@ -1158,6 +1164,7 @@
               <zr-select
                 v-model="copyForm.materialId"
                 collection="k3_BD_MATERIAL"
+                :min-search-length="2"
                 :search-fields="['FNumber', 'FName']"
                 label-key="FName"
                 sub-key="FMATERIALID"
@@ -1882,24 +1889,6 @@ export default {
         );
       }
 
-      // 当工序类型为打印工序(G)时，清空物料数据
-      if (value === "G") {
-        // 清空界面上的物料表格数据
-        this.materialTableData.tableList = [];
-        this.materialTableData.total = 0;
-
-        // 如果是编辑状态且工序ID存在，则删除数据库中关联的物料数据
-        if (this.processOperationType === "edit" && this.tempProcessId) {
-          try {
-            await removeData("processMaterials", {
-              query: { processStepId: this.tempProcessId },
-            });
-            this.$message.success("已自动清空打印工序的物料数据");
-          } catch (error) {
-            console.error("清空物料数据失败:", error);
-          }
-        }
-      }
     },
 
     async handleBusinessTypeChange(value) {
@@ -2298,13 +2287,6 @@ export default {
     },
     // ================ 物料相关方法 ================
     async fetchMaterialData() {
-      // 如果是打印工序，不加载物料数据
-      if (this.processForm.processType === "G") {
-        this.materialTableData.tableList = [];
-        this.materialTableData.total = 0;
-        return;
-      }
-
       this.materialTableData.listLoading = true;
       try {
         const processId = this.processForm._id;
@@ -2339,12 +2321,6 @@ export default {
     },
 
     handleAddMaterial() {
-      // 检查工序类型是否为 G (打印工序)
-      if (this.processForm.processType === "G") {
-        this.$message.warning("打印工序不需要添加物料");
-        return;
-      }
-
       // 检查工序类型是否为 F
       // if (this.processForm.processType === 'F') {
       //     this.$message.warning('托盘工序不能添加物料');

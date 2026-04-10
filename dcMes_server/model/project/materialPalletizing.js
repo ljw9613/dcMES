@@ -209,10 +209,11 @@ const materialPalletizingSchema = new mongoose.Schema({
 // 添加索引
 materialPalletizingSchema.index({ palletCode: 1 }, { unique: true });
 
-// 修正字段名：从 palletItems.barcode 改为 palletBarcodes.barcode
 materialPalletizingSchema.index({ "palletBarcodes.barcode": 1 });
 materialPalletizingSchema.index({ status: 1 });
 materialPalletizingSchema.index({ createAt: -1 });
+// 嵌套数组 boxItems.boxBarcodes 内的 barcode 多键索引，用于按产品/箱码反查托盘
+materialPalletizingSchema.index({ "boxItems.boxBarcodes.barcode": 1 });
 
 // 新增：防重复唯一索引 - 确保在活跃托盘中条码不重复
 materialPalletizingSchema.index(

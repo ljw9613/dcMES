@@ -142,7 +142,25 @@ materialProcessFlowSchema.index({ status: 1 });
 materialProcessFlowSchema.index({ productionPlanWorkOrderId: 1 });
 materialProcessFlowSchema.index({ "processNodes.barcode": 1 });
 materialProcessFlowSchema.index({ createAt: -1 });
-materialProcessFlowSchema.index({ diyCode: 1 }); // 自制定制码索引
+materialProcessFlowSchema.index({ diyCode: 1 });
+
+// 复合索引：覆盖工单维度下的列表/筛选/排序查询，避免全表扫描
+materialProcessFlowSchema.index(
+  { productionPlanWorkOrderId: 1, createAt: -1 },
+  { name: "idx_workOrder_createAt" }
+);
+materialProcessFlowSchema.index(
+  { productionPlanWorkOrderId: 1, status: 1, createAt: -1 },
+  { name: "idx_workOrder_status_createAt" }
+);
+materialProcessFlowSchema.index(
+  { productionPlanWorkOrderId: 1, status: 1, productStatus: 1, createAt: -1 },
+  { name: "idx_workOrder_status_productStatus_createAt" }
+);
+materialProcessFlowSchema.index(
+  { productionPlanWorkOrderId: 1, progress: 1, createAt: -1 },
+  { name: "idx_workOrder_progress_createAt" }
+);
 
 // 添加pre-save中间件，自动更新updateAt字段
 materialProcessFlowSchema.pre('save', function(next) {

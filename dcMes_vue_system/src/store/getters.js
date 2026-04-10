@@ -18,5 +18,7 @@ const getters = {
   roles: state => state.user.roles,
   router: state => state.permission.routes,
   addRoutes: state => state.permission.addRoutes,
+  'scanConfig/soundEnabled': state => state.scanConfig.soundEnabled,
+  'scanConfig/errorDisplayMode': state => state.scanConfig.errorDisplayMode,
 }
 export default getters

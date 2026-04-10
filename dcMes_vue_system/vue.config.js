@@ -3,6 +3,11 @@ const path = require("path");
 const defaultSettings = require("./src/settings.js");
 const TerserPlugin = require("terser-webpack-plugin");
 
+// 在 Node.js 构建阶段生成打包日期，由 Vue CLI DefinePlugin 在编译时替换为固定字符串
+const _buildNow = new Date();
+process.env.VUE_APP_BUILD_DATE = `${_buildNow.getFullYear()}${String(_buildNow.getMonth() + 1).padStart(2, '0')}${String(_buildNow.getDate()).padStart(2, '0')}`;
+process.env.VUE_APP_RELEASE_DATE = `${_buildNow.getFullYear()}-${String(_buildNow.getMonth() + 1).padStart(2, '0')}-${String(_buildNow.getDate()).padStart(2, '0')}`;
+
 function resolve(dir) {
   return path.join(__dirname, dir);
 }
@@ -28,12 +33,12 @@ module.exports = {
   //国内版本
   // publicPath: "/dcMes/",
   // outputDir: "../dcMes_server/admin",
-  publicPath: "/dcMesManage/",
-  outputDir: "../dcMes_server/adminManage",
+  // publicPath: "/dcMesManage/",
+  // outputDir: "../dcMes_server/adminManage",
   // publicPath: "/dcMesPzManage/",
   // outputDir: "../dcMes_server/adminPzManage",
-  // publicPath: "/dcMesCs/",
-  // outputDir: "../dcMes_server/adminCs",
+  publicPath: "/dcMesCs/",
+  outputDir: "../dcMes_server/adminCs",
   // 越南VN
   // publicPath: "/dcMesVN/",
   // outputDir: "../dcMes_server/adminVN2",

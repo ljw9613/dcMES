@@ -8,28 +8,16 @@
  */
 
 /**
- * 获取当前日期（格式：YYYY-MM-DD）
- * @returns {string} 当前日期字符串
+ * 由 vue.config.js 在构建时注入，编译后为固定字符串常量，不会随运行时日期变化。
+ * 格式 YYYYMMDD，例如 "20260401"
  */
-function getCurrentDate() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+const BUILD_DATE = process.env.VUE_APP_BUILD_DATE || 'unknown'
 
 /**
- * 获取当前构建日期（格式：YYYYMMDD）
- * @returns {string} 构建日期字符串
+ * 由 vue.config.js 在构建时注入，编译后为固定字符串常量。
+ * 格式 YYYY-MM-DD，例如 "2026-04-01"
  */
-function getBuildDate() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}${month}${day}`
-}
+const RELEASE_DATE = process.env.VUE_APP_RELEASE_DATE || 'unknown'
 
 // 主版本号：当你做了不兼容的 API 修改
 // 次版本号：当你做了向下兼容的功能性新增  
@@ -38,16 +26,16 @@ const VERSION_CONFIG = {
   // 主要版本信息
   major: 1,           // 主版本号
   minor: 1,           // 次版本号  
-  patch: 2,           // 修订版本号
+  patch: 3,           // 修订版本号
   
-  // 构建信息（自动获取当前日期）
-  build: getBuildDate(),  // 构建日期 YYYYMMDD（自动更新）
+  // 构建信息（由 vue.config.js 在打包时注入，固定不变）
+  build: BUILD_DATE,      // 构建日期 YYYYMMDD
   
   // 版本状态标识
   status: '产线生产版',   
   
-  // 发布信息（自动获取当前日期）
-  releaseDate: getCurrentDate(),  // 发布日期（自动更新）
+  // 发布信息（由 vue.config.js 在打包时注入，固定不变）
+  releaseDate: RELEASE_DATE,  // 发布日期 YYYY-MM-DD
   codeName: 'Raptor',        // 版本代号
   
   // 环境标识
