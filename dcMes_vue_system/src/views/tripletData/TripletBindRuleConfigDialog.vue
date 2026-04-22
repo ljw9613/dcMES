@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    title="SN 绑定校验规则"
+    title="条码规则启用配置"
     :visible="visible"
     width="640px"
     :close-on-click-modal="false"
@@ -152,7 +152,7 @@ export default {
           return;
         }
         this.$message.success((body && body.message) || "保存成功");
-        await this.loadConfig();
+        this.handleClose();
       } catch (e) {
         console.error(e);
         this.$message.error((e && e.message) || "保存失败");

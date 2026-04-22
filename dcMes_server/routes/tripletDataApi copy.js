@@ -33,45 +33,61 @@ function sendSuccess(res, data, message) {
 
 /**
  * 追觅对外：POST /api/v1/tripletData（免 JWT，依赖网络隔离）
- * 绑定查询一体：已绑定则直接返回三元组；未绑定则按规则配置可选校验 SN，再执行绑定，有 flow 记录则关联工单。
  */
 router.post("/api/v1/tripletData", async (req, res) => {
   try {
-    const { sn } = req.body || {};
+    const { sn, type } = req.body || {};
+    console.log("req.body", req.body);
     if (sn === undefined || sn === null || String(sn).trim() === "") {
       return sendBizError(res, "PARAM_ERROR", "参数不能为空：sn");
+    }
+    if (type === undefined || type === null || String(type).trim() === "") {
+      return sendBizError(res, "PARAM_ERROR", "参数不能为空：type");
+    }
+    const typeStr = String(type).trim();
+    if (typeStr !== "1" && typeStr !== "2") {
+      return sendBizError(res, "PARAM_ERROR", "参数不能为空：type");
     }
 
     const snTrim = String(sn).trim();
 
-    // 已绑定：直接返回
-    const existing = await TripletData.findOne({
-      sn: snTrim,
-      status: "bound",
-    }).lean();
-    if (existing) {
+    if (typeStr === "2") {
+      const doc = await TripletData.findOne({
+        sn: snTrim,
+        status: "bound",
+      }).lean();
+      if (!doc) {
+        return sendBizError(res, "NOT_FOUND", "SN 未绑定或不存在");
+      }
       return sendSuccess(
         res,
         {
-          sn: existing.sn,
-          did: existing.did,
-          key: existing.key,
-          mac: existing.mac,
-          timeArea: existing.timeArea,
-          language: existing.language,
-          status: existing.status,
-          workOrderNo: existing.workOrderNo || null,
+          sn: doc.sn,
+          did: doc.did,
+          key: doc.key,
+          mac: doc.mac,
+          timeArea: doc.timeArea,
+          language: doc.language,
+          status: doc.status,
         },
         "查询成功"
       );
     }
 
-    // 可选按「三元组绑定规则配置」校验 SN（仅 validationRules，不做提取与物料比对）
+    // type === "1" 绑定：可选按「三元组绑定规则配置」校验 SN（仅 validationRules，不做提取与物料比对）
     const bindCfg = await getSingletonBindConfig();
-    if (bindCfg && bindCfg.snValidationEnabled && bindCfg.barcodeRuleId) {
+    if (
+      bindCfg &&
+      bindCfg.snValidationEnabled &&
+      bindCfg.barcodeRuleId
+    ) {
       const rule = await barcodeRule.findById(bindCfg.barcodeRuleId).lean();
       if (!rule || !rule.enabled) {
-        return sendBizError(res, "PARAM_ERROR", "绑定的校验规则不存在或已禁用");
+        return sendBizError(
+          res,
+          "PARAM_ERROR",
+          "绑定的校验规则不存在或已禁用"
+        );
       }
       const vr = validateBarcodeValidationRulesOnly(snTrim, rule);
       if (!vr.isValid) {
@@ -83,7 +99,13 @@ router.post("/api/v1/tripletData", async (req, res) => {
       }
     }
 
-    // 查询 flow 表，用 SN 匹配 barcode，有记录则关联工单（无记录不阻断绑定）
+    // type === "1" 绑定
+    const existingSn = await TripletData.findOne({ sn: snTrim }).lean();
+    if (existingSn) {
+      return sendBizError(res, "DUPLICATE_SN", "SN 已存在");
+    }
+
+    // 查询 flow 表，用 SN 匹配 barcode，取关联工单信息
     let workOrderFields = {};
     const flowRecord = await MaterialProcessFlow.findOne({ barcode: snTrim })
       .select("productionPlanWorkOrderId")
@@ -100,7 +122,6 @@ router.post("/api/v1/tripletData", async (req, res) => {
       }
     }
 
-    // 取一条最早导入的未绑定三元组进行绑定
     const updated = await TripletData.findOneAndUpdate(
       { status: "unbound" },
       { $set: { sn: snTrim, status: "bound", ...workOrderFields } },

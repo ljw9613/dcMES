@@ -60,7 +60,7 @@
             >对外接口测试</el-button
           >
           <el-button type="info" plain icon="el-icon-setting" @click="bindRuleDialogVisible = true"
-            >SN 绑定校验规则</el-button
+            >条码规则启用配置</el-button
           >
         </el-form-item>
       </el-form>
@@ -77,11 +77,23 @@
         <el-table-column prop="timeArea" label="TimeArea" width="140" />
         <el-table-column prop="language" label="Language" width="100" />
         <el-table-column prop="sn" label="SN" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="workOrderNo" label="绑定工单号" min-width="150" show-overflow-tooltip>
+          <template slot-scope="{ row }">
+            <span v-if="row.workOrderNo">{{ row.workOrderNo }}</span>
+            <span v-else style="color: #c0c4cc">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template slot-scope="{ row }">
             <el-tag :type="row.status === 'bound' ? 'success' : 'info'">{{
               row.status === "bound" ? "已绑定" : "未绑定"
             }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="绑定时间" width="168">
+          <template slot-scope="{ row }">
+            <span v-if="row.status === 'bound'">{{ formatTime(row.updatedAt) }}</span>
+            <span v-else style="color: #c0c4cc">—</span>
           </template>
         </el-table-column>
         <el-table-column label="创建时间" width="168">
@@ -239,7 +251,7 @@ export default {
           query: JSON.stringify(this.buildQuery()),
           skip: JSON.stringify(skip),
           limit: JSON.stringify(this.pageSize),
-          sort: JSON.stringify({ createdAt: -1 }),
+          sort: JSON.stringify({ updatedAt: -1 }),
           count: true,
         };
         const res = await getData("triplet_data", params);

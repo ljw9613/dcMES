@@ -8,17 +8,12 @@
     @close="handleClose"
   >
     <p class="api-test-hint">
-      POST <code>/api/v1/tripletData</code>，使用原生 <code>fetch</code>，不携带登录 Token。
+      POST <code>/api/v1/tripletData</code>，使用原生 <code>fetch</code>，不携带登录 Token。<br />
+      已绑定则直接返回三元组；未绑定则要求 SN 在生产流程中存在，自动执行绑定。
     </p>
     <el-form label-width="72px">
       <el-form-item label="sn">
         <el-input v-model="testForm.sn" placeholder="设备序列号" clearable />
-      </el-form-item>
-      <el-form-item label="type">
-        <el-select v-model="testForm.type" style="width: 100%">
-          <el-option label="1 绑定" value="1" />
-          <el-option label="2 查询" value="2" />
-        </el-select>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" :loading="testLoading" @click="runApiTest">
@@ -47,7 +42,6 @@ export default {
     return {
       testForm: {
         sn: "",
-        type: "1",
       },
       testLoading: false,
       testResponseText: "（尚未请求）",
@@ -68,7 +62,6 @@ export default {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sn: this.testForm.sn,
-            type: this.testForm.type,
           }),
         });
         const text = await res.text();

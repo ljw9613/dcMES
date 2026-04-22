@@ -103,6 +103,9 @@ app.use(cookieParser());
 // 设置静态文件托管
 app.use(express.static(path.join(__dirname, "public")));
 
+// 测试用 Mock 接口，不需要登录校验，需在 activityCheck 之前挂载
+app.use('/', require('./routes/testMockApi'));
+
 // 用户活动检查中间件 - 替代原来的JWT验证，包含活动时间检查
 app.use(activityCheck());
 
@@ -165,6 +168,12 @@ app.use('/', require('./routes/inspectionImageUpload.js'));
 app.use('/', require('./routes/barcodeRule.js'));
 // 装箱条码原子操作路由
 app.use('/', require('./routes/packBarcodeAtomic'));
+// 第三方接口管理模块
+app.use('/', require('./routes/thirdPartyApiConfig'));
+app.use('/', require('./routes/apiParamTemplate'));
+app.use('/', require('./routes/apiCallLog'));
+// 预生产条码导出
+app.use('/', require('./routes/preProductionBarcodeExport'));
 
 // require("./routes/upload")
 // require("./routes/fixFunction")

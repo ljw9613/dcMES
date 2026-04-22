@@ -1067,7 +1067,7 @@ export default {
           getData("preProductionBarcode", {
             query: {
               workOrderId: { $in: sameSaleOrderIds },
-              "segmentBreakdown.value": lineNum,
+              lineNum: lineNum,
               status: { $ne: "VOIDED" },
               createAt: {
                 $gte: new Date(new Date().setHours(0, 0, 0, 0)), // 当天开始时间
@@ -1618,39 +1618,50 @@ export default {
       }
     },
 
-    // 导出数据
+    // 导出数据（由后端生成 Excel 文件，前端下载）
     async handleExport() {
+      const loadingInstance = this.$loading({
+        lock: true,
+        text: "正在导出数据，请稍候...",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.6)",
+      });
       try {
         const query = this.buildQuery();
-        const result = await getData("preProductionBarcode", {
-          query,
-          sort: { serialNumber: 1 },
-          limit: 100000,
+        const token = this.$store.getters.token || localStorage.getItem("Admin-Token") || "";
+
+        const response = await fetch("/api/v1/preProductionBarcode/export", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+          },
+          body: JSON.stringify({ query }),
         });
 
-        const data = result.data.map((item) => ({
-          序号: item.serialNumber,
-          条码: item.barcode,
-          工单号: item.workOrderNo,
-          物料编码: item.materialNumber,
-          物料名称: item.materialName,
-          规则名称: item.ruleName,
-          批次号: item.batchNo,
-          状态: this.getStatusText(item.status),
-          创建时间: this.formatDate(item.createAt),
-          作废原因: item.voidReason || "",
-          作废人: item.voidBy || "",
-          作废时间: item.voidAt ? this.formatDate(item.voidAt) : "",
-        }));
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => ({}));
+          throw new Error(errJson.msg || `请求失败 (${response.status})`);
+        }
 
-        // 使用 xlsx 导出
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "预生产条码");
-        XLSX.writeFile(wb, "预生产条码数据.xlsx");
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+        link.href = url;
+        link.download = `预生产条码数据_${dateStr}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        this.$message.success("导出成功");
       } catch (error) {
         console.error("导出失败:", error);
-        this.$message.error("导出失败");
+        this.$message.error("导出失败：" + (error.message || "未知错误"));
+      } finally {
+        loadingInstance.close();
       }
     },
 

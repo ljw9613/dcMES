@@ -43,6 +43,11 @@ const tripletDataSchema = new mongoose.Schema(
       enum: ["unbound", "bound"],
       default: "unbound",
     },
+    productionPlanWorkOrderId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "production_plan_work_order",
+    },
+    workOrderNo: { type: String, trim: true },
   },
   {
     collection: "triplet_data",
