@@ -26,7 +26,7 @@ const VERSION_CONFIG = {
   // 主要版本信息
   major: 1,           // 主版本号
   minor: 2,           // 次版本号  
-  patch: 0,           // 修订版本号
+  patch: 1,           // 修订版本号
   
   // 构建信息（由 vue.config.js 在打包时注入，固定不变）
   build: BUILD_DATE,      // 构建日期 YYYYMMDD

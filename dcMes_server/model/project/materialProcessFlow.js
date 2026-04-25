@@ -46,6 +46,8 @@ const processNodeSchema = new mongoose.Schema(
     isBatch: { type: Boolean, default: false }, // 是否批次物料
     batchQuantity: { type: Number, default: 0 }, // 批次用量
     isRfid: { type: Boolean, default: false }, // 是否RFID物料
+    processMaterialId: { type: mongoose.Schema.ObjectId, ref: "processMaterials" }, // 关联工序物料配置行ID
+    slotIndex: { type: Number, default: 0 }, // 同一关键物料的槽位序号（用于 quantity>1 场景）
 
     // 条码状态
     barcode: { type: String, default: "" }, // 条码信息

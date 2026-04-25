@@ -1279,12 +1279,23 @@ export default {
               );
             }
 
-            this.processMaterials = processMaterialsResponse.data;
+            // 关键物料 quantity>1 时展开为多个虚拟槽位行，其余保持单行
+            const expanded = [];
+            processMaterialsResponse.data.forEach((mat) => {
+              if (mat.isKey && mat.quantity > 1) {
+                for (let i = 0; i < mat.quantity; i++) {
+                  expanded.push({ ...mat, _id: `${mat._id}_slot_${i}`, slotIndex: i });
+                }
+              } else {
+                expanded.push({ ...mat, slotIndex: 0 });
+              }
+            });
+            this.processMaterials = expanded;
 
-            // 收集所有物料ID（包括主物料和子物料）
+            // 收集所有物料ID（包括主物料和子物料，去重）
             const allMaterialIds = [
               material._id, // 主物料ID
-              ...this.processMaterials.map((m) => m.materialId), // 子物料IDs
+              ...processMaterialsResponse.data.map((m) => m.materialId), // 子物料IDs（用原始数据去重）
             ];
 
             // 获取所有相关物料的条码规则
@@ -1616,6 +1627,32 @@ export default {
         throw error;
       }
     },
+    checkDuplicateKeyMaterialBarcode(currentMaterialId, barcode) {
+      if (!barcode) return false;
+
+      return this.processMaterials.some((material) => {
+        if (
+          material._id === currentMaterialId ||
+          !material.isKey ||
+          !material.scanOperation
+        ) {
+          return false;
+        }
+
+        return (
+          this.validateStatus[material._id] &&
+          this.scanForm.barcodes[material._id] === barcode
+        );
+      });
+    },
+    handleDuplicateKeyMaterialBarcode(barcode) {
+      const message = `关键物料条码 ${barcode} 已扫描，请勿重复使用`;
+      this.$message.error(message);
+      this.errorMessage = message;
+      this.popupType = "ng";
+      this.showPopup = true;
+      this.playSound("tmyw");
+    },
 
     // 新增方法：根据ID获取产品型号和工序名称
     async fillFormData() {
@@ -1901,7 +1938,21 @@ export default {
           }
 
           for (const material of this.processMaterials) {
-            if (material.materialCode === materialCode) {
+            if (
+              material.materialCode === materialCode &&
+              material.scanOperation &&
+              !this.validateStatus[material._id]
+            ) {
+              if (
+                material.isKey &&
+                this.checkDuplicateKeyMaterialBarcode(material._id, cleanValue)
+              ) {
+                this.handleDuplicateKeyMaterialBarcode(cleanValue);
+                this.unifiedScanInput = "";
+                this.$refs.scanInput.focus();
+                return;
+              }
+
               // 如果是批次物料
               if (material.isBatch) {
                 const cacheKey = `batch_${this.mainMaterialId}_${this.processStepId}_${material._id}`;
@@ -2212,6 +2263,7 @@ export default {
             componentScans.push({
               materialId: material.materialId,
               barcode: this.scanForm.barcodes[material._id],
+              slotIndex: material.slotIndex != null ? material.slotIndex : 0,
             });
           }
         });

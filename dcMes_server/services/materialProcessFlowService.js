@@ -1298,54 +1298,66 @@ class MaterialProcessFlowService {
             );
             if (!material) continue;
 
-            // 创建物料节点
-            const materialNode = {
-              nodeId: uuidv4(),
-              nodeType: "MATERIAL",
-              materialId: material._id,
-              materialCode: material.FNumber,
-              materialName: material.FName,
-              materialSpec: material.FSpecification,
-              materialQuantity: processMaterial.quantity,
-              materialUnit: processMaterial.unit,
-              isPackingBox: processMaterial.isPackingBox,
-              level: 2,
-              barcode: "",
-              parentNodeId: processNode.nodeId,
-              craftId: craft._id,
-              craftName: craft.craftName,
-              isComponent: processMaterial.isComponent,
-              isKeyMaterial: processMaterial.isKey,
-              scanOperation: processMaterial.scanOperation,
-              requireScan: processMaterial.scanOperation,
-              isBatch: processMaterial.isBatch,
-              batchQuantity: processMaterial.batchQuantity,
-              isRfid: processMaterial.isRfid,
-              status: "PENDING",
-            };
-            nodes.push(materialNode);
+            // 关键物料 quantity>1 时展开为多个槽位节点，其余保持单节点
+            const slotCount =
+              processMaterial.isKey && processMaterial.quantity > 1
+                ? processMaterial.quantity
+                : 1;
 
-            // 递归处理子物料的工艺（从缓存的 Map 中获取）
-            const subCraft = craftMap.get(material._id.toString());
-            if (subCraft) {
-              const recursionStartedAt = Date.now();
-              const subNodes = await this.buildProcessNodes(
-                material._id,
-                subCraft,
-                processedMaterials,
-                material,
-                activePerfContext,
-                depth + 1,
-              );
-              activePerfContext.recursionMs += Date.now() - recursionStartedAt;
-              // 调整子节点的层级和父节点
-              subNodes.forEach((node) => {
-                node.level += materialNode.level;
-                if (node.level === materialNode.level + 1) {
-                  node.parentNodeId = materialNode.nodeId;
+            for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+              // 创建物料节点
+              const materialNode = {
+                nodeId: uuidv4(),
+                nodeType: "MATERIAL",
+                materialId: material._id,
+                materialCode: material.FNumber,
+                materialName: material.FName,
+                materialSpec: material.FSpecification,
+                materialQuantity: slotCount > 1 ? 1 : processMaterial.quantity,
+                materialUnit: processMaterial.unit,
+                isPackingBox: processMaterial.isPackingBox,
+                level: 2,
+                barcode: "",
+                parentNodeId: processNode.nodeId,
+                craftId: craft._id,
+                craftName: craft.craftName,
+                isComponent: processMaterial.isComponent,
+                isKeyMaterial: processMaterial.isKey,
+                scanOperation: processMaterial.scanOperation,
+                requireScan: processMaterial.scanOperation,
+                isBatch: processMaterial.isBatch,
+                batchQuantity: processMaterial.batchQuantity,
+                isRfid: processMaterial.isRfid,
+                processMaterialId: processMaterial._id,
+                slotIndex,
+                status: "PENDING",
+              };
+              nodes.push(materialNode);
+
+              // 递归处理子物料的工艺仅在第一个槽位执行，避免重复
+              if (slotIndex === 0) {
+                const subCraft = craftMap.get(material._id.toString());
+                if (subCraft) {
+                  const recursionStartedAt = Date.now();
+                  const subNodes = await this.buildProcessNodes(
+                    material._id,
+                    subCraft,
+                    processedMaterials,
+                    material,
+                    activePerfContext,
+                    depth + 1,
+                  );
+                  activePerfContext.recursionMs += Date.now() - recursionStartedAt;
+                  // 调整子节点的层级和父节点
+                  subNodes.forEach((node) => {
+                    node.level += materialNode.level;
+                    if (node.level === materialNode.level + 1) {
+                      node.parentNodeId = materialNode.nodeId;
+                    }
+                  });
+                  nodes.push(...subNodes);
                 }
-              });
-              nodes.push(...subNodes);
+              }
             }
           }
 
@@ -1591,6 +1603,38 @@ class MaterialProcessFlowService {
       }
     }
     return lookup;
+  }
+
+  /**
+   * 用 "materialId_slotIndex" 联合键构建扫描记录 Map。
+   * 支持同一工序下相同关键物料的多槽位场景（slotIndex 默认 0）。
+   */
+  static buildScanKeyLookup(scans = []) {
+    const map = new Map();
+    for (const scan of scans) {
+      const materialId = scan?.materialId?.toString?.();
+      if (materialId) {
+        const key = `${materialId}_${scan.slotIndex ?? 0}`;
+        map.set(key, scan);
+      }
+    }
+    return map;
+  }
+
+  /**
+   * 用 "materialId_slotIndex" 联合键构建节点 Map。
+   * 与 buildScanKeyLookup 配套，用于 scanProcessComponents / scanBatchDocument。
+   */
+  static buildNodeScanKeyLookup(nodes = []) {
+    const map = new Map();
+    for (const node of nodes) {
+      const materialId = node?.materialId?.toString?.();
+      if (materialId) {
+        const key = `${materialId}_${node.slotIndex ?? 0}`;
+        map.set(key, node);
+      }
+    }
+    return map;
   }
 
   static async markMaterialBarcodeBatchesUsed(componentScans = [], userId) {
@@ -1940,8 +1984,8 @@ class MaterialProcessFlowService {
           node.requireScan,
       );
       perfMetrics.requiredMaterialCount = materialNodes.length;
-      const componentScanMap = this.buildMaterialIdLookup(componentScans);
-      const materialNodeMap = this.buildMaterialIdLookup(materialNodes);
+      const componentScanMap = this.buildScanKeyLookup(componentScans);
+      const materialNodeMap = this.buildNodeScanKeyLookup(materialNodes);
 
       // 验证扫码数量是否匹配
       if (componentScans.length !== materialNodes.length) {
@@ -1967,7 +2011,7 @@ class MaterialProcessFlowService {
 
       // 分类收集需要检查的条码
       for (const scan of componentScans) {
-        const matchingNode = materialNodeMap.get(scan.materialId.toString());
+        const matchingNode = materialNodeMap.get(`${scan.materialId}_${scan.slotIndex ?? 0}`);
 
         if (matchingNode) {
           // 关键物料和批次物料互斥，优先判断批次物料（因为有数量限制需要检查）
@@ -2164,7 +2208,7 @@ class MaterialProcessFlowService {
         //该物料下有子绑定工序
         if (processNode) {
           //找出当前物料对应的物料条码
-          const materialBarcode = componentScanMap.get(node.materialId.toString());
+          const materialBarcode = componentScanMap.get(`${node.materialId}_${node.slotIndex ?? 0}`);
 
           // console.log(
           //   "🚀 ~ MaterialProcessFlowService ~ materialBarcode:",
@@ -2248,7 +2292,7 @@ class MaterialProcessFlowService {
 
       // 验证每个扫描的物料ID是否匹配
       for (const scan of componentScans) {
-        const matchingNode = materialNodeMap.get(scan.materialId.toString());
+        const matchingNode = materialNodeMap.get(`${scan.materialId}_${scan.slotIndex ?? 0}`);
         if (!matchingNode) {
           const invalidMaterial = await Material.findById(scan.materialId);
           const materialName = invalidMaterial
@@ -2399,7 +2443,7 @@ class MaterialProcessFlowService {
           ) {
             if (node.requireScan) {
               const matchingScan = componentScanMap.get(
-                node.materialId.toString(),
+                `${node.materialId}_${node.slotIndex ?? 0}`,
               );
               if (matchingScan) {
                 // 使用预加载物料，避免在循环中重复查库
@@ -3742,8 +3786,8 @@ class MaterialProcessFlowService {
         );
       }
 
-      const componentScanMap = this.buildMaterialIdLookup(componentScans || []);
-      const materialNodeMap = this.buildMaterialIdLookup(materialNodes);
+      const componentScanMap = this.buildScanKeyLookup(componentScans || []);
+      const materialNodeMap = this.buildNodeScanKeyLookup(materialNodes);
 
       // 如果提供了 componentScans，验证扫码数量是否匹配
       if (componentScans && componentScans.length > 0) {
@@ -3764,7 +3808,7 @@ class MaterialProcessFlowService {
         // **严格验证物料匹配性 - 修复BUG**
         // 1. 验证所有提供的materialId都在当前工序的扫描要求中
         for (const scan of componentScans) {
-          const matchingNode = materialNodeMap.get(scan.materialId.toString());
+          const matchingNode = materialNodeMap.get(`${scan.materialId}_${scan.slotIndex ?? 0}`);
           if (!matchingNode) {
             // 获取当前工序要求的物料信息用于错误提示
             const requiredMaterials = materialNodes
@@ -3779,7 +3823,7 @@ class MaterialProcessFlowService {
 
         // 2. 验证所有要求扫描的物料都有对应的扫描记录
         for (const node of materialNodes) {
-          const matchingScan = componentScanMap.get(node.materialId.toString());
+          const matchingScan = componentScanMap.get(`${node.materialId}_${node.slotIndex ?? 0}`);
           if (!matchingScan) {
             throw new Error(
               `缺少物料 ${node.materialCode}(${node.materialName}) 的扫描信息，该物料在工序"${processNode.processName}"中是必须扫描的`,
@@ -3792,7 +3836,7 @@ class MaterialProcessFlowService {
         const keyMaterialBarcodesToCheck = []; // barcode[]
 
         for (const scan of componentScans) {
-          const matchingNode = materialNodeMap.get(scan.materialId.toString());
+          const matchingNode = materialNodeMap.get(`${scan.materialId}_${scan.slotIndex ?? 0}`);
           if (!matchingNode) continue;
 
           if (matchingNode.isBatch && matchingNode.batchQuantity > 0) {
@@ -3924,7 +3968,7 @@ class MaterialProcessFlowService {
             ) {
               if (node.requireScan) {
                 const matchingScan = componentScanMap.get(
-                  node.materialId.toString(),
+                  `${node.materialId}_${node.slotIndex ?? 0}`,
                 );
                 if (matchingScan) {
                   // 使用预加载物料，避免在循环中重复查库
