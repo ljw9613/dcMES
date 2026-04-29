@@ -12,6 +12,41 @@
 
 ## 最近修复记录
 
+### 2026-04-27 第三方接口 Body JSON 参数模板新增修复
+
+**问题描述：**
+第三方接口参数模板在新增时选择 `Body JSON` 会提交 `paramType=4`，但后端参数模板模型只允许 `1/2/3`，导致 `/api/v1/tp-param-template/add` 返回 Mongoose 枚举校验错误。
+
+**本次修复：**
+- `api_param_template.paramType` 枚举补充 `4=Body JSON`，与前端参数类型保持一致。
+- 新增、编辑接口增加参数类型合法性校验，非法类型返回业务错误，不再暴露为 500 校验异常。
+
+### 2026-04-26 前端多版本自动打包
+
+**需求描述：**
+前端正式环境版本较多，原先需要手动修改 `.env.production` 和 `vue.config.js` 后逐个打包，容易遗漏环境地址、输出目录或活动超时校验配置。
+
+**本次优化：**
+- 新增 `dcMes_vue_system/scripts/build-all.js`，集中维护各版本构建参数。
+- 新增 `npm run build:all` 一次性批量打包全部版本。
+- 新增 `npm run build:only -- <版本ID>` 支持只打包指定版本。
+- 新增 `npm run build:only -- --list` 查看所有可用版本 ID。
+- 活动超时校验由构建脚本自动控制：越南正式环境、国内产线正式环境为关闭，其余版本为开启。
+
+### 2026-04-26 条码流程初始化性能优化
+
+**需求描述：**
+初始化成品条码流程记录时偶发卡顿，现场 `material_process_flow` 历史数据量较大，且流程节点包含较多空条码节点。
+
+**本次优化：**
+- `create-flow` 创建成功后返回轻量流程摘要，不再把完整 `processNodes` 大数组返回给前端。
+- 初始化保存流程记录时跳过服务端已构建节点的重复 Mongoose 校验，减少大数组保存耗时。
+- `processNodes.barcode` 索引调整为仅索引非空字符串条码，避免初始化时大量空条码节点进入多键索引。
+- 性能日志默认只在慢调用等场景输出，如需全量追踪可设置 `MATERIAL_PROCESS_FLOW_TRACE_ALL=true`。
+
+**部署注意：**
+- 旧数据库索引不会自动替换，需要手动删除旧的 `processNodes.barcode_1` 索引并创建新的 `idx_processNodes_barcode_non_empty` 索引。
+
 ### 2026-04-24 关键物料条码前置去重优化
 
 **需求描述：**

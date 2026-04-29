@@ -5,6 +5,8 @@ const ApiParamTemplate = require("../model/project/apiParamTemplate");
 const ApiTemplateOpLog = require("../model/project/apiTemplateOpLog");
 const ThirdPartyApiConfig = require("../model/project/thirdPartyApiConfig");
 
+const VALID_PARAM_TYPES = [1, 2, 3, 4];
+
 // ─── 查询模板列表（按接口） ────────────────────────────────────────────────────
 router.get("/api/v1/tp-param-template/list", async (req, res) => {
   try {
@@ -42,6 +44,11 @@ async function checkApiStatus(apiConfigId) {
   return { ok: true, api };
 }
 
+function parseParamType(paramType) {
+  const parsed = Number(paramType);
+  return VALID_PARAM_TYPES.includes(parsed) ? parsed : null;
+}
+
 // ─── 新增模板 ──────────────────────────────────────────────────────────────────
 router.post("/api/v1/tp-param-template/add", async (req, res) => {
   try {
@@ -51,6 +58,8 @@ router.post("/api/v1/tp-param-template/add", async (req, res) => {
       return res.json({ code: 400, success: false, message: "接口配置ID、模板名称、参数类型为必填项" });
     }
     if (name.length > 50) return res.json({ code: 400, success: false, message: "模板名称不能超过50字符" });
+    const parsedParamType = parseParamType(paramType);
+    if (parsedParamType === null) return res.json({ code: 400, success: false, message: "参数类型不正确" });
 
     const check = await checkApiStatus(apiConfigId);
     if (!check.ok) return res.json({ code: 400, success: false, message: check.message });
@@ -68,7 +77,7 @@ router.post("/api/v1/tp-param-template/add", async (req, res) => {
     const doc = await ApiParamTemplate.create({
       apiConfigId,
       name,
-      paramType: parseInt(paramType),
+      paramType: parsedParamType,
       params: params || [],
       sortOrder,
       createdBy: req.userId || "",
@@ -85,7 +94,7 @@ router.post("/api/v1/tp-param-template/add", async (req, res) => {
       opName: req.realName || req.userName || "",
       opTime: new Date(),
       beforeData: null,
-      afterData: { name, paramType, params: params || [] },
+      afterData: { name, paramType: parsedParamType, params: params || [] },
     });
 
     res.json({ code: 20000, success: true, data: doc, message: "新增成功" });
@@ -108,6 +117,8 @@ router.put("/api/v1/tp-param-template/:id", async (req, res) => {
     if (!check.ok) return res.json({ code: 400, success: false, message: check.message });
 
     if (name && name.length > 50) return res.json({ code: 400, success: false, message: "模板名称不能超过50字符" });
+    const parsedParamType = paramType !== undefined ? parseParamType(paramType) : undefined;
+    if (parsedParamType === null) return res.json({ code: 400, success: false, message: "参数类型不正确" });
 
     if (name && name !== doc.name) {
       const exists = await ApiParamTemplate.findOne({
@@ -126,7 +137,7 @@ router.put("/api/v1/tp-param-template/:id", async (req, res) => {
       {
         $set: {
           ...(name !== undefined && { name }),
-          ...(paramType !== undefined && { paramType: parseInt(paramType) }),
+          ...(paramType !== undefined && { paramType: parsedParamType }),
           ...(params !== undefined && { params }),
           updatedBy: req.userId || "",
           updatedName: req.realName || req.userName || "",
@@ -144,7 +155,7 @@ router.put("/api/v1/tp-param-template/:id", async (req, res) => {
       beforeData,
       afterData: {
         name: name !== undefined ? name : doc.name,
-        paramType: paramType !== undefined ? parseInt(paramType) : doc.paramType,
+        paramType: paramType !== undefined ? parsedParamType : doc.paramType,
         params: params !== undefined ? params : doc.params,
       },
     });

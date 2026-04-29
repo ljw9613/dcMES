@@ -38,6 +38,27 @@ npm run build:stage
 npm run build:prod
 ```
 
+## Multi-Version Build
+
+前端支持通过脚本一次性打包多个正式环境版本，不再需要手动修改 `.env.production` 和 `vue.config.js`。
+
+```bash
+# 按配置表顺序打包全部版本
+npm run build:all
+
+# 只打包指定版本，可同时传多个版本 ID
+npm run build:only -- vietnam-prod domestic-line
+
+# 查看所有可用版本 ID，不执行打包
+npm run build:only -- --list
+```
+
+版本配置位于 `scripts/build-all.js`，每个版本包含 `VUE_APP_BASE_API`、`VUE_APP_UPLOADS`、WebSocket 地址、`publicPath`、`outputDir` 和活动超时校验开关。
+
+活动超时校验规则：
+- `domestic-line`（国内产线正式环境）和 `vietnam-prod`（越南正式环境）自动设置为 `false`
+- 其余版本自动设置为 `true`
+
 ## Advanced
 
 ```bash

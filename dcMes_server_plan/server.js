@@ -12,7 +12,7 @@ const { QueueService } = require('./services/queueService');
 const { testRedisConnection } = require('./config/redis');
 
 // 获取端口配置
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 2228;
 
 // 服务器实例
 let server = null;

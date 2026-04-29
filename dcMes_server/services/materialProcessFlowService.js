@@ -23,7 +23,7 @@ const Redis = require("ioredis");
 const PERF_WARN_MS = Number(
   process.env.MATERIAL_PROCESS_FLOW_SLOW_MS || 1000,
 );
-const PERF_TRACE_ALL = true;
+const PERF_TRACE_ALL = process.env.MATERIAL_PROCESS_FLOW_TRACE_ALL === "true";
 const PERF_ACTIVE_WARN = Number(
   process.env.MATERIAL_PROCESS_FLOW_ACTIVE_WARN || 8,
 );
@@ -1045,8 +1045,12 @@ class MaterialProcessFlowService {
 
       const flowRecord = new MaterialProcessFlow(flowRecordData);
 
-      // 5. 保存记录
-      await trackPerf(perfMetrics, "saveMs", flowRecord.save());
+      // 5. 保存记录：流程节点由服务端统一构建，跳过大数组的重复 schema 校验以减少初始化耗时。
+      await trackPerf(
+        perfMetrics,
+        "saveMs",
+        flowRecord.save({ validateBeforeSave: false }),
+      );
 
       perfMetrics.totalMs = Date.now() - perfMetrics.startedAt;
       logPerfDetail("buildProcessNodes", perfTraceId, {
@@ -3491,11 +3495,16 @@ class MaterialProcessFlowService {
       // 4. 合并新旧节点时，需要特别处理未完成节点的情况
       const updatedNodes = [];
       const processedNodeIds = new Set();
+      // 已被旧节点消耗的新节点 ID 集合，防止同一新节点被多个旧节点重复匹配
+      const consumedNewNodeIds = new Set();
       let hasUnfinishedNodesDeleted = false; // 新增标记，用于跟踪是否有未完成的节点被删除
 
       // 处理所有旧节点（不仅是已完成的）
       for (const oldNode of flowRecord.processNodes) {
         const newNode = newProcessNodes.find((node) => {
+          // 已被其他旧节点消耗的新节点不能再次匹配
+          if (consumedNewNodeIds.has(node.nodeId)) return false;
+
           if (
             oldNode.nodeType === "PROCESS_STEP" &&
             node.nodeType === "PROCESS_STEP"
@@ -3512,9 +3521,11 @@ class MaterialProcessFlowService {
             );
           }
           if (oldNode.nodeType === "MATERIAL" && node.nodeType === "MATERIAL") {
+            // 必须同时匹配 slotIndex，避免同一物料多槽位时错误复用同一新节点
             return (
               node.materialId.toString() === oldNode.materialId.toString() &&
               node.level === oldNode.level &&
+              node.slotIndex === oldNode.slotIndex &&
               this.findParentProcessMatch(
                 flowRecord.processNodes,
                 newProcessNodes,
@@ -3527,6 +3538,8 @@ class MaterialProcessFlowService {
         });
 
         if (newNode) {
+          // 标记该新节点已被消耗，不允许再被其他旧节点匹配
+          consumedNewNodeIds.add(newNode.nodeId);
           // 保留节点的原有状态
           updatedNodes.push({
             ...newNode,

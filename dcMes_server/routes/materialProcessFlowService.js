@@ -106,7 +106,25 @@ router.post("/api/v1/create-flow", async (req, res) => {
       code: 200,
       message: "创建流程记录成功",
       success: true,
-      data: flowRecord,
+      data: {
+        _id: flowRecord._id,
+        barcode: flowRecord.barcode,
+        materialId: flowRecord.materialId,
+        materialCode: flowRecord.materialCode,
+        materialName: flowRecord.materialName,
+        materialSpec: flowRecord.materialSpec,
+        craftId: flowRecord.craftId,
+        craftVersion: flowRecord.craftVersion,
+        businessType: flowRecord.businessType,
+        status: flowRecord.status,
+        progress: flowRecord.progress,
+        productLineId: flowRecord.productLineId,
+        productLineName: flowRecord.productLineName,
+        productionPlanWorkOrderId: flowRecord.productionPlanWorkOrderId,
+        processNodeCount: Array.isArray(flowRecord.processNodes)
+          ? flowRecord.processNodes.length
+          : 0,
+      },
     });
   } catch (error) {
     const errorCode = matchErrorCode(error.message);

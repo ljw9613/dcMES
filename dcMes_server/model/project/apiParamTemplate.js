@@ -5,8 +5,8 @@ const apiParamTemplateSchema = new mongoose.Schema(
   {
     apiConfigId: { type: mongoose.Schema.Types.ObjectId, ref: "third_party_api_config", required: true },
     name: { type: String, required: true, maxlength: 50 },
-    // 1=Query 2=Body-form-data 3=Body-x-www-form-urlencoded
-    paramType: { type: Number, enum: [1, 2, 3], required: true },
+    // 1=Query 2=Body-form-data 3=Body-x-www-form-urlencoded 4=Body-JSON
+    paramType: { type: Number, enum: [1, 2, 3, 4], required: true },
     params: {
       type: [
         {

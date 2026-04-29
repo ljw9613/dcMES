@@ -10,7 +10,7 @@
  */
 const activityConfig = {
   // 是否启用活动时间过期校验
-  enabled: false,
+  enabled: process.env.VUE_APP_ACTIVITY_MONITOR_ENABLED !== 'false',
   
   // 会话超时时间（毫秒）- 15分钟
   sessionTimeout: 15 * 60 * 1000,

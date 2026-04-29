@@ -13,6 +13,8 @@ function resolve(dir) {
 }
 
 const name = defaultSettings.title || "德昌MES系统"; // page title
+const buildPublicPath = process.env.BUILD_PUBLIC_PATH || "/dcMesVN/";
+const buildOutputDir = process.env.BUILD_OUTPUT_DIR || "../dcMes_server/adminVN2";
 
 // If your port is set to 80,
 // use administrator privileges to execute the command line.
@@ -40,8 +42,8 @@ module.exports = {
   // publicPath: "/dcMesCs/",
   // outputDir: "../dcMes_server/adminCs",
   // 越南VN
-  publicPath: "/dcMesVN/",
-  outputDir: "../dcMes_server/adminVN2",
+  publicPath: buildPublicPath,
+  outputDir: buildOutputDir,
   // publicPath: "/dcMesManageVN/",
   // outputDir: "../dcMes_server/adminManageVN2",
   // publicPath: "/dcMesPzManageVN/",
